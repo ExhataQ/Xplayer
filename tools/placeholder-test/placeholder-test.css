@@ -1,0 +1,186 @@
+/* ==============================================================================
+   Placeholder Test — layout padding + skeleton generators + test-only borders
+   These rules are self-contained. Nothing here modifies the app.
+   ============================================================================== */
+
+/* Red border marks used only on this test page to show where icons/logos live. */
+.pt-icon-border {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid red;
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin: 0 4px;
+}
+
+.pt-search-border {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 46px;
+    border: 1px solid red;
+    border-radius: 26px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.pt-header {
+    padding: 0 20px;
+}
+
+.pt-header-left,
+.pt-header-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Hero skeleton */
+.pt-hero-cover {
+    width: clamp(150px, 15vw, 225px);
+    height: clamp(150px, 15vw, 225px);
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+    background: var(--cover-pending-bg);
+}
+
+.pt-hero-title {
+    width: 60%;
+    height: 56px;
+    border-radius: var(--radius-xs);
+    background: var(--cover-pending-bg);
+    margin-top: 4px;
+}
+
+.pt-hero-count {
+    width: 90px;
+    height: 14px;
+    border-radius: var(--radius-xs);
+    background: var(--cover-pending-bg);
+}
+
+/* Footer — matches the real app structure. Only overrides are the skeleton
+   content pieces (cover square, title/artist bars). */
+.pt-footer-cover {
+    width: 55px;
+    height: 55px;
+    border-radius: var(--radius-sm);
+    background: var(--cover-pending-bg);
+    flex-shrink: 0;
+}
+
+.pt-footer-title {
+    width: 100px;
+    height: 12px;
+}
+
+.pt-footer-artist {
+    width: 60px;
+    height: 10px;
+}
+
+/* Left panel skeleton rows use the app's real class names so the collapse
+   rules in src/css/styles.css apply automatically. */
+.pt-left-cover-skeleton {
+    width: 45px;
+    height: 45px;
+    background: var(--cover-pending-bg);
+}
+
+.left-panel-main-list .main-item-cover-wrapper {
+    border-radius: 0;
+}
+
+.pt-song-row .song-cover,
+.left-panel-main-item .main-item-cover-wrapper {
+    border-radius: 0;
+}
+
+.pt-left-title {
+    height: 12px;
+    width: 65%;
+}
+
+.pt-left-subtitle {
+    height: 10px;
+    width: 55%;
+}
+
+.left-panel-main-list .main-item-info {
+    gap: 8px;
+}
+
+.pt-song-row .song-cover {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    background: var(--cover-pending-bg);
+    border-radius: 0;
+}
+
+.pt-song-row .song-number-item {
+    font-size: 0;
+}
+
+.pt-number-placeholder {
+    width: 15px;
+    height: 15px;
+    border-radius: 4px;
+    background: var(--cover-pending-bg);
+    margin-left: 6px;
+}
+
+.pt-song-row {
+    grid-template-columns: 53px minmax(180px, 0.72fr) minmax(140px, 0.9fr) auto;
+}
+
+.pt-song-row .song-info {
+    width: min(240px, 100%);
+    flex: 0 1 240px;
+    gap: 9px;
+}
+
+.pt-song-row .song-info .skeleton-bar.title {
+    height: 10px;
+    width: 100%;
+    max-width: 135px;
+    border-radius: 4px;
+}
+
+.pt-song-row .song-info .skeleton-bar.artist {
+    height: 10px;
+    width: 72%;
+    max-width: 120px;
+    border-radius: 4px;
+}
+
+.pt-song-row .song-album .skeleton-bar {
+    height: 11px;
+    width: 55%;
+    max-width: 120px;
+    border-radius: 8px;
+}
+
+.pt-album-placeholder {
+    transform-origin: left center;
+    will-change: transform;
+}
+
+.pt-song-row .right-song-item .skeleton-bar.duration {
+    height: 11px;
+    width: 42px;
+    border-radius: 8px;
+    margin-right: -6px;
+}
+
+.pt-song-row .pt-action-placeholder,
+.pt-song-row .pt-more-placeholder {
+    width: 30px;
+    height: 30px;
+    opacity: 0;
+}

@@ -1,0 +1,265 @@
+// ==============================================================================
+// PLAYER STATE VARIABLES
+// ==============================================================================
+let playbackQueue = [];
+let currentQueueIndex = -1;
+let isShuffled = false;
+let shuffleMode = 'normal';
+let repeatMode = 0;
+let repeatVisualState = 0;
+let wasPlaying = false;
+let showRemainingTime = false;
+let searchTimeout = null;
+let currentView = 'all-songs';
+let lastPlaybackListId = 'all-songs';
+let searchQuery = '';
+let repeatFunctionalityActive = false;
+let lastPlayedSong = null;
+let lastPlayedSongStartTime = 0;
+let updateExternalScrollbarFn = function () {};
+let playbackHistoryStack = [];
+let historyNavigationIndex = -1;
+let isNavigatingHistory = false;
+let isManualPlay = false;
+let isPrevNavigation = false;
+let leftPanelFilterMode = 'all';
+let currentOpenFolderId = null;
+let currentOpenFolderName = '';
+let folderNavigationStack = [];
+let queueDisplayLimit = 50;
+let queueDisplayPageSize = 25;
+
+let previousRightPanelState = {
+    wasActive: false,
+    wasCollapsed: false,
+    wasTab: 'tags'
+};
+
+let advancedSettingsOpen = false;
+
+let lyricsPreScrollTop = 0;
+let lyricsPreView = null;
+
+let leftPanelCollapsed = localStorage.getItem('leftPanelCollapsed') === 'true';
+
+let rightPanelCollapsed = localStorage.getItem('rightPanelCollapsed') === 'true';
+if (localStorage.getItem('rightPanelCollapsed') === null) {
+    rightPanelCollapsed = false;
+    localStorage.setItem('rightPanelCollapsed', 'false');
+}
+
+let lastRightPanelStateBeforeQueue = {
+    wasCollapsed: false,
+    wasTab: 'tags'
+};
+// ==============================================================================
+// EXTENDED METADATA FIELDS
+// ==============================================================================
+const EXTENDED_METADATA_FIELDS = [
+    {
+        key: 'albumArtist',
+        label: 'Album Artist',
+        group: 'People',
+        defaultOn: true
+    },
+    {
+        key: 'conductor',
+        label: 'Conductor',
+        group: 'People',
+        defaultOn: true
+    },
+    {
+        key: 'remixer',
+        label: 'Remixer',
+        group: 'People',
+        defaultOn: true
+    },
+    {
+        key: 'discNumber',
+        label: 'Disc Number',
+        group: 'Structure',
+        defaultOn: true
+    },
+    {
+        key: 'discTotal',
+        label: 'Disc Total',
+        group: 'Structure',
+        defaultOn: true
+    },
+    {
+        key: 'trackTotal',
+        label: 'Track Total',
+        group: 'Structure',
+        defaultOn: true
+    },
+    {
+        key: 'label',
+        label: 'Label',
+        group: 'Publishing',
+        defaultOn: true
+    },
+    {
+        key: 'copyright',
+        label: 'Copyright',
+        group: 'Publishing',
+        defaultOn: false
+    },
+    {
+        key: 'isrc',
+        label: 'ISRC',
+        group: 'Identifiers',
+        defaultOn: false
+    },
+    {
+        key: 'musicBrainzTrackId',
+        label: 'MusicBrainz Track ID',
+        group: 'Identifiers',
+        defaultOn: false
+    },
+    {
+        key: 'musicBrainzAlbumId',
+        label: 'MusicBrainz Album ID',
+        group: 'Identifiers',
+        defaultOn: false
+    },
+    {
+        key: 'musicBrainzArtistId',
+        label: 'MusicBrainz Artist ID',
+        group: 'Identifiers',
+        defaultOn: false
+    },
+    {
+        key: 'musicBrainzReleaseGroupId',
+        label: 'MusicBrainz Release Group ID',
+        group: 'Identifiers',
+        defaultOn: false
+    },
+    {
+        key: 'bitrate',
+        label: 'Bitrate',
+        group: 'Technical',
+        defaultOn: false
+    },
+    {
+        key: 'sampleRate',
+        label: 'Sample Rate',
+        group: 'Technical',
+        defaultOn: false
+    },
+    {
+        key: 'channels',
+        label: 'Channels',
+        group: 'Technical',
+        defaultOn: false
+    },
+    {
+        key: 'bpm',
+        label: 'BPM',
+        group: 'Technical',
+        defaultOn: true
+    },
+    {
+        key: 'encoder',
+        label: 'Encoder',
+        group: 'Technical',
+        defaultOn: false
+    },
+    {
+        key: 'replayGainTrack',
+        label: 'ReplayGain (Track)',
+        group: 'Technical',
+        defaultOn: false
+    },
+    {
+        key: 'replayGainAlbum',
+        label: 'ReplayGain (Album)',
+        group: 'Technical',
+        defaultOn: false
+    },
+    {
+        key: 'comment',
+        label: 'Comment',
+        group: 'Misc',
+        defaultOn: true
+    },
+    {
+        key: 'lyrics',
+        label: 'Lyrics',
+        group: 'Misc',
+        defaultOn: false,
+        hidden: true
+    },
+    {
+        key: 'language',
+        label: 'Language',
+        group: 'Misc',
+        defaultOn: false
+    },
+    {
+        key: 'rating',
+        label: 'Rating',
+        group: 'Misc',
+        defaultOn: false
+    },
+    {
+        key: 'playCount',
+        label: 'Play Count',
+        group: 'Misc',
+        defaultOn: false
+    },
+    {
+        key: 'titleSort',
+        label: 'Title Sort',
+        group: 'Sort',
+        defaultOn: false
+    },
+    {
+        key: 'artistSort',
+        label: 'Artist Sort',
+        group: 'Sort',
+        defaultOn: false
+    },
+    {
+        key: 'albumSort',
+        label: 'Album Sort',
+        group: 'Sort',
+        defaultOn: false
+    }
+];
+
+// ==============================================================================
+// PLAYER ICON CONSTANTS
+// ==============================================================================
+const PLAY_ICON_HTML = '<img src="icons/play.svg" alt="" class="player-svg-icon">';
+const PAUSE_ICON_HTML = '<img src="icons/pause.svg" alt="" class="player-svg-icon">';
+// ==============================================================================
+// DOM ELEMENT REFERENCES
+// ==============================================================================
+let audioElement = document.getElementById('audio');
+
+let gaplessAudioElement = new Audio();
+gaplessAudioElement.preload = 'auto';
+
+let gaplessActiveElement = audioElement;
+
+function getActiveAudioElement() {
+    return gaplessActiveElement;
+}
+
+function getInactiveAudioElement() {
+    return gaplessActiveElement === audioElement
+        ? gaplessAudioElement
+        : audioElement;
+}
+const playButton = document.getElementById('play-btn');
+const shuffleButton = document.getElementById('shuffle-btn');
+const repeatButton = document.getElementById('repeat-btn');
+const repeatOneIndicator = document.getElementById('repeat-one');
+const currentTimeDisplay = document.getElementById('current-time');
+const totalTimeDisplay = document.getElementById('total-time');
+const searchInput = document.getElementById('search-input');
+const songListElement = document.getElementById('song-list');
+const rightPanelElement = document.getElementById('right-panel');
+const leftPanelElement = document.getElementById('left-panel');
+const tagsContentElement = document.getElementById('tags-content');
+const MIN_PLAY_TIME_TO_SAVE = 5;

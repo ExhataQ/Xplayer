@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExhataQ Shuffle Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 24px; max-width: 1100px; }
+        input, button { font-size: 16px; padding: 7px 9px; }
+        button { cursor: pointer; }
+        .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+        #results { white-space: pre-wrap; font-family: Consolas, monospace; line-height: 1.45; }
+        .run { margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #ccc; }
+        .pass { color: #16803c; }
+        .fail { color: #b42318; }
+    </style>
+</head>
+<body>
+    <h1>Shuffle Test</h1>
+    <p>This is a standalone tester. It uses the same shuffle algorithm from the player source.</p>
+
+    <div class="controls">
+        <label>
+            Items:
+            <input id="item-count" type="number" min="1" value="20">
+        </label>
+        <label>
+            Runs:
+            <input id="run-count" type="number" min="1" value="10">
+        </label>
+        <button id="run-test">Run test</button>
+        <button id="clear">Clear</button>
+    </div>
+
+    <div id="summary"></div>
+    <div id="results"></div>
+
+    <script>
+        const deletedSongIds = new Set();
+        const currentView = 'shuffle-test';
+    </script>
+    <script src="../src/js/10-playback.js"></script>
+    <script>
+        const results = document.getElementById('results');
+        const summary = document.getElementById('summary');
+
+        function makeTestSongs(count) {
+            return Array.from({ length: count }, (_, i) => ({ id: i + 1 }));
+        }
+
+        function runTest() {
+            const itemCount = Math.max(1, Number(document.getElementById('item-count').value) || 1);
+            const runCount = Math.max(1, Number(document.getElementById('run-count').value) || 1);
+            const songs = makeTestSongs(itemCount);
+            let passedRuns = 0;
+            let failedRuns = 0;
+            const output = [];
+
+            for (let run = 1; run <= runCount; run++) {
+                const order = createShuffleOrder(songs);
+                const seen = new Set(order);
+                const correctLength = order.length === itemCount;
+                const noDuplicates = seen.size === itemCount;
+                const noMissingItems = songs.every((song) => seen.has(song.id));
+                const passed = correctLength && noDuplicates && noMissingItems;
+
+                if (passed) passedRuns++;
+                else failedRuns++;
+
+                output.push(
+                    `<div class="run ${passed ? 'pass' : 'fail'}">` +
+                    `<strong>Run ${run}: ${passed ? 'PASS' : 'FAIL'}</strong>\n` +
+                    `${order.join(' → ')}\n` +
+                    `Length: ${correctLength ? 'OK' : 'WRONG'} | ` +
+                    `Duplicates: ${noDuplicates ? 'NONE' : 'FOUND'} | ` +
+                    `Missing: ${noMissingItems ? 'NONE' : 'FOUND'}</div>`
+                );
+            }
+
+            summary.innerHTML = `<strong>${passedRuns}/${runCount} runs passed.</strong> ` +
+                `${itemCount} items per run. ${failedRuns} failed.`;
+            results.innerHTML = output.join('');
+        }
+
+        document.getElementById('run-test').onclick = runTest;
+        document.getElementById('clear').onclick = () => {
+            summary.textContent = '';
+            results.innerHTML = '';
+        };
+
+        runTest();
+    </script>
+</body>
+</html>

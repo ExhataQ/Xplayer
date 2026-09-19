@@ -1,0 +1,123 @@
+/* ==========================================================================
+   Main View & Left Panel Placeholder Skeletons (from tools/placeholder-test)
+   ========================================================================== */
+
+/* Left Panel Skeletons */
+.left-panel-main-item.lazy-skeleton {
+    pointer-events: none;
+}
+.left-panel-main-item.lazy-skeleton .subfolder-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+}
+.left-panel-main-item.lazy-skeleton .main-item-cover-wrapper {
+    width: 45px;
+    height: 45px;
+    flex-shrink: 0;
+    border-radius: 0;
+}
+.left-panel-main-item.lazy-skeleton .ph-left-cover-skeleton {
+    width: 45px;
+    height: 45px;
+    background: var(--cover-pending-bg);
+    border-radius: 0;
+}
+.left-panel-main-list .main-item-cover-wrapper {
+    border-radius: 0;
+}
+.left-panel-main-list .main-item-info {
+    gap: 8px;
+}
+.left-panel-main-item.lazy-skeleton .main-item-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.left-panel-main-item.lazy-skeleton .skeleton-bar {
+    background: var(--cover-pending-bg);
+    border-radius: 4px;
+}
+.ph-left-title {
+    height: 12px;
+    width: 65%;
+}
+.ph-left-subtitle {
+    height: 10px;
+    width: 55%;
+}
+
+/* Main Song List Skeletons */
+.song-item.lazy-skeleton {
+    grid-template-columns: 53px minmax(180px, 0.72fr) minmax(140px, 0.9fr) auto;
+}
+.song-item.lazy-skeleton .song-cover {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    background: var(--cover-pending-bg);
+    border-radius: 0;
+}
+.song-item.lazy-skeleton .song-number-item {
+    font-size: 0;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.ph-number-placeholder {
+    width: 15px;
+    height: 15px;
+    border-radius: 4px;
+    background: var(--cover-pending-bg);
+    margin-left: 6px;
+}
+.song-item.lazy-skeleton .song-action-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.song-item.lazy-skeleton .song-info {
+    width: min(240px, 100%);
+    flex: 0 1 240px;
+    gap: 9px;
+}
+.song-item.lazy-skeleton .song-info .skeleton-bar.title {
+    height: 10px;
+    width: 100%;
+    max-width: 135px;
+    border-radius: 4px;
+}
+.song-item.lazy-skeleton .song-info .skeleton-bar.artist {
+    height: 10px;
+    width: 72%;
+    max-width: 120px;
+    border-radius: 4px;
+}
+.song-item.lazy-skeleton .song-album .skeleton-bar {
+    height: 11px;
+    width: 55%;
+    max-width: 120px;
+    border-radius: 8px;
+}
+.ph-album-placeholder {
+    transform-origin: left center;
+    will-change: transform;
+}
+.song-item.lazy-skeleton .right-song-item .skeleton-bar.duration {
+    height: 11px;
+    width: 42px;
+    border-radius: 8px;
+    margin-right: -6px;
+}
+.song-item.lazy-skeleton .ph-action-placeholder,
+.song-item.lazy-skeleton .ph-more-placeholder {
+    width: 30px;
+    height: 30px;
+    opacity: 0;
+}

@@ -1,0 +1,1376 @@
+2026-09-17
+src/js/10-playback.js
+- Added a shared play-or-resume helper that restarts playback from the current view when no active audio source or queue item remains.
+
+2026-09-18
+src/js/03-storage.js, src/js/08-panels.js, src/js/99-player.js, electron/preload.js, electron/window-manager.js, electron/main.js
+- Added a persistent Minimize to taskbar when closed setting.
+- The setting applies to both the custom close button and the native window close action.
+
+src/js/15-playback-controls.js
+- Routed the player and Windows taskbar play/pause buttons through the shared current-view playback helper so they work after library rebuilds, on launch, and after a queue finishes.
+
+tools/prompt.txt
+- Updated the playback file descriptions to document the shared current-view play-or-resume behavior.
+
+2026-09-16
+10-playback.js
+- Replaced the rolling shufflePool system with a stable shuffleOrder of song IDs plus shuffleIndex and shuffleSourceId.
+- Shuffle cycles now contain each eligible song once before starting a new cycle.
+- New cycles exclude the currently playing song when other songs are available, preventing an immediate boundary repeat.
+- Shuffle state is tied to the playback source and can skip deleted/missing songs without rebuilding the order prematurely.
+- Shuffle queue generation now consumes the stable order instead of repeatedly creating new random subsets.
+
+15-playback-controls.js
+- Shuffle on/off and repeat transitions now initialize or clear the new shuffle order instead of using shufflePool.
+
+06c-ui-widgets.js
+- Starting playback with the shuffle shortcut now consumes the stable shuffle order.
+
+tools/shuffle-test.html
+- Added a standalone visual shuffle tester where an item count and number of runs can be supplied and every generated order is checked for length, duplicates, and missing items.
+
+tools/tests/shuffle.test.js
+- Added automated tests for complete shuffle coverage, current-song exclusion, single-song behavior, and repeated large-library generations.
+
+2026-09-14
+04a-ui-render-core.js
+- buildSongItemHTML: inner controls (number cell, add-to-queue button, favorite button, more-info) now block ondblclick propagation so double-clicking them no longer triggers row playback.
+- Wrapped .song-action-buttons container with ondblclick="event.stopPropagation()".
+
+2026-09-14
+09-folders-playlists.js
+- handleLeftPanelCoverBtnClick: play button on left panel items now starts playback of that item's songs without switching the current view. Previously it called playViewFromLeftPanel which navigated to the clicked playlist/folder/album/artist.
+
+2026-09-14
+03-storage.js
+- movePlayedItemToTop: early-return when the item is pinned or already at index 0 of playedItemOrder, so the left panel no longer re-renders (and hover state no longer flickers) when playing a pinned item or an item already in the top position.
+
+2026-09-14
+06c-ui-widgets.js
+- initSongDragToLeftPanel (mouseup): fixed isOverLeftPanel detection when dropping onto empty left panel space. Previously it required a .left-panel-main-item under the cursor, so dropping on blank panel area (with the drag-panel-hover border visible) silently did nothing. Now checks whether the element under the cursor is inside #left-panel, so dragging a song to empty panel space correctly adds it to Liked Songs.
+
+2026-09-14
+06a-context-menus.js
+- buildContextMenu: rewrote the "Add to playlist" submenu template literals. The version in the source had broken ${ ... } interpolations (whitespace and newlines inside the braces) which produced invalid JS. Now uses clean single-line template literals for aId/bId and for the submenu item HTML.
+
+2026-09-14
+05-lazy-load.js
+- renderVisibleItems: call hideHoverHighlight() and reset hoveredSongIndex before replacing the song list DOM, so stale hover references to removed nodes are cleared.
+- doRender: call updateHoverHighlightAfterScroll() after every render/placeholders-settle path so the hover highlight is repositioned correctly against the newly rendered rows during virtual scroll.
+
+2026-09-14
+06c-ui-widgets.js
+- initSongDragToLeftPanel: dragging a song over a non-droppable left panel item (album, artist, all-songs, history, folder, special) now behaves the same as hovering empty panel space — the panel-level drop border is shown and dropping adds the song to Liked Songs. Previously the panel border was removed and nothing happened.
+- Mousemove: droppableLeftPanelItem filters out .drag-invalid items so they don't get .drag-hover, and the panel border falls through to show.
+- Mouseup: rawTargetItem is filtered through .drag-invalid so invalid targets become null and fall through to the Liked Songs branch.
+
+2026-09-14
+03-storage.js
+- Added folder-scoped pinned items storage: getFolderPinnedItemsMap, saveFolderPinnedItemsMap, getFolderPinnedItems, isItemPinnedInFolder, togglePinItemInFolder (localStorage key folderPinnedItems; per-folder array of pin ids).
+- buildFolderChildItems now uses getFolderPinnedItems(folderId) instead of the global getPinnedItems(), so pin sorting inside a folder is independent of the root panel.
+
+06a-context-menus.js
+- showLeftPanelItemContextMenu and showFolderContextMenu: when currentOpenFolderId is set, pin/unpin now targets the folder-scoped pinned list and the menu label changes to "Pin inside this folder" / "Unpin inside this folder" instead of "Pin to top" / "Unpin from top".
+
+2026-09-14
+04b-ui-render-views.js
+- renderFolderContents: subtitle now renders the pinned-indicator thumbtack icon when item.isPinned is true, matching the root left panel.
+
+06c-ui-widgets.js
+- initLeftPanelDragAndDrop: now folder-aware. Added isFolderContext, getActivePinList, saveActivePinList, isActivePinned helpers that switch between global pinnedItems and folder-scoped folderPinnedItems based on currentOpenFolderId.
+- updateDropTarget / onMouseUp / mousedown setup: use the active pin helpers, and inside a folder only pinned items are valid drop targets (folder-drop mode is disabled inside folders). Drag-reordering of pinned items inside a folder now works.
+
+2026-09-14
+03-storage.js
+- togglePinItemInFolder: no longer calls renderFolderContents unconditionally; delegates to new refreshLeftPanelAfterFolderPinChange(folderId), which rerenders the folder view when the folder is open, or rerenders the root left panel list (virtual or plain) when the folder is only shown expanded in the root.
+
+04b-ui-render-views.js
+- renderFolderContents: items now carry data-parent-folder="<folderId>" so context menu and drag code can determine which folder an item belongs to.
+
+05-lazy-load.js
+- buildLeftPanelItemAt: root left panel items now carry data-parent-folder="<parentKey>" (root items get "root").
+
+06a-context-menus.js
+- Added getContainingFolderIdFromEvent(event) — resolves the folder an item lives in from currentOpenFolderId or from the item's data-parent-folder attribute.
+- showLeftPanelItemContextMenu and showFolderContextMenu: use getContainingFolderIdFromEvent instead of currentOpenFolderId, so pinning items inside a folder works both when the folder is open and when its contents are shown expanded in the root view.
+
+06c-ui-widgets.js
+- initLeftPanelDragAndDrop: added dragFolderId captured on mousedown via getFolderIdForElement, and switched pin helpers to getActivePinListForFolder/saveActivePinListForFolder. Drag-reordering of pinned items inside folders now works in the root view too (when folder contents are expanded).
+
+2026-09-14
+06c-ui-widgets.js
+- initLeftPanelDragAndDrop: removed accidental duplicate block of getFolderIdForElement / getActivePinListForFolder / saveActivePinListForFolder helpers that appeared immediately after isActivePinned.
+- initSongDragToLeftPanel / onBlurCleanup: removed stray references to dragItem / dragItemId / dragItemType / dragItemPinId (which belong to initLeftPanelDragAndDrop); replaced with dragSongId = null so the blur cleanup no longer throws ReferenceError.
+
+04b-ui-render-views.js
+- renderLyricsView: fixed broken template literal in the synced variants section — the interpolation and surrounding markup were split across lines with stray whitespace and characters; replaced with a clean single-line `<div class="synced-variants-list">${rows}</div>` and restored the outer container.innerHTML closing backtick.
+
+2026-09-14
+07-views.js
+- openDetailView: restores the content-gradient-wrapper by removing the no-gradient class, so the subhero gradient reappears when navigating back to an album or artist view from settings.
+
+09-folders-playlists.js
+- openPlaylist: same fix — remove no-gradient from content-gradient-wrapper so the subhero gradient reappears when navigating back to a playlist from settings.
+
+2026-09-14
+styles.css
+- Added collapsed left panel rules: hide .left-panel-playing-icon, suppress .subfolder-row hover/active background, hide the cover play button and its hover overlay when .left-panel.collapsed is set.
+
+09-folders-playlists.js
+- Delegated .left-panel-cover-play-btn click handler: early-return when leftPanelCollapsed so play/pause cannot be triggered in collapsed mode.
+
+2026-09-14
+music_player.html
+- Added a collapsed-folder-back-btn button inside the left panel header, between the header title-group/folder-nav-bar wrapper and the create-playlist button. Hidden by default; shown via the .visible class when collapsed and inside a folder.
+
+styles.css
+- Removed the green playing ::after accent bar in collapsed left panel mode (that was the "green thing popping while playing").
+- Added .collapsed-folder-back-btn styles (hidden by default; shown when .left-panel.collapsed .collapsed-folder-back-btn.visible).
+- Added rule to hide the regular folder-nav-bar when the left panel is collapsed (avoids duplicate back buttons and long folder names).
+
+09-folders-playlists.js
+- openFolder: adds .visible to #collapsed-folder-back-btn when entering a folder.
+- closeFolder: removes .visible from #collapsed-folder-back-btn when leaving all folders (going back to root).
+
+2026-09-14
+music_player.html
+- Removed the inline style="display: none" from #collapsed-folder-back-btn; visibility is now controlled solely by the .visible class in CSS (inline style was overriding the CSS rule).
+
+styles.css
+- .collapsed-folder-back-btn: added transition, :active scale, and hover color/background overrides inside the collapsed context so the button visually matches the other header buttons.
+
+2026-09-14
+music_player.html
+- player-cover and album-art-image now have onerror fallbacks to PLACEHOLDER_IMAGE (with this.onerror=null to prevent loops) so broken cover URLs no longer leave the player and track-info panel blank.
+
+04a-ui-render-core.js
+- buildSongItemHTML: song-cover onerror now sets this.onerror=null before falling back to PLACEHOLDER_IMAGE, preventing potential infinite error loops.
+
+08-panels.js
+- updateAlbumArt: largeCover picks the first non-empty trimmed string among currentSong.largeCover, currentSong.cover, and PLACEHOLDER_IMAGE, so whitespace-only or non-string cover values fall back cleanly.
+
+10-playback.js
+- playSongFromQueue: player-cover src now uses the same "first non-empty trimmed string" guard before falling back to PLACEHOLDER_IMAGE.
+
+2026-09-14
+99-player.js
+- Added window.PLACEHOLDER_IMAGE = PLACEHOLDER_IMAGE so inline HTML event handlers (onerror/onload/onclick) can resolve the placeholder. Top-level const declarations are not visible from inline handlers because they live in script scope, not the global object.
+
+2026-09-14
+music_player.html
+- #player-cover and #album-art-image now use src="{{PLACEHOLDER_IMAGE}}" and onerror="this.onerror=null; this.src='{{PLACEHOLDER_IMAGE}}'" so the placeholder data URI is baked directly into the attribute at build time. Inline handlers no longer reference the PLACEHOLDER_IMAGE variable, which is not resolvable from inline HTML event handlers because it is a top-level const in player.js.
+
+music_player.py
+- generate_html_template: also substitutes {{PLACEHOLDER_IMAGE}} in the HTML template (previously only {{SONGS_COUNT}} was replaced).
+
+2026-09-14
+electron/main.js
+- Moved main window creation and window-state persistence into window-manager.js.
+- Moved loading/progress window handling into loading-window.js.
+- main.js now keeps application bootstrap and IPC handlers while using the extracted window modules.
+
+build/music_player.py
+- Added window-manager.js and loading-window.js to the Electron files copied into App.
+
+tools/prompt.txt
+- Updated the Electron file structure and file descriptions for the new window modules.
+- Updated the build-script description to reflect copying all Electron runtime files.
+
+electron/window-manager.js
+- Added main BrowserWindow creation and window-state load/save handling extracted from main.js.
+
+electron/loading-window.js
+- Added loading window creation, progress updates, and cleanup extracted from main.js.
+
+2026-09-14
+tools/prompt.txt
+- Updated the Electron folder tree to include window-manager.js and loading-window.js.
+2026-09-14
+electron/main.js
+- Replaced duplicated scanner-process logic in dropped-file import, download-and-scan, rebuild-from-folders, change-folder, and welcome-select-folder with scanner.js calls.
+- Preserved each caller's scan arguments, progress channels, result type, merge order, and rebuild folderMetadata updates.
+
+electron/scanner.js
+- Added shared scan child-process execution, stdout/stderr progress parsing, JSON extraction, player.js song merging, dropped-file scanning, downloaded-file scanning, folder rebuilds, and normal folder scans.
+- Preserved append order for dropped-file imports and prepend order for downloaded files.
+
+2026-09-14
+build/music_player.py
+- Added scanner.js to the Electron runtime files copied into App.
+
+tools/prompt.txt
+- Added scanner.js to the Electron structure and file descriptions.
+- Documented scanner.js as the shared scan orchestration layer while preserving per-entry-point behavior.
+
+
+2026-09-14
+electron/main.js
+- Moved music-folder configuration operations to music-folders.js while keeping dialog handling, scan orchestration, and loading-window control in main.js.
+- Kept rebuild-from-folders responsible for reading folders, running the scanner, and updating folder song counts after a successful scan.
+
+electron/scanner.js
+- Removed music-folder configuration and folderMetadata updates from rebuildFromFolders so scanner.js only handles scanning and scan results.
+
+electron/music-folders.js
+- Added music-folder configuration reading/writing, duplicate validation, folder removal, folder statistics, and rebuild song-count metadata updates.
+
+build/music_player.py
+- Added music-folders.js to the Electron runtime files copied into App.
+
+tools/prompt.txt
+- Added music-folders.js to the Electron structure and file descriptions.
+- Documented the boundary between folder configuration logic and scan/loading orchestration.
+
+
+2026-09-14
+electron/downloads.js
+- Added shared download-folder configuration access, download target selection, remote file downloading, filename collision handling, and download-folder reset.
+
+electron/file-operations.js
+- Added lyrics file open/save operations using the main window reference from window-manager.js.
+
+electron/window-manager.js
+- Added getMainWindow() and centralized ownership of the main window reference.
+
+electron/main.js
+- Delegated download-folder configuration, downloading, and lyrics file operations to dedicated modules while preserving renderer download progress and scanner-based download-and-scan behavior.
+build/music_player.py
+- Added downloads.js and file-operations.js to the Electron runtime files copied into App.
+tools/prompt.txt
+- Added downloads.js and file-operations.js to the Electron structure and file descriptions and documented their boundaries.
+
+
+2026-09-14
+electron/main.js
+- Moved welcome-select-folder IPC registration outside the first-run needsSetup branch so the channel is registered consistently while preserving its first-run behavior.
+- Routed the welcome-folder scan through scanner.js scanFolder() instead of keeping a separate inline scan implementation.
+tools/prompt.txt
+- Documented main.js ownership of the first-run welcome-select-folder IPC flow.
+
+2026-09-14
+tools/prompt.txt
+- Updated the renderer architecture documentation to match the current split files 04a-ui-render-core.js, 04b-ui-render-views.js, 06a-context-menus.js, 06b-modals.js, and 06c-ui-widgets.js instead of the older combined file names.
+- Kept the current Electron architecture and Phase 5 welcome-select-folder/scanner boundaries documented.
+
+2026-09-15
+electron/scanner.js
+- Extracted pure JSON-array/object parsing and append/prepend song-merge helpers from scan-process orchestration.
+- Kept dropped-file scans append-only and downloaded-file scans prepend-first while preserving duplicate URL filtering and id assignment.
+
+electron/music-folders.js
+- Extracted pure folder duplicate, removal, and song-count helpers for direct unit testing.
+- Normalized folder removal with Windows path semantics and prevented sibling paths such as C:\\Music-other from being counted inside C:\\Music.
+
+src/js/03-storage.js
+- Added guarded getStoredJson() parsing and routed localStorage JSON reads through it so malformed stored arrays fall back safely instead of throwing during normal storage access.
+
+electron/package.json
+- Added a zero-dependency Node built-in test script using node --test.
+
+electron/tests/scanner.test.js
+- Added unit tests for scanner JSON extraction, append/prepend ordering, duplicate filtering, and empty input handling.
+
+electron/tests/music-folders.test.js
+- Added unit tests for folder duplicate detection, normalized removal, and song-count path boundaries.
+
+electron/tests/storage.test.js
+- Added tests for malformed and valid renderer localStorage JSON using a minimal VM/localStorage harness.
+
+tools/prompt.txt
+- Documented the new pure scanner/folder helpers, guarded storage parsing, Node test command, and Electron test files.
+- Updated the build-template script list to match the current split renderer architecture.
+
+
+2026-09-15
+
+electron/package.json
+- Updated the npm test command to run the permanent test suite from tools/tests/.
+
+tools/tests/scanner.test.js
+- Moved the scanner unit tests from electron/tests/ into the project-wide tools/tests/ directory.
+
+tools/tests/music-folders.test.js
+- Moved the music-folder unit tests from electron/tests/ into the project-wide tools/tests/ directory.
+
+tools/tests/storage.test.js
+- Moved the storage unit tests from electron/tests/ into the project-wide tools/tests/ directory.
+
+tools/prompt.txt
+- Documented tools/tests/ as the permanent automated test suite location and updated the npm test command description.
+
+tools/tests/scanner.test.js
+tools/tests/music-folders.test.js
+- Updated test module paths after moving the suite so the tests load Electron modules from electron/ correctly.
+
+2026-09-15
+src/js/19-online-lyrics.js
+electron/online-lyrics.js
+electron/main.js
+electron/preload.js
+src/js/04b-ui-render-views.js
+src/js/07-views.js
+src/css/styles.css
+build/music_player.py
+tools/prompt.txt
+- Added an online lyrics/LRC feature backed by LRCLIB.
+- Added a dedicated Online Lyrics view with automatic current-song search, editable artist/title/album fields, direct result display, preview, and actions to use, copy, or download plain lyrics and synced LRC.
+- Added Electron IPC and a main-process LRCLIB client so network requests and downloads stay outside the renderer.
+- Reused the existing lyrics storage system for selected online lyrics/LRC and the existing configured download folder for downloaded files.
+- Added the new renderer script to the build and documented the feature and architecture in prompt.txt.
+
+2026-09-15
+src/js/19-online-lyrics.js
+tools/change.log.txt
+- Added safe HTML-attribute escaping for editable online-lyrics search fields.
+
+
+2026-09-15
+build/music_player.html
+tools/change.log.txt
+- Fixed the generated renderer HTML to load js/19-online-lyrics.js before player.js. The build script was copying the new renderer file but the HTML template was not including its script tag, causing openOnlineLyricsView to be undefined in the built app.
+
+
+2026-09-15
+electron/online-lyrics.js
+src/js/19-online-lyrics.js
+src/css/styles.css
+tools/prompt.txt
+- Updated online lyrics search to include the exact LRCLIB match first while also retrieving the other LRCLIB search matches, allowing multiple lyric/LRC versions of the same song to be reviewed.
+- Added local result pagination with 10 results per page and Previous/Next navigation until the returned result set is exhausted.
+- Reset online-lyrics pagination when starting a new search and clear the expanded result when changing pages.
+- Documented the LRCLIB result limit and renderer-side pagination behavior in prompt.txt.
+
+
+2026-09-15
+src/js/19-online-lyrics.js
+src/css/styles.css
+tools/change.log.txt
+- Made lyric-type badges clickable so Synced LRC and Lyrics open their respective content.
+- Made the expanded result toggle closed when its header is clicked again.
+- Fixed the result action buttons to stop header/event propagation and work reliably.
+- Added LRC/Lyrics tabs inside expanded results and reset the selected type on new searches/page changes.
+
+2026-09-15 — Added a global Lyrics / LRC Search button beside Play from URL in the header. It uses the existing online-lyrics view, pre-fills the currently playing song when available without automatically searching, and leaves the fields empty when no song is playing. Reused the existing header button sizing, spacing, hover behavior, icon scale, and native tooltip treatment. Added openOnlineLyricsSearchView() while preserving the Lyrics-view entry point's automatic current-song search behavior.
+
+2026-09-15: Fixed direct global Lyrics / LRC header entry. The online lyrics renderer now creates its own lyrics-view-root when opened before the regular Lyrics view has initialized it, so the global search works from a fresh app state.
+
+
+2026-09-15
+electron/online-lyrics.js
+tools/prompt.txt
+tools/change.log.txt
+- Improved LRCLIB reliability by retrying temporary HTTP/network failures with short backoff delays. Exact-match failures no longer prevent the broader search from running. Searches using only one field now use LRCLIB's broad q query instead of sending an incomplete /api/get request, so Artist-only, Title-only, or Album-only searches are supported.
+
+
+2026-09-15
+03-storage.js
+- createPlaylist now adds the new playlist to currentOpenFolderId when a folder is open, instead of the root panel
+
+06b-modals.js
+- confirmCreatePlaylist refreshes folder contents when inside a folder
+- confirmCreateFolder no longer double-renders root views when inside a folder, and only calls addToFolder once
+
+2026-09-15
+19-online-lyrics.js
+- Added fromHeader flag to onlineLyricsState, set when the view opens without a playing song
+- Added searched flag, set once a search has been submitted
+- Removed Back to Lyrics button when opened from the header
+- Neutral prompt shown before the first search instead of No results found
+- Split album into its own cell in each result header
+
+styles.css
+- Widened the result grid to fit the album column
+- Added .online-lyrics-result-album styling and right-aligned the duration
+- Responsive override hides the album column below 900px
+
+2026-09-15
+19-online-lyrics.js
+- Removed the duplicate inner LRC / Lyrics tab row from the expanded preview; the badges row above the card now handles switching
+
+styles.css
+- Styled the online lyrics preview scrollbar to match the app's custom thumb
+- Removed the unused preview tab styles
+
+2026-09-15
+19-online-lyrics.js
+- Swapped the artist and album cells in each result row so the order is now title, artist, album
+- Swapped the search panel input order to title, artist, album so the placeholders line up with the result row
+
+styles.css
+- Swapped the album and artist grid column widths to match the new result row order
+
+2026-09-15
+19-online-lyrics.js
+- Renamed selectOnlineLyricsResult to openOnlineLyricsResult and added closeOnlineLyricsResult
+- Collapsed result cards now open on any click inside the card
+- Expanded result cards can only be collapsed by clicking the chevron
+- Use LRC and Use Lyrics buttons are hidden when the view was opened from the header
+- Album placeholder no longer says optional
+
+styles.css
+- Collapsed result cards show a pointer cursor; expanded cards do not
+
+2026-09-15
+19-online-lyrics.js
+- Replaced the artist / title / album inputs with a single query input prefilled with title and artist
+- searchOnlineLyrics now sends a single query string to the main process
+- Dropped duration parsing and formatting helpers; removed the duration column from each result
+- Removed the em dash fallback for missing album names
+
+online-lyrics.js
+- searchLyrics now always uses /api/search with a single q parameter
+- Removed exact-match lookup and duration handling
+
+styles.css
+- Result grid is now title, artist, album, chevron
+- Removed duration column styling
+- Responsive override collapses to title plus chevron
+
+2026-09-15
+19-online-lyrics.js
+- Reverted the single query input back to separate artist / title / album inputs
+- Restored duration parsing and the duration column in results
+- Restored the em dash fallback for missing album names
+
+online-lyrics.js
+- Restored the /api/get exact-match lookup and duration handling
+
+styles.css
+- Restored the duration column in the result grid
+- Restored the responsive override
+
+2026-09-15
+19-online-lyrics.js
+- Added originalQuery, pickerOpen, pickerQuery, pickerIndex and pickerType to state
+- Stored the initial title/artist/album from the playing song when the view opens
+- Added hasOnlineLyricsQueryChanged helper
+- Split useOnlineLyrics into useOnlineLyrics and applyOnlineLyricsToSong
+- Added openOnlineLyricsPicker, closeOnlineLyricsPicker, renderOnlineLyricsPicker, updateOnlineLyricsPickerList, getOnlineLyricsPickerSongs, chooseOnlineLyricsSong, handleOnlineLyricsPickerInput, onlineLyricsPickerKeyHandler
+- Result card primary action now reads Save LRC to a song / Save Lyrics to a song when opened from the header, and Use LRC for this song / Use Lyrics for this song when opened from the lyrics view and the search query has changed
+
+styles.css
+- Added picker overlay and modal styles for the song picker
+
+2026-09-15
+19-online-lyrics.js
+- Reworked the online lyrics song picker to open as a context-menu-style floating popup anchored to the clicked button instead of a full-screen modal overlay
+- Added onlineLyricsPickerOutsideHandler for click-outside dismissal and updated closeOnlineLyricsPicker to clean up the document listener
+- Rewrote getOnlineLyricsPickerSongs with token-aware matching: separators like -, en dash, em dash, comma, by, feat, ft and with are ignored; all query tokens must appear somewhere in title/artist/album; results are scored by whether tokens hit the title or artist, and sorted by score
+
+styles.css
+- Replaced the picker modal and overlay styles with .online-lyrics-picker floating popup styles
+
+2026-09-15
+19-online-lyrics.js
+- openOnlineLyricsPicker now builds the picker inline using the same positioning logic as the app's context menu system: hidden measure, flip horizontally when overflowing right, flip vertically when overflowing bottom, clamp to 7px margins, active class applied after 10ms
+- renderOnlineLyricsPicker now delegates to openOnlineLyricsPicker
+- Added a window resize listener that repositions the open picker the same way the context menu does
+
+styles.css
+- .online-lyrics-picker now layers on top of .context-menu styling with a fixed 340px width, flex column layout, and an .active override so the flex layout persists when the menu is shown
+
+2026-09-15
+19-online-lyrics.js
+- Restored getOnlineLyricsPickerSongs that was lost during the picker rewrite; it was causing updateOnlineLyricsPickerList to throw and preventing the outside-click handler from being registered
+
+2026-09-15
+19-online-lyrics.js
+- Added pickerSelectedSongId to online lyrics state and reset it on open
+- openOnlineLyricsPicker now builds a footer with Cancel and Save to song buttons, calls updateScrollbarById after the initial list render, and switches the outside-click dismissal to capture-phase click instead of mousedown
+- closeOnlineLyricsPicker now also clears pickerSelectedSongId and removes the click-phase outside handler
+- chooseOnlineLyricsSong replaced by selectOnlineLyricsPickerSong plus confirmOnlineLyricsPicker; clicking a row marks it selected instead of applying, and confirmOnlineLyricsPicker applies the lyrics to the selected song
+- Added updateOnlineLyricsPickerConfirmButton to enable the Save to song button only when a row is selected
+
+styles.css
+- Added picker footer and selected-row styling
+- Added padding to the picker list content wrapper and gave the list container flex sizing so the custom scrollbar can render properly
+
+2026-09-15
+styles.css
+- Gave the online lyrics picker's list container a bounded flex height (flex 1 1 0 plus height 0) so the custom scrollbar has overflow to detect and can actually scroll
+- Made .online-lyrics-picker.active a proper flex column with hidden overflow
+- Anchored the picker footer to the bottom with flex 0 0 auto and margin-top auto
+- Changed the picker search bar to flex 0 0 auto so it never squishes
+
+2026-09-15
+styles.css
+- Removed the height 0 clamp on the online lyrics picker list container; it was collapsing the visible content area to zero while leaving the scrollbar thumb visible
+- The picker now relies on flex 1 1 auto plus min-height 0 so the inner scroll area gets a real height
+- Set box-sizing border-box on the picker root
+- Made the picker's queue list a plain block so it doesn't fight the scroll wrapper
+
+2026-09-15
+19-online-lyrics.js
+- openOnlineLyricsSearchView now defaults song to null; only the lyrics view passes the currently playing song, so opening from the header no longer assumes fromHeader false when a song is playing
+- Added clearOnlineLyricsSearchInputs to reset the three search inputs and clear results
+- Added a Clear button to the online lyrics search panel
+
+styles.css
+- The online lyrics search panel grid now has five columns to fit the new Clear button
+
+2026-09-15
+19-online-lyrics.js
+- The online lyrics picker no longer uses the context-menu class; it has its own root class, sets display flex inline, and no longer fights the .context-menu.active rule for display
+
+styles.css
+- The online lyrics picker now has its own background, radius, shadow and a fixed position so it no longer needs the .context-menu class
+- Removed the obsolete .online-lyrics-picker.active override
+
+2026-09-15
+19-online-lyrics.js
+- Added onlineLyricsPickerMouseDownOutside and onlineLyricsPickerMouseDownHandler so the picker only closes when both the mousedown and the click happened outside the picker
+- closeOnlineLyricsPicker now removes the mousedown handler and resets the outside flag
+
+06a-context-menus.js
+- Added contextMenuMouseDownOutside tracking so the global context menu only closes when the mousedown also landed outside the menu
+- closeContextMenu resets the flag
+
+styles.css
+- Picker rows now use the context menu hover overlay colour for stronger contrast
+
+2026-09-15
+styles.css
+- Picker row selection now sits above the hover effect and uses a brighter white overlay
+- Selected picker rows show white title and artist text to match the main song list
+
+2026-09-15
+styles.css
+- Raised the online lyrics picker to z-index 100080 so it floats above the sync editor, extended info panel, image viewer, and online lyrics view
+- Raised the context menu to z-index 100050 and its submenus to 100060 so both menus sit above the same surfaces
+
+2026-09-15
+19-online-lyrics.js
+- Removed the duplicate picker state assignment in openOnlineLyricsPicker
+- Removed the unused renderOnlineLyricsPicker delegate
+- Removed the unused getOnlineLyricsCurrentResult
+- Declared onlineLyricsPickerMouseDownOutside at module scope
+- Added searched: false to the fresh state object for clarity
+
+2026-09-15
+08-panels.js
+- toggleSettingsPanel now tears down the lyrics view when the current view is online-lyrics as well as lyrics
+
+2026-09-15
+08-panels.js
+- Added showCurrentSourceContextMenu; right-clicking the right-panel header title in tags mode now opens that list's own context menu (All Songs, Liked Songs, Recents, playlist, album, or artist)
+- updateRightPanelHeader now sets or clears the oncontextmenu attribute on the header title depending on the active tab
+- updateAlbumArt keeps the oncontextmenu binding in sync when the tags tab is active and the source name changes
+
+2026-09-15
+music_player.html
+- Replaced the tags content layout: album art stays, followed by a track-info header (large clickable title + info button, clickable artist below) and a single labeled-rows box for Album, Year, Genre, Duration, Track, Composer
+
+08-panels.js
+- updateAlbumArt now writes plain text into the new tag elements; removed the tag-track-row visibility toggle since the row is always shown
+- The empty-state branch resets all fields to an em dash
+
+styles.css
+- Replaced the old tag-tile and tag-grid styles with the new track-info header, title, artist, box, and row styles
+- Added display flex to track-info-btn
+
+2026-09-15
+styles.css
+- Removed the divider between track-info rows
+- Increased row padding to 14px
+- Added .track-info-box-title style
+
+music_player.html
+- Added an Info title inside the track-info box
+
+2026-09-15
+music_player.html
+- Track info rows now render value first, label second so the label sits below the value
+
+08-panels.js
+- updateAlbumArt binds oncontextmenu on the tag title and artist to open the song context menu, and clears those handlers when no song is playing
+
+styles.css
+- Track info values are larger and bolder, rows are right aligned with the label below the value
+- Info box title is larger and brighter
+
+2026-09-15
+08-panels.js
+- updateAlbumArt writes empty strings for missing tag values and calls updateTrackInfoBoxVisibility
+- Added updateTrackInfoBoxVisibility to hide empty info rows and collapse the whole info box when no rows have values
+
+styles.css
+- Info rows are now left aligned
+
+2026-09-15
+08-panels.js
+- When no song is playing, the track info header block is hidden entirely and tag values are cleared instead of showing em dashes
+- updateAlbumArt restores the header when a song is loaded
+
+styles.css
+- Info rows use tighter vertical padding and gap
+- Larger gap between the header block and the info box
+
+2026-09-15
+styles.css
+- Info box title is now 100% white and 800 weight
+- Value rows are 95% white and 600 weight
+- Labels are less white (70%) and 500 weight
+
+2026-09-15
+styles.css
+- Track info box background now uses the same --bg-modal colour as the context menu
+
+2026-09-15
+music_player.html
+- Added a Next in queue box below the info box in the right panel tags view, with an Open queue button and a track-next-body container
+
+08-panels.js
+- Added updateTrackNextBox to populate the next-in-queue item or hide the box when there is no next song
+- updateAlbumArt calls updateTrackNextBox in both the populated and empty branches
+
+10-playback.js
+- updateQueueDisplay calls updateTrackNextBox so the box updates when the queue changes
+
+styles.css
+- Styled the next-in-queue box, its header, the Open queue button, and the song item to match the info box
+
+2026-09-15
+08-panels.js
+- updateTrackNextBox now wires the row and cover play button to playFromQueue for the next index
+
+styles.css
+- Added hover background, cover overlay, and hidden-until-hover play button to the next-in-queue item, mirroring the left panel rows
+- Matched the title and artist padding to the queue-item styles for visual consistency
+
+2026-09-15
+styles.css
+- Open queue button is now underlined
+- Next-in-queue box background switched to --bg-hover
+- Next-in-queue row hover uses a light white overlay so it stands out against the box background without matching the picker selection level
+
+2026-09-15
+styles.css
+- Next-in-queue row hover overlay reduced to 5% white2026-09-15
+music_player.html
+- Info box rows split into two columns: Album / Year / Composer on the left, Genre / Duration / Track on the right
+
+08-panels.js
+- updateTrackInfoBoxVisibility now also hides a column when all of its rows are hidden
+
+styles.css
+- Added track-info-columns grid and track-info-column wrapper styles
+
+2026-09-15
+music_player.html
+- Info box rows are now a single flat grid of rows driven by data-layout; removed the two hardcoded columns
+
+08-panels.js
+- updateTrackInfoBoxVisibility now toggles data-layout to single or double based on how many rows have values (5+ rows uses two columns)
+
+styles.css
+- track-info-columns uses CSS grid with data-layout to switch between 1 and 2 columns
+- Removed the track-info-column wrapper style
+
+2026-09-15
+08-panels.js
+- updateTrackInfoBoxVisibility now uses three layouts: two-side for exactly 2 items, double for 5 or 6 items, single otherwise
+
+styles.css
+- Added track-info-columns[data-layout='two-side'] for two items side by side in one row
+
+2026-09-15
+08-panels.js
+- updateRightPanelHeader now guards against missing header title and recently-played-text elements, fixing a null textContent error during startup
+- Removed the duplicated focusSubheroSearch, clearSubheroSearch, handleSubheroSearchBlur, performSubheroSearch, focusLeftPanelSearch, clearLeftPanelSearch, handleLeftPanelSearchBlur, and performLeftPanelSearch blocks at the bottom of the file
+
+2026-09-15
+08-panels.js
+- updateTrackInfoBoxVisibility now uses four-grid layout for exactly 4 visible items
+
+styles.css
+- Added track-info-columns[data-layout='four-grid'] for 2 columns by 2 rows
+
+2026-09-15
+music_player.html
+- Added a compact lyrics box between the Info box and the Next in queue box in the right panel tags tab, with a header (title and Open button), a scrollable body with custom scrollbar, and a footer containing a Sync button and an expand chevron
+
+08-panels.js
+- Added renderTrackLyricsBox, applyTrackLyricsExpandedState, toggleTrackLyricsExpand, updateTrackLyricsHighlight, seekTrackLyricsToLine, scrollTrackLyricsToActive, attachTrackLyricsScrollWatcher, showTrackLyricsSyncButton, hideTrackLyricsSyncButton, clearTrackLyricsBox, and getTrackLyricsForCurrentSong
+- updateAlbumArt now calls renderTrackLyricsBox when a song plays and clearTrackLyricsBox when nothing plays
+
+15-playback-controls.js
+- audioElement.ontimeupdate now also calls updateTrackLyricsHighlight if available
+
+styles.css
+- Added compact lyrics box styles with collapsed and expanded heights, custom scrollbar, active-line styling, and the Sync and expand buttons
+
+2026-09-15
+styles.css
+- Compact lyrics box collapsed height set to 58px (about 2 lines) and expanded height to 240px (about 10 to 12 lines)
+- The lyrics scroll content now fills its container so the collapse actually clips the text
+- Synced lyrics lines on hover are larger, underlined, and use 92% white instead of full white
+
+2026-09-15
+styles.css
+- Compact lyrics text is now 15px and 92% white by default
+- Synced inactive lines are 72% opacity instead of 55%
+- Removed the hover font-size change; hover only underlines and brightens to 98% white
+
+2026-09-15
+08-panels.js
+- Added trackLyricsUserScrolledAway flag; updateTrackLyricsHighlight now auto-scrolls to the active line when the user hasn't scrolled away
+- scrollTrackLyricsToActive accepts a silent flag so auto-scroll doesn't dismiss the Sync button
+- The scroll watcher sets or clears the scrolled-away flag and toggles the Sync button accordingly
+- Reset the scrolled-away flag when a new song loads and when the box is cleared
+
+styles.css
+- Sync button is larger and centered in the footer; the expand chevron is absolutely positioned to the right
+
+2026-09-15
+styles.css
+- Sync button is now absolutely positioned at the horizontal center, 44px above the bottom of the lyrics box, with a soft shadow
+- Expand chevron is right-aligned via the footer flex
+- Compact lyrics text bumped to 18px
+
+2026-09-15
+styles.css
+- Lyrics line-height dropped to 1.2 so wrapped continuations group tightly with their lyric line
+- Row margin between separate lyric lines raised to 8px to keep distinct lines separated
+
+2026-09-15
+18-lyrics-editor.js
+- setLyricsForSong, setSyncedLyricsForSong, and clearSyncedLyricsForSong now call renderTrackLyricsBox when the edited song is the currently playing one
+
+08-panels.js
+- renderTrackLyricsBox resets the scroll position to the top on re-render
+- Added attachTrackLyricsWheelGuard so the wheel event stops propagating to the right panel when the lyrics box is at its top or bottom
+- deleteSavedLyricsEntry now also refreshes the compact lyrics box when the deleted lyrics belonged to the playing song
+
+2026-09-15
+08-panels.js
+- attachTrackLyricsWheelGuard now uses passive: false and calls preventDefault in addition to stopPropagation, so overscrolling the lyrics box no longer scrolls the right panel
+
+2026-09-15
+08-panels.js
+- Added getHideRightPanelLyrics, setHideRightPanelLyrics, and toggleHideRightPanelLyrics backed by the hideRightPanelLyrics localStorage key
+- openSettingsPanel now syncs the new checkbox with the stored value
+- renderTrackLyricsBox now hides the box entirely when the setting is enabled
+- Settings panel now shows a Right Panel section below Theme Color with a Remove right panel lyrics checkbox
+
+styles.css
+- Added .settings-toggle-row for checkbox rows
+2026-09-15
+- Added right-panel Metadata editor view opened from the edit button beside the Info title.
+- Added Electron IPC and Python/mutagen backend for reading and writing common audio metadata.
+- Metadata edits are written to the audio file and mirrored into the deployed SONGS_DATA database.
+- Added metadata editor renderer, styling, and build packaging.
+
+2026-09-15
+electron/main.js
+electron/preload.js
+src/js/20-metadata-editor.js
+src/css/styles.css
+build/music_player.py
+- Added ExhataQ JSON metadata import/export for the Metadata Editor.
+- Export writes the current editor values to a versioned .exhataq.json file.
+- Import accepts ExhataQ metadata JSON and populates the editor for review before saving.
+- JSON metadata can be applied to any supported destination audio format because the existing mutagen writer selects the destination format automatically.
+- Added compact Import and Export controls to the right-panel Metadata toolbar.
+
+2026-09-15
+src/js/20-metadata-editor.js
+electron/main.js
+src/css/styles.css
+- Metadata editor now immediately displays the metadata already present in the selected song instead of showing a loading message.
+- Existing scanner field aliases such as titleSort, artistSort, albumSort, and encoder are mapped into the editor.
+- If direct audio metadata reading fails, the editor keeps the existing song metadata visible instead of replacing the view with an empty/error state.
+- Metadata editor loading state was removed so the panel remains a plain background until the editor content is ready.
+- JSON metadata export now uses ordinary .json filenames and the import/export dialogs use the standard JSON file label.
+
+2026-09-15
+src/js/20-metadata-editor.js
+- Fixed metadata loading so backend results no longer replace already-visible song metadata with empty values.
+- Apply loaded metadata directly to existing fields instead of rebuilding the editor, preventing the visible fields from being flushed during the async read.
+
+2026-09-15
+electron/metadata-editor.py
+- Fixed metadata saving for ID3 files by always constructing proper Mutagen Frame objects instead of assigning plain strings to ID3 tags.
+- Fixed text, multi-value, track/disc, comment, and TXXX metadata writes and added standard ID3 sort-frame handling.
+- Metadata imported from JSON and manually edited metadata now use the same corrected save path.
+
+2026-09-15
+electron/metadata-editor.py
+- Fixed ID3 detection to inspect the Mutagen tag object rather than the container audio object, so MP3 metadata writes use real ID3 Frame instances.
+- This fixes manual and imported metadata saves that previously failed with "not a frame instance" errors.
+
+2026-09-15
+14-song-navigation.js
+- Added applyScrollToSong: computes and applies the scroll position for a song in both virtual-scroll and plain lists, and returns whether the scroll landed.
+- scrollToSongInCurrentView: retries applyScrollToSong across requestAnimationFrame frames until the scroll sticks, so it works even when the list height isn't ready on the first frame.
+- switchToViewAndScroll: scrolls synchronously right after the view switch so the destination view paints directly at the song's position instead of flashing the top of the list first.
+
+tools/prompt.txt
+- Updated the 14-song-navigation.js function list to include applyScrollToSong.
+
+2026-09-15
+styles.css
+- track-lyrics-box is now dimmed (opacity 0.35, grayscale 0.7) and inert (pointer-events none, no user-select) while body.in-lyrics-view is set.
+
+07-views.js
+- switchView: while the lyrics view is not active, the compact lyrics body scroll position is reset to 0 alongside the existing in-lyrics-view class removal.
+
+2026-09-15
+styles.css
+- track-lyrics-box is now fully hidden (opacity 0) and inert (pointer-events none, no user-select) while body.in-lyrics-view is set.
+
+08-panels.js
+- updateTrackLyricsHighlight and scrollTrackLyricsToActive now early-return while the big lyrics view is open so the compact box does nothing in the background.
+
+2026-09-15
+styles.css
+- track-lyrics-box now uses filter: blur(4px) instead of opacity 0 while body.in-lyrics-view is set, keeping the box visible but out of focus.
+
+08-panels.js
+- Reverted the in-lyrics-view early-returns in updateTrackLyricsHighlight and scrollTrackLyricsToActive.
+
+2026-09-15
+styles.css
+- Moved the in-lyrics-view treatment from .track-lyrics-box to .track-lyrics-text and reduced the blur from 4px to 2px, so only the lyric lines blur while the header and footer stay sharp.
+
+08-panels.js
+- scrollTrackLyricsToActive now early-returns while the big lyrics view is open so the compact lyrics box no longer auto-scrolls.
+
+2026-09-15
+08-panels.js
+- updateTrackLyricsHighlight now early-returns while the big lyrics view is open so the compact lyrics box keeps its highlight frozen.
+
+2026-09-15
+08-panels.js
+- applyTrackLyricsExpandedState now forces the collapsed state while body.in-lyrics-view is set.
+- toggleTrackLyricsExpand now early-returns while the big lyrics view is open so the expand chevron does nothing.
+
+2026-09-15
+07-views.js
+- switchView now calls applyTrackLyricsExpandedState when the lyrics-view class is toggled so the compact lyrics box collapses immediately on entering the big lyrics view.
+
+2026-09-15
+07-views.js
+- switchView now calls applyTrackLyricsExpandedState on both entering and leaving the lyrics view and refreshes the compact lyrics scrollbar after the height transition, so the box expands/collapses smoothly and reposition correctly.
+
+2026-09-15
+04b-ui-render-views.js
+- renderLyricsView no longer renders the Multi-song finder button in its footer.
+
+19-online-lyrics.js
+- renderOnlineLyricsView now shows a header actions column on the right with Back to Lyrics (when applicable) stacked above a new Find for multiple songs button that calls openSmartLyricsFinder.
+
+styles.css
+- Added .online-lyrics-header-actions for the stacked right-aligned header buttons in the online lyrics view.
+
+2026-09-15
+19-online-lyrics.js
+- Online lyrics header: removed the ONLINE LYRICS kicker and changed the title to "Find lyrics & LRC".
+- Online lyrics search panel: Search now comes before Clear.
+- Multi-song finder header: removed the LYRICS TOOLS kicker and renamed the title to "Find multi song lyrics & LRC".
+- Header button label changed to "Find multi song lyrics & LRC".
+
+2026-09-15
+19-online-lyrics.js
+- Removed the icons from the online lyrics Search and Clear buttons.
+- Multi-song finder list now renders rows as standard .song-item grid rows (cover, title, artist, album, status in the duration slot) with a checkbox in the number cell and no duration/heart/add-to-queue controls.
+
+styles.css
+- Rewrote the smart-lyrics-song-row styles so the multi-song finder list reuses the main song-item grid look; removed the flex-based row layout and the separate cover/info styles.
+
+2026-09-15
+00-state.js
+- Added DISABLE_COVERS flag for testing.
+
+04a-ui-render-core.js
+- buildSongItemHTML and renderRightPanelItem now use PLACEHOLDER_IMAGE instead of the real cover when DISABLE_COVERS is set.
+
+04b-ui-render-views.js
+- Left panel playlist/album/artist item covers now fall back to their SVG placeholder when DISABLE_COVERS is set.
+
+05-lazy-load.js
+- Left panel lazy-loaded playlist/album/artist item covers now fall back to their SVG placeholder when DISABLE_COVERS is set.
+
+08-panels.js
+- updateTrackNextBox and updateAlbumArt now use PLACEHOLDER_IMAGE when DISABLE_COVERS is set.
+
+10-playback.js
+- playSongFromQueue now uses PLACEHOLDER_IMAGE for the player cover when DISABLE_COVERS is set.
+
+2026-09-15
+00-state.js
+- Added DISABLE_COVER_PLACEHOLDER flag.
+
+04a-ui-render-core.js
+- buildSongItemHTML and renderRightPanelItem skip the cover element entirely when DISABLE_COVER_PLACEHOLDER is set.
+
+04b-ui-render-views.js
+- Left panel item cover branches and the playlist/folder view coverHTML now skip the cover entirely when DISABLE_COVER_PLACEHOLDER is set.
+
+05-lazy-load.js
+- buildLeftPanelItemAt starts with an empty coverContent when DISABLE_COVER_PLACEHOLDER is set.
+
+08-panels.js
+- updateTrackNextBox skips the cover image and updateAlbumArt hides the album art when DISABLE_COVER_PLACEHOLDER is set.
+
+10-playback.js
+- playSongFromQueue hides the player cover when DISABLE_COVER_PLACEHOLDER is set.
+
+19-online-lyrics.js
+- Multi-song finder list rows now honor DISABLE_COVERS and skip the cover when DISABLE_COVER_PLACEHOLDER is set.
+
+[Shuffle Queue Display] Added a `Load more` control below the queue. The queue now starts with a 50-item display limit and reveals 25 additional items per click. In shuffle mode, the control extends the real playback queue from the stable shuffle order instead of creating a separate display-only order.
+
+
+## Shuffle fix: direct song playback
+- Fixed `playSongFromList()` when Shuffle is enabled so clicking a specific song now resets and consumes the shared shuffle order instead of creating a separate temporary random queue.
+- This keeps the no-repeat guarantee consistent after starting Shuffle from an individual song.
+
+2026-09-16
+08-panels.js
+- Added showTrackPlaceholders, removePlaceholder, and clearTrackPlaceholders.
+- updateAlbumArt now renders dim placeholder boxes for the Info, Lyrics, and Next-in-queue boxes when no song is playing, instead of hiding them.
+- updateAlbumArt clears the placeholders when a song starts.
+
+styles.css
+- Added .track-placeholder-box with three size variants (placeholder-info 120px, placeholder-lyrics 78px, placeholder-next 62px).
+
+2026-09-16
+08-panels.js
+- showTrackPlaceholders now renders skeleton-style placeholders (grey bar shapes) for the Info, Lyrics, and Next-in-queue boxes instead of em-dash text.
+
+styles.css
+- Added .track-placeholder-box plus .skeleton-bar and per-box layouts (2-column info grid, lyrics header+lines, next-in-queue cover+title+artist).
+- Fixed placeholder heights: placeholder-info 100px, placeholder-lyrics 78px, placeholder-next 62px.
+
+2026-09-16
+08-panels.js
+- showTrackPlaceholders: each placeholder now renders structural skeletons matching the real boxes — Info gets a title bar + edit circle + 2x2 grid; Lyrics gets a header bar + open button bar + 2 line bars + footer circle; Next-in-queue gets a header bar + open button bar + the song row.
+
+styles.css
+- Replaced fixed-height .track-placeholder-box rules with content-driven padding and added .skeleton-circle plus per-variant header/grid/footer styles that mirror the real .track-info-box, .track-lyrics-box, and .track-next-box padding and layout.
+
+2026-09-16
+08-panels.js
+- Removed the lyrics placeholder footer circle and added a third body line bar.
+
+styles.css
+- Info placeholder grid bars now have staggered widths (4 distinct value widths and 4 distinct label widths) for a more natural skeleton look.
+- Lyrics placeholder body padding-bottom increased to 16px and a third line bar added to preserve height without the footer circle.
+- Added skeleton-shimmer animation applied to all .skeleton-bar, .skeleton-circle, and .placeholder-next-cover elements.
+
+2026-09-16
+styles.css
+- Moved the skeleton shimmer gradient onto the .track-placeholder-box container too, with per-variant base colors so Info/Lyrics use --bg-modal and Next uses --bg-hover.
+- Shortened the Info title placeholder to 30px x 12px.
+- Shortened Info subtext bars: values 14px -> 12px, labels 10px -> 8px, and staggered widths further (rows 2 and 4 now noticeably shorter).
+- Increased the gap between the lyrics placeholder header and its line bars to 16px.
+- Increased the gap between the next-in-queue placeholder header and the song row to 18px.
+
+2026-09-16
+08-panels.js
+- showTrackPlaceholders now hides the album art image and appends a plain .album-art-placeholder rectangle in its place.
+- clearTrackPlaceholders now removes the album art placeholder and restores the real image.
+
+styles.css
+- Shimmer highlight brightened (0.09 -> 0.18 for bars/circles, 0.05 -> 0.09 for box backgrounds) so pulses read as a light sweep rather than a shadow.
+- Added .album-art-placeholder styles (same size/radius as the album art image, base --cover-pending-bg, same shimmer).
+
+
+2026-09-16
+styles.css
+- Slowed the skeleton shimmer to 5s per sweep.
+- Big album art placeholder now uses --bg-modal as its base color, matching the Info and Lyrics box backgrounds, with the same subtle white highlight band.
+
+2026-09-16
+styles.css
+- Removed the shimmer animation and its keyframes; placeholders are now flat colored boxes.
+- Flattened all four placeholders (Info, Lyrics, Next-in-queue, album art) to a single background color (--bg-modal).
+
+2026-09-16
+styles.css
+- Lyrics placeholder margin-top reduced from 5px to 2px (3px up).
+- Next-in-queue placeholder margin-top reduced from 5px to -1px (6px up).
+- Verified border radius is var(--radius-sm) across all placeholders and the album art container; no change needed.
+
+2026-09-16
+08-panels.js
+- clearTrackPlaceholders no longer overwrites albumArtImage.src with PLACEHOLDER_IMAGE. This was wiping the real cover right after updateAlbumArt set it, causing covers to never appear when a song played.
+
+2026-09-16
+08-panels.js
+- showTrackPlaceholders now inserts a .track-placeholder-header above the Info box, mimicking the real track-info-header (title bar + artist bar).
+- clearTrackPlaceholders removes it.
+
+styles.css
+- Added .track-placeholder-header with two skeleton bars for title and artist.
+
+2026-09-16
+styles.css
+- track-placeholder-header now has a 6px top margin to push it further from the cover.
+- Title bar 22px -> 21px tall, 70% -> 68% wide. Artist bar 12px -> 11px tall, 45% -> 43% wide.
+- Removed the 4px left/right padding so both bars shift left.
+
+2026-09-16
+08-panels.js
+- showTrackPlaceholders adds a showing-placeholders class to album-art-section while placeholders are active.
+- clearTrackPlaceholders removes it.
+
+styles.css
+- .album-art-section.showing-placeholders sets overflow-y: hidden so the right panel doesn't scroll while placeholders are showing.
+
+2026-09-16
+08-panels.js
+- showTrackPlaceholders also adds showing-placeholders to right-panel-content so the actual scroll container locks.
+- clearTrackPlaceholders removes it.
+
+styles.css
+- Removed the 10px bottom margin from track-placeholder-header.
+- Replaced album-art-section overflow lock with right-panel-content overflow lock and hid the custom scrollbar.
+
+2026-09-16
+08-panels.js
+- showTrackPlaceholders/clearTrackPlaceholders now toggle showing-placeholders on .right-panel-content-wrapper instead of on #right-panel-content.
+
+styles.css
+- The scroll lock and scrollbar hide now target the wrapper, which is the actual parent of both the scroll content and the custom scrollbar. Uses display: none !important to override the JS-added visible class.
+
+2026-09-16
+styles.css
+- track-placeholder-header margin-bottom set to -3px to tighten the gap with the Info placeholder by 3px.
+
+2026-09-16
+styles.css
+- next-in-queue placeholder title/artist bars now match the Info grid subtext bars: artist height 10px -> 8px, gap 6px -> 4px. Title stays 12px.
+- track-placeholder-header gap increased from 3px to 5px.
+
+2026-09-16
+styles.css
+- Unified placeholder chunk gaps to 8px between all consecutive boxes (header-to-info, info-to-lyrics, lyrics-to-next).
+- Cover-to-header gap reduced to 3px.
+- Removed redundant placeholder-lyrics/placeholder-next margin-top overrides (base .track-placeholder-box now uses 8px).
+
+2026-09-16
+styles.css
+- Placeholder chunk gaps changed to 6px (standard) and 4px (cover-to-header).
+- Removed redundant per-variant margin-top overrides.
+
+2026-09-16
+tools/placeholder-test/placeholder-test.html
+- New standalone test page under tools/ that reproduces the app layout (header, left panel, main content, right panel, footer) with all visual placeholders visible.
+- Left panel, main song list, right panel placeholders, and footer all use the app's real CSS classes so changes to src/css/styles.css propagate automatically.
+- Footer uses the exact app markup (music-player, player-container, player-center-section, progress-container, volume-slider, etc.) with only cover/title/artist replaced by skeleton bars.
+- Header icons and footer transport/volume icons are real Material Icons. Nav arrows and search box on the header use a red 1px border to mark where icons/logos live.
+
+tools/placeholder-test/placeholder-test.css
+- Added test-page-only styles: red icon borders, hero skeleton bars, footer cover/title/artist skeleton bars, left-panel skeleton rows, song-list skeleton rows.
+
+tools/placeholder-test/placeholder-test.js
+- Generates 500 skeleton rows for the left panel list and 500 for the song list.
+- Ported initExternalScrollbar from src/js/06c-ui-widgets.js (trimmed): renders and drives the custom scrollbar thumb with the same hover show/hide behavior.
+- Ported panel resize from src/js/01-sizes.js and src/js/99-player.js: both left and right panels get .panel-resize-handle elements and recalcLayoutWidths/applyPanelWidths keep --right-panel-width and the total layout consistent with the real app.
+
+2026-09-16
+tools/placeholder-test/placeholder-test.html
+- Added a fixed test-controls bar with a "Toggle Tracklist Scrolled" button that flips .scrolled on .tracklist-header so the header background and bottom border behavior can be previewed without scrolling.
+
+tools/placeholder-test/placeholder-test.css
+- Added .pt-controls styles for the fixed test-controls bar.
+
+2026-09-16
+tools/placeholder-test/placeholder-test.html
+- Removed the Tracklist Scrolled toggle button; the scroll effect is now automatic.
+
+tools/placeholder-test/placeholder-test.css
+- Removed .pt-controls styles.
+
+tools/placeholder-test/placeholder-test.js
+- Ported initTracklistScrollEffect from src/js/99-player.js so the test page's tracklist header changes color and border automatically as the main list scrolls.
+
+2026-09-16
+tools/placeholder-test/placeholder-test.js
+- buildSongList now uses a fixed 40x40 cover (no border radius), a smaller number bar, and only a duration placeholder on the right.
+- applyPanelWidths now mirrors src/js/01-sizes.js: toggles .narrow and .hide-queue-btn on #main-content so the album column and add-to-queue button hide at the same width breakpoint as the app.
+
+tools/placeholder-test/placeholder-test.css
+- pt-song-row: cover 40x40 without radius; number bar 14px wide; artist 10px tall and 45% wide (narrower than title at 14px / 55%); album bar 45% wide with no left margin; only a duration skeleton remains on the right.
+
+2026-09-16
+tools/placeholder-test/placeholder-test.css
+- Title, artist, and album placeholder widths shortened (title 55% -> 48%, artist 45% -> 38%, album 45% -> 38%).
+
+2026-09-16
+tools/placeholder-test/placeholder-test.css
+- Title width 48% -> 40%; artist 38% -> 30%; album 38% -> 30%.
+- Album bar shifted 20px left via negative margin-left.
+- Duration bar lengthened from 36px to 42px.
+
+2026-09-16
+tools/placeholder-test/placeholder-test.js
+- buildLeftPanelList now uses the app's real class names (.subfolder-row, .main-item-cover-wrapper, .main-item-info) so the collapse rules in src/css/styles.css apply.
+- Added collapseLeftPanel / expandLeftPanel / toggleLeftPanelCollapse and collapseRightPanel / expandRightPanel / toggleRightPanelCollapse.
+
+tools/placeholder-test/placeholder-test.css
+- Replaced .pt-left-row-* rules with .pt-left-cover-skeleton / .pt-left-title / .pt-left-subtitle so the app's collapse CSS drives the layout.
+
+tools/placeholder-test/placeholder-test.html
+- Added the left panel collapse button (id=collapse-panel-btn) and right panel collapse button (id=right-panel-collapse-btn) with toggle handlers.
+
+2026-09-16
+tools/placeholder-test/placeholder-test.css
+- Added a test-page-only override for .tracklist-album padding-left so the "Album" column header aligns with the album placeholder bar in each row. The app's styles.css is untouched.
+
+2026-09-16
+tools/placeholder-test/placeholder-test.css
+- Title/artist gap increased by 2px via .song-info gap: 6px.
+- Number placeholder width 14px -> 17px.
+- Album placeholder now has max-width: 120px and margin-left reduced from 8px to 3px (5px left shift).
+
+2026-09-16
+tools/placeholder-test/placeholder-test.css
+- Album and duration placeholder heights unified at 11px (album 12 -> 11, duration 12 -> 11).
+- Title height 14px -> 12px.
+- Album and duration bars now use border-radius: 6px.
+
+2026-09-16
+tools/placeholder-test/placeholder-test.css
+- Title height 12 -> 11, artist height 10 -> 9.
+- All four song-row placeholder bars (title, artist, album, duration) now use border-radius: 8px.
+
+2026-09-16
+tools/placeholder-test/placeholder-test.css
+- Removed the .tracklist-album padding-left override so the test page's tracklist header sits at the same position as the app's (with the same natural offset from the song-row album column).
+
+2026-09-16
+tools/placeholder-test/placeholder-test.css
+- Album placeholder bar shifted left ~53px to align with the "Album" column header label.
+
+2026-09-16
+tools/placeholder-test/placeholder-test.css
+- Replaced the fixed album-bar offset with a CSS variable controlled by the test layout.
+
+tools/placeholder-test/placeholder-test.js
+- Added responsive Album-column alignment that measures the tracklist label and song-row column after panel and window resizes.
+
+tools/prompt.txt
+- Documented the responsive Album placeholder alignment used by the placeholder test.
+
+2026-09-16
+tools/placeholder-test/placeholder-test.css
+- Kept the Album skeleton bar visible above the neighboring grid column while it is shifted into alignment.
+
+tools/placeholder-test/placeholder-test.js
+- Updated responsive Album alignment to measure and translate the visible bar itself, rather than offsetting its grid column.
+
+tools/prompt.txt
+- Clarified that the placeholder test aligns each visible Album skeleton bar to the header label.
+
+2026-09-16
+tools/placeholder-test/placeholder-test.css
+- Shifted only the Album skeleton bars 64px left to match the unchanged tracklist Album heading in the current main-view layout.
+
+2026-09-16
+src/js/00-state.js
+- Added the active shuffle-mode state for Normal and Smart Shuffle.
+
+src/js/03-storage.js
+- Added persistent Smart Shuffle v1 settings.
+
+src/js/07-views.js
+- Updated the subhero shuffle state text to distinguish Smart Shuffle from Normal Shuffle.
+
+src/js/08-panels.js
+- Added Smart Shuffle v1 journey, grouping, genre, artist, recency, favorite, discovery, and duration controls to Settings.
+
+src/js/10-playback.js
+- Added local metadata-based Smart Shuffle v1 journeys for lists with more than 50 songs, including multi-value genre parsing and automatic follow-up journeys.
+
+src/js/15-playback-controls.js
+- Added a shuffle-mode picker for Normal Shuffle, Smart Shuffle v1, and turning shuffle off.
+
+src/css/styles.css
+- Styled select and custom-number controls used by Smart Shuffle Settings.
+
+tools/tests/shuffle.test.js
+- Added a unique 50-song Smart Shuffle journey test.
+
+tools/prompt.txt
+- Documented the Smart Shuffle v1 implementation and its test coverage.
+
+
+2026-09-16
+19-online-lyrics.js
+- Added markSongInstrumental(songId) to set song.instrumental = true on the SONGS_DATA entry.
+- applyOnlineLyricsToSong now accepts an optional isInstrumental flag; when true, marks the destination song and refreshes the lyrics view if it is open.
+- useOnlineLyrics and confirmOnlineLyricsPicker pass result.instrumental through to applyOnlineLyricsToSong.
+- renderOnlineLyricsResult reads result.instrumental and renders an Instrumental badge alongside any Synced LRC / Lyrics / No lyrics badges; the badge is non-clickable and carries a "Marked as instrumental by LRCLIB" tooltip.
+
+04b-ui-render-views.js
+- renderLyricsView now checks currentSong.instrumental and, when true and no lyrics exist, renders an Instrumental block (music note icon + label) with a "Verified by LRCLIB" tooltip instead of "No lyrics for this song".
+
+08-panels.js
+- renderTrackLyricsBox now shows the compact lyrics box with a single Instrumental line when the current song is instrumental and has no lyrics, instead of hiding the box. The Sync button stays hidden and the expand chevron still works.
+
+styles.css
+- Added .online-lyrics-badge.instrumental for the grey non-clickable badge in the online lyrics results.
+- Added .lyrics-line-instrumental-block and .track-lyrics-line-instrumental-block for the Instrumental state in the lyrics view and compact box.
+
+2026-09-16
+05-lazy-load.js
+- Added a third virtual scroll system for the multi-song finder list: smartLyricsVirtualState, SMART_LYRICS_ITEM_HEIGHT (52), SMART_LYRICS_OVERSCAN_COUNT (12), buildSmartLyricsRowAt, renderSmartLyricsVisibleItems, initSmartLyricsVirtualScroll, teardownSmartLyricsVirtualScroll, refreshSmartLyricsVirtualScroll.
+- The smart finder list scrolls with the main .content container (same as the main song list). The virtual scroll computes the list's offset within .content on every render using its bounding rect, so it stays correct if the header, search panel, or toolbar height changes.
+- Top and bottom spacer divs are flex-shrink 0 to preserve total scroll height inside the flex-column .smart-lyrics-list.
+
+19-online-lyrics.js
+- Extracted buildSmartLyricsRowHTML(song, index) from updateSmartLyricsFinderList so the row markup is generated per-row by the virtual scroll renderer.
+- updateSmartLyricsFinderList now delegates to refreshSmartLyricsVirtualScroll when available (falls back to the previous full-list join if the virtual scroll system isn't loaded). The empty-state branch tears down the virtual scroll first.
+
+07-views.js
+- switchView tears down the smart lyrics virtual scroll when leaving the 'smart-lyrics' view so the .content scroll listener doesn't keep firing against a list that no longer exists.
+
+2026-09-16
+19-online-lyrics.js
+- Added SMART_LYRICS_CONCURRENCY (5) and stopRequested / skipExisting flags to smartLyricsFinderState.
+- runSmartLyricsFinder now filters targets through skipExisting (mode-specific: LRC mode checks getSyncedLyricsForSong, plain mode checks getLyricsForSong), then runs a concurrency pool of up to 5 workers instead of a sequential await loop. Status reports progress as "X/Y" and switches to "Stopped: …" if the run was interrupted.
+- Added stopSmartLyricsFinder() (flips stopRequested, updates status and toolbar) and toggleSmartLyricsSkipExisting(checked).
+- Added updateSmartLyricsFinderToolbarState() to enable/disable the Find buttons and the Skip-existing checkbox based on processing state, and to show/hide the Stop button.
+- Toolbar now has a Stop button (hidden while idle) next to Find for selected, and a Skip existing checkbox. Buttons and checkbox carry stable IDs so the toolbar state helper can find them. renderSmartLyricsFinder calls updateSmartLyricsFinderToolbarState after rendering. updateSmartLyricsFinderSelectionCount also calls it so the Find for selected button stays in sync with the selection count.
+
+styles.css
+- Added .smart-lyrics-skip-existing styles for the new checkbox row in the multi-song finder toolbar, plus a small padding override inside the existing max-width 760px media query.
+
+2026-09-16
+19-online-lyrics.js
+- Added a session-scoped LRCLIB response cache on smartLyricsFinderState.lrclibCache (a Map). Cache key is artist|title|album|duration lowercased and trimmed, so songs that resolve to the same LRCLIB query share an entry.
+- searchLyricsForSmartSong now checks the cache before calling window.electronAPI.searchOnlineLyrics and stores the raw {exact, results} response on a miss. Failed responses (network error or success:false) are not cached, so transient failures can be retried on the next run.
+- Because the cache stores the whole LRCLIB response and not just the extracted text, switching between LRC mode and plain-lyrics mode reuses the same cached response — the second mode doesn't hit LRCLIB again for songs already fetched in the first mode.
+- searchLyricsForSmartSong now also passes match.instrumental through to applyOnlineLyricsToSong, matching the single-song online-lyrics view so instrumental tracks found in a bulk run are marked correctly.
+- openSmartLyricsFinder resets the cache when the view is reopened. Reopening the view is the only way to clear the cache in-session; the cache also clears when the app closes.
+
+2026-09-16
+21-language-detect.js
+- New offline language detection module. Script-based detection is exact for Korean, Japanese, Chinese, Russian, Arabic, Hebrew, Greek, Thai, Hindi, Georgian, Armenian via Unicode character-range matching. Latin-script languages fall back to stopword counting for English, Spanish, French, German, Italian, Portuguese, Dutch, Swedish, Polish, Turkish, Indonesian. Pure JS, no dependencies, no network.
+- detectSongLanguage(song) returns { language, confidence, source }. Songs flagged song.instrumental return { language: 'instrumental' } without reading lyrics. Input priority is synced LRC (timestamps stripped) → plain custom lyrics → song.lyrics.
+- analyzeAllSongsLanguages(songsOverride) walks the active song list and stores _detectedLanguage, _detectedLanguageConfidence, _detectedLanguageSource on each song object as a provisional field, then returns { rows, tally }.
+- smartShuffleLanguagePrepass(songsOverride) wraps analyzeAllSongsLanguages with a console.group/console.table dump and returns the rows.
+- Exposes window.__language with helpers: analyzeAll(), prepass(), detectOne(songId), tally(). Callable from DevTools.
+
+04a-ui-render-core.js
+- buildSongItemHTML now renders a small [xx] language badge next to the artist when the song has a provisional _detectedLanguage that is not 'undetected'. Badge has a tooltip with the language code and detection source.
+
+styles.css
+- Added .song-lang-badge style for the inline detected-language badge next to artist names.
+
+build/music_player.html
+build/music_player.py
+- Registered 21-language-detect.js in the script load order and the build copy list, before player.js.
+
+2026-09-16
+21-language-detect.js
+- Fixed Persian-vs-Arabic misdetection: added PERSIAN_DISTINCTIVE_WORDS, _normalizeArabicScript, and _countPersianDistinctiveWords so Persian text typed with Arabic-form Yeh (ي) and Kaf (ك) is no longer misclassified as Arabic based on raw script-range counts alone.
+- Fixed code-switched lyrics collapsing to English: detectLanguageFromText now measures scriptRatio against Latin letter count specifically instead of total letterCount, so English hooks/ad-libs in a majority non-Latin song no longer dilute the dominant script below threshold and fall through to the Latin-only stopword path.
+
+2026-09-17
+tools/test-smart-shuffle-v2.html
+- Instrumental songs now count as language 'instrumental' in artist profiles, forming their own region. Added a synthetic classical/instrumental cluster to test the behavior.
+- Missing genre now returns a neutral value instead of zero so sparse libraries aren't penalised. genreCloseness returns { score, neutral }; artistCloseness handles the neutral case at 0.5.
+- Neighbor-language absorption: when a group's primary language has no same-language candidates, the group's scope expands to include artists whose language is a neighbor (per LANGUAGE_NEIGHBORS). The group tracks allowedLanguages so the diagnostic can distinguish legitimate neighbor mixing from illegal cross-language mixing.
+- Diagnostics: language violation now counts only songs whose language is outside the group's allowedLanguages set. Added a signal density report showing the fraction of songs with year / genre / language populated.
+
+src/js/10-playback.js
+- Replaced the genre-scoring smart shuffle generator with the artist-chain generator from the test page. Function signature, return type, and every caller (resetSmartShuffle, getNextSmartShuffledSong, startSmartShuffleFromCurrentView) unchanged.
+- Added SHUFFLE_LANGUAGE_NEIGHBORS, SHUFFLE_ESCAPE_RATE, and the artist-chain helpers: shuffleLanguageCloseness, shuffleLanguagesAreNeighbors, shuffleYearCloseness, shuffleGenresOf, shuffleGenreCloseness, shuffleArtistCloseness, buildShuffleArtistProfiles, buildShuffleGenreRarity, buildShuffleArtistGraph, shuffleWeightedPick, shuffleLanguageCompatible, shuffleBuildGroup, shuffleSplitIntoRuns, shuffleInterleaveRuns, shuffleOrderGroupWithDurationVariety.
+- Instrumental songs are counted as language 'instrumental' in artist profiles.
+- Missing genre is neutral, not penalising.
+- Neighbor-language absorption: a group with a small primary-language pool can pull neighbor-language artists in, tracking allowedLanguages for scope.
+- Group bounds: min 4 / max 10 songs, min 2 / max 4 artists, min 15 / max 45 minutes. Per-song max-minutes guard prevents overshoot.
+- Duration interleaving: splitIntoRuns + interleaveRuns preserve the constructed artist-chain order while alternating adjacent runs. Duration sorts only within maximal same-artist sub-runs.
+- generateSmartShuffleJourney now reads song._detectedLanguage || song.language instead of song.language directly.
+- resetSmartShuffle calls ensureShuffleLanguages before generating, so songs without a detected language get classified just-in-time.
+
+src/js/21-language-detect.js
+- Added ensureShuffleLanguages(songs): classifies only songs missing _detectedLanguage, updates the provisional fields, and returns. Exposed as window.__language.ensureShuffle.
+2026-09-17
+src/js/03-storage.js
+- Renamed the music-folder settings title, added Ctrl/Cmd+A, Shift-range, and Ctrl/Cmd-toggle multi-selection, and added bulk folder removal.
+- Made Save and Apply Changes accept an empty folder set and clear the player library.
+- Changed folder song counts to use live supported-audio filesystem statistics when the settings view is rendered.
+
+src/js/08-panels.js
+- Renamed the settings section and folder-list title to Music Library and Music Library Folders.
+
+src/css/styles.css
+- Made the music-folder list focusable without showing an unwanted outline for keyboard multi-selection.
+
+electron/preload.js
+- Exposed the bulk music-folder removal IPC method.
+
+electron/main.js
+- Added bulk music-folder removal IPC and allowed rebuilding with no configured folders.
+
+electron/music-folders.js
+- Added supported-format recursive folder counting and bulk folder removal.
+
+electron/scan-folder.js
+- Made empty folder sets and folders with no supported audio files produce an empty successful library.
+
+tools/prompt.txt
+- Updated the music-library folder management descriptions and supported-format counting behavior.
+2026-09-18
+tools/placeholder-test/placeholder-test.css
+- Matched main-view song rows to the original tracklist grid, padding, cover spacing, album padding, and right-side control geometry.
+- Removed the test-only negative album offset and extra pseudo-number marker that caused clipping and misalignment during resizing.
+
+tools/placeholder-test/placeholder-test.js
+- Kept placeholder number cells in the same tracklist column and added a dedicated album placeholder class without translating it outside the original album cell.
+
+tools/prompt.txt
+- Updated the placeholder test description to document main-view tracklist geometry and album alignment behavior.
+2026-09-18
+tools/placeholder-test/placeholder-test.css
+- Removed placeholder-only row height and grid overrides so the original song-item padding and computed height are used.
+- Restored invisible action and more-info column geometry and added resize-safe album placeholder alignment.
+
+tools/placeholder-test/placeholder-test.js
+- Restored the original row's right-side control slots so the Album column has the same grid geometry as the app.
+- Added main-view album placeholder alignment against the real tracklist Album column after layout and resize.
+2026-09-18
+tools/placeholder-test/placeholder-test.css
+- Preserved the original 40px by 40px song cover dimensions.
+- Replaced number text with an actual number-column skeleton placeholder.
+- Bounded placeholder song-info width to the title group instead of filling the whole grid track.
+- Adjusted only the placeholder test grid so the Album column sits closer while retaining the original tracklist structure.
+
+tools/placeholder-test/placeholder-test.js
+- Updated main-view placeholder markup to use the number skeleton while retaining the original row columns.
+2026-09-18
+src/js/06a-context-menus.js
+- Added a Show metadata action directly below the lyrics action in song context menus.
+
+src/js/06b-modals.js
+- Added a compact read-only song metadata popup showing title, artist, album, genre, year, track number, language, composer, comment, and BPM.
+
+src/css/styles.css
+- Added styling for the compact song metadata popup and its metadata rows.
+2026-09-18
+src/js/15-playback-controls.js
+- Bound progress-bar and time-display updates to both playback audio elements so gapless track swaps continue updating progress.
+- Refresh progress immediately when active-track metadata becomes available.
+
+src/js/10-playback.js
+- Reset the progress bar and knob when starting a new queued song so stale progress cannot remain visible.
+2026-09-18
+electron/scan-folder.js
+- Removed the 30-character truncation from album metadata in all folder-scan paths so complete album names are preserved.
+2026-09-18
+build/music_player.html
+- Added an inline plain gray startup screen before the application markup so partially loaded UI is not visible.
+
+src/js/99-player.js
+- Keep the startup screen visible until the main initialization callback completes and the rendered UI has had two animation frames to settle.
+
+2026-09-19
+src/js/15-playback-controls.js
+- Added resetProgressUI() helper to reset the progress bar, progress knob, and current time display.
+- Called resetProgressUI() when the queue ends on normal playback so the progress bar returns to the start instead of staying full.
+- Called resetProgressUI() when the shuffle queue is exhausted so the progress bar resets there too.

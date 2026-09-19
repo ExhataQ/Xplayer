@@ -1,0 +1,8 @@
+{
+    "name": "music-player",
+    "version": "1.0.0",
+    "main": "main.js",
+    "scripts": {
+        "test": "node --test ../tools/tests/*.test.js"
+    }
+}

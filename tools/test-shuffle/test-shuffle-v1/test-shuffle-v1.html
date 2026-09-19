@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Smart Shuffle v2 Test — Artist Chain</title>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #111; color: #eee; }
+    h1 { font-size: 20px; margin: 0 0 16px; }
+    h2 { font-size: 16px; margin: 24px 0 10px; color: #1db954; }
+    .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 18px; padding: 12px; background: #1a1a1a; border-radius: 8px; }
+    .control { display: flex; flex-direction: column; gap: 4px; }
+    .control label { font-size: 11px; color: #999; }
+    input, select, button { font-size: 14px; padding: 6px 8px; background: #222; color: #eee; border: 1px solid #333; border-radius: 4px; }
+    button { cursor: pointer; background: #1db954; border-color: #1db954; color: #000; font-weight: 600; padding: 7px 14px; }
+    button:hover { background: #1ed760; }
+    button.secondary { background: #333; border-color: #444; color: #eee; }
+    #summary { padding: 12px 16px; background: #1a1a1a; border-left: 4px solid #1db954; border-radius: 4px; margin-bottom: 18px; line-height: 1.5; font-size: 13px; }
+    .group { border: 1px solid #2a2a2a; border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; background: #161616; }
+    .group-header { font-weight: 700; color: #1db954; margin-bottom: 8px; font-size: 13px; }
+    .group-meta { font-size: 11px; color: #888; margin-bottom: 10px; }
+    .song { padding: 6px 0; border-bottom: 1px solid #222; font-size: 12px; line-height: 1.5; }
+    .song:last-child { border-bottom: none; }
+    .song-artist { color: #1db954; font-weight: 600; }
+    .song-title { color: #eee; }
+    .song-detail { color: #888; }
+    .edge-list { font-size: 11px; color: #888; font-family: monospace; line-height: 1.6; }
+    .tally { font-size: 12px; color: #ccc; }
+    .tally span { display: inline-block; margin-right: 12px; }
+    .warn { color: #ffb400; }
+    .good { color: #1db954; }
+</style>
+</head>
+<body>
+
+<h1>Smart Shuffle v2 Test — Artist Chain</h1>
+
+<div class="controls">
+    <div class="control"><label>Journey size (songs)</label><input id="journey-size" type="number" value="60" min="5" max="500"></div>
+    <div class="control"><label>Min songs / group</label><input id="min-songs" type="number" value="4" min="1" max="30"></div>
+    <div class="control"><label>Max songs / group</label><input id="max-songs" type="number" value="10" min="1" max="50"></div>
+    <div class="control"><label>Min artists / group</label><input id="min-artists" type="number" value="2" min="1" max="10"></div>
+    <div class="control"><label>Max artists / group</label><input id="max-artists" type="number" value="4" min="1" max="20"></div>
+    <div class="control"><label>Min minutes / group</label><input id="min-min" type="number" value="15" min="1" max="120"></div>
+    <div class="control"><label>Max minutes / group</label><input id="max-min" type="number" value="45" min="1" max="240"></div>
+    <div class="control"><label>Artists in library</label><input id="lib-artists" type="number" value="40" min="5" max="500"></div>
+    <div class="control"><label>Songs per artist</label><input id="lib-songs" type="number" value="10" min="2" max="100"></div>
+    <button id="run">Generate journey</button>
+    <button id="regenerate" class="secondary">New library</button>
+</div>
+
+<div id="summary"></div>
+<div id="graph-section"></div>
+<div id="journey-section"></div>
+<div id="diagnostics"></div>
+
+<script>
+// ============================================================================
+// CONFIG + TABLES
+// ============================================================================
+
+// Language neighbor table. Same-language is handled separately.
+// Values are closeness in [0,1] between two *different* languages.
+const LANGUAGE_NEIGHBORS = {
+    'fa|ar': 0.6, 'ar|fa': 0.6,
+    'ja|ko': 0.6, 'ko|ja': 0.6,
+    'en|es': 0.5, 'es|en': 0.5,
+    'en|fr': 0.5, 'fr|en': 0.5,
+    'en|de': 0.5, 'de|en': 0.5,
+    'en|it': 0.5, 'it|en': 0.5,
+    'en|pt': 0.5, 'pt|en': 0.5,
+    'en|nl': 0.5, 'nl|en': 0.5,
+    'es|pt': 0.7, 'pt|es': 0.7,
+    'es|it': 0.6, 'it|es': 0.6,
+    'fr|it': 0.6, 'it|fr': 0.6,
+    'de|nl': 0.6, 'nl|de': 0.6
+};
+
+function languageCloseness(a, b) {
+    if (!a || !b) return 0;
+    if (a === 'undetected' || b === 'undetected') return 0.5; // neutral, don't block
+    if (a === b) return 1.0;
+    return LANGUAGE_NEIGHBORS[a + '|' + b] || 0;
+}
+
+// Year closeness. Numeric. 0 = 40+ years apart, 1 = same year.
+function yearCloseness(a, b) {
+    const ya = parseInt(a, 10);
+    const yb = parseInt(b, 10);
+    if (!Number.isFinite(ya) || !Number.isFinite(yb)) return 0.5; // unknown → neutral
+    const diff = Math.abs(ya - yb);
+    return Math.max(0, 1 - diff / 40);
+}
+
+// Genre closeness. Exact match count, weighted by rarity.
+// rarity map is passed in because it depends on the library.
+function genreCloseness(genresA, genresB, genreRarity) {
+    // Returns { score, neutral } where neutral is true if either artist is
+    // missing genres entirely.
+    if (!genresA.length || !genresB.length) return { score: 0, neutral: true };
+    const setB = new Set(genresB);
+    let score = 0;
+    for (const g of genresA) {
+        if (setB.has(g)) {
+            score += 1 / Math.log(2 + (genreRarity[g] || 1));
+        }
+    }
+    return { score, neutral: false };
+}
+
+// ============================================================================
+// SYNTHETIC LIBRARY
+// ============================================================================
+// 5 clusters with strong intra-cluster genre/year/language overlap.
+// Each artist belongs to exactly one cluster.
+
+const CLUSTERS = [
+    { name: 'English rock 2010s',    languages: ['en'],       genres: ['rock', 'indie', 'alternative'],        yearBase: 2015, songMinutes: [3, 5] },
+    { name: 'Persian pop 2000s',     languages: ['fa'],       genres: ['pop', 'persian pop', 'dance'],         yearBase: 2005, songMinutes: [3, 4] },
+    { name: 'Korean pop 2010s',      languages: ['ko'],       genres: ['kpop', 'pop', 'dance'],                yearBase: 2014, songMinutes: [3, 4] },
+    { name: 'Japanese rock 2010s',   languages: ['ja'],       genres: ['jrock', 'rock', 'alternative'],        yearBase: 2013, songMinutes: [3, 5] },
+    { name: 'English electronic 90s', languages: ['en'],      genres: ['electronic', 'ambient', 'idm'],        yearBase: 1996, songMinutes: [4, 8] },
+    { name: 'Classical instrumental', languages: ['en'],      genres: ['classical', 'orchestral', 'chamber'],  yearBase: 1850, songMinutes: [4, 12], instrumental: true }
+];
+
+let LIBRARY = [];
+
+function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function pickRandom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function generateLibrary(artistCount, songsPerArtist) {
+    LIBRARY = [];
+    let nextId = 1;
+
+    const artistsPerCluster = Math.ceil(artistCount / CLUSTERS.length);
+    let artistIndex = 0;
+
+    for (const cluster of CLUSTERS) {
+        for (let i = 0; i < artistsPerCluster && artistIndex < artistCount; i++) {
+            const artistName = `Artist ${String(artistIndex + 1).padStart(3, '0')}`;
+            const year = cluster.yearBase + randomInt(-3, 3);
+            const language = pickRandom(cluster.languages);
+
+            for (let s = 0; s < songsPerArtist; s++) {
+                const genreList = [];
+                // Always include the primary genre
+                genreList.push(cluster.genres[0]);
+                // Add 1-2 more from the cluster with probability
+                for (let g = 1; g < cluster.genres.length; g++) {
+                    if (Math.random() < 0.6) genreList.push(cluster.genres[g]);
+                }
+
+                const minutes = randomInt(cluster.songMinutes[0], cluster.songMinutes[1]);
+                const seconds = randomInt(0, 59);
+
+                LIBRARY.push({
+                    id: nextId++,
+                    title: `${artistName} Song ${s + 1}`,
+                    artist: artistName,
+                    genre: genreList.join('; '),
+                    year: String(year + randomInt(-1, 1)),
+                    language,
+                    duration: `${minutes}:${String(seconds).padStart(2, '0')}`,
+                    cluster: cluster.name,
+                    instrumental: cluster.instrumental === true
+                });
+            }
+
+            artistIndex++;
+        }
+    }
+}
+
+// ============================================================================
+// PARSING HELPERS
+// ============================================================================
+
+function parseGenres(song) {
+    if (!song.genre) return [];
+    return String(song.genre).toLowerCase().split(/[;,/|]/).map(g => g.trim()).filter(Boolean);
+}
+
+function durationMinutes(song) {
+    const parts = String(song.duration || '0:00').split(':').map(Number);
+    if (parts.length === 2 && parts.every(Number.isFinite)) return parts[0] + parts[1] / 60;
+    return 0;
+}
+
+// ============================================================================
+// ARTIST AGGREGATION
+// ============================================================================
+// For each artist: dominant language, genre set, average year.
+
+function buildArtistProfiles(songs) {
+    const profiles = new Map(); // artist -> { language, genres: Set, yearSum, yearCount, songIds: [] }
+
+    for (const song of songs) {
+        const artist = song.artist || 'Unknown Artist';
+        if (!profiles.has(artist)) {
+            profiles.set(artist, {
+                name: artist,
+                languageCounts: {},
+                genres: new Set(),
+                yearSum: 0,
+                yearCount: 0,
+                songIds: []
+            });
+        }
+        const p = profiles.get(artist);
+        const detected = song._detectedLanguage || song.language || 'undetected';
+        const langForCounting = song.instrumental === true ? 'instrumental' : detected;
+        p.languageCounts[langForCounting] = (p.languageCounts[langForCounting] || 0) + 1;
+        for (const g of parseGenres(song)) p.genres.add(g);
+        const y = parseInt(song.year, 10);
+        if (Number.isFinite(y)) { p.yearSum += y; p.yearCount++; }
+        p.songIds.push(song.id);
+    }
+
+    for (const p of profiles.values()) {
+        const entries = Object.entries(p.languageCounts).sort((a, b) => b[1] - a[1]);
+        p.language = entries.length ? entries[0][0] : 'undetected';
+        p.year = p.yearCount ? Math.round(p.yearSum / p.yearCount) : null;
+        p.genresArray = [...p.genres];
+        delete p.languageCounts;
+        delete p.yearSum;
+        delete p.yearCount;
+    }
+
+    return profiles;
+}
+
+// ============================================================================
+// ARTIST CLOSENESS
+// ============================================================================
+// Combined score in [0, 1]. Genre is normalized by total genre count so it
+// doesn't dominate for artists with many tags.
+
+function artistCloseness(a, b, genreRarity) {
+    if (a.name === b.name) return 1;
+
+    const lang = languageCloseness(a.language, b.language);
+    const year = (a.year && b.year) ? yearCloseness(a.year, b.year) : 0.5;
+
+    // Genre closeness, normalized by the average number of genres each has
+    const genreResult = genreCloseness(a.genresArray, b.genresArray, genreRarity);
+    let genreNorm;
+    if (genreResult.neutral) {
+        // Missing genre on one or both sides is neutral (0.5), not zero.
+        genreNorm = 0.5;
+    } else {
+        const maxPossible = Math.max(a.genresArray.length, b.genresArray.length, 1);
+        genreNorm = Math.min(1, genreResult.score / maxPossible * 2);
+    }
+
+    return 0.55 * lang + 0.30 * genreNorm + 0.15 * year;
+}
+
+// ============================================================================
+// ARTIST GRAPH
+// ============================================================================
+// For each artist, keep top-K closest neighbors.
+
+function buildGenreRarity(songs) {
+    const rarity = {};
+    for (const song of songs) {
+        for (const g of parseGenres(song)) {
+            rarity[g] = (rarity[g] || 0) + 1;
+        }
+    }
+    return rarity;
+}
+
+function buildArtistGraph(profiles, genreRarity, topK = 8) {
+    const names = [...profiles.keys()];
+    const graph = new Map();
+
+    for (const a of names) {
+        const pa = profiles.get(a);
+        const scored = [];
+        for (const b of names) {
+            if (a === b) continue;
+            const pb = profiles.get(b);
+            const score = artistCloseness(pa, pb, genreRarity);
+            if (score > 0) scored.push({ name: b, score });
+        }
+        scored.sort((x, y) => y.score - x.score);
+        graph.set(a, scored.slice(0, topK));
+    }
+
+    return graph;
+}
+
+// ============================================================================
+// THE CHAIN BUILDER
+// ============================================================================
+
+function weightedRandomPick(candidates) {
+    // candidates: [{name, score}]
+    if (!candidates.length) return null;
+    const total = candidates.reduce((s, c) => s + c.score, 0);
+    if (total <= 0) return pickRandom(candidates).name;
+    let r = Math.random() * total;
+    for (const c of candidates) {
+        r -= c.score;
+        if (r <= 0) return c.name;
+    }
+    return candidates[candidates.length - 1].name;
+}
+
+function isLanguageCompatible(a, b) {
+    if (a === b) return true;
+    if (a === 'undetected' && b === 'undetected') return true;
+    return false;
+}
+
+function isNeighborLanguage(a, b) {
+    if (!a || !b) return false;
+    if (a === b) return false;
+    return (LANGUAGE_NEIGHBORS[a + '|' + b] || 0) > 0;
+}
+
+function tryBuildGroup(anchorArtist, graph, profiles, availableSongIds, config) {
+    // Returns { songs, artistChain, artistCount, totalMinutes, groupLanguage } or null if couldn't fill minimums.
+    const groupSongs = [];
+    const artistsUsed = new Set();
+    const usedSongIds = new Set();
+    const artistChain = [];
+    let currentArtist = anchorArtist;
+    let totalMinutes = 0;
+    const groupLanguage = profiles.get(anchorArtist).language;
+    const allowedLanguages = new Set([groupLanguage]);
+
+    while (true) {
+        // Take 1-3 songs from currentArtist. Song language must match the
+        // group language exactly, or both must be undetected.
+        const artistLang = profiles.get(currentArtist).language;
+        const allowNeighbor = isNeighborLanguage(artistLang, groupLanguage);
+        const artistSongs = profiles.get(currentArtist).songIds
+            .filter(id => availableSongIds.has(id))
+            .filter(id => !usedSongIds.has(id))
+            .map(id => LIBRARY.find(s => s.id === id))
+            .filter(s => {
+                // A song is eligible if its own language matches the group
+                // language OR, when the group has absorbed a neighbor-language
+                // artist, the song's language matches that artist's language.
+                const sLang = s.instrumental === true
+                    ? 'instrumental'
+                    : (s._detectedLanguage || s.language || 'undetected');
+                if (isLanguageCompatible(sLang, groupLanguage)) return true;
+                if (allowNeighbor && isLanguageCompatible(sLang, artistLang)) return true;
+                return false;
+            });
+
+        if (artistSongs.length > 0) {
+            const takeCount = Math.min(randomInt(1, 3), artistSongs.length);
+            const shuffled = [...artistSongs].sort(() => Math.random() - 0.5);
+            for (let i = 0; i < takeCount; i++) {
+                const s = shuffled[i];
+                // Respect maxMinutes per-song, not per-iteration. Allow
+                // overshoot only if the group is still below minMinutes
+                // (which would be worse than a slightly-long group).
+                if (
+                    totalMinutes + durationMinutes(s) > config.maxMinutes &&
+                    totalMinutes >= config.minMinutes
+                ) {
+                    break;
+                }
+                groupSongs.push(s);
+                usedSongIds.add(s.id);
+                totalMinutes += durationMinutes(s);
+                artistChain.push(s.artist);
+            }
+            if (groupSongs.some(s => s.artist === currentArtist)) {
+                artistsUsed.add(currentArtist);
+            }
+        }
+
+        // Check if we can stop
+        const canStop =
+            groupSongs.length >= config.minSongs &&
+            artistsUsed.size >= config.minArtists &&
+            totalMinutes >= config.minMinutes;
+        const mustStop =
+            groupSongs.length >= config.maxSongs ||
+            artistsUsed.size >= config.maxArtists ||
+            totalMinutes >= config.maxMinutes;
+
+        if (mustStop) break;
+        if (canStop && Math.random() < 0.4) break; // probabilistic stop once minimums met
+
+        // Pick next artist. Language is a HARD eligibility filter — a
+        // cross-language neighbor is removed from the candidate pool before
+        // any closeness ranking happens.
+        const neighbors = graph.get(currentArtist) || [];
+        const allEligible = neighbors
+            .filter(n => !artistsUsed.has(n.name))
+            .filter(n => p_hasAvailableSongs(profiles.get(n.name), availableSongIds, usedSongIds));
+
+        // Tier 1: same language as the group.
+        let candidates = allEligible.filter(n =>
+            isLanguageCompatible(profiles.get(n.name).language, groupLanguage)
+        );
+
+        // Tier 2: if same-language pool is too small, allow neighbor languages.
+        if (candidates.length === 0) {
+            candidates = allEligible.filter(n => {
+                const lang = profiles.get(n.name).language;
+                return isLanguageCompatible(lang, groupLanguage) || isNeighborLanguage(lang, groupLanguage);
+            });
+        }
+
+        if (!candidates.length) break;
+
+        const top = candidates.slice(0, 5);
+        const next = weightedRandomPick(top);
+        if (!next) break;
+        currentArtist = next;
+        const nextLang = profiles.get(currentArtist).language;
+        if (nextLang && nextLang !== 'undetected') {
+            allowedLanguages.add(nextLang);
+        }
+    }
+
+    if (groupSongs.length < config.minSongs || artistsUsed.size < config.minArtists) {
+        return null;
+    }
+
+    return {
+        songs: groupSongs,
+        artistChain,
+        artistsUsed: [...artistsUsed],
+        totalMinutes,
+        groupLanguage,
+        allowedLanguages
+    };
+}
+
+function p_hasAvailableSongs(profile, availableSongIds, usedSongIds) {
+    return profile.songIds.some(id => availableSongIds.has(id) && !usedSongIds.has(id));
+}
+
+// -----------------------------------------------------------------------------
+// Final playback ordering — preserves the artist-chain structure and uses
+// duration only as a secondary signal. Returns { orderedSongs, artistChain }
+// where artistChain reflects the FINAL artist sequence after any promotions.
+// -----------------------------------------------------------------------------
+
+function splitIntoRuns(songs) {
+    // Returns [[songA1, songA2], [songB1], [songC1, songC2], ...] where each
+    // inner array is a maximal consecutive run of the same artist.
+    const runs = [];
+    for (const s of songs) {
+        const lastRun = runs[runs.length - 1];
+        if (lastRun && lastRun[0].artist === s.artist) {
+            lastRun.push(s);
+        } else {
+            runs.push([s]);
+        }
+    }
+    return runs;
+}
+
+function interleaveRuns(runs) {
+    // Interleave each pair of adjacent runs so consecutive songs within a
+    // pair alternate artists. Leftover songs from the longer run carry
+    // forward and interleave with the next run. Preserves the run order.
+    const result = [];
+    let carry = [];
+    let i = 0;
+    while (i < runs.length || carry.length) {
+        const current = carry.length ? carry : (i < runs.length ? runs[i++].slice() : []);
+        const next = (i < runs.length) ? runs[i++].slice() : [];
+        if (next.length === 0) {
+            result.push(...current);
+            carry = [];
+            continue;
+        }
+        const maxPair = Math.min(current.length, next.length);
+        for (let k = 0; k < maxPair; k++) {
+            result.push(current[k]);
+            result.push(next[k]);
+        }
+        carry = current.slice(maxPair).concat(next.slice(maxPair));
+    }
+    return result;
+}
+
+function durationAwareAssignment(runs) {
+    // Each run is still homogeneous per slot? No — after promotions a "run"
+    // may contain songs from two artists. Split again by actual artist.
+    // Then, for each maximal sub-run of the same artist, order its songs by
+    // alternating short/long relative to their neighbors.
+    const flattened = runs.flat();
+    const subRuns = splitIntoRuns(flattened);
+    const result = [];
+
+    for (let i = 0; i < subRuns.length; i++) {
+        const sub = subRuns[i];
+        if (sub.length === 1) { result.push(sub[0]); continue; }
+
+        // Sort sub by duration descending, then alternate ends.
+        const sorted = [...sub].sort((a, b) => durationMinutes(b) - durationMinutes(a));
+        const arranged = [];
+        let lo = 0, hi = sorted.length - 1, takeHigh = true;
+        while (lo <= hi) {
+            arranged.push(takeHigh ? sorted[hi--] : sorted[lo++]);
+            takeHigh = !takeHigh;
+        }
+        // Reverse before pushing so long-short ordering alternates against
+        // the previous sub-run's tail when possible.
+        for (const s of arranged) result.push(s);
+    }
+    return result;
+}
+
+function orderGroupWithDurationVariety(songs) {
+    // Full pipeline:
+    // 1. Split into runs (A A | B | C C | D).
+    // 2. Interleave adjacent runs so no run has more than one same-artist
+    //    adjacency, whenever a neighbor can absorb it.
+    // 3. Within each maximal sub-run of the same artist, alternate short/long.
+    const runs = splitIntoRuns(songs);
+    const interleaved = interleaveRuns(runs);
+    const subRuns = splitIntoRuns(interleaved);
+    const result = [];
+    for (const sub of subRuns) {
+        if (sub.length === 1) {
+            result.push(sub[0]);
+            continue;
+        }
+        const sorted = [...sub].sort((a, b) => durationMinutes(b) - durationMinutes(a));
+        let lo = 0;
+        let hi = sorted.length - 1;
+        let takeHigh = true;
+        while (lo <= hi) {
+            result.push(takeHigh ? sorted[hi--] : sorted[lo++]);
+            takeHigh = !takeHigh;
+        }
+    }
+    return result;
+}
+
+function generateArtistChainJourney(config) {
+    const profiles = buildArtistProfiles(LIBRARY);
+    const genreRarity = buildGenreRarity(LIBRARY);
+    const graph = buildArtistGraph(profiles, genreRarity);
+
+    const availableSongIds = new Set(LIBRARY.map(s => s.id));
+    const journey = [];
+    const groups = [];
+    let previousTailArtist = null;
+
+    let safety = 0;
+    while (journey.length < config.journeySize && safety < 200) {
+        safety++;
+
+        // Pick anchor
+        const ESCAPE_RATE = 0.2;
+        let anchor;
+        if (previousTailArtist && Math.random() >= ESCAPE_RATE) {
+            const neighbors = (graph.get(previousTailArtist) || [])
+                .filter(n => p_hasAvailableSongs(profiles.get(n.name), availableSongIds, new Set()));
+            if (neighbors.length) {
+                anchor = weightedRandomPick(neighbors.slice(0, 4));
+            }
+        }
+        if (!anchor) {
+            const prevLanguage = previousTailArtist ? profiles.get(previousTailArtist).language : null;
+            const allRemaining = [...profiles.keys()]
+                .filter(a => p_hasAvailableSongs(profiles.get(a), availableSongIds, new Set()));
+            const crossLanguage = allRemaining.filter(a => profiles.get(a).language !== prevLanguage);
+            const pool = crossLanguage.length ? crossLanguage : allRemaining;
+            if (!pool.length) break;
+            anchor = pickRandom(pool);
+        }
+
+        const group = tryBuildGroup(anchor, graph, profiles, availableSongIds, config);
+        if (!group) {
+            // Couldn't fill a group at all; remove the anchor to avoid infinite loop
+            for (const s of profiles.get(anchor).songIds) availableSongIds.delete(s);
+            continue;
+        }
+
+        const orderedSongs = orderGroupWithDurationVariety(group.songs);
+        for (const s of orderedSongs) {
+            availableSongIds.delete(s.id);
+            journey.push(s);
+            if (journey.length >= config.journeySize) break;
+        }
+
+        const playbackChain = orderedSongs.map(s => s.artist);
+        groups.push({
+            ...group,
+            orderedSongs,
+            anchor,
+            constructedChain: group.artistChain,
+            playbackChain,
+            actualArtists: orderedSongs.map(s => s.artist).filter((v, i, arr) => arr.indexOf(v) === i).length,
+            actualMinutes: orderedSongs.reduce((sum, s) => sum + durationMinutes(s), 0)
+        });
+
+        previousTailArtist = orderedSongs.length ? orderedSongs[orderedSongs.length - 1].artist : null;
+    }
+
+    return { journey, groups, graph, profiles, genreRarity };
+}
+
+// ============================================================================
+// RENDERING
+// ============================================================================
+
+function renderSummary(result) {
+    const { journey, groups } = result;
+    const totalMinutes = journey.reduce((s, x) => s + durationMinutes(x), 0);
+    const html = `
+        <strong>Generated ${journey.length} songs across ${groups.length} groups.</strong><br>
+        Total runtime: ${totalMinutes.toFixed(1)} min.
+        Average group: ${(groups.reduce((s, g) => s + g.orderedSongs.length, 0) / groups.length).toFixed(1)} songs,
+        ${(groups.reduce((s, g) => s + g.actualArtists, 0) / groups.length).toFixed(1)} artists,
+        ${(groups.reduce((s, g) => s + g.actualMinutes, 0) / groups.length).toFixed(1)} min.
+    `;
+    document.getElementById('summary').innerHTML = html;
+}
+
+function renderGraphPreview(result) {
+    const { graph, profiles } = result;
+    const names = [...graph.keys()].slice(0, 6);
+    let html = '<h2>Artist graph — top neighbors for a sample of artists</h2><div class="edge-list">';
+    for (const n of names) {
+        const p = profiles.get(n);
+        html += `<div><strong>${n}</strong> [${p.language}, ${p.year}] → `;
+        html += (graph.get(n) || []).slice(0, 4).map(e => `${e.name} (${e.score.toFixed(2)})`).join(', ');
+        html += '</div>';
+    }
+    html += '</div>';
+    document.getElementById('graph-section').innerHTML = html;
+}
+
+function renderJourney(result) {
+    const { groups } = result;
+    let html = '<h2>Journey</h2>';
+    groups.forEach((g, i) => {
+        const artistsList = [...new Set(g.orderedSongs.map(s => s.artist))];
+        const languagesList = [...new Set(g.orderedSongs.map(s => s.language))];
+        const constructedDistinct = (g.constructedChain || []).filter((v, idx, a) => a.indexOf(v) === idx).join(' → ');
+        const playbackDistinct = (g.playbackChain || []).filter((v, idx, a) => a.indexOf(v) === idx).join(' → ');
+        html += `<div class="group">
+            <div class="group-header">Group ${i + 1} — anchor: ${g.anchor}</div>
+            <div class="group-meta">${g.orderedSongs.length} songs · ${artistsList.length} artists · ${g.actualMinutes.toFixed(1)} min · languages: ${languagesList.join(', ')}</div>
+            <div class="group-meta" style="margin-bottom:12px;">
+                constructed artists: <code>${constructedDistinct}</code><br>
+                playback artists: <code>${playbackDistinct}</code>
+            </div>`;
+        for (const s of g.orderedSongs) {
+            const dur = durationMinutes(s);
+            const mm = Math.floor(dur);
+            const ss = Math.round((dur - mm) * 60);
+            html += `<div class="song">
+                <span class="song-artist">${s.artist}</span> — <span class="song-title">${s.title}</span>
+                <div class="song-detail">${s.genre} · ${s.year} · ${s.language} · ${mm}:${String(ss).padStart(2, '0')}</div>
+            </div>`;
+        }
+        html += '</div>';
+    });
+    document.getElementById('journey-section').innerHTML = html;
+}
+
+function renderDiagnostics(result) {
+    const { groups, graph } = result;
+
+    // --- Language violations ---
+    let groupsWithMultipleLanguages = 0;
+    let languageIncompatibleArtistTransitions = 0;
+
+    // --- Same-artist adjacency ---
+    let adjacentSameArtistPairs = 0;
+    let totalAdjacentPairs = 0;
+    let maxConsecutiveSameArtist = 0;
+
+    // --- Transitions ---
+    let smoothGroupTransitions = 0;
+    let hardGroupTransitions = 0;
+    let smoothPlaybackTransitions = 0;
+    let hardPlaybackTransitions = 0;
+
+    const chainMismatch = [];
+
+    groups.forEach((g, gi) => {
+        // 1. Language violations. Undetected and instrumental are compatible
+        // with anything. Non-neighbor languages must not mix in one group.
+        const allowed = g.allowedLanguages || new Set([g.groupLanguage]);
+        const inScope = s => {
+            const sLang = s.instrumental === true ? 'instrumental' : (s.language || 'undetected');
+            if (sLang === 'undetected' || sLang === 'instrumental') return true;
+            if (allowed.has(sLang)) return true;
+            return false;
+        };
+        const detectedLanguages = [...new Set(g.orderedSongs.map(s =>
+            s.instrumental === true ? 'instrumental' : (s.language || 'undetected')
+        ))].filter(l => l !== 'undetected' && l !== 'instrumental');
+        if (detectedLanguages.length > 1) groupsWithMultipleLanguages++;
+        for (const s of g.orderedSongs) {
+            if (!inScope(s)) languageIncompatibleArtistTransitions++;
+        }
+
+        // 2. Same-artist adjacency
+        let consec = 1;
+        for (let i = 1; i < g.orderedSongs.length; i++) {
+            totalAdjacentPairs++;
+            if (g.orderedSongs[i].artist === g.orderedSongs[i - 1].artist) {
+                adjacentSameArtistPairs++;
+                consec++;
+                if (consec > maxConsecutiveSameArtist) maxConsecutiveSameArtist = consec;
+            } else {
+                consec = 1;
+            }
+        }
+
+        // 3. Chain preservation diagnostic
+        if (g.constructedChain && g.playbackChain) {
+            const constructedDistinct = g.constructedChain.filter((v, i, a) => a.indexOf(v) === i);
+            const playbackDistinct = g.playbackChain.filter((v, i, a) => a.indexOf(v) === i);
+            if (constructedDistinct.join(',') !== playbackDistinct.join(',')) {
+                chainMismatch.push({ group: gi + 1, constructed: constructedDistinct.join(' → '), playback: playbackDistinct.join(' → ') });
+            }
+        }
+
+        // 4. Transitions
+        if (gi > 0) {
+            const prev = groups[gi - 1];
+
+            // GROUP/ANCHOR transition: prev group's conceptual tail artist → this group's anchor
+            const prevTailAnchor = prev.anchor;
+            const thisAnchor = g.anchor;
+            const anchorNeighbors = graph.get(prevTailAnchor) || [];
+            const anchorFound = anchorNeighbors.find(n => n.name === thisAnchor);
+            if (anchorFound && anchorFound.score >= 0.5) smoothGroupTransitions++;
+            else hardGroupTransitions++;
+
+            // PLAYBACK transition: prev group's last played artist → this group's first played artist
+            const prevTailPlayback = prev.playbackChain[prev.playbackChain.length - 1];
+            const thisHeadPlayback = g.playbackChain[0];
+            const playbackNeighbors = graph.get(prevTailPlayback) || [];
+            const playbackFound = playbackNeighbors.find(n => n.name === thisHeadPlayback);
+            if (playbackFound && playbackFound.score >= 0.5) smoothPlaybackTransitions++;
+            else hardPlaybackTransitions++;
+        }
+    });
+
+    const sameArtistPct = totalAdjacentPairs > 0 ? ((adjacentSameArtistPairs / totalAdjacentPairs) * 100).toFixed(1) : '0.0';
+
+    // Signal density: fraction of songs with each of year/genre/language populated.
+    const allSongs = result.journey || [];
+    const density = allSongs.length ? {
+        year: allSongs.filter(s => s.year && String(s.year).trim() !== '').length / allSongs.length,
+        genre: allSongs.filter(s => s.genre && String(s.genre).trim() !== '').length / allSongs.length,
+        language: allSongs.filter(s => s.language && s.language !== 'undetected').length / allSongs.length
+    } : { year: 0, genre: 0, language: 0 };
+    const overallDensity = (density.year + density.genre + density.language) / 3;
+
+    const densityClass = overallDensity >= 0.6 ? 'good' : (overallDensity >= 0.3 ? 'warn' : 'warn');
+
+    let chainHTML = '';
+    if (chainMismatch.length > 0) {
+        chainHTML = `<div class="warn" style="margin-top:8px; font-size:11px; line-height:1.6;">
+            <strong>Distinct-artist order changed by duration step:</strong><br>
+            ${chainMismatch.map(c => `Group ${c.group}: ${c.constructed} → ${c.playback}`).join('<br>')}
+        </div>`;
+    }
+
+    document.getElementById('diagnostics').innerHTML = `
+        <h2>Diagnostics</h2>
+        <div class="tally">
+            <span class="${groupsWithMultipleLanguages === 0 ? 'good' : 'warn'}">Groups with multiple languages: ${groupsWithMultipleLanguages}</span>
+            <span class="${languageIncompatibleArtistTransitions === 0 ? 'good' : 'warn'}">Language-incompatible artist transitions: ${languageIncompatibleArtistTransitions}</span>
+            <span class="${adjacentSameArtistPairs === 0 ? 'good' : 'warn'}">Adjacent same-artist pairs: ${adjacentSameArtistPairs} (${sameArtistPct}%)</span>
+            <span>Max consecutive same-artist: ${maxConsecutiveSameArtist}</span>
+        </div>
+        <div class="tally" style="margin-top:8px;">
+            <span>Group/anchor transitions — smooth: ${smoothGroupTransitions}, hard: ${hardGroupTransitions}</span>
+            <span>Playback transitions — smooth: ${smoothPlaybackTransitions}, hard: ${hardPlaybackTransitions}</span>
+        </div>
+        <div class="tally" style="margin-top:8px;">
+            <span class="${densityClass}">Signal density — overall: ${overallDensity.toFixed(2)}</span>
+            <span>year: ${density.year.toFixed(2)}</span>
+            <span>genre: ${density.genre.toFixed(2)}</span>
+            <span>language: ${density.language.toFixed(2)}</span>
+        </div>
+        ${chainHTML}
+    `;
+}
+
+// ============================================================================
+// MAIN
+// ============================================================================
+
+function readConfig() {
+    return {
+        journeySize: parseInt(document.getElementById('journey-size').value, 10) || 60,
+        minSongs: parseInt(document.getElementById('min-songs').value, 10) || 4,
+        maxSongs: parseInt(document.getElementById('max-songs').value, 10) || 10,
+        minArtists: parseInt(document.getElementById('min-artists').value, 10) || 2,
+        maxArtists: parseInt(document.getElementById('max-artists').value, 10) || 4,
+        minMinutes: parseInt(document.getElementById('min-min').value, 10) || 15,
+        maxMinutes: parseInt(document.getElementById('max-min').value, 10) || 45
+    };
+}
+
+function run() {
+    const config = readConfig();
+    const result = generateArtistChainJourney(config);
+    renderSummary(result);
+    renderGraphPreview(result);
+    renderJourney(result);
+    renderDiagnostics(result);
+}
+
+function regenerateLibrary() {
+    const artists = parseInt(document.getElementById('lib-artists').value, 10) || 40;
+    const songs = parseInt(document.getElementById('lib-songs').value, 10) || 10;
+    generateLibrary(artists, songs);
+    run();
+}
+
+document.getElementById('run').addEventListener('click', run);
+document.getElementById('regenerate').addEventListener('click', regenerateLibrary);
+
+// Initial run
+regenerateLibrary();
+</script>
+</body>
+</html>

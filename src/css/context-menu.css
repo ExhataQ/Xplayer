@@ -1,0 +1,64 @@
+/* ==============================================================================
+           CONTEXT MENU
+           ============================================================================== */
+.context-menu {
+    position: absolute;
+    background: var(--bg-modal);
+    border-radius: var(--radius-xs);
+    box-shadow: 0 8px 24px var(--shadow-color);
+    min-width: var(--context-menu-width, 180px);
+    width: var(--context-menu-width, 180px);
+    z-index: 100090;
+    display: none;
+}
+
+.context-menu.active {
+    display: block;
+}
+
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0px 10px 12px;
+    margin: 4px 4px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 400;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.context-menu-item i:first-child {
+    width: 20px;
+}
+
+.context-menu-item span {
+    flex: 1;
+}
+
+.context-menu-item .fa-chevron-right,
+.context-menu-item .material-symbols-outlined {
+    font-size: 10px;
+    width: auto;
+    flex-shrink: 0;
+    margin-left: 16px;
+}
+
+.context-menu-item:hover {
+    background: var(--hover-overlay);
+}
+
+.context-menu-item i {
+    width: 20px;
+    margin-right: 12px;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.context-menu-separator {
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+    padding-top: 14px;
+}
+

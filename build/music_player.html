@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Music Player</title>
+        <link rel="stylesheet" href="fonts/all.min.css" />
+        <link rel="stylesheet" href="fonts/material-icons.css" />
+        <link rel="stylesheet" href="css/base.css">
+        <link rel="stylesheet" href="css/notifications.css">
+        <link rel="stylesheet" href="css/left-panel.css">
+        <link rel="stylesheet" href="css/right-panel.css">
+        <link rel="stylesheet" href="css/header-topbar.css">
+        <link rel="stylesheet" href="css/song-list.css">
+        <link rel="stylesheet" href="css/context-menu.css">
+        <link rel="stylesheet" href="css/player.css">
+        <link rel="stylesheet" href="css/fullscreen-viewer.css">
+        <link rel="stylesheet" href="css/search-history.css">
+        <link rel="stylesheet" href="css/lyrics.css">
+        <link rel="stylesheet" href="css/metadata-editor.css">
+        <link rel="stylesheet" href="css/placeholders.css">
+        <style>
+            #startup-loading-screen {
+                position: fixed;
+                inset: 0;
+                z-index: 2147483647;
+                background: #121212;
+            }
+        </style>
+    </head>
+    <body aria-busy="true">
+        <div id="startup-loading-screen" aria-label="Loading"></div>
+        <div class="headerR">
+            <div class="header-left" style="flex: 1; display: flex; align-items: center; padding-left: 0">
+                <button id="back-btn" class="nav-btn" onclick="goBack()" disabled style="opacity: 0.5">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button id="forward-btn" class="nav-btn" onclick="goForward()" disabled style="opacity: 0.5">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <div class="header-center">
+                <div class="search-container">
+                    <div class="search-box">
+                        <input
+                            type="text"
+                            id="search-input"
+                            placeholder="Search songs..."
+                            oninput="performSearch()"
+                            aria-label="Search songs"
+                        />
+                        <button class="search-btn" id="search-btn" aria-label="Search">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div
+                class="header-right"
+                style="height: 100%; display: flex; align-items: center; justify-content: flex-end; padding-right: 0"
+            >
+                <button
+                    class="add-link-btn"
+                    onclick="showAddLinkDialog()"
+                    aria-label="Play from URL"
+                    title="Play from URL"
+                >
+                    <i class="fas fa-link"></i>
+                </button>
+                <button
+                    class="add-link-btn"
+                    onclick="openOnlineLyricsSearchView()"
+                    aria-label="Lyrics / LRC Search"
+                    title="Lyrics / LRC Search"
+                >
+                    <i class="fas fa-music"></i>
+                </button>
+                <button
+                    class="notification-panel-btn"
+                    id="notification-panel-btn"
+                    onclick="toggleNotificationPanel()"
+                    aria-label="Notifications"
+                    title="Notifications"
+                >
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notification-badge" style="display: none">0</span>
+                </button>
+                <button class="settings-toggle-btn" onclick="toggleSettingsPanel()" aria-label="Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <button
+                    class="window-control-btn"
+                    onclick="minimizeApp()"
+                    aria-label="Minimize"
+                    style="margin-left: 12px"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 10 10">
+                        <path d="M0 5 L10 5" stroke="currentColor" stroke-width="1" shape-rendering="crispEdges" />
+                    </svg>
+                </button>
+                <button class="window-control-btn" id="maximize-btn" onclick="maximizeApp()" aria-label="Maximize">
+                    <svg
+                        id="maximize-icon"
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="10"
+                        height="10"
+                        viewBox="0 0 10 10"
+                    >
+                        <rect
+                            x="0.5"
+                            y="0.5"
+                            width="9"
+                            height="9"
+                            stroke="currentColor"
+                            stroke-width="1"
+                            fill="none"
+                            shape-rendering="crispEdges"
+                        />
+                    </svg>
+                </button>
+                <button class="close-app-btn" onclick="closeApp()" aria-label="Close app">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 10 10">
+                        <path
+                            d="M0 0 L10 10 M10 0 L0 10"
+                            stroke="currentColor"
+                            stroke-width="1"
+                            shape-rendering="crispEdges"
+                        />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="notification-panel" id="notification-panel">
+            <div class="notification-panel-header">
+                <span>Notifications</span>
+                <button class="notification-panel-clear" onclick="clearAllNotifications()" title="Clear all">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+            <div class="notification-panel-list" id="notification-panel-list">
+                <div class="notification-empty">
+                    <i class="fas fa-bell-slash"></i>
+                    <span>No notifications</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- LEFT PANEL (Main Sidebar) -->
+            <div class="left-panel" id="left-panel">
+                <div class="left-panel-header-section">
+                    <div class="left-panel-header">
+                        <div style="display: flex; align-items: center; gap: 2px; flex: 1; min-width: 0">
+                            <div
+                                class="left-panel-header-title-group"
+                                onclick="toggleLeftPanelCollapse()"
+                                style="cursor: pointer; display: flex; align-items: center; gap: 2px"
+                                data-original-title="Collapse your library"
+                            >
+                                <button class="collapse-panel-btn" id="collapse-panel-btn" aria-label="Collapse panel">
+                                    <span class="material-symbols-outlined" id="collapse-panel-icon"
+                                        >left_panel_close</span
+                                    >
+                                </button>
+                                <h3>Your Library</h3>
+                            </div>
+                            <div
+                                class="folder-nav-bar"
+                                id="folder-nav-bar"
+                                style="display: none; align-items: center; gap: 6px"
+                            >
+                                <button
+                                    class="folder-back-btn"
+                                    id="folder-back-btn"
+                                    onclick="closeFolder()"
+                                    aria-label="Go back"
+                                    data-original-title="Go back"
+                                >
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <span class="folder-name-label" id="folder-name-label"></span>
+                            </div>
+                        </div>
+                        <button
+                            class="collapsed-folder-back-btn"
+                            id="collapsed-folder-back-btn"
+                            onclick="closeFolder()"
+                            aria-label="Go back"
+                            data-original-title="Go back"
+                        >
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <button
+                            class="create-playlist-header-btn"
+                            id="create-playlist-header-btn"
+                            onclick="showCreateItemDialog()"
+                            aria-label="Create"
+                        >
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <ul class="left-panel-tags">
+                    <li
+                        class="left-panel-item"
+                        id="playlists-filter-tag"
+                        onclick="togglePlaylistsFilter()"
+                        tabindex="0"
+                    >
+                        <span>Playlists</span>
+                    </li>
+                    <li class="left-panel-item" id="artists-filter-tag" onclick="toggleArtistsFilter()" tabindex="0">
+                        <span>Artists</span>
+                    </li>
+                    <li class="left-panel-item" id="albums-filter-tag" onclick="toggleAlbumsFilter()" tabindex="0">
+                        <span>Albums</span>
+                    </li>
+                </ul>
+                <div class="left-panel-main-list-container custom-scrollbar-container">
+                    <div class="left-panel-main-list-content custom-scrollbar-content" id="left-panel-main-content">
+                        <div class="left-panel-search-container" id="left-panel-search-container">
+                            <div class="left-panel-search-wrapper collapsed" id="left-panel-search-wrapper">
+                                <i
+                                    class="fas fa-search left-panel-search-icon"
+                                    id="left-panel-search-icon"
+                                    onclick="focusLeftPanelSearch()"
+                                    title="Search in Library"
+                                ></i>
+                                <input
+                                    type="text"
+                                    class="left-panel-search-input"
+                                    id="left-panel-search-input"
+                                    placeholder="Search in library"
+                                    oninput="performLeftPanelSearch()"
+                                    onblur="handleLeftPanelSearchBlur()"
+                                    autocomplete="off"
+                                />
+                                <i
+                                    class="fas fa-times left-panel-search-clear"
+                                    id="left-panel-search-clear"
+                                    onclick="clearLeftPanelSearch()"
+                                    title="Clear"
+                                ></i>
+                            </div>
+                        </div>
+                        <ul class="left-panel-main-list">
+                            <li
+                                class="left-panel-main-item active"
+                                onclick="switchView('all-songs')"
+                                oncontextmenu="showSpecialItemContextMenu(event, 'all-songs', 'All Songs'); return false;"
+                                data-view="all-songs"
+                                data-pin-id="all-songs"
+                                tabindex="0"
+                            >
+                                <div class="main-item-cover-wrapper">
+                                    <svg
+                                        class="main-item-cover-svg"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 400 400"
+                                        width="50"
+                                        height="50"
+                                    >
+                                        <rect width="400" height="400" rx="8" fill="var(--accent)" />
+                                        <circle
+                                            cx="200"
+                                            cy="200"
+                                            r="70"
+                                            fill="none"
+                                            stroke="#000000"
+                                            stroke-width="12"
+                                        />
+                                        <polygon points="180,160 180,240 240,200" fill="#000000" />
+                                    </svg>
+                                </div>
+                                <div class="main-item-info">
+                                    <span class="main-item-title">All Songs</span>
+                                    <span class="main-item-subtitle">
+                                        <span>Playlist</span>
+                                        <span class="main-item-dot">•</span>
+                                        <span class="main-item-count" id="all-songs-count-display">0 songs</span>
+                                    </span>
+                                </div>
+                            </li>
+                            <li
+                                class="left-panel-main-item"
+                                onclick="switchView('favorites')"
+                                oncontextmenu="showSpecialItemContextMenu(event, 'favorites', 'Liked Songs'); return false;"
+                                data-view="favorites"
+                                data-pin-id="favorites"
+                                tabindex="0"
+                            >
+                                <div class="main-item-cover-wrapper">
+                                    <svg
+                                        class="main-item-cover-svg"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 400 400"
+                                        width="50"
+                                        height="50"
+                                    >
+                                        <defs>
+                                            <linearGradient id="likedGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" style="stop-color: #450af5" />
+                                                <stop offset="100%" style="stop-color: #c4efd9" />
+                                            </linearGradient>
+                                        </defs>
+                                        <rect width="400" height="400" rx="8" fill="url(#likedGradient)" />
+                                        <path
+                                            d="M200 290 L170 260 C140 230 110 200 110 170 C110 140 135 115 165 115 C180 115 195 125 200 135 C205 125 220 115 235 115 C265 115 290 140 290 170 C290 200 260 230 230 260 L200 290Z"
+                                            fill="#ffffff"
+                                            stroke="none"
+                                            transform="scale(0.6) translate(135, 100)"
+                                        />
+                                    </svg>
+                                </div>
+                                <div class="main-item-info">
+                                    <span class="main-item-title">Liked Songs</span>
+                                    <span class="main-item-subtitle">
+                                        <span>Playlist</span>
+                                        <span class="main-item-dot">•</span>
+                                        <span class="main-item-count" id="liked-count-display">0 songs</span>
+                                    </span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="custom-scrollbar" id="left-panel-scrollbar">
+                        <div class="custom-scrollbar-thumb" id="left-panel-scrollbar-thumb"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MAIN CONTENT AREA WITH CUSTOM SCROLLBAR -->
+            <div class="custom-scrollbar-container content-wrapper">
+                <div class="custom-scrollbar-content content" id="main-content">
+                    <div class="main-content-inner">
+                        <!-- Song list container (visible by default) -->
+                        <div class="song-list-container" id="song-list-container">
+                            <div class="playlist-hero-section" id="playlist-hero-section">
+                                <div class="playlist-hero-cover">
+                                    <svg
+                                        id="hero-cover-svg"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 400 400"
+                                        width="100%"
+                                        height="100%"
+                                        style="display: block"
+                                    >
+                                        <circle cx="200" cy="200" r="180" fill="#4B5563" />
+                                        <polygon points="155,125 155,275 280,200" fill="var(--accent, #1DB954)" />
+                                    </svg>
+                                    <svg
+                                        id="hero-cover-svg-heart"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 400 400"
+                                        width="100%"
+                                        height="100%"
+                                        style="display: none"
+                                    >
+                                        <circle cx="200" cy="200" r="180" fill="#4B5563" />
+                                        <path
+                                            d="M200 290 L170 260 C140 230 110 200 110 170 C110 140 135 115 165 115 C180 115 195 125 200 135 C205 125 220 115 235 115 C265 115 290 140 290 170 C290 200 260 230 230 260 L200 290Z"
+                                            fill="var(--accent, #1DB954)"
+                                            stroke="none"
+                                            transform="scale(0.6) translate(135, 100)"
+                                        />
+                                    </svg>
+                                    <svg
+                                        id="hero-cover-svg-history"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 400 400"
+                                        width="100%"
+                                        height="100%"
+                                        style="display: none"
+                                    >
+                                        <circle cx="200" cy="200" r="180" fill="#4B5563" />
+                                        <circle
+                                            cx="200"
+                                            cy="200"
+                                            r="70"
+                                            fill="none"
+                                            stroke="var(--accent, #1DB954)"
+                                            stroke-width="12"
+                                        />
+                                        <polygon
+                                            points="200,200 200,150 215,150 215,195 245,210 235,225 200,205"
+                                            fill="var(--accent, #1DB954)"
+                                        />
+                                    </svg>
+                                    <svg
+                                        id="hero-cover-svg-playlist"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 400 400"
+                                        width="100%"
+                                        height="100%"
+                                        style="display: none"
+                                    >
+                                        <rect width="400" height="400" rx="8" fill="#1a1a1a" />
+                                        <circle
+                                            cx="200"
+                                            cy="200"
+                                            r="115"
+                                            fill="none"
+                                            stroke="var(--accent, #1DB954)"
+                                            stroke-width="8"
+                                        />
+                                        <circle cx="200" cy="200" r="30" fill="var(--accent, #1DB954)" />
+                                        <circle cx="200" cy="200" r="10" fill="#1a1a1a" />
+                                    </svg>
+                                    <img id="hero-cover-image" src="" alt="Playlist cover" style="display: none" />
+                                </div>
+                                <div class="playlist-hero-info">
+                                    <div class="playlist-hero-label">Playlist</div>
+                                    <h1 class="playlist-hero-title" id="hero-title">All Songs</h1>
+                                    <div class="playlist-hero-meta">
+                                        <span id="hero-song-count">{{SONGS_COUNT}} songs</span>
+                                        <button
+                                            class="hero-clear-btn"
+                                            id="hero-clear-btn"
+                                            onclick="handleHeroClear()"
+                                            style="display: none"
+                                        >
+                                            <i class="fas fa-trash-alt"></i>
+                                            Clear
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="content-gradient-wrapper">
+                                <div class="subhero-section" id="subhero-section">
+                                    <div class="subhero-left-actions">
+                                        <button
+                                            class="subhero-play-btn"
+                                            id="subhero-play-btn"
+                                            onclick="togglePlayAllFromCurrentView()"
+                                            title="Play"
+                                        >
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                        <button
+                                            class="subhero-shuffle-btn"
+                                            id="subhero-shuffle-btn"
+                                            onclick="toggleShuffleFromSubhero()"
+                                            title="Shuffle"
+                                        >
+                                            <span class="material-symbols-outlined">shuffle</span>
+                                        </button>
+                                        <button
+                                            class="subhero-more-btn"
+                                            id="subhero-more-btn"
+                                            onclick="showSubheroContextMenu(event)"
+                                            title="More options"
+                                        >
+                                            <span class="material-symbols-outlined">more_horiz</span>
+                                        </button>
+                                    </div>
+                                    <div class="subhero-search-container" id="subhero-search-container">
+                                        <div class="subhero-search-wrapper collapsed" id="subhero-search-wrapper">
+                                            <i
+                                                class="fas fa-search subhero-search-icon"
+                                                id="subhero-search-icon"
+                                                onclick="focusSubheroSearch()"
+                                                title="Search"
+                                            ></i>
+                                            <input
+                                                type="text"
+                                                class="subhero-search-input"
+                                                id="subhero-search-input"
+                                                placeholder="Search in playlist"
+                                                oninput="performSubheroSearch()"
+                                                onblur="handleSubheroSearchBlur()"
+                                                autocomplete="off"
+                                            />
+                                            <i
+                                                class="fas fa-times subhero-search-clear"
+                                                id="subhero-search-clear"
+                                                onclick="clearSubheroSearch()"
+                                                title="Clear"
+                                            ></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tracklist-header">
+                                    <div class="tracklist-container">
+                                        <div class="left-tracklist">
+                                            <div class="tracklist-number"><span class="tracklist-label">#</span></div>
+                                            <div class="tracklist-title">
+                                                <span class="tracklist-label">Title</span>
+                                            </div>
+                                        </div>
+                                        <div class="tracklist-album"><span class="tracklist-label">Album</span></div>
+                                        <div class="tracklist-duration"><span class="tracklist-label">⏱</span></div>
+                                    </div>
+                                </div>
+                                <div class="song-list" id="song-list"></div>
+                            </div>
+                        </div>
+
+                        <!-- Settings panel placeholder (content generated dynamically) -->
+                        <div class="settings-panel" id="settings-panel" style="display: none"></div>
+                    </div>
+                </div>
+                <div class="custom-scrollbar" id="external-scrollbar">
+                    <div class="custom-scrollbar-thumb" id="external-scrollbar-thumb"></div>
+                </div>
+            </div>
+            <!-- RIGHT PANEL (Sidebar) -->
+            <div class="right-panel" id="right-panel">
+                <div class="right-panel-header-content">
+                    <div class="right-panel-header-left" style="display: flex; align-items: center; gap: 0">
+                        <button
+                            class="right-panel-collapse-btn"
+                            id="right-panel-collapse-btn"
+                            onclick="toggleRightPanelCollapse()"
+                            aria-label="Hide now playing view"
+                            title="Hide now playing view"
+                        >
+                            <span class="material-symbols-outlined" id="right-panel-collapse-icon"
+                                >right_panel_close</span
+                            >
+                        </button>
+                        <span id="right-panel-header-title" onclick="switchToQueuePanel()" style="cursor: pointer"
+                            >Queue</span
+                        >
+                        <span
+                            id="recently-played-text"
+                            class="recently-played-text"
+                            onclick="switchToRecentlyPlayedPanel()"
+                            style="cursor: pointer"
+                            >recently played</span
+                        >
+                    </div>
+                    <div class="right-panel-header-right" style="display: flex; align-items: center; gap: 4px">
+                        <div
+                            class="right-panel-close-btn"
+                            id="right-panel-close-btn"
+                            onclick="toggleRightPanel()"
+                            style="
+                                display: none;
+                                cursor: pointer;
+                                width: 36px;
+                                height: 36px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                border-radius: 50%;
+                            "
+                            title="Close panel"
+                        >
+                            <span class="material-symbols-outlined" style="font-size: 20px">close</span>
+                        </div>
+                        <div
+                            class="right-panel-more-info"
+                            id="right-panel-more-info"
+                            onclick="event.stopPropagation(); showRightPanelContextMenu(event)"
+                            style="
+                                display: none;
+                                cursor: pointer;
+                                width: 36px;
+                                height: 36px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                border-radius: 50%;
+                            "
+                            title="More options"
+                        >
+                            <span class="material-symbols-outlined" style="font-size: 24px">more_horiz</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="right-panel-content-wrapper custom-scrollbar-container">
+                    <div class="right-panel-scroll-content custom-scrollbar-content" id="right-panel-content">
+                        <div class="panel-content active" id="queue-content">
+                            <div class="queue-list" id="queue-list">
+                                <div class="empty-queue">
+                                    <i class="fas fa-music"></i>
+                                    <p>Queue is empty</p>
+                                    <small>Play songs to build your queue</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel-content" id="tags-content">
+                            <div class="album-art-section" id="album-art-section">
+                                <div class="album-art-container">
+                                    <img id="album-art-image" class="album-art-image" src="{{PLACEHOLDER_IMAGE}}" alt="Album artwork" onerror="this.onerror=null; this.src='{{PLACEHOLDER_IMAGE}}'" />
+                                </div>
+                                <div class="tag-details" id="tag-details">
+                                    <div class="track-info-header">
+                                        <div class="track-info-title-row">
+                                            <div class="track-info-title" id="tag-title" onclick="navigateToCurrentSourceView()">—</div>
+                                        </div>
+                                        <div class="track-info-artist" id="tag-artist" onclick="navigateToCurrentArtist()">—</div>
+                                    </div>
+                                    <div class="track-info-box" id="track-info-box">
+                                        <div class="track-info-box-title"><span>Info</span><button class="track-info-edit-btn" id="track-info-btn" onclick="event.stopPropagation(); openMetadataEditor()" style="display: none" title="Edit metadata" aria-label="Edit metadata"><span class="material-symbols-outlined">edit</span></button></div>
+                                        <div class="track-info-columns" id="track-info-columns" data-layout="single">
+                                            <div class="track-info-row">
+                                                <span class="track-info-value" id="tag-album">—</span>
+                                                <span class="track-info-label">Album</span>
+                                            </div>
+                                            <div class="track-info-row">
+                                                <span class="track-info-value" id="tag-year">—</span>
+                                                <span class="track-info-label">Year</span>
+                                            </div>
+                                            <div class="track-info-row">
+                                                <span class="track-info-value" id="tag-composer">—</span>
+                                                <span class="track-info-label">Composer</span>
+                                            </div>
+                                            <div class="track-info-row">
+                                                <span class="track-info-value" id="tag-genre">—</span>
+                                                <span class="track-info-label">Genre</span>
+                                            </div>
+                                            <div class="track-info-row">
+                                                <span class="track-info-value" id="tag-duration">—</span>
+                                                <span class="track-info-label">Duration</span>
+                                            </div>
+                                            <div class="track-info-row">
+                                                <span class="track-info-value" id="tag-track">—</span>
+                                                <span class="track-info-label">Track</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="track-lyrics-box" id="track-lyrics-box" style="display: none">
+                                        <div class="track-lyrics-header">
+                                            <span class="track-lyrics-title">Lyrics</span>
+                                            <button class="track-lyrics-open" onclick="switchToLyrics()">Open</button>
+                                        </div>
+                                        <div class="custom-scrollbar-container track-lyrics-body-container">
+                                            <div class="custom-scrollbar-content" id="track-lyrics-body">
+                                                <div class="track-lyrics-text" id="track-lyrics-text"></div>
+                                            </div>
+                                            <div class="custom-scrollbar" id="track-lyrics-scrollbar">
+                                                <div class="custom-scrollbar-thumb" id="track-lyrics-scrollbar-thumb"></div>
+                                            </div>
+                                        </div>
+                                        <div class="track-lyrics-footer">
+                                            <button class="track-lyrics-sync" id="track-lyrics-sync" onclick="scrollTrackLyricsToActive()" style="display: none">Sync</button>
+                                            <button class="track-lyrics-expand" id="track-lyrics-expand" onclick="toggleTrackLyricsExpand()" aria-label="Expand lyrics">
+                                                <span class="material-symbols-outlined" id="track-lyrics-expand-icon">expand_more</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="track-next-box" id="track-next-box">
+                                        <div class="track-next-header">
+                                            <span class="track-next-title">Next in queue</span>
+                                            <button class="track-next-open" onclick="switchToQueuePanel()">Open queue</button>
+                                        </div>
+                                        <div class="track-next-body" id="track-next-body"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel-content" id="metadata-content"><div id="metadata-editor-content" class="metadata-editor-content"></div></div>
+
+                        <div class="panel-content" id="recently-played-content">
+                            <div class="queue-list" id="recently-played-list">
+                                <div class="empty-queue">
+                                    <i class="fas fa-history"></i>
+                                    <p>No recently played songs</p>
+                                    <small>Play songs for at least 5 seconds to see them here</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="custom-scrollbar" id="right-panel-scrollbar">
+                        <div class="custom-scrollbar-thumb" id="right-panel-scrollbar-thumb"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MUSIC PLAYER -->
+        <div class="music-player">
+            <div class="player-container">
+                <div class="player-left-section">
+                    <div class="player-song-info">
+                        <img
+                            id="player-cover"
+                            src="{{PLACEHOLDER_IMAGE}}"
+                            alt="Album cover"
+                            onclick="openTagsTab()"
+                            onerror="this.onerror=null; this.src='{{PLACEHOLDER_IMAGE}}'"
+                            style="cursor: pointer"
+                        />
+                        <div class="player-text-info">
+                            <div id="player-title">No song selected</div>
+                            <div id="player-artist">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="player-center-section">
+                    <div class="player-controls">
+                        <button class="player-btn" id="shuffle-btn" tabindex="0" aria-label="Shuffle">
+                            <span class="material-symbols-outlined">shuffle</span>
+                        </button>
+                        <button class="player-btn" id="prev-btn" tabindex="0" aria-label="Previous song">
+                            <i class="fas fa-step-backward"></i>
+                        </button>
+                        <button class="player-btn" id="play-btn" tabindex="0" aria-label="Play/Pause">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button class="player-btn" id="next-btn" tabindex="0" aria-label="Next song">
+                            <i class="fas fa-step-forward"></i>
+                        </button>
+                        <button
+                            class="player-btn"
+                            id="repeat-btn"
+                            style="position: relative"
+                            tabindex="0"
+                            aria-label="Repeat mode"
+                        >
+                            <i class="fas fa-redo"></i>
+                            <span class="repeat-one" id="repeat-one" style="display: none">1</span>
+                        </button>
+                    </div>
+                    <div class="progress-section">
+                        <div class="time-display" id="current-time" onclick="toggleTimeDisplay()">0:00</div>
+                        <div class="progress-container" onmousedown="startSeek(event)">
+                            <div id="progress-bar"></div>
+                            <div id="progress-knob"></div>
+                        </div>
+                        <div class="time-display" id="total-time">0:00</div>
+                    </div>
+                </div>
+
+                <div class="player-right-section">
+                    <div class="player-right-controls">
+                        <button
+                            class="lyrics-toggle-btn"
+                            id="lyrics-toggle-btn"
+                            onclick="switchToLyrics()"
+                            aria-label="Show lyrics"
+                            title="Lyrics"
+                            disabled
+                        >
+                            <span class="lyrics-svg-icon"></span>
+                        </button>
+                        <button class="queue-toggle-btn" onclick="toggleRightPanel()" aria-label="Toggle right panel">
+                            <span class="material-symbols-outlined">queue_music</span>
+                        </button>
+                        <div class="volume-container">
+                            <div class="volume-icon" id="volume-icon" onclick="toggleMute()" aria-label="Volume">
+                                <i class="fas fa-volume-up"></i>
+                            </div>
+                            <div id="volume-slider" onmousedown="setVolume(event)" aria-label="Volume slider">
+                                <div id="volume-fill"></div>
+                                <div id="volume-knob"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <audio id="audio"></audio>
+        </div>
+
+        <!-- Extended Info Panel -->
+        <div class="extended-info-overlay" id="extended-info-overlay" onclick="closeExtendedInfoPanel()">
+            <div class="extended-info-modal" id="extended-info-content" onclick="event.stopPropagation()"></div>
+        </div>
+
+        <!-- Fullscreen Image Viewer -->
+        <div class="image-viewer" id="image-viewer" onclick="closeImageViewer()">
+            <div class="image-viewer-content" onclick="event.stopPropagation()">
+                <img id="viewer-image" src="" alt="Fullsize album art" draggable="false" />
+                <button class="image-viewer-close" onclick="closeImageViewer()" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <script src="js/00-state.js"></script>
+        <script src="js/01-sizes.js"></script>
+        <script src="js/02-ghost-list.js"></script>
+        <script src="js/03-storage.js"></script>
+        <script src="js/04a-ui-render-core.js"></script>
+        <script src="js/04b-ui-render-views.js"></script>
+        <script src="js/05-lazy-load.js"></script>
+        <script src="js/06a-context-menus.js"></script>
+        <script src="js/06b-modals.js"></script>
+        <script src="js/06c-ui-widgets.js"></script>
+        <script src="js/07-views.js"></script>
+        <script src="js/08-panels.js"></script>
+        <script src="js/09-folders-playlists.js"></script>
+        <script src="js/10-playback.js"></script>
+        <script src="js/11-lrc.js"></script>
+        <script src="js/12-color-extract.js"></script>
+        <script src="js/13-song-highlight.js"></script>
+        <script src="js/14-song-navigation.js"></script>
+        <script src="js/15-playback-controls.js"></script>
+        <script src="js/16-context-menu-actions.js"></script>
+        <script src="js/17-song-selection.js"></script>
+        <script src="js/18-lyrics-editor.js"></script>
+        <script src="js/19-online-lyrics.js"></script>
+        <script src="js/20-metadata-editor.js"></script>
+        <script src="js/21-language-detect.js"></script>
+        <script src="player.js"></script>
+    </body>
+</html>

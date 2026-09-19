@@ -1,0 +1,290 @@
+/* ==============================================================================
+           SEARCH HISTORY STYLES
+           ============================================================================== */
+
+.search-history-header {
+    margin-bottom: 20px;
+}
+
+.search-history-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.search-history-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.search-history-title i {
+    color: var(--accent);
+}
+
+.search-history-title span {
+    font-size: 14px;
+    font-weight: var(--font-weight-semibold);
+}
+
+.clear-history-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    font-size: 12px;
+    transition: var(--transition-fast);
+}
+
+.clear-history-btn i {
+    margin-right: 5px;
+}
+
+.search-history-info {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    padding: 5px 10px;
+    background: var(--bg-card);
+    border-radius: var(--radius-xs);
+}
+
+.search-history-info i {
+    margin-right: 5px;
+}
+
+.search-history-item {
+    display: grid;
+    grid-template-columns: 0.82fr 1fr auto;
+    align-items: center;
+    border-radius: var(--radius-xs);
+    height: 54px;
+    cursor: pointer;
+}
+
+.search-history-item .left-song-item {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    align-items: center;
+    gap: 16px;
+    padding-left: 36px;
+    position: relative;
+}
+
+.search-history-item .song-number {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-family: 'Segoe UI', 'Selawik', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    position: absolute;
+    left: 0;
+    width: 40px;
+}
+
+.search-history-item .song-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    overflow-x: hidden;
+    width: 100%;
+    min-width: 200px;
+}
+
+.search-history-item .song-album {
+    font-size: 11px;
+    color: var(--text-secondary);
+    padding: 0 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 100px;
+}
+
+.search-history-item .right-song-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    justify-content: flex-end;
+    margin-right: 16px;
+}
+
+.search-history-item .song-duration {
+    color: var(--text-secondary);
+    font-family: 'Segoe UI', 'Selawik', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    font-variant-numeric: tabular-nums;
+    font-size: 11px;
+}
+
+.search-history-item .more-info {
+    color: var(--text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    opacity: 0;
+}
+
+.search-history-item:hover .more-info {
+    opacity: 1;
+}
+
+.search-history-item .more-info:hover {
+    color: #ff4444;
+}
+
+.search-history-query {
+    font-size: 12px;
+    font-weight: var(--font-weight-semibold);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.search-history-query i {
+    margin-right: 8px;
+    color: var(--accent);
+    font-size: 12px;
+}
+
+.search-history-meta {
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* recently played */
+.recently-played-header {
+    margin-bottom: 20px;
+}
+
+.recently-played-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.recently-played-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.recently-played-title i {
+    color: var(--accent);
+}
+
+.recently-played-title span {
+    font-size: 14px;
+    font-weight: var(--font-weight-semibold);
+}
+
+.clear-recent-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    font-size: 12px;
+    transition: var(--transition-fast);
+}
+
+.clear-recent-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.clear-recent-btn i {
+    margin-right: 5px;
+}
+
+.recently-played-info {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    padding: 5px 10px;
+    background: var(--bg-card);
+    border-radius: var(--radius-xs);
+}
+
+.recently-played-info i {
+    margin-right: 5px;
+}
+
+body.dragging-scrollbar {
+    cursor: default !important;
+}
+
+body.dragging-scrollbar .custom-scrollbar,
+body.dragging-scrollbar .custom-scrollbar-thumb {
+    pointer-events: auto !important;
+}
+
+body.dragging-scrollbar .song-item:not(.selected):not(.playing):hover,
+body.dragging-scrollbar .queue-item:hover,
+body.dragging-scrollbar .left-panel-main-item:hover {
+    background: transparent !important;
+}
+
+body.dragging-scrollbar .song-item:hover .song-number-item::after {
+    display: none !important;
+}
+
+body.dragging-scrollbar .song-item:not(.selected):not(.playing):hover .add-to-queue-btn,
+body.dragging-scrollbar .song-item:not(.selected):not(.playing):hover .favorite-btn,
+body.dragging-scrollbar .song-item:not(.selected):not(.playing):hover .more-info,
+body.dragging-scrollbar .queue-item:hover .more-info {
+    opacity: 0 !important;
+}
+
+body.dragging-scrollbar .song-item:not(.selected):not(.playing):hover .song-number-item {
+    color: var(--text-secondary) !important;
+}
+
+body.dragging-scrollbar .song-item.selected:hover .song-number-item {
+    color: var(--text-primary) !important;
+}
+
+body.dragging-scrollbar .song-item.playing:hover .song-number-item {
+    color: var(--accent) !important;
+    font-weight: bold !important;
+}
+
+body.dragging-left-scrollbar .collapse-panel-btn {
+    opacity: 1 !important;
+    margin-right: 0 !important;
+}
+
+body.dragging-scrollbar .song-item.playing .song-number-item {
+    color: var(--accent) !important;
+    font-weight: bold !important;
+}
+
+body.dragging-scrollbar .song-item.selected .add-to-queue-btn,
+body.dragging-scrollbar .song-item.selected .favorite-btn {
+    opacity: 1 !important;
+}
+
+body.dragging-scrollbar .song-item.selected .more-info {
+    opacity: 0 !important;
+}
+
+body.dragging-scrollbar .left-panel-main-item.playing .main-item-title {
+    color: var(--accent) !important;
+}
+
+body.dragging-scrollbar .left-panel-main-item,
+body.dragging-scrollbar .left-panel-main-item * {
+    cursor: default !important;
+}
+
+body.dragging-scrollbar .left-panel-main-item:hover,
+body.dragging-scrollbar .left-panel-main-item *:hover {
+    cursor: default !important;
+}
+

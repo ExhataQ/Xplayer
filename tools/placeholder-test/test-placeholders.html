@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Placeholder Test</title>
+        <link rel="stylesheet" href="../../src/css/styles.css" />
+        <link rel="stylesheet" href="placeholder-test.css" />
+        <link rel="stylesheet" href="../../tools/fonts/material-icons.css" />
+    </head>
+    <body>
+        <!-- Header placeholder -->
+        <div class="headerR pt-header">
+            <div class="header-left pt-header-left">
+                <div class="pt-icon-border">←</div>
+                <div class="pt-icon-border">→</div>
+            </div>
+            <div class="header-center">
+                <div class="pt-search-border">Search placeholder</div>
+            </div>
+            <div class="header-right pt-header-right">
+                <div class="pt-icon-border">🔗</div>
+                <div class="pt-icon-border">♪</div>
+                <div class="pt-icon-border">🔔</div>
+                <div class="pt-icon-border">⚙</div>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- LEFT PANEL -->
+            <div class="left-panel" id="left-panel">
+                <div class="left-panel-header-section">
+                    <div class="left-panel-header">
+                        <div class="left-panel-header-title-group" onclick="toggleLeftPanelCollapse()" style="cursor: pointer">
+                            <button class="collapse-panel-btn" id="collapse-panel-btn">
+                                <span class="material-symbols-outlined" id="collapse-panel-icon">left_panel_close</span>
+                            </button>
+                            <h3>Your Library</h3>
+                        </div>
+                    </div>
+                </div>
+                <ul class="left-panel-tags">
+                    <li class="left-panel-item"><span>Playlists</span></li>
+                    <li class="left-panel-item"><span>Artists</span></li>
+                    <li class="left-panel-item"><span>Albums</span></li>
+                </ul>
+                <div class="left-panel-main-list-container custom-scrollbar-container">
+                    <div class="left-panel-main-list-content custom-scrollbar-content" id="left-panel-main-content">
+                        <ul class="left-panel-main-list" id="left-panel-list"></ul>
+                    </div>
+                    <div class="custom-scrollbar" id="left-panel-scrollbar">
+                        <div class="custom-scrollbar-thumb" id="left-panel-scrollbar-thumb"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MAIN CONTENT -->
+            <div class="custom-scrollbar-container content-wrapper">
+                <div class="custom-scrollbar-content content" id="main-content">
+                    <div class="main-content-inner">
+                        <div class="song-list-container">
+                            <div class="playlist-hero-section">
+                                <div class="playlist-hero-cover pt-hero-cover"></div>
+                                <div class="playlist-hero-info">
+                                    <div class="playlist-hero-label">Playlist</div>
+                                    <div class="pt-hero-title"></div>
+                                    <div class="playlist-hero-meta">
+                                        <div class="pt-hero-count"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tracklist-header">
+                                <div class="tracklist-container">
+                                    <div class="left-tracklist">
+                                        <div class="tracklist-number"><span class="tracklist-label">#</span></div>
+                                        <div class="tracklist-title"><span class="tracklist-label">Title</span></div>
+                                    </div>
+                                    <div class="tracklist-album"><span class="tracklist-label">Album</span></div>
+                                    <div class="tracklist-duration"><span class="tracklist-label">⏱</span></div>
+                                </div>
+                            </div>
+                            <div class="song-list" id="song-list"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="custom-scrollbar" id="external-scrollbar">
+                    <div class="custom-scrollbar-thumb" id="external-scrollbar-thumb"></div>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL -->
+            <div class="right-panel active" id="right-panel">
+                <div class="right-panel-header-content">
+                    <div class="right-panel-header-left">
+                        <button class="right-panel-collapse-btn" id="right-panel-collapse-btn" onclick="toggleRightPanelCollapse()" title="Hide now playing view">
+                            <span class="material-symbols-outlined" id="right-panel-collapse-icon">right_panel_close</span>
+                        </button>
+                        <span>Queue</span>
+                    </div>
+                </div>
+                <div class="right-panel-content-wrapper custom-scrollbar-container">
+                    <div class="right-panel-scroll-content custom-scrollbar-content" id="right-panel-content">
+                        <div class="panel-content active" id="tags-content">
+                            <div class="album-art-section" id="album-art-section">
+                                <div class="album-art-container">
+                                    <div class="album-art-placeholder"></div>
+                                </div>
+                                <div class="tag-details" id="tag-details">
+                                    <div class="track-placeholder-header">
+                                        <div class="skeleton-bar placeholder-title"></div>
+                                        <div class="skeleton-bar placeholder-artist"></div>
+                                    </div>
+                                    <div class="track-placeholder-box placeholder-info">
+                                        <div class="placeholder-info-title-row">
+                                            <div class="skeleton-bar"></div>
+                                            <div class="skeleton-circle"></div>
+                                        </div>
+                                        <div class="placeholder-info-grid">
+                                            <div class="placeholder-info-row">
+                                                <div class="skeleton-bar value"></div>
+                                                <div class="skeleton-bar label"></div>
+                                            </div>
+                                            <div class="placeholder-info-row">
+                                                <div class="skeleton-bar value"></div>
+                                                <div class="skeleton-bar label"></div>
+                                            </div>
+                                            <div class="placeholder-info-row">
+                                                <div class="skeleton-bar value"></div>
+                                                <div class="skeleton-bar label"></div>
+                                            </div>
+                                            <div class="placeholder-info-row">
+                                                <div class="skeleton-bar value"></div>
+                                                <div class="skeleton-bar label"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="track-placeholder-box placeholder-lyrics">
+                                        <div class="placeholder-lyrics-header">
+                                            <div class="skeleton-bar"></div>
+                                            <div class="skeleton-bar open-btn"></div>
+                                        </div>
+                                        <div class="placeholder-lyrics-body">
+                                            <div class="skeleton-bar"></div>
+                                            <div class="skeleton-bar"></div>
+                                            <div class="skeleton-bar"></div>
+                                        </div>
+                                    </div>
+                                    <div class="track-placeholder-box placeholder-next">
+                                        <div class="placeholder-next-header">
+                                            <div class="skeleton-bar"></div>
+                                            <div class="skeleton-bar open-btn"></div>
+                                        </div>
+                                        <div class="placeholder-next-item">
+                                            <div class="placeholder-next-cover"></div>
+                                            <div class="placeholder-next-info">
+                                                <div class="skeleton-bar title"></div>
+                                                <div class="skeleton-bar artist"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="custom-scrollbar" id="right-panel-scrollbar">
+                        <div class="custom-scrollbar-thumb" id="right-panel-scrollbar-thumb"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer (exact app structure, skeleton content) -->
+        <div class="music-player">
+            <div class="player-container">
+                <div class="player-left-section">
+                    <div class="player-song-info has-song">
+                        <div class="pt-footer-cover"></div>
+                        <div class="player-text-info">
+                            <div class="pt-footer-title skeleton-bar"></div>
+                            <div class="pt-footer-artist skeleton-bar"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="player-center-section">
+                    <div class="player-controls">
+                        <button class="player-btn"><span class="material-symbols-outlined">shuffle</span></button>
+                        <button class="player-btn"><span class="material-symbols-outlined">skip_previous</span></button>
+                        <button class="player-btn" id="play-btn"><span class="material-symbols-outlined">play_arrow</span></button>
+                        <button class="player-btn"><span class="material-symbols-outlined">skip_next</span></button>
+                        <button class="player-btn" style="position: relative"><span class="material-symbols-outlined">repeat</span></button>
+                    </div>
+                    <div class="progress-section">
+                        <div class="time-display">0:00</div>
+                        <div class="progress-container">
+                            <div id="progress-bar" style="width: 35%"></div>
+                            <div id="progress-knob" style="left: 35%"></div>
+                        </div>
+                        <div class="time-display">0:00</div>
+                    </div>
+                </div>
+
+                <div class="player-right-section">
+                    <div class="player-right-controls">
+                        <button class="lyrics-toggle-btn"><span class="material-symbols-outlined">lyrics</span></button>
+                        <button class="queue-toggle-btn"><span class="material-symbols-outlined">queue_music</span></button>
+                        <div class="volume-container">
+                            <div class="volume-icon"><span class="material-symbols-outlined">volume_up</span></div>
+                            <div id="volume-slider">
+                                <div id="volume-fill" style="width: 50%"></div>
+                                <div id="volume-knob" style="left: 50%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="placeholder-test.js"></script>
+    </body>
+</html>

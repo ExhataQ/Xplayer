@@ -1,0 +1,325 @@
+/* ==============================================================================
+        FULLSCREEN IMAGE VIEWER
+    ============================================================================== */
+.image-viewer {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 10000;
+    transition: opacity 0.3s ease;
+    opacity: 0;
+}
+
+.image-viewer.active {
+    display: flex;
+    opacity: 1;
+}
+
+.image-viewer-content {
+    position: relative;
+    max-width: var(--image-viewer-max-size);
+    max-height: var(--image-viewer-max-size);
+    opacity: 0;
+    filter: blur(10px);
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    margin-bottom: var(--image-viewer-margin-bottom);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.image-viewer.active .image-viewer-content {
+    opacity: 1;
+    filter: blur(0);
+}
+
+.image-viewer.closing {
+    opacity: 0;
+}
+
+.image-viewer.closing .image-viewer-content {
+    opacity: 0;
+    filter: blur(10px);
+    transition: all 0.5s ease;
+}
+
+.image-viewer img {
+    max-width: var(--image-viewer-max-size);
+    max-height: var(--image-viewer-max-size);
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+    pointer-events: auto;
+}
+
+.image-viewer-close {
+    position: absolute;
+    bottom: var(--image-viewer-close-bottom);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--hover-overlay);
+    color: rgba(255, 255, 255, 0.5);
+    width: var(--image-viewer-close-size);
+    height: var(--image-viewer-close-size);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: var(--image-viewer-close-font);
+    transition: var(--transition-fast);
+    backdrop-filter: blur(4px);
+    border: none;
+}
+
+.image-viewer-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.9);
+    transform: translateX(-50%) scale(1.1);
+}
+
+.image-viewer.active .image-viewer-content {
+    overflow: visible;
+}
+
+.image-viewer.active .image-viewer-content img {
+    cursor: default;
+}
+
+.image-viewer-zoom-lens {
+    position: fixed;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+    z-index: 10001;
+    display: none;
+    background-color: #000;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.image-viewer-zoom-lens-inner {
+    position: absolute;
+    inset: 0;
+    background-repeat: no-repeat;
+    background-color: #000;
+}
+
+.playlist-modal {
+    background: var(--bg-modal);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    width: 320px;
+    box-shadow: 0 8px 24px var(--shadow-color);
+    position: relative;
+    z-index: 10002;
+}
+
+.playlist-modal-title {
+    margin: 0 0 10px 0;
+    color: var(--text-primary);
+}
+
+.playlist-modal-input {
+    width: 100%;
+    padding: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    margin: 15px 0;
+    box-sizing: border-box;
+    font-size: 14px;
+}
+
+.playlist-modal-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.playlist-modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.playlist-modal-cancel-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.playlist-modal-cancel-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.playlist-modal-create-btn {
+    background: var(--accent);
+    border: none;
+    color: #000;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: var(--font-weight-semibold);
+}
+
+.playlist-modal-create-btn:hover {
+    background: var(--accent-hover);
+}
+
+.song-metadata-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.song-metadata-modal {
+    width: min(360px, calc(100vw - 32px));
+    max-height: min(520px, calc(100vh - 32px));
+    overflow-y: auto;
+    padding: 16px;
+    box-sizing: border-box;
+    border-radius: var(--radius-md);
+    background: var(--bg-modal);
+    box-shadow: 0 8px 24px var(--shadow-color);
+}
+
+.song-metadata-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.song-metadata-modal-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.song-metadata-modal-close {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.song-metadata-modal-close:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.song-metadata-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.song-metadata-row {
+    display: grid;
+    grid-template-columns: 100px minmax(0, 1fr);
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.song-metadata-label {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.song-metadata-value {
+    min-width: 0;
+    color: var(--text-primary);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.playlist-hero-cover.artist-view {
+    background: transparent;
+    box-shadow: none;
+}
+.playlist-hero-cover.artist-view img {
+    border-radius: 50%;
+}
+
+/* Context Submenu */
+.submenu-parent {
+    position: relative;
+}
+
+.context-submenu {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    background: var(--bg-modal);
+    border-radius: var(--radius-xs);
+    box-shadow: 0 8px 24px var(--shadow-color);
+    min-width: 180px;
+    padding: 0;
+    display: none;
+    z-index: 100100;
+}
+
+.context-submenu.right-aligned {
+    left: auto !important;
+    right: 100% !important;
+}
+
+.context-submenu.bottom-aligned {
+    top: auto !important;
+    bottom: 0 !important;
+}
+
+.context-submenu.bottom-right-aligned {
+    left: auto !important;
+    right: 100% !important;
+    top: auto !important;
+    bottom: 0 !important;
+}
+
+.submenu-parent:hover > .context-submenu {
+    display: block;
+}
+
+.context-submenu .context-menu-item {
+    padding: 6px 12px;
+    white-space: nowrap;
+}
+
+.context-submenu .context-menu-item:hover {
+    background: var(--hover-overlay);
+}
+
+.context-submenu .context-menu-item i {
+    display: none;
+}
+
+.context-submenu .context-menu-item span {
+    margin-left: 0;
+}
+
