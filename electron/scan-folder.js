@@ -28,7 +28,43 @@ function pickCoverExtension(picture) {
     return 'jpg';
 }
 
+// Row/list thumbnails. Size is 4x the largest on-screen use (40px row) so it stays sharp on HiDPI.
+// The version in the file name doubles as a cache-buster: bump THUMB_VERSION whenever the
+// generation recipe changes and every library rescan produces fresh URLs.
+const THUMB_SIZE = 160;
+const THUMB_QUALITY = 80;
+const THUMB_VERSION = 2;
+
+let jimpPromise = null;
+function loadJimp() {
+    if (!jimpPromise) {
+        jimpPromise = import('jimp')
+            .then((m) => m.Jimp || m.default || m)
+            .catch(() => null);
+    }
+    return jimpPromise;
+}
+
+function thumbFileNameFor(hash) {
+    return `thumb${THUMB_VERSION}_${hash}.jpg`;
+}
+
+// Alpha-blend onto white in place, so transparent PNG/WebP covers do not turn black in the JPEG.
+function flattenOntoWhite(image) {
+    const data = image.bitmap.data;
+    for (let i = 0; i < data.length; i += 4) {
+        const a = data[i + 3];
+        if (a === 255) continue;
+        const k = a / 255;
+        data[i] = Math.round(data[i] * k + 255 * (1 - k));
+        data[i + 1] = Math.round(data[i + 1] * k + 255 * (1 - k));
+        data[i + 2] = Math.round(data[i + 2] * k + 255 * (1 - k));
+        data[i + 3] = 255;
+    }
+}
+
 async function generateThumbnail(coverData, coversFolder, hash, Jimp) {
+    Jimp = Jimp || (await loadJimp());
     if (!Jimp) {
         try {
             fs.appendFileSync(path.join(coversFolder, 'thumb-debug.log'), `${hash}: Jimp not loaded\n`);
@@ -36,13 +72,26 @@ async function generateThumbnail(coverData, coversFolder, hash, Jimp) {
         return null;
     }
     try {
-        const source = await Jimp.read(Buffer.from(coverData));
-        const buffer = await source.getBuffer('image/jpeg', { quality: 90 });
-        const thumbFileName = `thumb_${hash}.jpg`;
+        const thumbFileName = thumbFileNameFor(hash);
         const thumbPath = path.join(coversFolder, thumbFileName);
-        if (!fs.existsSync(thumbPath)) {
-            fs.writeFileSync(thumbPath, buffer);
+        let usable = false;
+        try {
+            usable = fs.statSync(thumbPath).size > 0;
+        } catch (e) {}
+        if (!usable) {
+            const image = await Jimp.read(Buffer.from(coverData));
+            flattenOntoWhite(image);
+            image.cover({ w: THUMB_SIZE, h: THUMB_SIZE });
+            const buffer = await image.getBuffer('image/jpeg', { quality: THUMB_QUALITY });
+            // Write to a temp name first so nothing can ever load a half-written thumbnail.
+            const tmpPath = `${thumbPath}.${process.pid}.tmp`;
+            fs.writeFileSync(tmpPath, buffer);
+            fs.renameSync(tmpPath, thumbPath);
         }
+        // The old un-resized thumbs (thumb_<hash>.jpg) are never referenced again: drop the twin.
+        try {
+            fs.unlinkSync(path.join(coversFolder, `thumb_${hash}.jpg`));
+        } catch (e) {}
         return `covers/${thumbFileName}`;
     } catch (e) {
         try {
@@ -659,7 +708,7 @@ async function scanMusicFolder(folderPath, coversFolder, mm) {
                 }
                 if (fs.existsSync(coverPath)) {
                     largeCover = `covers/${coverFileName}`;
-                    const thumbRel = await generateThumbnail(coverData, coversFolder, hash, Jimp);
+                    const thumbRel = await generateThumbnail(coverData, coversFolder, hash);
                     cover = thumbRel || largeCover;
                 }
             }
@@ -1260,7 +1309,7 @@ async function scanSingleFile(filePath, coversFolder, mm) {
             }
             if (fs.existsSync(coverPath)) {
                 largeCover = `covers/${coverFileName}`;
-                const thumbRel = await generateThumbnail(coverData, coversFolder, hash, Jimp);
+                const thumbRel = await generateThumbnail(coverData, coversFolder, hash);
                 cover = thumbRel || largeCover;
             }
         }

@@ -1492,6 +1492,76 @@ async function rebuildLibraryFromFolders() {
     }
 }
 
+// Pixel-perfect swap: decode the new thumb off-screen first, then assign it, so a row never
+// shows a half-decoded image, and clear any inline style left over from the placeholder stage.
+function swapCoverSrc(img, url) {
+    if (!img || !url) return;
+    img.style.opacity = '';
+    if (img.getAttribute('src') === url) return;
+    const apply = () => {
+        if (img.isConnected) img.src = url;
+    };
+    preloadCover(url).then(apply, apply);
+}
+
+// Left-panel album/artist rows have no <img> until a cover exists (they show an SVG), so they are
+// patched in place. This is intentionally cheap (no getAlbums/getArtists) - the exact
+// "most common cover" choice is re-derived by the full re-render when extraction completes.
+function applyCoverToLeftPanelRow(playBtn, type, url) {
+    const wrapper = playBtn.closest('.main-item-cover-wrapper');
+    if (!wrapper) return;
+    const existing = wrapper.querySelector('img');
+    if (existing) return;
+    const svg = wrapper.querySelector('.main-item-cover-svg');
+    if (!svg) return;
+    preloadCover(url).then(() => {
+        if (!wrapper.isConnected || wrapper.querySelector('img')) return;
+        const img = new Image();
+        img.className = `main-item-cover-img ${type}-cover-img`;
+        img.alt = '';
+        img.decoding = 'sync';
+        img.src = url;
+        svg.replaceWith(img);
+    });
+}
+
+function applyCoverBatchToUI(updates) {
+    const leftItemByView = new Map();
+    if (typeof leftPanelVirtualState !== 'undefined' && leftPanelVirtualState.currentItems) {
+        for (const it of leftPanelVirtualState.currentItems) {
+            if ((it.type === 'album' || it.type === 'artist') && it.viewId) leftItemByView.set(it.viewId, it);
+        }
+    }
+
+    for (const update of updates) {
+        const song = SONGS_DATA[update.id];
+        if (!song) continue;
+        song.cover = update.cover;
+        song.largeCover = update.largeCover;
+
+        // main list rows
+        const img = document.querySelector(`#song-list .song-item[data-song-id="${update.id}"] .song-cover`);
+        swapCoverSrc(img, update.cover);
+
+        // left panel: album + artist rows this song belongs to
+        const targets = [];
+        if (song.album && String(song.album).trim() !== '') {
+            targets.push(['album', generateConsistentId('a', String(song.album).trim())]);
+        }
+        for (const name of getArtistNamesForSong(song)) {
+            targets.push(['artist', generateConsistentId('r', name)]);
+        }
+        for (const [type, viewId] of targets) {
+            const item = leftItemByView.get(viewId);
+            if (item && !item.cover) item.cover = update.cover; // rows rebuilt by scrolling pick it up
+            const playBtns = document.querySelectorAll(
+                `.left-panel-main-list .left-panel-cover-play-btn[data-view="${viewId}"]`
+            );
+            playBtns.forEach((btn) => applyCoverToLeftPanelRow(btn, type, update.cover));
+        }
+    }
+}
+
 function setupCoverStreamListeners() {
     if (typeof window === 'undefined') return;
     const api = window.electronAPI;
@@ -1504,15 +1574,7 @@ function setupCoverStreamListeners() {
         if (typeof showCoverProgressNotification === 'function') {
             showCoverProgressNotification(batch.processed, batch.total, batch.found);
         }
-        for (const update of batch.updates || []) {
-            const song = SONGS_DATA[update.id];
-            if (!song) continue;
-            song.cover = update.cover;
-            song.largeCover = update.largeCover;
-
-            const img = document.querySelector(`#song-list .song-item[data-song-id="${update.id}"] .song-cover`);
-            if (img) img.src = update.cover;
-        }
+        applyCoverBatchToUI(batch.updates || []);
     });
 
     api.onScanCoversComplete(() => {
@@ -1617,7 +1679,8 @@ function getAlbums() {
             albums[albumName] = {
                 name: albumName,
                 songs: [],
-                coverCounts: {}
+                coverCounts: {},
+                largeByCover: {}
             };
         }
         if (!deletedSongIds.has(song.id)) {
@@ -1625,6 +1688,9 @@ function getAlbums() {
         }
         const coverKey = song.cover || '__none__';
         albums[albumName].coverCounts[coverKey] = (albums[albumName].coverCounts[coverKey] || 0) + 1;
+        if (song.cover && song.largeCover && !albums[albumName].largeByCover[song.cover]) {
+            albums[albumName].largeByCover[song.cover] = song.largeCover;
+        }
     }
 
     const albumList = Object.values(albums).map((album) => {
@@ -1641,6 +1707,7 @@ function getAlbums() {
             name: album.name,
             songs: album.songs,
             cover: bestCover,
+            largeCover: album.largeByCover[bestCover] || bestCover,
             songCount: album.songs.length
         };
     });
@@ -1716,12 +1783,14 @@ function getArtists() {
             });
 
         const latestCover = sortedSongs.length > 0 ? sortedSongs[0].cover || '' : '';
+        const latestLargeCover = sortedSongs.length > 0 ? sortedSongs[0].largeCover || latestCover : latestCover;
 
         return {
             id: generateConsistentId('r', artist.name),
             name: artist.name,
             songs: artist.songs,
             cover: latestCover,
+            largeCover: latestLargeCover,
             songCount: artist.songs.length
         };
     });

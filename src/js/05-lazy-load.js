@@ -150,6 +150,45 @@ function attachRafScroll(content, onFrame, onResize) {
 
 const OVERSCAN_COUNT = 15;
 
+// ------------------------------------------------------------------------------
+// COVER PRELOAD CACHE
+// Row images used to be created and decoded only at the moment the row entered the DOM, so
+// during a scroll they painted in visible steps. Holding an already-decoded Image object per
+// nearby URL makes Chromium paint the row's <img> from the decoded bitmap immediately.
+// ------------------------------------------------------------------------------
+const COVER_PRELOAD_LIMIT = 800;
+const COVER_PREWARM_MARGIN = 60;
+const coverPreloadCache = new Map(); // url -> { img, promise }; Map order doubles as LRU
+
+function preloadCover(url) {
+    if (!url) return Promise.resolve();
+    const hit = coverPreloadCache.get(url);
+    if (hit) {
+        coverPreloadCache.delete(url);
+        coverPreloadCache.set(url, hit);
+        return hit.promise;
+    }
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = url;
+    const promise = (img.decode ? img.decode() : Promise.resolve()).catch(() => {});
+    coverPreloadCache.set(url, { img, promise });
+    if (coverPreloadCache.size > COVER_PRELOAD_LIMIT) {
+        coverPreloadCache.delete(coverPreloadCache.keys().next().value);
+    }
+    return promise;
+}
+
+function prewarmSongCovers(songs, from, to) {
+    if (!songs || songs.length === 0) return;
+    const start = Math.max(0, from);
+    const end = Math.min(songs.length - 1, to);
+    for (let i = start; i <= end; i++) {
+        const cover = songs[i] && songs[i].cover;
+        if (cover) preloadCover(cover);
+    }
+}
+
 let virtualScrollState = {
     enabled: false,
     currentListId: null,
@@ -226,6 +265,10 @@ function renderVisibleItems(content, showPlaceholders) {
     state.placeholderMode = !!showPlaceholders;
 
     if (showPlaceholders) {
+        // Placeholders are on screen for ~150ms before the real rows land: start decoding the
+        // destination thumbs now so they are ready the instant the rows are built.
+        prewarmSongCovers(state.currentSongs, startIndex, endIndex);
+
         state.firstVisibleIndex = -1;
         state.lastVisibleIndex = -1;
         state.visibleItems = [];
@@ -346,6 +389,10 @@ function renderVisibleItems(content, showPlaceholders) {
         songList.appendChild(bottomSpacer);
     }
     bottomSpacer.style.height = bottomSpacerHeight + 'px';
+
+    if (!showPlaceholders) {
+        prewarmSongCovers(state.currentSongs, startIndex - COVER_PREWARM_MARGIN, endIndex + COVER_PREWARM_MARGIN);
+    }
 
     if (!showPlaceholders && currentView !== 'lyrics') {
         applyStoredHighlight(state.currentListId);

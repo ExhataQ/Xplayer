@@ -114,7 +114,7 @@ function updateHeroCover(view) {
         const albums = getAlbums();
         const album = albums.find((a) => a.id === view);
         if (album && album.cover) {
-            heroImage.src = album.cover;
+            heroImage.src = album.largeCover || album.cover;
             heroImage.style.display = 'block';
             coverUrlForColor = album.cover;
         } else {
@@ -125,7 +125,7 @@ function updateHeroCover(view) {
         const artists = getArtists();
         const artist = artists.find((a) => a.id === view);
         if (artist && artist.cover) {
-            heroImage.src = artist.cover;
+            heroImage.src = artist.largeCover || artist.cover;
             heroImage.style.display = 'block';
             coverUrlForColor = artist.cover;
         } else {
@@ -380,8 +380,8 @@ function buildSongItemHTML(config) {
                     <img class="song-cover" 
                          src="${song.cover || PLACEHOLDER_IMAGE}" 
                          alt="Cover for ${song.title}"
-                         onerror="this.onerror=null; this.src=PLACEHOLDER_IMAGE"
-                         onload="if(this.naturalWidth > 0 && this.naturalWidth < 200) this.style.opacity='0.5'">
+                         decoding="sync"
+                         onerror="this.onerror=null; this.src=PLACEHOLDER_IMAGE">
                     <div class="song-info">
                             <div class="song-title">${song.title}</div>
                             <div class="song-artist">${buildSongArtistHTML(song)}${langBadge}</div>
