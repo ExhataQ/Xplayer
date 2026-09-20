@@ -72,9 +72,13 @@ function runScan(args, options = {}) {
 
         let settled = false;
 
+        // A pipe delivers ~64KB chunks, so one long line (FASTRESULT, COVERBATCH) can arrive split
+        // across chunks. Carry the incomplete tail over to the next chunk instead of parsing halves.
+        let stderrCarry = '';
         child.stderr.on('data', (data) => {
-            const text = data.toString();
-            const lines = text.split('\n');
+            stderrCarry += data.toString();
+            const lines = stderrCarry.split('\n');
+            stderrCarry = lines.pop() || '';
             for (const line of lines) {
                 if (line.startsWith('FASTRESULT:')) {
                     try {

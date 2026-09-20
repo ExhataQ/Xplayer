@@ -62,12 +62,39 @@ function flattenOntoWhite(image) {
         data[i + 3] = 255;
     }
 }
+// Prefer the embedded "front cover" picture; many files carry a back cover / booklet first.
+function pickPicture(pictures) {
+    if (!pictures || pictures.length === 0) return null;
+    const front = pictures.find((p) => p && p.data && /front/i.test(String(p.type || '')));
+    if (front) return front;
+    return pictures.find((p) => p && p.data) || null;
+}
+
+// Write to a temp name, then rename: an app close / crash mid-write can never leave a truncated
+// cover_<hash> file behind (which existsSync() would otherwise treat as valid forever).
+function writeFileAtomic(filePath, data) {
+    const tmpPath = `${filePath}.${process.pid}.tmp`;
+    fs.writeFileSync(tmpPath, data);
+    fs.renameSync(tmpPath, filePath);
+}
+
+function logCoverError(coversFolder, what, err) {
+    try {
+        fs.appendFileSync(
+            path.join(coversFolder, 'thumb-debug.log'),
+            `${what}: ${err && err.stack ? err.stack : err}\n`
+        );
+    } catch (e2) {}
+}
 
 async function generateThumbnail(coverData, coversFolder, hash, Jimp) {
     Jimp = Jimp || (await loadJimp());
     if (!Jimp) {
         try {
-            fs.appendFileSync(path.join(coversFolder, 'thumb-debug.log'), `${hash}: Jimp not loaded\n`);
+            fs.appendFileSync(
+                path.join(coversFolder, 'thumb-debug.log'),
+                `${hash}: Jimp not loaded\n`
+            );
         } catch (e2) {}
         return null;
     }
@@ -264,21 +291,20 @@ async function scanMusicFolderSync(folderPath, coversFolder, mm) {
 
             extendedMeta = extractExtendedMetadata(common, format, metadata.native);
 
-            const pictures = common.picture;
-            if (pictures && pictures.length > 0) {
-                const coverData = pictures[0].data;
-                if (coverData) {
-                    const hash = crypto.createHash('md5').update(coverData).digest('hex');
-                    const coverFileName = `cover_${hash}.${pickCoverExtension(pictures[0])}`;
-                    const coverPath = path.join(coversFolder, coverFileName);
+            const picture = pickPicture(common.picture);
+            if (picture && picture.data) {
+                const coverData = picture.data;
+                const hash = crypto.createHash('md5').update(coverData).digest('hex');
+                const coverFileName = `cover_${hash}.${pickCoverExtension(picture)}`;
+                const coverPath = path.join(coversFolder, coverFileName);
 
-                    if (!fs.existsSync(coverPath)) {
-                        fs.writeFileSync(coverPath, coverData);
-                    }
-                    if (fs.existsSync(coverPath)) {
-                        cover = `covers/${coverFileName}`;
-                        largeCover = `covers/${coverFileName}`;
-                    }
+                if (!fs.existsSync(coverPath)) {
+                    writeFileAtomic(coverPath, coverData);
+                }
+                if (fs.existsSync(coverPath)) {
+                    largeCover = `covers/${coverFileName}`;
+                    const thumbRel = await generateThumbnail(coverData, coversFolder, hash);
+                    cover = thumbRel || largeCover;
                 }
             }
         } catch (err) {}
@@ -622,7 +648,7 @@ async function extractCovers(folderPath, coversFolder, mm) {
                 const filename = `cover_${hash}.jpg`;
                 const destPath = path.join(coversFolder, filename);
                 if (!fs.existsSync(destPath)) {
-                    fs.writeFileSync(destPath, coverData);
+                    writeFileAtomic(destPath, coverData);
                     extracted++;
                 } else {
                     skipped++;
@@ -694,7 +720,7 @@ async function scanMusicFolder(folderPath, coversFolder, mm) {
             extendedMeta = extractExtendedMetadata(common, format, metadata.native);
 
             const pictures = common.picture;
-            let coverPicture = pictures && pictures.length > 0 ? pictures[0] : null;
+            let coverPicture = pickPicture(pictures);
             let coverData = coverPicture ? coverPicture.data : null;
             if (!coverData) {
                 coverData = extractCoverFromNative(metadata.native);
@@ -704,7 +730,7 @@ async function scanMusicFolder(folderPath, coversFolder, mm) {
                 const coverFileName = `cover_${hash}.${pickCoverExtension(coverPicture)}`;
                 const coverPath = path.join(coversFolder, coverFileName);
                 if (!fs.existsSync(coverPath)) {
-                    fs.writeFileSync(coverPath, coverData);
+                    writeFileAtomic(coverPath, coverData);
                 }
                 if (fs.existsSync(coverPath)) {
                     largeCover = `covers/${coverFileName}`;
@@ -755,7 +781,7 @@ async function scanCoversConcurrently(allFiles, coversFolder, mm, concurrency, s
             try {
                 const metadata = await mm.parseFile(filePath, { duration: false, skipCovers: false });
                 const pictures = metadata.common.picture;
-                const coverPicture = pictures && pictures.length > 0 ? pictures[0] : null;
+                const coverPicture = pickPicture(pictures);
                 let coverData = coverPicture ? coverPicture.data : null;
                 if (!coverData) {
                     coverData = extractCoverFromNative(metadata.native);
@@ -765,13 +791,15 @@ async function scanCoversConcurrently(allFiles, coversFolder, mm, concurrency, s
                     const coverFileName = `cover_${hash}.${pickCoverExtension(coverPicture)}`;
                     const coverPath = path.join(coversFolder, coverFileName);
                     if (!fs.existsSync(coverPath)) {
-                        fs.writeFileSync(coverPath, coverData);
+                        writeFileAtomic(coverPath, coverData);
                     }
                     const largeCoverRel = `covers/${coverFileName}`;
                     const thumbRel = await generateThumbnail(coverData, coversFolder, hash, Jimp);
                     update = { id: i, cover: thumbRel || largeCoverRel, largeCover: largeCoverRel };
                 }
-            } catch (e) {}
+            } catch (e) {
+                logCoverError(coversFolder, `cover extraction failed for ${filePath}`, e);
+            }
 
             completed++;
             if (update) {
@@ -1291,7 +1319,7 @@ async function scanSingleFile(filePath, coversFolder, mm) {
         extendedMeta = extractExtendedMetadata(common, format, metadata.native);
 
         const pictures = common.picture;
-        const coverPicture = pictures && pictures.length > 0 ? pictures[0] : null;
+        const coverPicture = pickPicture(pictures);
         let coverData = coverPicture ? coverPicture.data : null;
         if (!coverData) {
             coverData = extractCoverFromNative(metadata.native);
@@ -1305,7 +1333,7 @@ async function scanSingleFile(filePath, coversFolder, mm) {
             const coverFileName = `cover_${hash}.${pickCoverExtension(coverPicture)}`;
             const coverPath = path.join(coversFolder, coverFileName);
             if (!fs.existsSync(coverPath)) {
-                fs.writeFileSync(coverPath, coverData);
+                writeFileAtomic(coverPath, coverData);
             }
             if (fs.existsSync(coverPath)) {
                 largeCover = `covers/${coverFileName}`;
