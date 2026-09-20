@@ -45,6 +45,62 @@ function loadJimp() {
     return jimpPromise;
 }
 
+// Preferred engine: sharp (native libvips). Jimp remains the per-image fallback.
+// Optional: if it is not installed or cannot load (wrong platform / old Node), Jimp is used instead.
+let sharpPromise = null;
+let sharpLoadError = null;
+function loadSharp() {
+    if (!sharpPromise) {
+        sharpPromise = import('sharp')
+            .then((m) => {
+                const sharp = m.default || m;
+                if (typeof sharp !== 'function') throw new Error('sharp export is not a function');
+                sharp.cache(false); // we only ever feed it one-off buffers
+                sharp.concurrency(1); // tiny resizes: no point spawning libvips threads per image
+                return sharp;
+            })
+            .catch((e) => {
+                sharpLoadError = e;
+                return null;
+            });
+    }
+    return sharpPromise;
+}
+
+async function thumbnailWithSharp(sharp, coverData) {
+    return sharp(Buffer.from(coverData))
+        .rotate() // honour EXIF orientation, like the browser does for the full-size cover
+        .flatten({ background: '#ffffff' }) // transparency -> white, not black
+        .resize(THUMB_SIZE, THUMB_SIZE, { fit: 'cover', position: 'centre' })
+        .jpeg({ quality: THUMB_QUALITY })
+        .toBuffer();
+}
+
+async function thumbnailWithJimp(Jimp, coverData) {
+    const image = await Jimp.read(Buffer.from(coverData));
+    flattenOntoWhite(image);
+    image.cover({ w: THUMB_SIZE, h: THUMB_SIZE });
+    return image.getBuffer('image/jpeg', { quality: THUMB_QUALITY });
+}
+
+let thumbEngineLogged = false;
+function logThumbEngine(coversFolder, sharp, Jimp) {
+    if (thumbEngineLogged) return;
+    thumbEngineLogged = true;
+    let line;
+    if (sharp) {
+        const ver = sharp.versions && sharp.versions.sharp ? ' ' + sharp.versions.sharp : '';
+        line = `thumbnail engine: sharp${ver}` + (Jimp ? ' (Jimp available as fallback)' : ' (no Jimp fallback)');
+    } else {
+        line =
+            `thumbnail engine: Jimp (sharp unavailable: ${sharpLoadError ? sharpLoadError.message.split('\n')[0] : 'unknown'})` +
+            (Jimp ? '' : ' - Jimp is unavailable too, thumbnails disabled');
+    }
+    try {
+        fs.appendFileSync(path.join(coversFolder, 'thumb-debug.log'), `${new Date().toISOString()} ${line}\n`);
+    } catch (e) {}
+}
+
 function thumbFileNameFor(hash) {
     return `thumb${THUMB_VERSION}_${hash}.jpg`;
 }
@@ -88,12 +144,14 @@ function logCoverError(coversFolder, what, err) {
 }
 
 async function generateThumbnail(coverData, coversFolder, hash, Jimp) {
+    const sharp = await loadSharp();
     Jimp = Jimp || (await loadJimp());
-    if (!Jimp) {
+    logThumbEngine(coversFolder, sharp, Jimp);
+    if (!sharp && !Jimp) {
         try {
             fs.appendFileSync(
                 path.join(coversFolder, 'thumb-debug.log'),
-                `${hash}: Jimp not loaded\n`
+                `${hash}: no thumbnail engine loaded\n`
             );
         } catch (e2) {}
         return null;
@@ -106,10 +164,19 @@ async function generateThumbnail(coverData, coversFolder, hash, Jimp) {
             usable = fs.statSync(thumbPath).size > 0;
         } catch (e) {}
         if (!usable) {
-            const image = await Jimp.read(Buffer.from(coverData));
-            flattenOntoWhite(image);
-            image.cover({ w: THUMB_SIZE, h: THUMB_SIZE });
-            const buffer = await image.getBuffer('image/jpeg', { quality: THUMB_QUALITY });
+            let buffer = null;
+            let sharpError = null;
+            if (sharp) {
+                try {
+                    buffer = await thumbnailWithSharp(sharp, coverData);
+                } catch (e) {
+                    sharpError = e; // e.g. BMP (unsupported by sharp) or a corrupt image: try Jimp for this one
+                }
+            }
+            if (!buffer) {
+                if (!Jimp) throw sharpError || new Error('no thumbnail engine available');
+                buffer = await thumbnailWithJimp(Jimp, coverData);
+            }
             // Write to a temp name first so nothing can ever load a half-written thumbnail.
             const tmpPath = `${thumbPath}.${process.pid}.tmp`;
             fs.writeFileSync(tmpPath, buffer);

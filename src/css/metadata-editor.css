@@ -290,3 +290,9 @@
 .metadata-search-scope:focus { border-color:var(--accent); color:var(--text-primary); }
 
 /* Multi-song lyrics finder */
+
+/* Fields are locked until the real tags have been read from the file (prevents saving stale/short values) */
+#metadata-editor-content.is-loading .metadata-editor-fields {
+    opacity: 0.55;
+    pointer-events: none;
+}

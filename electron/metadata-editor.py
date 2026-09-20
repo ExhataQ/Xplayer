@@ -2,7 +2,7 @@ import json, os, sys
 from mutagen import File
 from mutagen.id3 import ID3, APIC, COMM, TXXX, TIT2, TPE1, TALB, TPE2, TCOM, TCON, TDRC, TRCK, TPOS, TPUB, TCOP, TENC, TPE3, TPE4, TBPM, TSRC, TPRO, TEXT, TOLY, TIT3, TMOO, TLAN, TMED
 from mutagen.flac import Picture
-from mutagen.mp4 import MP4Cover
+from mutagen.mp4 import MP4, MP4Cover
 from mutagen.asf import ASF, ASFByteArrayAttribute
 
 def vals(v):
@@ -15,13 +15,25 @@ def vals(v):
     return out
 
 def multi_tag_values(v):
+    # Commas are NOT separators: "Earth, Wind & Fire" and "Tyler, The Creator" are single
+    # names. Only NUL (handled by vals) and ';' are treated as real multi-value separators.
     values=vals(v)
     out=[]
     for item in values:
-        for part in str(item).replace(';', ',').split(','):
+        for part in str(item).split(';'):
             part=part.strip()
             if part and part not in out: out.append(part)
     return out
+
+def user_comment_frame(tags):
+    # An ID3 file can hold many COMM frames (iTunNORM, iTunSMPB, ...). The editor's
+    # "Comment" is the one with an empty description, else the first non-iTunes one.
+    frames=tags.getall('COMM')
+    for f in frames:
+        if (f.desc or '')=='': return f
+    for f in frames:
+        if not (f.desc or '').lower().startswith('itun'): return f
+    return None
 
 def first(tags,key):
     a=vals(tags.get(key) if tags else None); return a[0] if a else ''
@@ -119,7 +131,7 @@ def read_metadata(path):
         known.update(['TIT2','TPE1','TALB','TPE2','TCOM','TCON','TDRC','TPUB','TCOP','TPE3','TPE4','TBPM','TSRC','TENC','TRCK','TPOS','COMM','TSOT','TSOP','TSOA','APIC','TPRO','TEXT','TOLY','TIT3','TMOO','TLAN','TMED'])
         r.update(title=first(tags,'TIT2'),artist=frame_values(tags,'TPE1'),album=first(tags,'TALB'),albumArtist=frame_values(tags,'TPE2'),composer=frame_values(tags,'TCOM'),genre=frame_values(tags,'TCON'),year=first(tags,'TDRC'),label=first(tags,'TPUB'),copyright=first(tags,'TCOP'),conductor=frame_values(tags,'TPE3'),remixer=frame_values(tags,'TPE4'),bpm=first(tags,'TBPM'),isrc=first(tags,'TSRC'),sortTitle=first(tags,'TSOT') or first(tags,'TXXX:SORT_TITLE'),sortArtist=first(tags,'TSOP') or first(tags,'TXXX:SORT_ARTIST'),sortAlbum=first(tags,'TSOA') or first(tags,'TXXX:SORT_ALBUM'),grouping=first(tags,'TXXX:GROUPING'),compilation=first(tags,'TXXX:COMPILATION'),encodedBy=first(tags,'TENC'),producer=first(tags,'TPRO'),lyricist=first(tags,'TEXT') or first(tags,'TOLY'),writer=first(tags,'TEXT'),description=first(tags,'TIT3') or first(tags,'TXXX:DESCRIPTION'),mood=first(tags,'TMOO') or first(tags,'TXXX:MOOD'),language=first(tags,'TLAN'),mediaKind=first(tags,'TMED'),sortComposer=first(tags,'TSOC'),musicBrainzReleaseGroupId=first(tags,'TXXX:MusicBrainz Release Group Id'))
         r['track'],r['trackTotal']=split_num(first(tags,'TRCK')); r['discNumber'],r['discTotal']=split_num(first(tags,'TPOS'))
-        cs=tags.getall('COMM'); r['comment']=str(cs[0].text[0]) if cs and cs[0].text else ''
+        cf=user_comment_frame(tags); r['comment']=str(cf.text[0]) if cf is not None and cf.text else ''
         r['musicBrainzTrackId']=first(tags,'TXXX:MusicBrainz Track Id')
         r['musicBrainzAlbumId']=first(tags,'TXXX:MusicBrainz Album Id')
         r['musicBrainzOriginalAlbumId']=first(tags,'TXXX:MusicBrainz Original Album Id')
@@ -137,50 +149,106 @@ def clean(v):
     return str(v or '').strip()
 
 def multi_values(v):
-    return multi_tag_values(v)
+    # Values to WRITE for a multi-value field. The editor already sends one entry per
+    # artist/genre/etc., so we never re-split on commas (that corrupted names).
+    if v is None: return []
+    items = v if isinstance(v, (list, tuple)) else [v]
+    out=[]
+    for item in items:
+        text=str(item).strip() if item is not None else ''
+        if text and text not in out: out.append(text)
+    return out
+
+# Save protocol: `d` is a PATCH. A key that is absent is left untouched. A key that is
+# present is written; an empty value clears it. (Previously every absent key was deleted.)
+ID3_UNSUPPORTED = {'sortComposer'}
+VORBIS_TEXT = {'title':'title','album':'album','year':'date','label':'label','copyright':'copyright','comment':'comment','sortTitle':'titlesort','sortArtist':'artistsort','sortAlbum':'albumsort','grouping':'grouping','bpm':'bpm','compilation':'compilation','isrc':'isrc','musicBrainzTrackId':'musicbrainz_trackid','musicBrainzAlbumId':'musicbrainz_albumid','musicBrainzOriginalAlbumId':'musicbrainz_originalalbumid','publisher':'publisher','encodedBy':'encoded-by'}
+VORBIS_MULTI = {'artist':'artist','albumArtist':'albumartist','composer':'composer','genre':'genre','conductor':'conductor','remixer':'remixer','musicBrainzArtistId':'musicbrainz_artistid'}
+VORBIS_NUMBERED = {'track','trackTotal','discNumber','discTotal'}
+
+def write_id3(tags, d):
+    def set_text(frame_cls, frame_id, key):
+        if key not in d: return
+        tags.delall(frame_id); value=clean(d.get(key))
+        if value: tags.add(frame_cls(encoding=3,text=[value]))
+    def set_multi(frame_cls, frame_id, key):
+        if key not in d: return
+        tags.delall(frame_id); values=multi_values(d.get(key))
+        if values: tags.add(frame_cls(encoding=3,text=values))
+    def set_txxx(desc,key,multi=False):
+        if key not in d: return
+        tags.delall('TXXX:'+desc); values=multi_values(d.get(key)) if multi else ([clean(d.get(key))] if clean(d.get(key)) else [])
+        if values: tags.add(TXXX(encoding=3,desc=desc,text=values))
+    set_text(TIT2,'TIT2','title'); set_multi(TPE1,'TPE1','artist'); set_text(TALB,'TALB','album'); set_multi(TPE2,'TPE2','albumArtist'); set_multi(TCOM,'TCOM','composer'); set_multi(TCON,'TCON','genre'); set_text(TDRC,'TDRC','year'); set_text(TCOP,'TCOP','copyright'); set_multi(TPE3,'TPE3','conductor'); set_multi(TPE4,'TPE4','remixer'); set_text(TBPM,'TBPM','bpm'); set_text(TSRC,'TSRC','isrc'); set_text(TENC,'TENC','encodedBy'); set_text(TPRO,'TPRO','producer'); set_text(TEXT,'TEXT','writer'); set_text(TOLY,'TOLY','lyricist'); set_text(TIT3,'TIT3','description'); set_text(TMOO,'TMOO','mood'); set_text(TLAN,'TLAN','language'); set_text(TMED,'TMED','mediaKind')
+    # Label and Publisher are the same ID3 frame (TPUB). The editor reads TPUB into "label",
+    # so a change to Label must be written there (it used to be ignored while a blank
+    # Publisher deleted the frame on every save).
+    tpub_key='label' if 'label' in d else ('publisher' if 'publisher' in d else None)
+    if tpub_key: set_text(TPUB,'TPUB',tpub_key)
+    for desc,key,multi in [('SORT_TITLE','sortTitle',False),('SORT_ARTIST','sortArtist',False),('SORT_ALBUM','sortAlbum',False),('GROUPING','grouping',False),('COMPILATION','compilation',False),('MusicBrainz Track Id','musicBrainzTrackId',False),('MusicBrainz Album Id','musicBrainzAlbumId',False),('MusicBrainz Original Album Id','musicBrainzOriginalAlbumId',False),('MusicBrainz Artist Id','musicBrainzArtistId',True),('MusicBrainz Release Group Id','musicBrainzReleaseGroupId',False)]: set_txxx(desc,key,multi)
+    from mutagen.id3 import Frames
+    for frame_id,key in [('TSOT','sortTitle'),('TSOP','sortArtist'),('TSOA','sortAlbum')]:
+        if key not in d: continue
+        tags.delall(frame_id); value=clean(d.get(key)); cls=Frames.get(frame_id)
+        if value and cls: tags.add(cls(encoding=3,text=[value]))
+    # "n/total" frames: if only one half changed, keep the other half from the file.
+    for frame_id,frame_cls,num_key,tot_key in [('TRCK',TRCK,'track','trackTotal'),('TPOS',TPOS,'discNumber','discTotal')]:
+        if num_key not in d and tot_key not in d: continue
+        cur_num,cur_tot=split_num(first(tags,frame_id))
+        num=clean(d.get(num_key)) if num_key in d else cur_num
+        tot=clean(d.get(tot_key)) if tot_key in d else cur_tot
+        tags.delall(frame_id)
+        if num: tags.add(frame_cls(encoding=3,text=[num+('/'+tot if tot else '')]))
+    if 'comment' in d:
+        # Only replace the user's comment; keep iTunNORM / iTunSMPB and other COMM frames.
+        target=user_comment_frame(tags)
+        desc=(target.desc or '') if target is not None else ''
+        lang=(target.lang or 'eng') if target is not None else 'eng'
+        if target is not None: tags.delall('COMM:'+desc)
+        comment=clean(d.get('comment'))
+        if comment: tags.add(COMM(encoding=3,lang=lang,desc=desc,text=[comment]))
+    return sorted(k for k in d if k in ID3_UNSUPPORTED)
+
+def write_vorbis(tags, d):
+    def put(tag_key, values):
+        # NB: never assign the result of pop(); pop() returns the OLD value, which used to
+        # restore a field the user had just cleared.
+        if values: tags[tag_key]=values
+        else: tags.pop(tag_key,None)
+    for source_key,tag_key in VORBIS_TEXT.items():
+        if source_key in d:
+            value=clean(d.get(source_key)); put(tag_key,[value] if value else [])
+    for source_key,tag_key in VORBIS_MULTI.items():
+        if source_key in d: put(tag_key,multi_values(d.get(source_key)))
+    for frame_key,num_key,tot_key in [('tracknumber','track','trackTotal'),('discnumber','discNumber','discTotal')]:
+        if num_key not in d and tot_key not in d: continue
+        cur_num,cur_tot=split_num(first(tags,frame_key))
+        num=clean(d.get(num_key)) if num_key in d else cur_num
+        tot=clean(d.get(tot_key)) if tot_key in d else cur_tot
+        put(frame_key,[num+('/'+tot if tot else '')] if num else [])
+    supported=set(VORBIS_TEXT)|set(VORBIS_MULTI)|VORBIS_NUMBERED
+    return sorted(k for k in d if k not in supported)
 
 def save_metadata(path, d):
+    """Apply a metadata PATCH. Returns (full metadata read back, keys that could not be saved)."""
     audio = File(path, easy=False)
     if audio is None: raise RuntimeError('Unsupported or unreadable audio file')
-    if audio.tags is None: audio.add_tags()
-    tags = audio.tags
-    if isinstance(tags, ID3):
-        def set_text(frame_cls, frame_id, key):
-            tags.delall(frame_id); value=clean(d.get(key))
-            if value: tags.add(frame_cls(encoding=3,text=[value]))
-        def set_multi(frame_cls, frame_id, key):
-            tags.delall(frame_id); values=multi_values(d.get(key))
-            if values: tags.add(frame_cls(encoding=3,text=values))
-        def set_txxx(desc,key,multi=False):
-            tags.delall('TXXX:'+desc); values=multi_values(d.get(key)) if multi else ([clean(d.get(key))] if clean(d.get(key)) else [])
-            if values: tags.add(TXXX(encoding=3,desc=desc,text=values))
-        set_text(TIT2,'TIT2','title'); set_multi(TPE1,'TPE1','artist'); set_text(TALB,'TALB','album'); set_multi(TPE2,'TPE2','albumArtist'); set_multi(TCOM,'TCOM','composer'); set_multi(TCON,'TCON','genre'); set_text(TDRC,'TDRC','year'); set_text(TPUB,'TPUB','publisher'); set_text(TCOP,'TCOP','copyright'); set_multi(TPE3,'TPE3','conductor'); set_multi(TPE4,'TPE4','remixer'); set_text(TBPM,'TBPM','bpm'); set_text(TSRC,'TSRC','isrc'); set_text(TENC,'TENC','encodedBy'); set_text(TPRO,'TPRO','producer'); set_text(TEXT,'TEXT','writer'); set_text(TOLY,'TOLY','lyricist'); set_text(TIT3,'TIT3','description'); set_text(TMOO,'TMOO','mood'); set_text(TLAN,'TLAN','language'); set_text(TMED,'TMED','mediaKind')
-        for desc,key,multi in [('SORT_TITLE','sortTitle',False),('SORT_ARTIST','sortArtist',False),('SORT_ALBUM','sortAlbum',False),('GROUPING','grouping',False),('COMPILATION','compilation',False),('MusicBrainz Track Id','musicBrainzTrackId',False),('MusicBrainz Album Id','musicBrainzAlbumId',False),('MusicBrainz Original Album Id','musicBrainzOriginalAlbumId',False),('MusicBrainz Artist Id','musicBrainzArtistId',True),('MusicBrainz Release Group Id','musicBrainzReleaseGroupId',False)]: set_txxx(desc,key,multi)
-        from mutagen.id3 import Frames
-        for frame_id,key in [('TSOT','sortTitle'),('TSOP','sortArtist'),('TSOA','sortAlbum')]:
-            tags.delall(frame_id); value=clean(d.get(key)); cls=Frames.get(frame_id)
-            if value and cls: tags.add(cls(encoding=3,text=[value]))
-        tags.delall('TRCK'); track=clean(d.get('track')); total=clean(d.get('trackTotal'))
-        if track: tags.add(TRCK(encoding=3,text=[track+('/'+total if total else '')]))
-        tags.delall('TPOS'); disc=clean(d.get('discNumber')); total=clean(d.get('discTotal'))
-        if disc: tags.add(TPOS(encoding=3,text=[disc+('/'+total if total else '')]))
-        tags.delall('COMM'); comment=clean(d.get('comment'))
-        if comment: tags.add(COMM(encoding=3,lang='eng',desc='',text=[comment]))
-    else:
-        mapping={'title':'title','album':'album','year':'date','label':'label','copyright':'copyright','comment':'comment','sortTitle':'titlesort','sortArtist':'artistsort','sortAlbum':'albumsort','grouping':'grouping','bpm':'bpm','compilation':'compilation','isrc':'isrc','musicBrainzTrackId':'musicbrainz_trackid','musicBrainzAlbumId':'musicbrainz_albumid','musicBrainzOriginalAlbumId':'musicbrainz_originalalbumid','publisher':'publisher','encodedBy':'encoded-by'}
-        for source_key,tag_key in mapping.items():
-            value=clean(d.get(source_key)); tags[tag_key]=[value] if value else tags.pop(tag_key,None)
-        multi_mapping={'artist':'artist','albumArtist':'albumartist','composer':'composer','genre':'genre','conductor':'conductor','remixer':'remixer','musicBrainzArtistId':'musicbrainz_artistid'}
-        for source_key,tag_key in multi_mapping.items():
-            values=multi_values(d.get(source_key));
-            if values: tags[tag_key]=values
-            else: tags.pop(tag_key,None)
-        track=clean(d.get('track')); total=clean(d.get('trackTotal')); tags['tracknumber']=[track+('/'+total if total else '')] if track else tags.pop('tracknumber',None)
-        disc=clean(d.get('discNumber')); total=clean(d.get('discTotal')); tags['discnumber']=[disc+('/'+total if total else '')] if disc else tags.pop('discnumber',None)
-    if isinstance(tags, ID3): audio.save(v2_version=4)
-    else: audio.save()
+    fields=[k for k in d if not k.startswith('__')]
+    skipped=[]
+    if fields:
+        if isinstance(audio, (MP4, ASF)):
+            raise RuntimeError('Editing text tags is not supported yet for M4A/MP4/WMA files (cover art can still be changed).')
+        if audio.tags is None: audio.add_tags()
+        tags = audio.tags
+        patch={k:d[k] for k in fields}
+        if isinstance(tags, ID3):
+            skipped=write_id3(tags, patch)
+            audio.save(v2_version=4)
+        else:
+            skipped=write_vorbis(tags, patch)
+            audio.save()
     if clean(d.get('__coverPath')): save_cover(path,clean(d.get('__coverPath')))
-    return read_metadata(path)
+    return read_metadata(path), skipped
 
 def image_mime(path):
     ext=os.path.splitext(path)[1].lower()
@@ -228,11 +296,16 @@ def main():
     if action=='save':
         md=q.get('metadata') or {}
         if q.get('coverPath'): md['__coverPath']=q.get('coverPath')
-        r=save_metadata(p,md)
-    elif action=='cover': r=save_cover(p,q.get('imagePath'))
-    else: r={'success':True,'metadata':read_metadata(p)}
-    if action=='cover': print(json.dumps(r,ensure_ascii=False)); return
-    print(json.dumps({'success':True,'metadata':r},ensure_ascii=False))
+        meta,skipped=save_metadata(p,md)
+        out={'success':True,'metadata':meta}
+        if skipped: out['skipped']=skipped
+    elif action=='cover':
+        out=save_cover(p,q.get('imagePath'))
+    else:
+        # NB: this used to be wrapped a second time ({'metadata': {'success':..,'metadata':..}}),
+        # so the editor never received the real tags on read.
+        out={'success':True,'metadata':read_metadata(p)}
+    print(json.dumps(out,ensure_ascii=False))
 if __name__=='__main__':
     try: main()
     except Exception as e: print(json.dumps({'success':False,'error':str(e)})); sys.exit(1)
