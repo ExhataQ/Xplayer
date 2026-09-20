@@ -1,3 +1,10 @@
+2026-09-19
+tools/ui-playground/
+- Added a Vite-based visual development environment that imports the production CSS directly from src/css/ in the production loading order.
+- Added representative mock songs, queue, lyrics, metadata editor, menus, overlays, player controls, selected/playing states, empty-state controls, and responsive layout inspection without loading the Electron renderer.
+- Expanded the playground mock JavaScript with song selection/playback state, favorite and queue actions, panel and lyrics toggles, search filtering, progress/volume controls, shuffle/repeat states, and URL-driven empty/mock views.
+- Matched additional production renderer state: library items now use the required subfolder row wrapper, the hero title receives its production sizing state, and responsive panel/footer dimensions are applied by playground JavaScript.
+
 2026-09-17
 src/js/10-playback.js
 - Added a shared play-or-resume helper that restarts playback from the current view when no active audio source or queue item remains.
@@ -1374,3 +1381,95 @@ src/js/15-playback-controls.js
 - Added resetProgressUI() helper to reset the progress bar, progress knob, and current time display.
 - Called resetProgressUI() when the queue ends on normal playback so the progress bar returns to the start instead of staying full.
 - Called resetProgressUI() when the shuffle queue is exhausted so the progress bar resets there too.
+
+2026-09-19
+src/js/11-lrc.js
+- parseLrcLine no longer treats any blank timestamped line as instrumental; only explicit [instrumental] markers set instrumental true.
+- generateLrcFromEditor now writes [instrumental] as the text for instrumental lines so markers round-trip correctly through save/load.
+
+2026-09-19
+src/js/11-lrc.js
+- Added lyricsDisplayMode state (per-song: auto / synced / plain), getLyricsDisplayMode, setLyricsDisplayMode, and resetLyricsDisplayMode.
+- setLyricsDisplayMode re-renders the lyrics view and the right-panel compact lyrics box so both stay in sync with the chosen type.
+
+src/js/04b-ui-render-views.js
+- renderLyricsView now computes hasSynced/hasLyrics, resets the display mode when the song changes, and picks an effective mode (both -> synced unless user picked plain, synced-only -> synced, plain-only -> plain).
+- Added two mode-toggle buttons (Synced LRC / Plain Lyrics) at the start of the lyrics-view footer. Both exist -> both clickable. Only one exists -> that one active and disabled. Neither -> buttons hidden.
+- Plain lyrics render when plain mode is selected; synced text renders when synced mode is selected.
+- Synced variants list is hidden when plain lyrics are being displayed.
+
+src/js/08-panels.js
+- renderTrackLyricsBox now respects the shared lyrics display mode so the compact right-panel box shows the same type (synced or plain) as the full lyrics view.
+
+src/css/lyrics.css
+- Added styles for .lyrics-view-mode-btn including active, active:disabled (still reads as active but visibly unclickable), and disabled states.
+
+2026-09-19
+src/js/11-lrc.js
+- setLyricsDisplayMode now seeks to the currently-active synced line when the user switches to synced mode (via new seekToActiveSyncedLine helper).
+- Added seekToActiveSyncedLine (binary-search on current playback time, then set currentTime to that entry's timestamp and re-highlight).
+
+src/js/04b-ui-render-views.js
+- Lyrics mode toggle buttons now emit the disabled attribute and drop their onclick when the button's mode is already active or its content is missing.
+- Synced-line click bindings, syncedLyricsState.lineElements population, scroll watcher, and updateSyncedLyricsHighlight only run when showSynced is true. Plain mode leaves syncedLyricsState empty so synced-line clicks and highlight updates cannot fire.
+
+src/css/lyrics.css
+- Strengthened .lyrics-view-mode-btn.active:disabled styling so the single-option button keeps the full accent treatment and reads as active-but-unchangeable.
+
+2026-09-19
+src/js/11-lrc.js
+- setLyricsDisplayMode re-renders the lyrics view and right-panel compact box; switching to synced mode refreshes the synced line highlight for the current playback time without changing playback position.
+- Added refreshSyncedHighlight (re-applies updateSyncedLyricsHighlight at the current audioElement.currentTime).
+
+src/js/04b-ui-render-views.js
+- Lyrics mode toggle buttons now emit the disabled attribute and drop their onclick when the button's mode is already active or its content is missing.
+- Synced-line click bindings, syncedLyricsState.lineElements population, scroll watcher, and updateSyncedLyricsHighlight only run when showSynced is true. Plain mode leaves syncedLyricsState empty so synced-line clicks and highlight updates cannot fire.
+
+src/css/lyrics.css
+- Strengthened .lyrics-view-mode-btn.active:disabled styling so the single-option button keeps the full accent treatment and reads as active-but-unchangeable.
+
+2026-09-19
+src/js/11-lrc.js
+- updateSyncedLyricsHighlight now toggles a synced-past class on lines before the active one, and scrolls the lyrics container back to the top when no synced line is active yet (before the first timestamp). No playback position is modified.
+
+src/css/lyrics.css
+- Added .lyrics-view-synced .lyrics-line.synced-past rule (opacity 0.78, color #e6e6e6) so already-sung lines are brighter than upcoming lines but dimmer than the active line.
+
+2026-09-19
+src/js/11-lrc.js
+- smoothScrollToLine now uses a single markProgrammaticScroll helper that re-arms a 700ms quiet timer on every programmatic scroll, replacing the mixed scrollend / fixed-timeout logic that could clear the flag mid-animation.
+- attachSyncedLyricsScrollWatcher refreshes the quiet timer while programmaticScroll is set (instead of ignoring scroll events), so chains of programmatic scrolls no longer read as manual scrolling. Added a second programmaticScroll guard inside the delayed user-scrolled-away check.
+- resetSyncedLyricsFollowState clears and nulls _programmaticScrollTimeout.
+
+2026-09-19
+src/css/lyrics.css
+- .lyrics-view-synced .lyrics-line.synced-past is now dimmer than upcoming lines (opacity 0.35) so played-out lines fade back while the active line stays brightest.
+
+2026-09-19
+src/css/lyrics.css
+- Base .lyrics-view-synced .lyrics-line opacity raised from 0.55 to 0.65 (upcoming lines).
+- Added .lyrics-view-synced .lyrics-line.synced-past at opacity 0.35 so played-out lines are dimmer than upcoming lines, while the active line stays fully bright.
+
+2026-09-19
+src/js/10-playback.js
+- playAllFromCurrentView now resumes the currently paused track when the current view is a non-playable view (lyrics, online-lyrics, smart-lyrics, settings, search-history) instead of falling through to playCurrentViewFromStart and restarting from the top of the library.
+- (Optional) playCurrentViewFromStart keeps a snapshot of the previous lastPlaybackListId so that a request to start playback while in a non-playable view falls back to the last real playable list instead of the whole library.
+
+2026-09-19
+src/css/lyrics.css
+- .lyrics-view-synced .lyrics-line.synced-past opacity raised from 0.35 to 0.52 (brighter past text, still dimmer than upcoming lines at 0.65).
+- Moved the .lyrics-view-synced .lyrics-line:hover rule below the .synced-past and .synced-active rules so hover wins the source-order tie, and added opacity: 1 so hovered lines render as pure white regardless of past/upcoming state.
+
+2026-09-19
+src/css/lyrics.css
+- .lyrics-view-synced .lyrics-line.synced-past tuned so passed lyrics stay close to upcoming lyrics but slightly dimmer (upcoming remains 0.65 / #c8c8c8).
+
+
+2026-09-20
+ui-playground (relocated)
+- Moved Source/tools/ui-playground/ to more tools/ui-playground/
+- Why: keep heavy node_modules outside the shareable Source/ tree
+- main.js: CSS imports now ../../Source/src/css/, font imports now ../../Source/tools/fonts/
+- vite.config.js: added sourceRoot pointing at ../../Source/, lyrics.svg resolves from Source/tools/icons/, fs.allow widened to the parent of Source/
+- node_modules reinstalled in the new location
+- Verified: Vite dev server runs, CSS loads, fonts render, layout matches production

@@ -1,3 +1,8 @@
+:root {
+    /* Single source of truth for the song row height; JS reads it as ITEM_HEIGHT. */
+    --song-item-height: 56px;
+}
+
 /* ==============================================================================
            MAIN CONTENT WITH EXTERNAL SCROLLBAR
            ============================================================================== */
@@ -66,6 +71,10 @@
     align-items: center;
     border-radius: var(--radius-xs);
     padding: var(--vertical-padding-items) 0;
+    /* Fixed row height (40px cover + 2 x 8px padding). Read by JS as ITEM_HEIGHT
+       (js/05-lazy-load.js); placeholder rows use this same rule so heights never differ. */
+    box-sizing: border-box;
+    height: var(--song-item-height);
     min-width: 0;
 }
 

@@ -483,7 +483,7 @@ function renderSongsList(songs, listId = 'all-songs') {
         rebuildGhostListFromMain(listId, songs);
     }
 
-    const shouldBeVirtual = listId === 'all-songs' || songs.length > VIRTUAL_SCROLL_THRESHOLD;
+    const shouldBeVirtual = shouldUseVirtualScroll(songs);
     const isVirtual = virtualScrollState.enabled && virtualScrollState.currentListId === listId;
 
     if (shouldBeVirtual && isVirtual) {

@@ -53,9 +53,8 @@
 }
 
 /* Main Song List Skeletons */
-.song-item.lazy-skeleton {
-    grid-template-columns: 53px minmax(180px, 0.72fr) minmax(140px, 0.9fr) auto;
-}
+/* Placeholder rows intentionally inherit .song-item's grid and height so every column
+   (including the Album bar) lines up exactly with real rows and the header. */
 .song-item.lazy-skeleton .song-cover {
     width: 40px;
     height: 40px;
@@ -105,19 +104,17 @@
     max-width: 120px;
     border-radius: 8px;
 }
-.ph-album-placeholder {
-    transform-origin: left center;
-    will-change: transform;
-}
+/* Duration cell is 44px wide in real rows (min-width: 44px, text right-aligned).
+   width + margin-left = 44px keeps the column identical; the bar hugs the right edge. */
 .song-item.lazy-skeleton .right-song-item .skeleton-bar.duration {
     height: 11px;
-    width: 42px;
+    width: 32px;
+    margin-left: 12px;
     border-radius: 8px;
-    margin-right: -6px;
 }
+/* Invisible spacers that reuse the real button classes (.add-to-queue-btn / .favorite-btn /
+   .more-info) so widths, margins and the hide-queue-btn setting match real rows exactly. */
 .song-item.lazy-skeleton .ph-action-placeholder,
 .song-item.lazy-skeleton .ph-more-placeholder {
-    width: 30px;
-    height: 30px;
-    opacity: 0;
+    visibility: hidden;
 }

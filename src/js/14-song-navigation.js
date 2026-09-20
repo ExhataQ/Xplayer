@@ -99,7 +99,7 @@ function scrollToSongItem(songIndex) {
 
     if (virtualScrollState.enabled) {
         const viewportHeight = content.clientHeight;
-        const itemHeight = 52;
+        const itemHeight = typeof ITEM_HEIGHT !== 'undefined' ? ITEM_HEIGHT : 56;
 
         const songList = songListElement;
         if (!songList) return;
@@ -164,7 +164,7 @@ function applyScrollToSong(songId, listId) {
         const idx = virtualScrollState.currentSongs.findIndex((s) => s.id === songId);
         if (idx === -1) return false;
 
-        const itemHeight = typeof ITEM_HEIGHT !== 'undefined' ? ITEM_HEIGHT : 52;
+        const itemHeight = typeof ITEM_HEIGHT !== 'undefined' ? ITEM_HEIGHT : 56;
         const songListRect = songList.getBoundingClientRect();
         const contentRect = content.getBoundingClientRect();
         const offsetAboveSongList = songListRect.top - contentRect.top + content.scrollTop;

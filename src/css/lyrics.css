@@ -72,7 +72,7 @@
     font-weight: 700;
     line-height: 1.15;
     color: #c8c8c8;
-    text-align: left;
+    text-align: start;
     white-space: normal;
     word-break: break-word;
     width: 100%;
@@ -91,21 +91,13 @@
     margin-bottom: calc(var(--lyrics-font-size, 40px) * 0.45);
 }
 
-.lyrics-view-synced .lyrics-line:not(.lyrics-line-empty):hover {
-    color: #ffffff;
-    text-decoration: underline;
-    text-decoration-color: rgba(255, 255, 255, 0.5);
-    text-underline-offset: 2px;
-    text-decoration-thickness: 2px;
-}
-
 .lyrics-line-empty {
     height: calc(var(--lyrics-font-size, 40px) * 0.6);
     margin-bottom: 0;
 }
 
 .lyrics-view-synced .lyrics-line {
-    opacity: 0.55;
+    opacity: 0.65;
     transition: opacity 0.25s ease, color 0.25s ease;
     cursor: pointer;
 }
@@ -117,6 +109,20 @@
 .lyrics-view-synced .lyrics-line.synced-active {
     opacity: 1;
     color: #ffffff;
+}
+
+.lyrics-view-synced .lyrics-line.synced-past {
+    opacity: 0.48;
+    color: #9a9a9a;
+}
+
+.lyrics-view-synced .lyrics-line:not(.lyrics-line-empty):hover {
+    color: #ffffff;
+    opacity: 1;
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 255, 255, 0.5);
+    text-underline-offset: 2px;
+    text-decoration-thickness: 2px;
 }
 
 .lyrics-view-synced .lyrics-line.synced-active,
@@ -271,6 +277,40 @@
 
 .lyrics-view-edit-btn .material-symbols-outlined {
     font-size: 16px;
+}
+
+.lyrics-view-mode-btn {
+    border-style: dashed;
+}
+
+.lyrics-view-mode-btn.active {
+    border-style: solid;
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.12);
+    color: var(--accent);
+}
+
+.lyrics-view-mode-btn.active:hover {
+    background: rgba(var(--accent-rgb), 0.18);
+}
+
+.lyrics-view-mode-btn:disabled,
+.lyrics-view-mode-btn.active:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.lyrics-view-mode-btn.active:disabled {
+    opacity: 1;
+    border-style: solid;
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.12);
+    color: var(--accent);
+}
+
+.lyrics-view-mode-btn.active:disabled:hover {
+    background: rgba(var(--accent-rgb), 0.08);
 }
 
 /* Lyrics editor modal */

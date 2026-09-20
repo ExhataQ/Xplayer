@@ -1500,12 +1500,11 @@ function setupCoverStreamListeners() {
 
     let coverStreamActive = false;
 
-    api.onScanCoverBatch((updates) => {
-        if (!coverStreamActive) {
-            coverStreamActive = true;
-            showNotification('Still finding album art…', 'info', 0);
+    api.onScanCoverBatch((batch) => {
+        if (typeof showCoverProgressNotification === 'function') {
+            showCoverProgressNotification(batch.processed, batch.total, batch.found);
         }
-        for (const update of updates) {
+        for (const update of batch.updates || []) {
             const song = SONGS_DATA[update.id];
             if (!song) continue;
             song.cover = update.cover;
@@ -1517,9 +1516,11 @@ function setupCoverStreamListeners() {
     });
 
     api.onScanCoversComplete(() => {
-        if (coverStreamActive) {
-            coverStreamActive = false;
-            showNotification('Album art finished loading', 'success', 3000);
+        if (typeof completeCoverProgressNotification === 'function') {
+            completeCoverProgressNotification();
+        }
+        if (typeof renderLeftPanelMainList === 'function') {
+            renderLeftPanelMainList();
         }
     });
 }

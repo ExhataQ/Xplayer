@@ -1093,33 +1093,50 @@ function renderLyricsView() {
 
     const hasSynced = typeof initSyncedLyrics === 'function' && initSyncedLyrics(currentSong);
 
+    if (lyricsDisplayMode.songId !== currentSong.id) {
+        resetLyricsDisplayMode(currentSong.id);
+    }
+
+    const storedMode = getLyricsDisplayMode(currentSong);
+    let effectiveMode = 'auto';
+    if (hasSynced && hasLyrics) {
+        effectiveMode = storedMode === 'plain' ? 'plain' : 'synced';
+    } else if (hasSynced) {
+        effectiveMode = 'synced';
+    } else if (hasLyrics) {
+        effectiveMode = 'plain';
+    }
+
+    const showSynced = effectiveMode === 'synced' && hasSynced;
+    const showPlain = effectiveMode === 'plain' && hasLyrics;
+
     let lyricsBody = '';
-    if (hasSynced) {
+    if (showSynced) {
         const linesHTML = syncedLyricsState.entries
             .map((entry, i) => {
                 if (entry.instrumental) {
                     return (
                         '<div class="lyrics-line lyrics-line-instrumental" data-sync-index="' +
                         i +
-                        '"><span class="material-symbols-outlined">music_note</span></div>'
+                        '" dir="auto"><span class="material-symbols-outlined">music_note</span></div>'
                     );
                 }
                 if (entry.text.trim() === '') {
-                    return '<div class="lyrics-line lyrics-line-empty" data-sync-index="' + i + '"></div>';
+                    return '<div class="lyrics-line lyrics-line-empty" data-sync-index="' + i + '" dir="auto"></div>';
                 }
-                return '<div class="lyrics-line" data-sync-index="' + i + '">' + escapeHtml(entry.text) + '</div>';
+                return '<div class="lyrics-line" data-sync-index="' + i + '" dir="auto">' + escapeHtml(entry.text) + '</div>';
             })
             .join('');
         lyricsBody = `<div class="lyrics-view-text lyrics-view-synced">${linesHTML}</div>`;
-    } else if (hasLyrics) {
+    } else if (showPlain) {
         const normalizedLyrics = String(lyrics).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
         const lyricsLines = normalizedLyrics.split('\n');
         const lyricsHTML = lyricsLines
             .map((line) => {
                 if (line.trim() === '') {
-                    return '<div class="lyrics-line lyrics-line-empty"></div>';
+                    return '<div class="lyrics-line lyrics-line-empty" dir="auto"></div>';
                 }
-                return `<div class="lyrics-line">${escapeHtml(line)}</div>`;
+                return `<div class="lyrics-line" dir="auto">${escapeHtml(line)}</div>`;
             })
             .join('');
         lyricsBody = `<div class="lyrics-view-text">${lyricsHTML}</div>`;
@@ -1140,6 +1157,23 @@ function renderLyricsView() {
         <div class="lyrics-view-container">
             ${lyricsBody}
             <div class="lyrics-view-footer">
+                ${(() => {
+                    if (!hasSynced && !hasLyrics) return '';
+                    const syncedActive = showSynced ? ' active' : '';
+                    const plainActive = showPlain ? ' active' : '';
+                    const syncedDisabled = !hasSynced || showSynced ? ' disabled' : '';
+                    const plainDisabled = !hasLyrics || showPlain ? ' disabled' : '';
+                    return `
+                        <button class="lyrics-view-edit-btn lyrics-view-mode-btn${syncedActive}${syncedDisabled}" ${syncedDisabled ? 'disabled aria-disabled="true"' : ''} onclick="${syncedDisabled ? '' : `setLyricsDisplayMode('synced')`}" aria-label="Show synced LRC lyrics">
+                            <span class="material-symbols-outlined">graphic_eq</span>
+                            <span>Synced (LRC)</span>
+                        </button>
+                        <button class="lyrics-view-edit-btn lyrics-view-mode-btn${plainActive}${plainDisabled}" ${plainDisabled ? 'disabled aria-disabled="true"' : ''} onclick="${plainDisabled ? '' : `setLyricsDisplayMode('plain')`}" aria-label="Show plain lyrics">
+                            <span class="material-symbols-outlined">notes</span>
+                            <span>Plain Lyrics</span>
+                        </button>
+                    `;
+                })()}
                 <button class="lyrics-view-edit-btn" onclick="openLyricsEditor()" aria-label="Insert or edit lyrics">
                     <span class="material-symbols-outlined">edit</span>
                     <span>${hasLyrics ? 'Edit Lyrics' : 'Add Lyrics'}</span>
@@ -1162,6 +1196,7 @@ function renderLyricsView() {
                 </button>
             </div>
             ${(() => {
+                if (!showSynced) return '';
                 const entry =
                     typeof getSyncedLyricsVariantsForSong === 'function'
                         ? getSyncedLyricsVariantsForSong(currentSong)
@@ -1195,7 +1230,7 @@ function renderLyricsView() {
         </div>
     `;
 
-    if (hasSynced) {
+    if (showSynced) {
         const wrappers = container.querySelectorAll('.lyrics-line');
         syncedLyricsState.lineElements = Array.from(wrappers);
         syncedLyricsState.container = document.querySelector('.content');

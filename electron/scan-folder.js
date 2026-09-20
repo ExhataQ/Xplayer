@@ -36,9 +36,8 @@ async function generateThumbnail(coverData, coversFolder, hash, Jimp) {
         return null;
     }
     try {
-        const image = await Jimp.read(coverData);
-        image.cover({ w: 128, h: 128 });
-        const buffer = await image.getBuffer('image/jpeg', { quality: 80 });
+        const source = await Jimp.read(Buffer.from(coverData));
+        const buffer = await source.getBuffer('image/jpeg', { quality: 90 });
         const thumbFileName = `thumb_${hash}.jpg`;
         const thumbPath = path.join(coversFolder, thumbFileName);
         if (!fs.existsSync(thumbPath)) {
@@ -695,6 +694,7 @@ async function scanMusicFolder(folderPath, coversFolder, mm) {
 async function scanCoversConcurrently(allFiles, coversFolder, mm, concurrency, songs, Jimp, onBatch) {
     let index = 0;
     let completed = 0;
+    let foundCount = 0;
     let pending = [];
     const total = allFiles.length;
 
@@ -726,6 +726,7 @@ async function scanCoversConcurrently(allFiles, coversFolder, mm, concurrency, s
 
             completed++;
             if (update) {
+                foundCount++;
                 pending.push(update);
                 if (songs[update.id]) {
                     songs[update.id].cover = update.cover;
@@ -734,8 +735,8 @@ async function scanCoversConcurrently(allFiles, coversFolder, mm, concurrency, s
             }
             printProgress(completed, total, 'Extracting covers');
 
-            if ((completed % 25 === 0 || completed === total) && pending.length > 0) {
-                onBatch(pending);
+            if (completed % 25 === 0 || completed === total) {
+                onBatch({ processed: completed, total, found: foundCount, updates: pending });
                 pending = [];
             }
         }

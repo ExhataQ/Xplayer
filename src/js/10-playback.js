@@ -1360,9 +1360,14 @@ function playAllFromCurrentView() {
     const currentItem =
         currentQueueIndex >= 0 && playbackQueue[currentQueueIndex] ? playbackQueue[currentQueueIndex] : null;
     const currentListId = currentItem ? currentItem.listId || 'all-songs' : null;
-    const isSameViewPaused = currentItem && currentListId === currentView && audioElement.paused;
 
-    if (isSameViewPaused) {
+    const nonPlayableViews = ['lyrics', 'online-lyrics', 'smart-lyrics', 'settings', 'search-history'];
+    const isNonPlayableView = nonPlayableViews.includes(currentView);
+
+    const isSameViewPaused = currentItem && currentListId === currentView && audioElement.paused;
+    const isPausedInOtherView = currentItem && isNonPlayableView && audioElement.paused && audioElement.src;
+
+    if (isSameViewPaused || isPausedInOtherView) {
         audioElement.play();
         return;
     }
@@ -1393,6 +1398,7 @@ function playCurrentViewFromStart(targetListId = currentView) {
 
     let songsToPlay = [];
     let listId = targetListId || currentView;
+    const previousListId = lastPlaybackListId;
     lastPlaybackListId = listId;
 
     if (currentView === 'all-songs') {
@@ -1412,6 +1418,10 @@ function playCurrentViewFromStart(targetListId = currentView) {
         songsToPlay = getAlbumSongs(currentView);
     } else if (currentView && currentView.startsWith('r') && currentView.length === 13) {
         songsToPlay = getArtistSongs(currentView);
+    } else if (lastPlaybackListId && lastPlaybackListId !== 'all-songs' && lastPlaybackListId !== 'lyrics') {
+        listId = lastPlaybackListId;
+        lastPlaybackListId = listId;
+        songsToPlay = getSongsForList(listId);
     } else {
         songsToPlay = getActiveSongs();
     }

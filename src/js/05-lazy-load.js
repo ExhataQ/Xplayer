@@ -40,7 +40,7 @@ function setVirtualScrollThreshold(value) {
     const songs = getSongsForList(currentView);
     if (!songs || songs.length === 0) return v;
 
-    const shouldBeVirtual = currentView === 'all-songs' || songs.length > VIRTUAL_SCROLL_THRESHOLD;
+    const shouldBeVirtual = shouldUseVirtualScroll(songs);
     const isVirtual = virtualScrollState.enabled && virtualScrollState.currentListId === currentView;
 
     if (shouldBeVirtual !== isVirtual) {
@@ -50,7 +50,104 @@ function setVirtualScrollThreshold(value) {
     return v;
 }
 
-const ITEM_HEIGHT = 52;
+// Single source of truth for the song row height is the CSS variable --song-item-height
+// (song-list.css). .song-item and placeholder rows both use it; JS reads it here so the
+// scroll math can never disagree with what is rendered. 56 is only a fallback.
+const ITEM_HEIGHT = (() => {
+    try {
+        const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--song-item-height'));
+        return v > 0 ? v : 56;
+    } catch (_) {
+        return 56;
+    }
+})();
+
+// The one rule for "does this list use virtual scrolling": strictly more songs than the
+// Advanced Settings threshold. Every list (including All Songs) follows it.
+function shouldUseVirtualScroll(songs) {
+    return !!songs && songs.length > VIRTUAL_SCROLL_THRESHOLD;
+}
+// ==============================================================================
+// SHARED VIRTUAL SCROLL PRIMITIVES
+// The main song list, the left panel and the smart-lyrics list all use these, so the
+// window math, spacer/rebuild DOM and scroll/resize lifecycle exist exactly once.
+// ==============================================================================
+
+// Which item indexes should be in the DOM for a given scroll position.
+function computeVirtualWindow(scrollTop, viewportHeight, itemHeight, overscan, count) {
+    return {
+        start: Math.max(0, Math.floor(scrollTop / itemHeight) - overscan),
+        end: Math.min(count - 1, Math.ceil((scrollTop + viewportHeight) / itemHeight) + overscan)
+    };
+}
+
+function createVirtualSpacer(heightPx) {
+    const spacer = document.createElement('div');
+    spacer.style.height = heightPx + 'px';
+    spacer.style.width = '100%';
+    spacer.style.flexShrink = '0';
+    return spacer;
+}
+
+// Clears `list`, then renders [top spacer] + items win.start..win.end. buildHTML(i) returns
+// the row's HTML ('' skips the row). Returns the spacer and the rendered {element, index}s.
+function rebuildVirtualWindow(list, win, itemHeight, buildHTML) {
+    list.innerHTML = '';
+    const spacer = createVirtualSpacer(win.start * itemHeight);
+    list.appendChild(spacer);
+    const items = [];
+    for (let i = win.start; i <= win.end; i++) {
+        const html = buildHTML(i);
+        if (!html) continue;
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+        const element = tempDiv.firstElementChild;
+        if (!element) continue;
+        element.style.flexShrink = '0';
+        list.appendChild(element);
+        items.push({ element, index: i });
+    }
+    return { spacer, items };
+}
+
+// Bottom spacer so the scroll height equals count * itemHeight. Returns the element or null.
+function appendVirtualBottomSpacer(list, win, itemHeight, count, alwaysAdd) {
+    const height = Math.max(0, count * itemHeight - win.start * itemHeight - (win.end - win.start + 1) * itemHeight);
+    if (height <= 0 && !alwaysAdd) return null;
+    const spacer = createVirtualSpacer(height);
+    list.appendChild(spacer);
+    return spacer;
+}
+
+// rAF-coalesced scroll listener (+ optional ResizeObserver) with one detach().
+function attachRafScroll(content, onFrame, onResize) {
+    let rafId = null;
+    function onScroll() {
+        if (rafId) return;
+        rafId = requestAnimationFrame(() => {
+            rafId = null;
+            onFrame();
+        });
+    }
+    content.addEventListener('scroll', onScroll, { passive: true });
+    let resizeObserver = null;
+    if (onResize) {
+        resizeObserver = new ResizeObserver(onResize);
+        resizeObserver.observe(content);
+    }
+    return {
+        resizeObserver,
+        detach() {
+            content.removeEventListener('scroll', onScroll);
+            if (resizeObserver) resizeObserver.disconnect();
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+        }
+    };
+}
+
 const OVERSCAN_COUNT = 15;
 
 let virtualScrollState = {
@@ -78,8 +175,7 @@ function buildSongItemAt(index, listId) {
 
 function buildPlaceholderHTML(index) {
     return `
-    <div class="song-item lazy-skeleton"
-         style="min-height: ${ITEM_HEIGHT}px;">
+    <div class="song-item lazy-skeleton">
         <div class="song-number-item"><div class="ph-number-placeholder"></div></div>
         <div class="left-song-item">
             <div class="song-cover"></div>
@@ -90,7 +186,7 @@ function buildPlaceholderHTML(index) {
         </div>
         <div class="song-album"><div class="skeleton-bar"></div></div>
         <div class="right-song-item">
-            <div class="song-action-buttons"><div class="ph-action-placeholder"></div></div>
+            <div class="song-action-buttons"><div class="add-to-queue-btn ph-action-placeholder"></div><div class="favorite-btn ph-action-placeholder"></div></div>
             <div class="skeleton-bar duration"></div>
             <div class="more-info ph-more-placeholder" style="opacity: 0;">
                 <span class="material-symbols-outlined">more_horiz</span>
@@ -103,12 +199,13 @@ function renderVisibleItems(content, showPlaceholders) {
     if (currentView === 'settings') return;
 
     const state = virtualScrollState;
-    const viewportTop = content.scrollTop;
-    const viewportHeight = content.clientHeight;
-    const viewportBottom = viewportTop + viewportHeight;
-
-    const startIndex = Math.max(0, Math.floor(viewportTop / ITEM_HEIGHT) - OVERSCAN_COUNT);
-    const endIndex = Math.min(state.currentSongs.length - 1, Math.ceil(viewportBottom / ITEM_HEIGHT) + OVERSCAN_COUNT);
+    const { start: startIndex, end: endIndex } = computeVirtualWindow(
+        content.scrollTop,
+        content.clientHeight,
+        ITEM_HEIGHT,
+        OVERSCAN_COUNT,
+        state.currentSongs.length
+    );
 
     if (
         !showPlaceholders &&
@@ -129,8 +226,6 @@ function renderVisibleItems(content, showPlaceholders) {
     state.placeholderMode = !!showPlaceholders;
 
     if (showPlaceholders) {
-        songList.innerHTML = '';
-
         state.firstVisibleIndex = -1;
         state.lastVisibleIndex = -1;
         state.visibleItems = [];
@@ -138,48 +233,28 @@ function renderVisibleItems(content, showPlaceholders) {
         state.lastRenderedStart = startIndex;
         state.lastRenderedEnd = endIndex;
 
-        if (state.spacerDiv) state.spacerDiv.remove();
-        state.spacerDiv = document.createElement('div');
-        state.spacerDiv.style.height = startIndex * ITEM_HEIGHT + 'px';
-        state.spacerDiv.style.width = '100%';
-        songList.appendChild(state.spacerDiv);
-
-        for (let i = startIndex; i <= endIndex; i++) {
-            const placeholder = buildPlaceholderHTML(i);
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = placeholder;
-            songList.appendChild(tempDiv.firstElementChild);
-        }
+        state.spacerDiv = rebuildVirtualWindow(
+            songList,
+            { start: startIndex, end: endIndex },
+            ITEM_HEIGHT,
+            buildPlaceholderHTML
+        ).spacer;
     } else if (
         state.visibleItems.length === 0 ||
         startIndex > state.lastVisibleIndex ||
         endIndex < state.firstVisibleIndex
     ) {
-        songList.innerHTML = '';
-
         state.firstVisibleIndex = startIndex;
         state.lastVisibleIndex = endIndex;
-        state.visibleItems = [];
 
-        if (state.spacerDiv) state.spacerDiv.remove();
-        state.spacerDiv = document.createElement('div');
-        state.spacerDiv.style.height = startIndex * ITEM_HEIGHT + 'px';
-        state.spacerDiv.style.width = '100%';
-        songList.appendChild(state.spacerDiv);
-
-        for (let i = startIndex; i <= endIndex; i++) {
-            const html = showPlaceholders ? buildPlaceholderHTML(i) : buildSongItemAt(i, state.currentListId);
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = html;
-            const item = tempDiv.firstElementChild;
-            songList.appendChild(item);
-            if (!showPlaceholders) {
-                state.visibleItems.push({
-                    element: item,
-                    index: i
-                });
-            }
-        }
+        const rebuilt = rebuildVirtualWindow(
+            songList,
+            { start: startIndex, end: endIndex },
+            ITEM_HEIGHT,
+            (i) => buildSongItemAt(i, state.currentListId)
+        );
+        state.spacerDiv = rebuilt.spacer;
+        state.visibleItems = rebuilt.items;
     } else {
         if (startIndex < state.firstVisibleIndex) {
             for (let i = state.firstVisibleIndex - 1; i >= startIndex; i--) {
@@ -282,14 +357,10 @@ function syncPlaceholdersForJump(content, topOverride) {
         if (currentView === 'settings') return;
 
         const state = virtualScrollState;
-        const viewportTop = typeof topOverride === 'number' ? topOverride : content.scrollTop;
-        const viewportHeight = content.clientHeight;
-        const viewportBottom = viewportTop + viewportHeight;
+        const top = typeof topOverride === 'number' ? topOverride : content.scrollTop;
+        const win = computeVirtualWindow(top, content.clientHeight, ITEM_HEIGHT, OVERSCAN_COUNT, state.currentSongs.length);
 
-        const startIndex = Math.max(0, Math.floor(viewportTop / ITEM_HEIGHT) - OVERSCAN_COUNT);
-        const endIndex = Math.min(state.currentSongs.length - 1, Math.ceil(viewportBottom / ITEM_HEIGHT) + OVERSCAN_COUNT);
-
-        if (startIndex > state.lastRenderedEnd || endIndex < state.lastRenderedStart) {
+        if (win.start > state.lastRenderedEnd || win.end < state.lastRenderedStart) {
             renderVisibleItems(content, true);
         }
         return;
@@ -297,17 +368,10 @@ function syncPlaceholdersForJump(content, topOverride) {
 
     if (leftPanelVirtualState.enabled && leftPanelVirtualState.container === content) {
         const state = leftPanelVirtualState;
-        const viewportTop = typeof topOverride === 'number' ? topOverride : content.scrollTop;
-        const viewportHeight = content.clientHeight;
-        const viewportBottom = viewportTop + viewportHeight;
+        const top = typeof topOverride === 'number' ? topOverride : content.scrollTop;
+        const win = computeVirtualWindow(top, content.clientHeight, LEFT_ITEM_HEIGHT, LEFT_OVERSCAN_COUNT, state.currentItems.length);
 
-        const startIndex = Math.max(0, Math.floor(viewportTop / LEFT_ITEM_HEIGHT) - LEFT_OVERSCAN_COUNT);
-        const endIndex = Math.min(
-            state.currentItems.length - 1,
-            Math.ceil(viewportBottom / LEFT_ITEM_HEIGHT) + LEFT_OVERSCAN_COUNT
-        );
-
-        if (startIndex > state.lastRenderedEnd || endIndex < state.lastRenderedStart) {
+        if (win.start > state.lastRenderedEnd || win.end < state.lastRenderedStart) {
             renderLeftPanelVisibleItems(true);
         }
     }
@@ -397,21 +461,20 @@ function initLazyLoading(songs, listId) {
     virtualScrollState.lastScrollTop = content ? content.scrollTop : 0;
     virtualScrollState.placeholderMode = false;
 
-    let rafId = null;
+    let fastStreak = 0;
     virtualScrollState.lastRenderedStart = -1;
     virtualScrollState.lastRenderedEnd = -1;
 
     function doRender() {
         if (currentView === 'settings') return;
-        rafId = null;
         const viewportTop = content.scrollTop;
         const viewportHeight = content.clientHeight;
-        const viewportBottom = viewportTop + viewportHeight;
-
-        const startIndex = Math.max(0, Math.floor(viewportTop / ITEM_HEIGHT) - OVERSCAN_COUNT);
-        const endIndex = Math.min(
-            virtualScrollState.currentSongs.length - 1,
-            Math.ceil(viewportBottom / ITEM_HEIGHT) + OVERSCAN_COUNT
+        const { start: startIndex, end: endIndex } = computeVirtualWindow(
+            viewportTop,
+            viewportHeight,
+            ITEM_HEIGHT,
+            OVERSCAN_COUNT,
+            virtualScrollState.currentSongs.length
         );
 
         const scrollDelta = Math.abs(viewportTop - virtualScrollState.lastScrollTop);
@@ -419,29 +482,35 @@ function initLazyLoading(songs, listId) {
 
         const isHoldingThumb = document.body.classList.contains('dragging-scrollbar');
 
+        const enterFastThreshold = viewportHeight * 0.75;
+        const stayFastThreshold = viewportHeight * 0.25;
+        const isFastFrame = virtualScrollState.placeholderMode
+            ? scrollDelta > stayFastThreshold
+            : scrollDelta > enterFastThreshold;
+
+        // A thumb drag has to stay fast for a couple of frames before placeholders
+        // appear, so grabbing the thumb and nudging it never flashes placeholders.
+        fastStreak = isFastFrame ? fastStreak + 1 : 0;
+
         if (startIndex === virtualScrollState.lastRenderedStart && endIndex === virtualScrollState.lastRenderedEnd) {
-            if (!isHoldingThumb && virtualScrollState.placeholderMode && !virtualScrollState.scrollSettleTimeout) {
+            // Nothing new to draw. If placeholders are still showing (e.g. the thumb hit
+            // the very top/bottom and no more scroll events will come), settle to real rows.
+            if (virtualScrollState.placeholderMode && !virtualScrollState.scrollSettleTimeout) {
                 scheduleVirtualScrollSettle(content);
             }
             return;
         }
 
-        const isNonOverlapping = startIndex > virtualScrollState.lastRenderedEnd || endIndex < virtualScrollState.lastRenderedStart;
+        const isNonOverlapping =
+            startIndex > virtualScrollState.lastRenderedEnd || endIndex < virtualScrollState.lastRenderedStart;
 
-        const enterFastThreshold = viewportHeight * 0.75;
-        const stayFastThreshold = viewportHeight * 0.25;
-        const isFastScroll = virtualScrollState.placeholderMode
-            ? scrollDelta > stayFastThreshold
-            : scrollDelta > enterFastThreshold;
+        const requiredStreak = isHoldingThumb && !virtualScrollState.placeholderMode ? 2 : 1;
+        const isFastScroll = fastStreak >= requiredStreak;
 
-        if (isHoldingThumb || isNonOverlapping || isFastScroll) {
+        if (isNonOverlapping || isFastScroll) {
             renderVisibleItems(content, true);
-            if (!isHoldingThumb) {
-                scheduleVirtualScrollSettle(content);
-            } else {
-                clearTimeout(virtualScrollState.scrollSettleTimeout);
-                virtualScrollState.scrollSettleTimeout = null;
-            }
+            // Always settle after the scroll goes idle, even while the thumb is still held.
+            scheduleVirtualScrollSettle(content);
         } else {
             clearTimeout(virtualScrollState.scrollSettleTimeout);
             virtualScrollState.scrollSettleTimeout = null;
@@ -455,32 +524,7 @@ function initLazyLoading(songs, listId) {
         }
     }
 
-    function onContentScroll() {
-        if (currentView === 'settings') return;
-        if (rafId) return;
-        rafId = requestAnimationFrame(doRender);
-    }
-
-    content.addEventListener('scroll', onContentScroll, {
-        passive: true
-    });
-    const removeWheelSync = attachWheelPlaceholderSync(content);
-
-    virtualScrollState._scrollCleanup = () => {
-        content.removeEventListener('scroll', onContentScroll);
-        removeWheelSync();
-        clearTimeout(virtualScrollState.scrollSettleTimeout);
-        if (rafId) {
-            cancelAnimationFrame(rafId);
-            rafId = null;
-        }
-    };
-
-    renderVisibleItems(content, false);
-    virtualScrollState.lastRenderedStart = virtualScrollState.firstVisibleIndex;
-    virtualScrollState.lastRenderedEnd = virtualScrollState.lastVisibleIndex;
-
-    virtualScrollState._resizeObserver = new ResizeObserver(() => {
+    const scrollHandle = attachRafScroll(content, doRender, () => {
         if (currentView === 'settings') return;
         if (virtualScrollState.enabled && virtualScrollState.container) {
             renderVisibleItems(virtualScrollState.container, false);
@@ -488,7 +532,18 @@ function initLazyLoading(songs, listId) {
             virtualScrollState.lastRenderedEnd = virtualScrollState.lastVisibleIndex;
         }
     });
-    virtualScrollState._resizeObserver.observe(content);
+    virtualScrollState._resizeObserver = scrollHandle.resizeObserver;
+    const removeWheelSync = attachWheelPlaceholderSync(content);
+
+    virtualScrollState._scrollCleanup = () => {
+        scrollHandle.detach();
+        removeWheelSync();
+        clearTimeout(virtualScrollState.scrollSettleTimeout);
+    };
+
+    renderVisibleItems(content, false);
+    virtualScrollState.lastRenderedStart = virtualScrollState.firstVisibleIndex;
+    virtualScrollState.lastRenderedEnd = virtualScrollState.lastVisibleIndex;
 }
 
 function renderVirtualScrollImmediate(content) {
@@ -787,82 +842,30 @@ function renderLeftPanelVisibleItems(showPlaceholders) {
     if (!state.enabled || !state.container) return;
     if (typeof currentOpenFolderId !== 'undefined' && currentOpenFolderId) return;
 
-    const viewportTop = state.container.scrollTop;
-    const viewportHeight = state.container.clientHeight;
-    const viewportBottom = viewportTop + viewportHeight;
-
-    const startIndex = Math.max(0, Math.floor(viewportTop / LEFT_ITEM_HEIGHT) - LEFT_OVERSCAN_COUNT);
-    const endIndex = Math.min(
-        state.currentItems.length - 1,
-        Math.ceil(viewportBottom / LEFT_ITEM_HEIGHT) + LEFT_OVERSCAN_COUNT
+    const win = computeVirtualWindow(
+        state.container.scrollTop,
+        state.container.clientHeight,
+        LEFT_ITEM_HEIGHT,
+        LEFT_OVERSCAN_COUNT,
+        state.currentItems.length
     );
 
     const songList = document.querySelector('.left-panel-main-list');
     if (!songList) return;
 
-    const totalHeight = state.currentItems.length * LEFT_ITEM_HEIGHT;
+    const rebuilt = rebuildVirtualWindow(songList, win, LEFT_ITEM_HEIGHT, (i) =>
+        showPlaceholders ? buildLeftPanelPlaceholderHTML(i) : buildLeftPanelItemAt(i, currentOpenFolderId)
+    );
+    state.spacerDiv = rebuilt.spacer;
+    appendVirtualBottomSpacer(songList, win, LEFT_ITEM_HEIGHT, state.currentItems.length, false);
 
     if (showPlaceholders) {
-        songList.innerHTML = '';
         state.firstVisibleIndex = -1;
         state.lastVisibleIndex = -1;
         state.visibleItems = [];
-
-        if (state.spacerDiv) state.spacerDiv.remove();
-        state.spacerDiv = document.createElement('div');
-        state.spacerDiv.style.height = startIndex * LEFT_ITEM_HEIGHT + 'px';
-        state.spacerDiv.style.width = '100%';
-        state.spacerDiv.style.flexShrink = '0';
-        songList.appendChild(state.spacerDiv);
-
-        for (let i = startIndex; i <= endIndex; i++) {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = buildLeftPanelPlaceholderHTML(i);
-            const item = tempDiv.firstElementChild;
-            item.style.flexShrink = '0';
-            songList.appendChild(item);
-        }
-
-        const renderedHeight = (endIndex - startIndex + 1) * LEFT_ITEM_HEIGHT;
-        const bottomSpacerHeight = Math.max(0, totalHeight - startIndex * LEFT_ITEM_HEIGHT - renderedHeight);
-        if (bottomSpacerHeight > 0) {
-            const bottomSpacer = document.createElement('div');
-            bottomSpacer.style.height = bottomSpacerHeight + 'px';
-            bottomSpacer.style.width = '100%';
-            bottomSpacer.style.flexShrink = '0';
-            songList.appendChild(bottomSpacer);
-        }
     } else {
-        songList.innerHTML = '';
-
-        if (state.spacerDiv) state.spacerDiv.remove();
-        state.spacerDiv = document.createElement('div');
-        state.spacerDiv.style.height = startIndex * LEFT_ITEM_HEIGHT + 'px';
-        state.spacerDiv.style.width = '100%';
-        state.spacerDiv.style.flexShrink = '0';
-        songList.appendChild(state.spacerDiv);
-
-        for (let i = startIndex; i <= endIndex; i++) {
-            const html = buildLeftPanelItemAt(i, currentOpenFolderId);
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = html;
-            const item = tempDiv.firstElementChild;
-            item.style.flexShrink = '0';
-            songList.appendChild(item);
-        }
-
-        const renderedHeight = (endIndex - startIndex + 1) * LEFT_ITEM_HEIGHT;
-        const bottomSpacerHeight = Math.max(0, totalHeight - startIndex * LEFT_ITEM_HEIGHT - renderedHeight);
-        if (bottomSpacerHeight > 0) {
-            const bottomSpacer = document.createElement('div');
-            bottomSpacer.style.height = bottomSpacerHeight + 'px';
-            bottomSpacer.style.width = '100%';
-            bottomSpacer.style.flexShrink = '0';
-            songList.appendChild(bottomSpacer);
-        }
-
-        state.firstVisibleIndex = startIndex;
-        state.lastVisibleIndex = endIndex;
+        state.firstVisibleIndex = win.start;
+        state.lastVisibleIndex = win.end;
     }
 
     clearTimeout(state._scrollbarTimeout);
@@ -895,18 +898,13 @@ function initLeftPanelLazyLoading() {
     leftPanelVirtualState.lastRenderedStart = -1;
     leftPanelVirtualState.lastRenderedEnd = -1;
 
-    let rafId = null;
-
     function doRender() {
-        rafId = null;
-        const viewportTop = content.scrollTop;
-        const viewportHeight = content.clientHeight;
-        const viewportBottom = viewportTop + viewportHeight;
-
-        const startIndex = Math.max(0, Math.floor(viewportTop / LEFT_ITEM_HEIGHT) - LEFT_OVERSCAN_COUNT);
-        const endIndex = Math.min(
-            leftPanelVirtualState.currentItems.length - 1,
-            Math.ceil(viewportBottom / LEFT_ITEM_HEIGHT) + LEFT_OVERSCAN_COUNT
+        const { start: startIndex, end: endIndex } = computeVirtualWindow(
+            content.scrollTop,
+            content.clientHeight,
+            LEFT_ITEM_HEIGHT,
+            LEFT_OVERSCAN_COUNT,
+            leftPanelVirtualState.currentItems.length
         );
 
         if (startIndex === leftPanelVirtualState.lastRenderedStart && endIndex === leftPanelVirtualState.lastRenderedEnd) return;
@@ -922,7 +920,7 @@ function initLeftPanelLazyLoading() {
                 renderLeftPanelVisibleItems(false);
                 leftPanelVirtualState.lastRenderedStart = leftPanelVirtualState.firstVisibleIndex;
                 leftPanelVirtualState.lastRenderedEnd = leftPanelVirtualState.lastVisibleIndex;
-            }, 150);
+            }, VIRTUAL_SCROLL_SETTLE_MS);
         } else {
             renderLeftPanelVisibleItems(false);
             leftPanelVirtualState.lastRenderedStart = startIndex;
@@ -930,34 +928,21 @@ function initLeftPanelLazyLoading() {
         }
     }
 
-    function onScroll() {
-        if (rafId) return;
-        rafId = requestAnimationFrame(doRender);
-    }
-
-    content.addEventListener('scroll', onScroll, {
-        passive: true
-    });
-    const removeWheelSync = attachWheelPlaceholderSync(content);
-
-    leftPanelVirtualState._scrollCleanup = () => {
-        content.removeEventListener('scroll', onScroll);
-        removeWheelSync();
-        clearTimeout(leftPanelVirtualState.scrollSettleTimeout);
-        if (rafId) {
-            cancelAnimationFrame(rafId);
-            rafId = null;
-        }
-    };
-
-    leftPanelVirtualState._resizeObserver = new ResizeObserver(() => {
+    const scrollHandle = attachRafScroll(content, doRender, () => {
         if (leftPanelVirtualState.enabled && leftPanelVirtualState.container) {
             renderLeftPanelVisibleItems(false);
             leftPanelVirtualState.lastRenderedStart = leftPanelVirtualState.firstVisibleIndex;
             leftPanelVirtualState.lastRenderedEnd = leftPanelVirtualState.lastVisibleIndex;
         }
     });
-    leftPanelVirtualState._resizeObserver.observe(content);
+    leftPanelVirtualState._resizeObserver = scrollHandle.resizeObserver;
+    const removeWheelSync = attachWheelPlaceholderSync(content);
+
+    leftPanelVirtualState._scrollCleanup = () => {
+        scrollHandle.detach();
+        removeWheelSync();
+        clearTimeout(leftPanelVirtualState.scrollSettleTimeout);
+    };
 
     renderLeftPanelVisibleItems(false);
     leftPanelVirtualState.lastRenderedStart = leftPanelVirtualState.firstVisibleIndex;
@@ -1013,7 +998,8 @@ function getLeftPanelItemsArray() {
 // ==============================================================================
 // VIRTUAL SCROLL - SMART LYRICS FINDER LIST
 // ==============================================================================
-const SMART_LYRICS_ITEM_HEIGHT = 52;
+// Smart-lyrics rows are .song-item rows, so they share the main list's row height.
+const SMART_LYRICS_ITEM_HEIGHT = ITEM_HEIGHT;
 const SMART_LYRICS_OVERSCAN_COUNT = 12;
 
 let smartLyricsVirtualState = {
@@ -1051,12 +1037,13 @@ function renderSmartLyricsVisibleItems(showPlaceholders) {
     const listTopInContent = listRect.top - contentRect.top + content.scrollTop;
     const viewportTop = Math.max(0, content.scrollTop - listTopInContent);
     const viewportHeight = content.clientHeight;
-    const viewportBottom = viewportTop + viewportHeight;
 
-    const startIndex = Math.max(0, Math.floor(viewportTop / SMART_LYRICS_ITEM_HEIGHT) - SMART_LYRICS_OVERSCAN_COUNT);
-    const endIndex = Math.min(
-        items.length - 1,
-        Math.ceil(viewportBottom / SMART_LYRICS_ITEM_HEIGHT) + SMART_LYRICS_OVERSCAN_COUNT
+    const { start: startIndex, end: endIndex } = computeVirtualWindow(
+        viewportTop,
+        viewportHeight,
+        SMART_LYRICS_ITEM_HEIGHT,
+        SMART_LYRICS_OVERSCAN_COUNT,
+        items.length
     );
 
     if (
@@ -1068,33 +1055,11 @@ function renderSmartLyricsVisibleItems(showPlaceholders) {
         return;
     }
 
-    list.innerHTML = '';
-
-    state.spacerDiv = document.createElement('div');
-    state.spacerDiv.style.height = startIndex * SMART_LYRICS_ITEM_HEIGHT + 'px';
-    state.spacerDiv.style.width = '100%';
-    state.spacerDiv.style.flexShrink = '0';
-    list.appendChild(state.spacerDiv);
-
-    for (let i = startIndex; i <= endIndex; i++) {
-        const html = showPlaceholders ? '' : buildSmartLyricsRowAt(i);
-        if (!html) continue;
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = html;
-        const item = tempDiv.firstElementChild;
-        if (item) {
-            item.style.flexShrink = '0';
-            list.appendChild(item);
-        }
-    }
-
-    const renderedHeight = (endIndex - startIndex + 1) * SMART_LYRICS_ITEM_HEIGHT;
-    const bottomSpacerHeight = Math.max(0, items.length * SMART_LYRICS_ITEM_HEIGHT - startIndex * SMART_LYRICS_ITEM_HEIGHT - renderedHeight);
-    state.bottomSpacerDiv = document.createElement('div');
-    state.bottomSpacerDiv.style.height = bottomSpacerHeight + 'px';
-    state.bottomSpacerDiv.style.width = '100%';
-    state.bottomSpacerDiv.style.flexShrink = '0';
-    list.appendChild(state.bottomSpacerDiv);
+    const win = { start: startIndex, end: endIndex };
+    state.spacerDiv = rebuildVirtualWindow(list, win, SMART_LYRICS_ITEM_HEIGHT, (i) =>
+        showPlaceholders ? '' : buildSmartLyricsRowAt(i)
+    ).spacer;
+    state.bottomSpacerDiv = appendVirtualBottomSpacer(list, win, SMART_LYRICS_ITEM_HEIGHT, items.length, true);
 
     state.firstVisibleIndex = startIndex;
     state.lastVisibleIndex = endIndex;
@@ -1112,36 +1077,19 @@ function initSmartLyricsVirtualScroll() {
     smartLyricsVirtualState.lastVisibleIndex = 0;
     smartLyricsVirtualState.lastScrollTop = content.scrollTop;
 
-    let rafId = null;
-
     function doRender() {
-        rafId = null;
         if (!smartLyricsVirtualState.enabled) return;
         renderSmartLyricsVisibleItems(false);
         smartLyricsVirtualState.lastScrollTop = content.scrollTop;
     }
 
-    function onContentScroll() {
-        if (rafId) return;
-        rafId = requestAnimationFrame(doRender);
-    }
-
-    content.addEventListener('scroll', onContentScroll, { passive: true });
-
-    smartLyricsVirtualState._scrollCleanup = () => {
-        content.removeEventListener('scroll', onContentScroll);
-        if (rafId) {
-            cancelAnimationFrame(rafId);
-            rafId = null;
-        }
-    };
-
-    smartLyricsVirtualState._resizeObserver = new ResizeObserver(() => {
+    const scrollHandle = attachRafScroll(content, doRender, () => {
         if (smartLyricsVirtualState.enabled) {
             renderSmartLyricsVisibleItems(false);
         }
     });
-    smartLyricsVirtualState._resizeObserver.observe(content);
+    smartLyricsVirtualState._resizeObserver = scrollHandle.resizeObserver;
+    smartLyricsVirtualState._scrollCleanup = () => scrollHandle.detach();
 
     renderSmartLyricsVisibleItems(false);
 }
@@ -1167,12 +1115,13 @@ function teardownSmartLyricsVirtualScroll() {
 }
 
 function refreshSmartLyricsVirtualScroll(songs) {
-    smartLyricsVirtualState.currentSongs = songs || [];
+    // init() calls teardown(), which clears currentSongs, so the songs must be assigned
+    // AFTER init or the first render would see an empty list.
     if (!smartLyricsVirtualState.enabled) {
         initSmartLyricsVirtualScroll();
-    } else {
-        smartLyricsVirtualState.firstVisibleIndex = -1;
-        smartLyricsVirtualState.lastVisibleIndex = -1;
-        renderSmartLyricsVisibleItems(false);
     }
+    smartLyricsVirtualState.currentSongs = songs || [];
+    smartLyricsVirtualState.firstVisibleIndex = -1;
+    smartLyricsVirtualState.lastVisibleIndex = -1;
+    renderSmartLyricsVisibleItems(false);
 }

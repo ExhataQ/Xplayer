@@ -22,11 +22,13 @@ function parseLrcLine(rawLine) {
 
     if (times.length === 0) return null;
 
-    const text = line.substring(lastIndex).trim();
+    const rawText = line.substring(lastIndex).trim();
+    const isInstrumentalMarker = /^\[instrumental\]$/i.test(rawText);
+    const text = isInstrumentalMarker ? '' : rawText;
     return {
         times: times,
         text: text,
-        instrumental: text === ''
+        instrumental: isInstrumentalMarker
     };
 }
 
@@ -64,6 +66,51 @@ let syncedLyricsState = {
     programmaticScroll: false,
     scrollCleanup: null
 };
+
+let lyricsDisplayMode = {
+    songId: null,
+    mode: 'auto'
+};
+
+function getLyricsDisplayMode(song) {
+    if (!song) return 'auto';
+    if (lyricsDisplayMode.songId !== song.id) return 'auto';
+    return lyricsDisplayMode.mode;
+}
+
+function setLyricsDisplayMode(mode) {
+    if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) return;
+    const queueItem = playbackQueue[currentQueueIndex];
+    const song = queueItem.song || queueItem;
+    if (!song) return;
+
+    const wasSynced = lyricsDisplayMode.songId === song.id && lyricsDisplayMode.mode === 'synced';
+
+    lyricsDisplayMode.songId = song.id;
+    lyricsDisplayMode.mode = mode;
+
+    if (currentView === 'lyrics') {
+        renderLyricsView();
+    }
+
+    if (typeof renderTrackLyricsBox === 'function') {
+        renderTrackLyricsBox();
+    }
+
+    if (mode === 'synced' && !wasSynced) {
+        refreshSyncedHighlight();
+    }
+}
+
+function refreshSyncedHighlight() {
+    if (!syncedLyricsState.entries || syncedLyricsState.entries.length === 0) return;
+    updateSyncedLyricsHighlight(audioElement.currentTime || 0);
+}
+
+function resetLyricsDisplayMode(songId) {
+    lyricsDisplayMode.songId = songId || null;
+    lyricsDisplayMode.mode = 'auto';
+}
 
 function initSyncedLyrics(song) {
     resetSyncedLyricsFollowState();
@@ -103,8 +150,10 @@ function updateSyncedLyricsHighlight(currentTime) {
 
     if (found === state.activeIndex) return;
 
-    if (state.activeIndex >= 0 && state.lineElements[state.activeIndex]) {
-        state.lineElements[state.activeIndex].classList.remove('synced-active');
+    const previousIndex = state.activeIndex;
+
+    if (previousIndex >= 0 && state.lineElements[previousIndex]) {
+        state.lineElements[previousIndex].classList.remove('synced-active');
     }
 
     state.activeIndex = found;
@@ -112,8 +161,35 @@ function updateSyncedLyricsHighlight(currentTime) {
     if (found >= 0 && state.lineElements[found]) {
         const el = state.lineElements[found];
         el.classList.add('synced-active');
+
+        for (let i = 0; i < state.lineElements.length; i++) {
+            const lineEl = state.lineElements[i];
+            if (!lineEl) continue;
+            lineEl.classList.toggle('synced-past', i < found);
+        }
+
         if (state.autoScroll && state.container && !state.userScrolledAway) {
             smoothScrollToLine(el);
+        }
+    } else {
+        for (let i = 0; i < state.lineElements.length; i++) {
+            const lineEl = state.lineElements[i];
+            if (lineEl) lineEl.classList.remove('synced-past');
+        }
+
+        if (
+            found === -1 &&
+            previousIndex !== -1 &&
+            state.container &&
+            state.autoScroll &&
+            !state.userScrolledAway
+        ) {
+            state.programmaticScroll = true;
+            state.container.scrollTo({ top: 0, behavior: 'smooth' });
+            clearTimeout(state._programmaticScrollTimeout);
+            state._programmaticScrollTimeout = setTimeout(() => {
+                state.programmaticScroll = false;
+            }, 700);
         }
     }
 }
@@ -134,18 +210,15 @@ function smoothScrollToLine(el) {
         behavior: 'smooth'
     });
 
+    markProgrammaticScroll(state);
+}
+
+function markProgrammaticScroll(state) {
     clearTimeout(state._programmaticScrollTimeout);
-    const clearFlag = () => {
+    state._programmaticScrollTimeout = setTimeout(() => {
         state.programmaticScroll = false;
-    };
-    if ('onscrollend' in container) {
-        container.addEventListener('scrollend', clearFlag, {
-            once: true
-        });
-        state._programmaticScrollTimeout = setTimeout(clearFlag, 1500);
-    } else {
-        state._programmaticScrollTimeout = setTimeout(clearFlag, 500);
-    }
+        state._programmaticScrollTimeout = null;
+    }, 700);
 }
 
 function attachSyncedLyricsScrollWatcher() {
@@ -161,11 +234,15 @@ function attachSyncedLyricsScrollWatcher() {
     let scrollEndTimeout = null;
 
     function onScroll() {
-        if (state.programmaticScroll) return;
+        if (state.programmaticScroll) {
+            markProgrammaticScroll(state);
+            return;
+        }
 
         clearTimeout(scrollEndTimeout);
         scrollEndTimeout = setTimeout(() => {
             if (!state.entries || state.activeIndex < 0 || !state.lineElements[state.activeIndex]) return;
+            if (state.programmaticScroll) return;
 
             const containerRect = container.getBoundingClientRect();
             const activeEl = state.lineElements[state.activeIndex];
@@ -182,7 +259,7 @@ function attachSyncedLyricsScrollWatcher() {
                 state.userScrolledAway = false;
                 hideFollowLyricsButton();
             }
-        }, 150);
+        }, 180);
     }
 
     container.addEventListener('scroll', onScroll, {
@@ -228,6 +305,7 @@ function resetSyncedLyricsFollowState() {
         syncedLyricsState.scrollCleanup = null;
     }
     clearTimeout(syncedLyricsState._programmaticScrollTimeout);
+    syncedLyricsState._programmaticScrollTimeout = null;
 }
 
 function importLrcFile() {
@@ -1423,7 +1501,7 @@ function generateLrcFromEditor() {
     out += '\n';
     for (const l of timed) {
         if (l.instrumental) {
-            out += '[' + formatLrcTime(l.time) + ']\n';
+            out += '[' + formatLrcTime(l.time) + '] [instrumental]\n';
         } else {
             out += '[' + formatLrcTime(l.time) + '] ' + l.text + '\n';
         }

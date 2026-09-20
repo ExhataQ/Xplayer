@@ -998,6 +998,7 @@ body.in-lyrics-view .track-lyrics-text {
     font-weight: 750;
     line-height: 1.2;
     color: rgba(255, 255, 255, 0.78);
+    text-align: start;
 }
 
 .track-lyrics-line {

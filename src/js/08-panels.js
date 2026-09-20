@@ -606,18 +606,31 @@ function renderTrackLyricsBox() {
 
     trackLyricsUserScrolledAway = false;
 
-    if (parsedSynced && parsedSynced.length > 0) {
+    const songForMode = song;
+    const storedMode = typeof getLyricsDisplayMode === 'function' ? getLyricsDisplayMode(songForMode) : 'auto';
+    const hasSyncedForBox = parsedSynced && parsedSynced.length > 0;
+    const hasPlainForBox = plainText && String(plainText).trim() !== '';
+    let boxMode = 'auto';
+    if (hasSyncedForBox && hasPlainForBox) {
+        boxMode = storedMode === 'plain' ? 'plain' : 'synced';
+    } else if (hasSyncedForBox) {
+        boxMode = 'synced';
+    } else if (hasPlainForBox) {
+        boxMode = 'plain';
+    }
+
+    if (boxMode === 'synced' && parsedSynced && parsedSynced.length > 0) {
         trackLyricsEntries = parsedSynced;
         text.classList.add('track-lyrics-synced');
         text.innerHTML = parsedSynced
             .map((entry, i) => {
                 if (entry.instrumental) {
-                    return `<div class="track-lyrics-line track-lyrics-line-instrumental" data-index="${i}"><span class="material-symbols-outlined">music_note</span></div>`;
+                    return `<div class="track-lyrics-line track-lyrics-line-instrumental" data-index="${i}" dir="auto"><span class="material-symbols-outlined">music_note</span></div>`;
                 }
                 if (entry.text.trim() === '') {
-                    return `<div class="track-lyrics-line track-lyrics-line-empty" data-index="${i}"></div>`;
+                    return `<div class="track-lyrics-line track-lyrics-line-empty" data-index="${i}" dir="auto"></div>`;
                 }
-                return `<div class="track-lyrics-line" data-index="${i}">${escapeHtml(entry.text)}</div>`;
+                return `<div class="track-lyrics-line" data-index="${i}" dir="auto">${escapeHtml(entry.text)}</div>`;
             })
             .join('');
 
@@ -636,8 +649,8 @@ function renderTrackLyricsBox() {
         text.innerHTML = normalized
             .split('\n')
             .map((line) => {
-                if (line.trim() === '') return `<div class="track-lyrics-line track-lyrics-line-empty"></div>`;
-                return `<div class="track-lyrics-line">${escapeHtml(line)}</div>`;
+                if (line.trim() === '') return `<div class="track-lyrics-line track-lyrics-line-empty" dir="auto"></div>`;
+                return `<div class="track-lyrics-line" dir="auto">${escapeHtml(line)}</div>`;
             })
             .join('');
         trackLyricsLineElements = [];
