@@ -2003,6 +2003,11 @@ function resetSubheroSearch() {
     }
 }
 
+// A typing burst in the main search box is ONE search-history entry: while the user keeps editing the
+// same search, that entry is updated instead of a new one being created on every pause.
+let searchTypingSessionId = null;
+const SEARCH_DEBOUNCE_MS = 300;
+
 function performSearch() {
     if (searchTimeout) {
         clearTimeout(searchTimeout);
@@ -2012,6 +2017,7 @@ function performSearch() {
         searchQuery = document.getElementById('search-input').value.toLowerCase().trim();
 
         if (searchQuery === '') {
+            searchTypingSessionId = null;
             pushViewToHistory('all-songs');
             currentView = 'all-songs';
             currentSearchSessionId = null;
@@ -2028,7 +2034,12 @@ function performSearch() {
             pushViewToHistory('search-items');
             currentView = 'search-items';
 
-            currentSearchSessionId = 'Search' + Date.now();
+            const continuingSearch =
+                currentSearchSessionId !== null && currentSearchSessionId === searchTypingSessionId;
+            if (!continuingSearch) {
+                currentSearchSessionId = 'Search' + Date.now();
+                searchTypingSessionId = currentSearchSessionId;
+            }
             ghostLists['search'] = [currentSearchSessionId];
 
             ghostLists['search-items'] = [];
@@ -2064,7 +2075,7 @@ function performSearch() {
         setTimeout(() => {
             updateExternalScrollbar();
         }, 100);
-    }, 500);
+    }, SEARCH_DEBOUNCE_MS);
 }
 
 function focusSubheroSearch() {
@@ -2131,12 +2142,8 @@ function performSubheroSearch() {
         return;
     }
 
-    const filtered = songs.filter(
-        (s) =>
-            s.title.toLowerCase().includes(query) ||
-            s.artist.toLowerCase().includes(query) ||
-            s.album.toLowerCase().includes(query)
-    );
+    // rank: false - filtering an album/playlist must keep that list's own order
+    const filtered = searchSongs(songs, query, { rank: false });
 
     renderSongsList(filtered, currentView);
     reapplyHighlightAfterFilter(currentView, filtered);
@@ -2217,7 +2224,7 @@ function performLeftPanelSearch() {
         const subtitle = item.querySelector('.main-item-subtitle');
         const itemText = (title ? title.textContent : '') + ' ' + (subtitle ? subtitle.textContent : '');
 
-        if (itemText.toLowerCase().includes(query)) {
+        if (normalizeSearchText(itemText).includes(normalizeSearchText(query))) {
             item.style.display = '';
         } else {
             item.style.display = 'none';

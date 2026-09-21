@@ -34,12 +34,7 @@ function navigateToCurrentSongInList() {
         songIndex = songList.findIndex((s) => s.id === currentSong.id);
         targetView = 'favorites';
     } else if (sourceListId === 'search' && currentItem.searchQuery) {
-        songList = SONGS_DATA.filter(
-            (s) =>
-                s.title.toLowerCase().includes(currentItem.searchQuery) ||
-                s.artist.toLowerCase().includes(currentItem.searchQuery) ||
-                s.album.toLowerCase().includes(currentItem.searchQuery)
-        );
+        songList = getSearchResults(currentItem.searchQuery);
         songIndex = songList.findIndex((s) => s.id === currentSong.id);
         targetView = 'search';
         searchInput.value = currentItem.searchQuery;

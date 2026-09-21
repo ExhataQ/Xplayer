@@ -832,7 +832,7 @@ function renderHistoryView() {
 }
 
 function renderRecentlyPlayed() {
-    const recentSongs = filterDeletedSongs(getRecentlyPlayed());
+    const recentSongs = getRecentlyPlayedSongs();
     const listId = 'recent';
 
     if (recentSongs.length === 0) {
@@ -869,7 +869,7 @@ function renderRecentlyPlayed() {
             </div>
             <div class="recently-played-info">
                 <i class="fas fa-info-circle"></i>
-                Shows last ${MAX_RECENT_SONGS} songs in play order
+                Your last ${MAX_RECENT_SONGS} different songs, most recent first
             </div>
         </div>
         ${songsHtml}
@@ -879,7 +879,7 @@ function renderRecentlyPlayed() {
 }
 
 function renderPortableRecentlyPlayed() {
-    const recentSongs = filterDeletedSongs(getRecentlyPlayed());
+    const recentSongs = getRecentlyPlayedSongs();
     const recentList = document.getElementById('recently-played-list');
 
     if (!recentList) return;

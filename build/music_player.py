@@ -148,6 +148,8 @@ def generate_html_template(songs_data, placeholder_image):
         "01-sizes.js",
         "02-ghost-list.js",
         "03-storage.js",
+        "03a-recents.js",
+        "03b-search-engine.js",
         "04a-ui-render-core.js",
         "04b-ui-render-views.js",
         "05-lazy-load.js",

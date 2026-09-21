@@ -20,26 +20,14 @@ function getStoredJson(key, fallback) {
 // RECENTLY PLAYED
 // ==============================================================================
 function saveToRecentlyPlayed(song) {
-    const actualSong = song.song || song;
+    // List logic (move-to-top instead of duplicating, cap, clean-up) lives in 03a-recents.js.
+    const recentSongs = addToRecentList(getStoredJson('recentlyPlayed', []), song, Date.now(), MAX_RECENT_SONGS);
 
-    let recentSongs = getStoredJson('recentlyPlayed', []);
-
-    recentSongs.unshift({
-        id: actualSong.id,
-        title: actualSong.title,
-        artist: actualSong.artist,
-        album: actualSong.album,
-        cover: actualSong.cover,
-        duration: actualSong.duration,
-        url: actualSong.url,
-        playedAt: Date.now()
-    });
-
-    if (recentSongs.length > MAX_RECENT_SONGS) {
-        recentSongs = recentSongs.slice(0, MAX_RECENT_SONGS);
+    try {
+        localStorage.setItem('recentlyPlayed', JSON.stringify(recentSongs));
+    } catch (e) {
+        console.warn('Could not save the recently played list:', e);
     }
-
-    localStorage.setItem('recentlyPlayed', JSON.stringify(recentSongs));
     updateRecentCount();
 
     const recentPanel = document.getElementById('recently-played-content');
@@ -54,10 +42,9 @@ function getRecentlyPlayed() {
 }
 
 function updateRecentCount() {
-    const recentSongs = getRecentlyPlayed();
     const countElement = document.querySelector('.left-panel-item[onclick*="recent"] .song-count');
     if (countElement) {
-        countElement.textContent = recentSongs.length;
+        countElement.textContent = getRecentCount();
     }
 }
 

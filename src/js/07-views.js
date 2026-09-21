@@ -437,13 +437,7 @@ const listProviders = {
         getCount: () => getActiveSongs().length
     },
     search: {
-        getSongs: () =>
-            getActiveSongs().filter(
-                (s) =>
-                    s.title.toLowerCase().includes(searchQuery) ||
-                    s.artist.toLowerCase().includes(searchQuery) ||
-                    s.album.toLowerCase().includes(searchQuery)
-            ),
+        getSongs: () => getSearchResults(searchQuery),
         getCount: () => listProviders.search.getSongs().length
     },
     'search-items': {
@@ -1078,12 +1072,7 @@ function openSearchHistoryChild(sessionId, query) {
     searchInput.value = query;
     searchQuery = query.toLowerCase().trim();
 
-    const filteredSongs = SONGS_DATA.filter(
-        (song) =>
-            song.title.toLowerCase().includes(searchQuery) ||
-            song.artist.toLowerCase().includes(searchQuery) ||
-            song.album.toLowerCase().includes(searchQuery)
-    );
+    const filteredSongs = getSearchResults(searchQuery);
 
     pushViewToHistory('search-items');
 

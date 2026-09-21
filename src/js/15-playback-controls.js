@@ -54,12 +54,7 @@ function toggleNormalShuffle() {
             if (currentView === 'all-songs') {
                 renderSongsList(SONGS_DATA, 'all-songs');
             } else if ((currentView === 'search' || currentView === 'search-items') && searchQuery) {
-                const filteredSongs = SONGS_DATA.filter(
-                    (s) =>
-                        s.title.toLowerCase().includes(searchQuery) ||
-                        s.artist.toLowerCase().includes(searchQuery) ||
-                        s.album.toLowerCase().includes(searchQuery)
-                );
+                const filteredSongs = getSearchResults(searchQuery);
                 renderSongsList(filteredSongs, 'search-items');
             }
             return;
@@ -139,12 +134,7 @@ function toggleNormalShuffle() {
             } else if (currentView === 'all-songs') {
                 renderSongsList(SONGS_DATA, 'all-songs');
             } else if ((currentView === 'search' || currentView === 'search-items') && searchQuery) {
-                const filteredSongs = SONGS_DATA.filter(
-                    (s) =>
-                        s.title.toLowerCase().includes(searchQuery) ||
-                        s.artist.toLowerCase().includes(searchQuery) ||
-                        s.album.toLowerCase().includes(searchQuery)
-                );
+                const filteredSongs = getSearchResults(searchQuery);
                 renderSongsList(filteredSongs, 'search-items');
             }
             return;
@@ -306,12 +296,7 @@ repeatButton.onclick = () => {
         } else if (currentView === 'all-songs') {
             renderSongsList(SONGS_DATA);
         } else if ((currentView === 'search' || currentView === 'search-items') && searchQuery) {
-            const filteredSongs = SONGS_DATA.filter(
-                (s) =>
-                    s.title.toLowerCase().includes(searchQuery) ||
-                    s.artist.toLowerCase().includes(searchQuery) ||
-                    s.album.toLowerCase().includes(searchQuery)
-            );
+            const filteredSongs = getSearchResults(searchQuery);
             renderSongsList(filteredSongs, 'search-items');
         }
         return;
