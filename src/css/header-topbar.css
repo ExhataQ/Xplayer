@@ -8,6 +8,14 @@
     align-items: center;
     box-sizing: border-box;
     flex-shrink: 0;
+    -webkit-app-region: drag;
+}
+
+.headerR button,
+.headerR input,
+.headerR .search-box,
+.headerR .notification-panel {
+    -webkit-app-region: no-drag;
 }
 
 .nav-btn {
@@ -284,4 +292,3 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
-

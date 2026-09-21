@@ -28,6 +28,7 @@ const { saveLyricsFile, readLyricsFile } = require('./file-operations');
 const { searchLyrics, downloadLyricsFile } = require('./online-lyrics');
 const { getAudioMetadata, saveAudioMetadata, saveAudioCover } = require('./metadata-editor');
 const { searchOnlineMetadata, getOnlineMetadata } = require('./online-metadata');
+const thumbarIconPath = path.join(__dirname, 'MusicPlayerOutput', 'icons');
 
 
 function updateDeployedSongMetadata(fileUrl, metadata) {
@@ -387,12 +388,12 @@ app.whenReady().then(async () => {
     ipcMain.on('update-thumbar-state', (event, isPlaying) => {
         if (!mainWindow || mainWindow.isDestroyed()) return;
         const playIcon = isPlaying
-            ? path.join(__dirname, 'icons', 'pause.png')
-            : path.join(__dirname, 'icons', 'play.png');
+            ? path.join(thumbarIconPath, 'pause.png')
+            : path.join(thumbarIconPath, 'play.png');
         mainWindow.setThumbarButtons([
             {
                 tooltip: 'Previous',
-                icon: path.join(__dirname, 'icons', 'prev.png'),
+                icon: path.join(thumbarIconPath, 'prev.png'),
                 click: () => {
                     if (mainWindow) mainWindow.webContents.send('thumbar-prev');
                 }
@@ -406,7 +407,7 @@ app.whenReady().then(async () => {
             },
             {
                 tooltip: 'Next',
-                icon: path.join(__dirname, 'icons', 'next.png'),
+                icon: path.join(thumbarIconPath, 'next.png'),
                 click: () => {
                     if (mainWindow) mainWindow.webContents.send('thumbar-next');
                 }

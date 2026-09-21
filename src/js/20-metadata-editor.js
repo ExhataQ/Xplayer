@@ -214,6 +214,52 @@ function renderMetadataEditor(m) {
     );
     applyCoverPreview(m.cover);
 }
+async function openMetadataEditor() {
+    const song = metadataEditorSong();
+    if (!song || !song.url) return;
+
+    metadataEditorSongUrl = song.url;
+    metadataEditorDirty = false;
+    metadataEditorBaseline = null;
+    metadataEditorLoaded = false;
+    metadataEditorCoverPath = '';
+
+    switchRightPanelTab('metadata');
+    if (!window.electronAPI?.getAudioMetadata) {
+        renderMetadataEditorError('Tag editing is not available in this environment.');
+        return;
+    }
+    renderMetadataEditor(metadataEditorInitialValues(song));
+    setMetadataEditorLoading(true);
+
+    try {
+        const result = await window.electronAPI.getAudioMetadata(metadataEditorSongUrl);
+        if (metadataEditorSongUrl !== song.url) return;
+        if (!result?.success) throw new Error(result?.error || 'Failed to read metadata');
+
+        metadataEditorBaseline = result.metadata || {};
+        renderMetadataEditor(metadataEditorBaseline);
+        setOtherTags(metadataEditorBaseline.otherTags || []);
+        setMetadataEditorLoading(false);
+        // No embedded picture in the file (e.g. art comes from folder.jpg): keep showing the song's cover
+        // instead of claiming there is none.
+        const fallbackCover = song.cover || song.largeCover;
+        if (!metadataEditorBaseline.cover && fallbackCover) {
+            applyCoverPreview(fallbackCover);
+            updateCoverStatus('Current cover');
+        }
+    } catch (error) {
+        if (metadataEditorSongUrl !== song.url) return;
+        metadataEditorBaseline = null;
+        metadataEditorLoaded = false;
+        renderMetadataEditorError(
+            `Couldn't read the tags from this file, so editing is disabled to avoid overwriting them with incomplete data. (${
+                error?.message || error
+            })`
+        );
+        setMetadataEditorLoading(true);
+    }
+}
 function applyCoverPreview(cover) {
     const img = document.getElementById('metadata-cover-preview'),
         ph = document.getElementById('metadata-cover-placeholder');

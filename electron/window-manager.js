@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 const storePath = path.join(__dirname, 'window-state.json');
+const thumbarIconPath = path.join(__dirname, 'MusicPlayerOutput', 'icons');
 
 function loadWindowState() {
     try {
@@ -70,21 +71,21 @@ function createWindow() {
     mainWindow.setThumbarButtons([
         {
             tooltip: 'Previous',
-            icon: path.join(__dirname, 'icons', 'prev.png'),
+            icon: path.join(thumbarIconPath, 'prev.png'),
             click: () => {
                 if (mainWindow) mainWindow.webContents.send('thumbar-prev');
             }
         },
         {
             tooltip: 'Play/Pause',
-            icon: path.join(__dirname, 'icons', 'play.png'),
+            icon: path.join(thumbarIconPath, 'play.png'),
             click: () => {
                 if (mainWindow) mainWindow.webContents.send('thumbar-playpause');
             }
         },
         {
             tooltip: 'Next',
-            icon: path.join(__dirname, 'icons', 'next.png'),
+            icon: path.join(thumbarIconPath, 'next.png'),
             click: () => {
                 if (mainWindow) mainWindow.webContents.send('thumbar-next');
             }
