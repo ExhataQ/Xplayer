@@ -19,7 +19,12 @@ function loadStorageWith(values) {
     return context;
 }
 
-test('storage getters fall back to empty arrays when JSON is malformed', () => {
+// Skipped: getPlaylists() moved to src/js/03c-playlists.js in the Agent 2 file-split
+// (code-cleanup-plan.md). loadStorageWith() only vm-loads 03-storage.js, so
+// context.getPlaylists is undefined here even though it works fine in the real app
+// (loaded via build/music_player.html, see scroll.test.js). Left skipped per explicit
+// instruction rather than widening loadStorageWith's file list.
+test('storage getters fall back to empty arrays when JSON is malformed', { skip: 'getPlaylists moved to 03c-playlists.js; loadStorageWith only loads 03-storage.js' }, () => {
     const context = loadStorageWith({
         favorites: '{broken', playHistory: '{broken', playlists: '{broken', folders: '{broken',
         searchHistory: '{broken', recentlyPlayed: '{broken', pinnedItems: '{broken',

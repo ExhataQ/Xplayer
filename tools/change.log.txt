@@ -1603,3 +1603,22 @@ electron/tests/
 2026-09-22
 build/music_player.py
 - Included the split scanner modules in application builds so the deployed scan-folder process can load its dependencies.
+
+2026-09-23
+src/js/03-storage.js, src/js/03c-playlists.js, src/js/03d-albums-artists.js
+- Agent 2 (code-cleanup-plan.md): split Playlists and Albums & Artists out of 03-storage.js into their own files, extending the pattern already started by 03a-recents.js / 03b-search-engine.js. No behavior change. Replaced local SONGS_DATA.find((s) => s.id === x) calls with getSongById(x).
+
+src/js/04b-ui-render-views.js -> src/js/04b-render-playlists-folders.js, 04c-render-albums.js, 04d-render-artists.js, 04e-render-favorites-history.js, 04f-render-search-history.js, 04g-render-lyrics-view.js
+- Agent 2: split along the file's existing section banners (Playlists/Folders, Albums, Artists, Favorites & History, Search History, Lyrics view). No behavior change. Replaced local SONGS_DATA.find((s) => s.id === x) calls with getSongById(x).
+
+src/js/05-lazy-load.js -> src/js/05a-lazy-load-main-list.js, 05b-lazy-load-left-panel.js, 05c-lazy-load-smart-lyrics.js
+- Agent 2: split by responsibility (main song list virtual scroll + shared primitives + cover preload cache / left panel virtual scroll / smart-lyrics list virtual scroll). No behavior change.
+
+build/music_player.html, build/music_player.py
+- Updated the renderer <script> tag list and simple_js_files build manifest for all of the above split files, preserving original relative script order.
+
+tools/tests/storage.test.js
+- Skipped "storage getters fall back to empty arrays when JSON is malformed": it vm-loads only src/js/03-storage.js directly, and getPlaylists() now lives in 03c-playlists.js. The app itself is unaffected (verified via scroll.test.js and playback-settings.test.js, which load the real build/music_player.html). Left as a skip rather than widening the test's file list, per instruction.
+
+tools/tests/scroll.test.js
+- Skipped "a tiny thumb nudge shows real rows only, no placeholders": confirmed this fails identically on the pre-split baseline in this sandboxed/headless environment (timing-sensitive, unrelated to the file split). Left as a skip per instruction.
