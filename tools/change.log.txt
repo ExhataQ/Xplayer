@@ -1,3 +1,17 @@
+2026-09-22
+src/js/03-storage.js, src/js/08-panels.js, src/js/10-playback.js, src/js/15-playback-controls.js, tools/tests/playback-settings.test.js
+- Fixed automatic-ended tracks bypassing the preloaded gapless audio element.
+- Made gapless and crossfade mutually exclusive, applied transition-setting changes immediately, and stopped pause fade-out from leaving resumed audio silent.
+
+electron/package.json
+- Run automated test files one at a time and fail any individual test that exceeds 15 seconds, preventing concurrent browser suites from freezing the full run.
+
+tools/tests/metadata-editor.test.js
+- Avoid awaiting the deliberately gated asynchronous editor open in the locked-fields regression test.
+
+tools/tests/helpers/app-fixture.js, tools/tests/scroll.test.js
+- Limited each Playwright browser-launch attempt to 2.5 seconds so unavailable browsers skip quickly instead of stalling test runs.
+
 2026-09-19
 tools/ui-playground/
 - Added a Vite-based visual development environment that imports the production CSS directly from src/css/ in the production loading order.
@@ -1184,7 +1198,7 @@ src/js/03-storage.js
 - Added persistent Smart Shuffle v1 settings.
 
 src/js/07-views.js
-- Updated the subhero shuffle state text to distinguish Smart Shuffle from Normal Shuffle.
+- Updated the subhero shuffle state text to distinguish Smart Shuffle from Normal Shuffle. 
 
 src/js/08-panels.js
 - Added Smart Shuffle v1 journey, grouping, genre, artist, recency, favorite, discovery, and duration controls to Settings.
@@ -1537,3 +1551,55 @@ electron/metadata-editor.py, src/js/20-metadata-editor.js, tools/tests/metadata_
 src/js/15-playback-controls.js
 - Gapless playback stopped advancing after the first swap: the track-end handler was assigned once, directly to the original <audio> element (audioElement.onended = ...), with a self-comparison guard (audioElement !== audioElement) that never triggered. bindPlaybackAudioEvents() already binds onplay/onpause/onloadedmetadata to both audio elements with a correct (audio !== audioElement) guard, but onended was never part of that shared binding, so the second <audio> element used during a gapless swap never got a track-end handler. Moved the onended logic into bindPlaybackAudioEvents with the same audio !== audioElement guard used by the other handlers, so both elements always have it, whichever one is currently active. This was a hard stop (queue advance failing entirely after the first gapless swap), not the perceptible gap itself; the gap the user hears is inherent to swapping <audio> elements and calling .play() (HTML5 audio engine start-up latency), which this fix does not address -- closing that fully would need Web Audio API buffer scheduling instead of two <audio> elements.
 - Mute button (#volume-icon, toggleMute()) never unmuted after the first click: it read window.lastVolume (the cached pre-mute volume) as the "current" volume when deciding which branch to take, so after muting once (which sets lastVolume to the pre-mute value), every later click still saw currentVolume > 0 from that cache and re-ran the mute branch instead of restoring. Now reads the actual live audioElement.volume to decide mute vs. unmute; lastVolume is still used only as the value to restore to.
+
+
+2026-09-22
+src/js/15-playback-controls.js
+- updateVolume() now stores the last non-zero level in window.lastMutedVolume and sets audioElement.muted alongside audioElement.volume, so the mute icon and element state stay in sync
+- toggleMute() reads window.lastVolume as the user's chosen level and restores window.lastMutedVolume on unmute, instead of reading the ReplayGain-scaled audioElement.volume (which drifted lastVolume on every toggle)
+- applyTrackVolume() mutes the element when the user level is zero rather than re-applying ReplayGain on top of a silent element
+
+src/js/99-player.js
+- initialize window.lastVolume and window.lastMutedVolume to 0.5 in the DOMContentLoaded bootstrap
+
+2026-09-22
+build/music_player.html
+- header's Lyrics / LRC Search button now has id="online-lyrics-search-btn" and calls toggleOnlineLyricsSearchView()
+
+src/js/19-online-lyrics.js
+- added setOnlineLyricsSearchButtonActive(active) to toggle the header button's .active class and aria-pressed
+- added toggleOnlineLyricsSearchView() that enters the online-lyrics view when not already there and navigates back via goBack() (falling back to lastPlaybackListId / all-songs) when already in it
+
+src/js/07-views.js
+- switchView now calls setOnlineLyricsSearchButtonActive(currentView === 'online-lyrics') right after the settings-toggle-btn sync, so Back/Forward navigation and any other view change also clears the header button's active state
+
+src/css/header-topbar.css
+- added .add-link-btn.active and .add-link-btn.active:hover rules using --accent / --accent-hover so the lyrics/LRC header toggle shows a visible active state like the settings button
+
+2026-09-22
+src/js/05-lazy-load.js, src/js/06c-ui-widgets.js
+- Holding the scrollbar thumb still now loads real rows after a short delay instead of waiting for release. Added THUMB_HOLD_SETTLE_MS (120) and scheduleThumbHoldSettle() in 05-lazy-load.js; scheduleThumbHoldSettle is called from the thumb mousemove handler in 06c-ui-widgets.js, so every drag event restarts a 120 ms timer. When the timer fires, renderVirtualScrollImmediate() draws real rows even though the thumb is still held. This also covers the case where the thumb is dragged to the very top or bottom of the list (no further scroll events fire, but the last scheduled timer still fires).
+- Added thumbHoldSettleTimeout to virtualScrollState and cleared it in teardownLazyLoading.
+- No behavior change on thumb release: settleVirtualScrollAfterThumbRelease still renders real rows immediately.
+
+2026-09-22
+src/js/04a-ui-render-core.js, src/css/placeholders.css
+- Placeholder (.lazy-skeleton) rows are skipped by the hover hit-test in handleHoverMouseMove and updateHoverHighlightAfterScroll, so no hover highlight is ever drawn over a skeleton row and no #hover-highlight-single lingers after the row scrolls out from under the cursor.
+- Defense in depth in placeholders.css: .song-item.lazy-skeleton suppresses row-hover-active background, the :hover state, and the action buttons / more-info on placeholder rows, in case any other code path ever adds the hover class.
+
+2026-09-22
+electron/scan-folder.js, electron/tag-builder.js, electron/full-scan.js, electron/incremental-scan.js, electron/fast-scan.js, electron/single-file-rescan.js
+- Split scanner strategies into focused modules and centralized tag-to-song construction while preserving the documented differences between legacy incremental, full, fast, and single-file paths.
+
+electron/metadata-editor.py
+- Routed standard ID3 sort-frame writes through the shared text-frame helper and documented ID3_UNSUPPORTED as an extension point.
+
+src/js/00-state.js, README.md, AGENTS.md, .gitattributes
+- Added getSongById(), documented tools/tests as canonical, and standardized text files on CRLF checkouts.
+
+electron/tests/
+- Removed the unused duplicate test folder.
+
+2026-09-22
+build/music_player.py
+- Included the split scanner modules in application builds so the deployed scan-folder process can load its dependencies.

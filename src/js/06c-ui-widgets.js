@@ -191,6 +191,8 @@ function initExternalScrollbar(contentId, scrollbarId, thumbId) {
         const maxThumbTop = Math.max(0, trackHeight - thumbHeight);
         const maxScrollTop = contentHeight - visibleHeight;
 
+        let lastThumbY = e.clientY;
+
         function onMouseMove(e) {
             const deltaY = e.clientY - startY;
             let newTop = startTop + deltaY;
@@ -201,6 +203,12 @@ function initExternalScrollbar(contentId, scrollbarId, thumbId) {
 
             if (typeof syncPlaceholdersForJump === 'function') {
                 syncPlaceholdersForJump(content);
+            }
+            if (Math.abs(e.clientY - lastThumbY) > 2) {
+                lastThumbY = e.clientY;
+                if (typeof scheduleThumbHoldSettle === 'function') {
+                    scheduleThumbHoldSettle(content);
+                }
             }
         }
 

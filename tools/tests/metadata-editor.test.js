@@ -123,7 +123,7 @@ describe('metadata editor UI', { concurrency: false }, () => {
     test('fields are locked (and Save disabled) until the file has been read', async (t) => {
         if (!guard(t)) return;
         const { page } = await openEditor();
-        await page.evaluate('window.__gateReads = true; openMetadataEditor()');
+        await page.evaluate('window.__gateReads = true; void openMetadataEditor()');
         await page.waitForTimeout(300);
         const locked = await page.evaluate(`({ titleDisabled: document.querySelector('[data-metadata-key="title"]').disabled, saveDisabled: document.getElementById('metadata-editor-save').disabled })`);
         assert.deepEqual(locked, { titleDisabled: true, saveDisabled: true });

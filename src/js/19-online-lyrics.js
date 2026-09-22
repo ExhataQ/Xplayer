@@ -396,6 +396,27 @@ function openOnlineLyricsView() {
     openOnlineLyricsSearchView(song, true);
 }
 
+function setOnlineLyricsSearchButtonActive(active) {
+    const btn = document.getElementById('online-lyrics-search-btn');
+    if (!btn) return;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+}
+
+function toggleOnlineLyricsSearchView() {
+    if (currentView === 'online-lyrics') {
+        setOnlineLyricsSearchButtonActive(false);
+        if (canGoBack()) {
+            goBack();
+        } else {
+            switchView(lastPlaybackListId || 'all-songs');
+        }
+        return;
+    }
+    setOnlineLyricsSearchButtonActive(true);
+    openOnlineLyricsSearchView();
+}
+
 function openOnlineLyricsSearchView(song = null, autoSearch = false) {
     const fromHeader = !song;
     onlineLyricsState = {

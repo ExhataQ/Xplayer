@@ -118,3 +118,18 @@
 .song-item.lazy-skeleton .ph-more-placeholder {
     visibility: hidden;
 }
+
+.song-item.lazy-skeleton,
+.song-item.lazy-skeleton.row-hover-active,
+.song-item.lazy-skeleton:hover {
+    background: transparent !important;
+    cursor: default !important;
+}
+
+.song-item.lazy-skeleton .add-to-queue-btn,
+.song-item.lazy-skeleton .favorite-btn,
+.song-item.lazy-skeleton .more-info {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}

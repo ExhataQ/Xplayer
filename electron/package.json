@@ -3,6 +3,6 @@
     "version": "1.0.0",
     "main": "main.js",
     "scripts": {
-        "test": "node --test ../tools/tests/*.test.js"
+        "test": "node --test --test-concurrency=1 --test-timeout=15000 ../tools/tests/*.test.js"
     }
 }

@@ -17,6 +17,7 @@ const path = require('path');
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
 const VIEWPORT = { width: 1500, height: 900 };
+const BROWSER_LAUNCH_TIMEOUT_MS = 2500;
 
 // ---------------------------------------------------------------------------
 // Load Playwright from wherever it is installed.
@@ -190,7 +191,11 @@ async function launch() {
     if (!pw) return null;
     for (const opts of [{}, { channel: 'msedge' }, { channel: 'chrome' }]) {
         try {
-            return await pw.chromium.launch({ args: ['--allow-file-access-from-files'], ...opts });
+            return await pw.chromium.launch({
+                args: ['--allow-file-access-from-files'],
+                timeout: BROWSER_LAUNCH_TIMEOUT_MS,
+                ...opts
+            });
         } catch (_) {
             /* try next */
         }

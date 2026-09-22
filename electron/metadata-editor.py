@@ -161,6 +161,7 @@ def multi_values(v):
 
 # Save protocol: `d` is a PATCH. A key that is absent is left untouched. A key that is
 # present is written; an empty value clears it. (Previously every absent key was deleted.)
+# Extension point for editor fields that cannot yet be represented as ID3 frames.
 ID3_UNSUPPORTED = set()
 VORBIS_TEXT = {'title':'title','album':'album','year':'date','label':'label','copyright':'copyright','comment':'comment','sortTitle':'titlesort','sortArtist':'artistsort','sortAlbum':'albumsort','grouping':'grouping','bpm':'bpm','compilation':'compilation','isrc':'isrc','musicBrainzTrackId':'musicbrainz_trackid','musicBrainzAlbumId':'musicbrainz_albumid','musicBrainzOriginalAlbumId':'musicbrainz_originalalbumid','publisher':'publisher','encodedBy':'encoded-by'}
 VORBIS_MULTI = {'artist':'artist','albumArtist':'albumartist','composer':'composer','genre':'genre','conductor':'conductor','remixer':'remixer','musicBrainzArtistId':'musicbrainz_artistid'}
@@ -188,9 +189,8 @@ def write_id3(tags, d):
     for desc,key,multi in [('SORT_TITLE','sortTitle',False),('SORT_ARTIST','sortArtist',False),('SORT_ALBUM','sortAlbum',False),('GROUPING','grouping',False),('COMPILATION','compilation',False),('WRITER','writer',False),('MusicBrainz Track Id','musicBrainzTrackId',False),('MusicBrainz Album Id','musicBrainzAlbumId',False),('MusicBrainz Original Album Id','musicBrainzOriginalAlbumId',False),('MusicBrainz Artist Id','musicBrainzArtistId',True),('MusicBrainz Release Group Id','musicBrainzReleaseGroupId',False)]: set_txxx(desc,key,multi)
     from mutagen.id3 import Frames
     for frame_id,key in [('TSOT','sortTitle'),('TSOP','sortArtist'),('TSOA','sortAlbum')]:
-        if key not in d: continue
-        tags.delall(frame_id); value=clean(d.get(key)); cls=Frames.get(frame_id)
-        if value and cls: tags.add(cls(encoding=3,text=[value]))
+        frame_cls=Frames.get(frame_id)
+        if frame_cls: set_text(frame_cls,frame_id,key)
     # "n/total" frames: if only one half changed, keep the other half from the file.
     for frame_id,frame_cls,num_key,tot_key in [('TRCK',TRCK,'track','trackTotal'),('TPOS',TPOS,'discNumber','discTotal')]:
         if num_key not in d and tot_key not in d: continue

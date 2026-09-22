@@ -1119,8 +1119,13 @@ function playSongFromQueue(queueIndex) {
     const previousSong = previousQueueIndex >= 0 && playbackQueue[previousQueueIndex]
         ? playbackQueue[previousQueueIndex].song || playbackQueue[previousQueueIndex]
         : null;
-    const isTrackSwitch = !!audioElement.src && !audioElement.paused && previousQueueIndex >= 0 && previousSong && previousSong.id !== song.id;
+    const isTrackSwitch = !!audioElement.src && previousQueueIndex >= 0 && previousSong && previousSong.id !== song.id;
+    const canCrossfade = isTrackSwitch && !audioElement.paused && !audioElement.ended;
     const isSameSong = previousSong && previousSong.id === song.id;
+
+    if (isTrackSwitch && typeof cancelActiveAudioFade === 'function') {
+        cancelActiveAudioFade();
+    }
 
     if (playbackSettings.gaplessEnabled && isTrackSwitch) {
         if (pendingCrossfadeTimer) {
@@ -1139,7 +1144,7 @@ function playSongFromQueue(queueIndex) {
             audioElement.volume = getTargetTrackVolume(song);
             audioElement.play().catch(() => {});
         }
-    } else if (playbackSettings.crossfadeEnabled && isTrackSwitch) {
+    } else if (playbackSettings.crossfadeEnabled && canCrossfade) {
         scheduleCrossfadeTransition(song);
     } else {
         audioElement.src = song.url;
@@ -1384,7 +1389,11 @@ function playAllFromCurrentView() {
 
 function playOrResumeCurrentView() {
     if (audioElement.src && !audioElement.paused) {
-        audioElement.pause();
+        if (typeof pausePlaybackWithFade === 'function') {
+            pausePlaybackWithFade();
+        } else {
+            audioElement.pause();
+        }
         return;
     }
 

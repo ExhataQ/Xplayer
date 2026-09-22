@@ -1,6 +1,10 @@
 // ==============================================================================
 // PLAYER STATE VARIABLES
 // ==============================================================================
+function getSongById(id) {
+    return typeof SONGS_DATA !== 'undefined' ? SONGS_DATA.find((s) => s.id === id) : null;
+}
+
 let playbackQueue = [];
 let currentQueueIndex = -1;
 let isShuffled = false;

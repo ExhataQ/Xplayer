@@ -468,7 +468,7 @@ function handleNumberCellClick(songId, listId, index) {
         if (audioElement.paused) {
             audioElement.play();
         } else {
-            audioElement.pause();
+            pausePlaybackWithFade();
         }
         return;
     }
@@ -559,16 +559,7 @@ function bindPlaybackAudioEvents(audio) {
     audio.onpause = () => {
         if (audio !== audioElement) return;
 
-        if (getAudioPlaybackSettings().fadeOutEnabled && !audioElement.ended) {
-            startFadeOut(
-                (Number(getAudioPlaybackSettings().fadeOutDuration) || 1.25) * 1000,
-                () => {
-                    if (audio === audioElement) {
-                        audioElement.volume = 0;
-                    }
-                }
-            );
-        }
+        cancelActiveAudioFade();
 
         syncPlayPauseButtons();
     };
@@ -924,6 +915,12 @@ function hideProgressTooltip() {
 let activeAudioFadeFrame = null;
 let pendingCrossfadeTimer = null;
 
+function cancelActiveAudioFade() {
+    if (!activeAudioFadeFrame) return;
+    cancelAnimationFrame(activeAudioFadeFrame);
+    activeAudioFadeFrame = null;
+}
+
 function clampVolume(value) {
     return Math.max(0, Math.min(1, Number(value) || 0));
 }
@@ -959,18 +956,14 @@ function getTargetTrackVolume(song) {
 }
 
 function applyTrackVolume(song) {
-    const targetVolume = getTargetTrackVolume(song);
-    if (audioElement.paused && !audioElement.src) {
-        audioElement.volume = targetVolume;
-        return;
-    }
-
-    if (audioElement.volume === 0 && Number(window.lastVolume || 0) === 0) {
+    const userVolume = Number.isFinite(window.lastVolume) ? window.lastVolume : 0.5;
+    if (userVolume <= 0) {
         audioElement.volume = 0;
+        audioElement.muted = true;
         return;
     }
-
-    audioElement.volume = targetVolume;
+    audioElement.muted = false;
+    audioElement.volume = getTargetTrackVolume(song);
 }
 
 function animateAudioVolume(from, to, durationMs, onComplete) {
@@ -1031,6 +1024,26 @@ function startFadeOut(durationMs, onComplete) {
     animateAudioVolume(currentVolume, 0, duration, onComplete);
 }
 
+function pausePlaybackWithFade() {
+    if (!audioElement || audioElement.paused) return;
+
+    const settings = getAudioPlaybackSettings();
+    const fadingAudio = audioElement;
+    const currentSong = typeof getCurrentSongForInfo === 'function' ? getCurrentSongForInfo() : null;
+    const restoreVolume = currentSong ? getTargetTrackVolume(currentSong) : clampVolume(window.lastVolume || 0.5);
+
+    if (!settings.fadeOutEnabled) {
+        fadingAudio.pause();
+        return;
+    }
+
+    startFadeOut((Number(settings.fadeOutDuration) || 1.25) * 1000, () => {
+        if (audioElement !== fadingAudio) return;
+        fadingAudio.pause();
+        fadingAudio.volume = restoreVolume;
+    });
+}
+
 function scheduleCrossfadeTransition(song) {
     const settings = getAudioPlaybackSettings();
 
@@ -1075,11 +1088,17 @@ function setVolume(e) {
 
 function updateVolume(percentage) {
     const volume = Math.max(0, Math.min(1, percentage));
+
+    // Remember the last non-zero level so unmute can restore it.
+    if (volume > 0) {
+        window.lastMutedVolume = volume;
+    }
     window.lastVolume = volume;
 
     const currentSong = getCurrentSongForInfo();
     const targetVolume = currentSong ? getTargetTrackVolume(currentSong) : volume;
     audioElement.volume = targetVolume;
+    audioElement.muted = volume === 0;
 
     const volumePercent = volume * 100 + '%';
     document.getElementById('volume-fill').style.width = volumePercent;
@@ -1098,14 +1117,12 @@ function updateVolume(percentage) {
 }
 
 function toggleMute() {
-    const currentVolume = Number(audioElement.volume) || 0;
-    if (currentVolume > 0) {
-        window.lastVolume = currentVolume;
-        audioElement.volume = 0;
+    const userVolume = Number.isFinite(window.lastVolume) ? window.lastVolume : 0.5;
+    if (userVolume > 0) {
+        window.lastVolume = userVolume;
         updateVolume(0);
     } else {
-        const restoreVolume = window.lastVolume || 0.5;
-        audioElement.volume = restoreVolume;
+        const restoreVolume = window.lastMutedVolume || 0.5;
         updateVolume(restoreVolume);
     }
 }

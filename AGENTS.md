@@ -76,7 +76,7 @@ Important source locations:
 * `Source/src/css/` — renderer CSS.
 * `Source/build/music_player.py` — build-time application assembly.
 * `Source/build/music_player.html` — build template.
-* `Source/tools/tests/` — automated tests.
+* `Source/tools/tests/` — the canonical automated test suite.
 * `Source/tools/change.log.txt` — project change log.
 * `Source/tools/` — development tools, test pages, playgrounds, and supporting files.
 * `App/` — generated/deployed application output.

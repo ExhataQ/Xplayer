@@ -956,6 +956,10 @@ function switchView(view) {
         settingsToggleBtn.classList.toggle('active', currentView === 'settings');
     }
 
+    if (typeof setOnlineLyricsSearchButtonActive === 'function') {
+        setOnlineLyricsSearchButtonActive(currentView === 'online-lyrics');
+    }
+
     if (view === 'albums') {
         showTracklistHeader(false);
         setupHeroSection(true, 'Albums', getAlbums().length, 'Collection');

@@ -5,6 +5,7 @@ const os = require('os');
 const path = require('path');
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..', '..');
+const BROWSER_LAUNCH_TIMEOUT_MS = 2500;
 const PH =
     "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><rect width='40' height='40' fill='%23555'/></svg>";
 
@@ -23,7 +24,11 @@ async function launch(pw) {
     if (!pw) return null;
     for (const opts of [{}, { channel: 'msedge' }, { channel: 'chrome' }]) {
         try {
-            return await pw.chromium.launch({ args: ['--allow-file-access-from-files'], ...opts });
+            return await pw.chromium.launch({
+                args: ['--allow-file-access-from-files'],
+                timeout: BROWSER_LAUNCH_TIMEOUT_MS,
+                ...opts
+            });
         } catch (_) {
             /* next */
         }

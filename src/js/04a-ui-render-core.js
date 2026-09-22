@@ -681,6 +681,7 @@ function handleHoverMouseMove(e) {
     let foundItem = null;
 
     songItems.forEach((item, index) => {
+        if (item.classList.contains('lazy-skeleton')) return;
         const rect = item.getBoundingClientRect();
         const inDeadZone = e.clientX < rect.left + ROW_EDGE_INSET || e.clientX > rect.right - ROW_EDGE_INSET;
         if (e.clientY >= rect.top && e.clientY <= rect.bottom && !inDeadZone) {
@@ -787,6 +788,7 @@ function updateHoverHighlightAfterScroll() {
 
     let foundItem = null;
     songItems.forEach((item) => {
+        if (item.classList.contains('lazy-skeleton')) return;
         const rect = item.getBoundingClientRect();
         const inDeadZone = lastMouseX < rect.left + ROW_EDGE_INSET || lastMouseX > rect.right - ROW_EDGE_INSET;
         if (lastMouseY >= rect.top && lastMouseY <= rect.bottom && !inDeadZone) {

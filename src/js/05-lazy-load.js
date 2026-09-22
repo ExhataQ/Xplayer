@@ -199,6 +199,7 @@ let virtualScrollState = {
     lastRenderedStart: -1,
     lastRenderedEnd: -1,
     scrollSettleTimeout: null,
+    thumbHoldSettleTimeout: null,
     lastScrollTime: 0,
     lastScrollTop: 0,
     placeholderMode: false,
@@ -554,10 +555,26 @@ function initLazyLoading(songs, listId) {
         const requiredStreak = isHoldingThumb && !virtualScrollState.placeholderMode ? 2 : 1;
         const isFastScroll = fastStreak >= requiredStreak;
 
-        if (isNonOverlapping || isFastScroll) {
+        // While the thumb is held, ONLY the thumb-hold timer (scheduleThumbHoldSettle) may
+        // render real rows. The normal 150ms scroll settle must not fire, or it wins the race
+        // and the content loads long before the user has actually stopped.
+        const stayInPlaceholderMode = isHoldingThumb && virtualScrollState.placeholderMode;
+
+        if (isNonOverlapping || isFastScroll || stayInPlaceholderMode) {
             renderVisibleItems(content, true);
-            // Always settle after the scroll goes idle, even while the thumb is still held.
-            scheduleVirtualScrollSettle(content);
+            if (isHoldingThumb) {
+                clearTimeout(virtualScrollState.scrollSettleTimeout);
+                virtualScrollState.scrollSettleTimeout = null;
+            } else {
+                scheduleVirtualScrollSettle(content);
+            }
+        } else if (isHoldingThumb) {
+            // Slow frame while the thumb is held: keep placeholders up, do NOT render real
+            // rows. The thumb-hold timer will draw them once the thumb has been still for
+            // THUMB_HOLD_SETTLE_MS.
+            renderVisibleItems(content, true);
+            clearTimeout(virtualScrollState.scrollSettleTimeout);
+            virtualScrollState.scrollSettleTimeout = null;
         } else {
             clearTimeout(virtualScrollState.scrollSettleTimeout);
             virtualScrollState.scrollSettleTimeout = null;
@@ -620,6 +637,20 @@ function renderVirtualScrollImmediate(content) {
     }
 }
 
+const THUMB_HOLD_SETTLE_MS = 400;
+
+function scheduleThumbHoldSettle(content) {
+    if (!content) return;
+    clearTimeout(virtualScrollState.thumbHoldSettleTimeout);
+    virtualScrollState.thumbHoldSettleTimeout = setTimeout(() => {
+        virtualScrollState.thumbHoldSettleTimeout = null;
+        if (!virtualScrollState.enabled || virtualScrollState.container !== content) return;
+        if (currentView === 'settings') return;
+        renderVirtualScrollImmediate(content);
+    }, THUMB_HOLD_SETTLE_MS);
+}
+
+
 function settleVirtualScrollAfterThumbRelease(content) {
     if (!content) return;
 
@@ -651,6 +682,8 @@ function teardownLazyLoading() {
     }
     clearTimeout(virtualScrollState.scrollSettleTimeout);
     virtualScrollState.scrollSettleTimeout = null;
+    clearTimeout(virtualScrollState.thumbHoldSettleTimeout);
+    virtualScrollState.thumbHoldSettleTimeout = null;
 
     virtualScrollState.enabled = false;
     virtualScrollState.currentListId = null;

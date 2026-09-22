@@ -509,6 +509,8 @@ document.addEventListener('DOMContentLoaded', function () {
     repeatFunctionalityActive = (repeatMode > 0 && !isShuffled) || repeatMode === 2;
 
     // Set initial volume
+    window.lastVolume = 0.5;
+    window.lastMutedVolume = 0.5;
     audioElement.volume = 0.5;
     updateVolume(0.5);
 

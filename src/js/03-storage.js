@@ -163,7 +163,7 @@ const DEFAULT_SMART_SHUFFLE_SETTINGS = {
 };
 
 const DEFAULT_AUDIO_PLAYBACK_SETTINGS = {
-    crossfadeEnabled: true,
+    crossfadeEnabled: false,
     crossfadeDuration: 4,
     gaplessEnabled: true,
     fadeInEnabled: true,
@@ -184,10 +184,16 @@ function getSmartShuffleSettings() {
 }
 
 function getAudioPlaybackSettings() {
-    return {
+    const settings = {
         ...DEFAULT_AUDIO_PLAYBACK_SETTINGS,
         ...getStoredJson('audioPlaybackSettings', {})
     };
+    // Both modes control the same transition and cannot run together. Preserve
+    // the gapless preference for settings saved by older builds with both on.
+    if (settings.gaplessEnabled && settings.crossfadeEnabled) {
+        settings.crossfadeEnabled = false;
+    }
+    return settings;
 }
 
 function saveAudioPlaybackSettings(settings) {
@@ -197,7 +203,38 @@ function saveAudioPlaybackSettings(settings) {
 function setAudioPlaybackSetting(key, value) {
     const settings = getAudioPlaybackSettings();
     settings[key] = value;
+
+    if (key === 'gaplessEnabled' && value) settings.crossfadeEnabled = false;
+    if (key === 'crossfadeEnabled' && value) settings.gaplessEnabled = false;
+
     saveAudioPlaybackSettings(settings);
+
+    if (typeof document !== 'undefined') {
+        document.querySelectorAll('[data-playback-setting]').forEach((input) => {
+            const settingKey = input.getAttribute('data-playback-setting');
+            if (input.type === 'checkbox' && settingKey in settings) {
+                input.checked = Boolean(settings[settingKey]);
+            }
+        });
+    }
+
+    if (key === 'gaplessEnabled' || key === 'crossfadeEnabled') {
+        if (settings.gaplessEnabled && typeof prepareGaplessNextTrack === 'function') {
+            prepareGaplessNextTrack();
+        } else if (typeof clearGaplessPreload === 'function') {
+            clearGaplessPreload();
+        }
+    }
+
+    if (
+        ['replayGainEnabled', 'replayGainMode', 'replayGainTrimDb', 'replayGainLimiter'].includes(key) &&
+        typeof applyTrackVolume === 'function' &&
+        typeof getCurrentSongForInfo === 'function'
+    ) {
+        applyTrackVolume(getCurrentSongForInfo());
+    }
+
+    return settings;
 }
 
 function getWindowSettings() {

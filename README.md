@@ -64,6 +64,7 @@ The project is currently developed primarily for Windows.
 ## Tests
 
 The project includes tests for the scanner, music folders, and storage systems.
+`tools/tests/` is the canonical test suite; `electron/tests/` is not used.
 
 From the `electron` directory:
 
