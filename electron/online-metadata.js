@@ -5,7 +5,11 @@ const https = require('https');
 
 const MB_BASE = 'https://musicbrainz.org/ws/2';
 const CAA_BASE = 'https://coverartarchive.org';
-const USER_AGENT = 'ExhataQ-MusicPlayer/1.0 (local music player)';
+// MusicBrainz's API guidelines ask every client to identify itself with real contact info
+// (an email or a URL) in the User-Agent so they can reach out before blocking an app that's
+// misbehaving. "local music player" isn't contact info -- replace the email below with a
+// real one (or a project URL) before shipping this to other users.
+const USER_AGENT = 'ExhataQ-MusicPlayer/1.0 ( contact: replace-with-your-email@example.com )';
 
 // Keep one persistent HTTPS connection instead of opening a new connection for
 // every metadata request. This also makes the MusicBrainz request pacing more
@@ -16,6 +20,19 @@ const httpsAgent = new https.Agent({
     maxFreeSockets: 1,
     keepAliveMsecs: 10000
 });
+
+// Cover Art Archive answers with 307 redirects (to archive.org) and its JSON lists http:// image URLs.
+// Redirects are followed for these hosts only, over https only, and never more than MAX_REDIRECTS times.
+const TRUSTED_HOST_SUFFIXES = ['coverartarchive.org', 'archive.org', 'musicbrainz.org'];
+const MAX_REDIRECTS = 5;
+const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
+
+function isTrustedHost(hostname) {
+    const h = String(hostname || '').toLowerCase();
+    return TRUSTED_HOST_SUFFIXES.some(suffix => h === suffix || h.endsWith('.' + suffix));
+}
+// An error that retrying cannot fix (redirect loop, refused host, not an image...).
+function fatalError(message) { return Object.assign(new Error(message), { fatal: true }); }
 
 let lastMusicBrainzRequestAt = 0;
 let musicBrainzRequestChain = Promise.resolve();
@@ -32,6 +49,55 @@ function buildUrl(base, params) {
     return u.toString();
 }
 
+function httpsGetFollowingRedirects(url, { accept = '*/*', timeout = 15000, maxBytes = Infinity } = {}) {
+    return new Promise((resolve, reject) => {
+        const visit = (currentUrl, hops) => {
+            let target;
+            try { target = new URL(currentUrl); } catch (e) { return reject(fatalError(`Invalid URL: ${currentUrl}`)); }
+            if (target.protocol === 'http:') { target.protocol = 'https:'; target.port = ''; }
+            if (target.protocol !== 'https:') return reject(fatalError(`Unsupported protocol ${target.protocol}`));
+            if (!isTrustedHost(target.hostname)) return reject(fatalError(`Refused to contact untrusted host ${target.hostname}`));
+
+            const req = https.get(target.toString(), {
+                agent: httpsAgent,
+                headers: { 'User-Agent': USER_AGENT, 'Accept': accept },
+                timeout
+            }, (response) => {
+                const status = response.statusCode || 0;
+                if ([301, 302, 303, 307, 308].includes(status) && response.headers.location) {
+                    response.resume();
+                    if (hops >= MAX_REDIRECTS) return reject(fatalError('Too many redirects'));
+                    let next;
+                    try { next = new URL(response.headers.location, target).toString(); } catch (e) { return reject(fatalError('Invalid redirect location')); }
+                    return visit(next, hops + 1);
+                }
+                const chunks = [];
+                let size = 0;
+                response.on('data', chunk => {
+                    size += chunk.length;
+                    if (size > maxBytes) { req.destroy(fatalError('Response is too large')); return; }
+                    chunks.push(chunk);
+                });
+                response.on('end', () => {
+                    if (status >= 200 && status < 300) {
+                        resolve({ status, headers: response.headers, body: Buffer.concat(chunks) });
+                        return;
+                    }
+                    const error = new Error(`Request returned HTTP ${status}`);
+                    error.status = status;
+                    const retryAfter = Number(response.headers['retry-after']);
+                    error.retryAfter = Number.isFinite(retryAfter) ? retryAfter : 0;
+                    reject(error);
+                });
+                response.on('error', reject);
+            });
+            req.on('timeout', () => req.destroy(new Error('Request timed out')));
+            req.on('error', reject);
+        };
+        visit(url, 0);
+    });
+}
+
 function requestJson(url, { rateLimit = false, maxRetries = 4 } = {}) {
     const run = async () => {
         let lastError = null;
@@ -44,47 +110,21 @@ function requestJson(url, { rateLimit = false, maxRetries = 4 } = {}) {
                     lastMusicBrainzRequestAt = Date.now();
                 }
 
-                const result = await new Promise((resolve, reject) => {
-                    const req = https.get(url, {
-                        agent: httpsAgent,
-                        headers: {
-                            'User-Agent': USER_AGENT,
-                            'Accept': 'application/json'
-                        },
-                        timeout: 15000
-                    }, (response) => {
-                        let body = '';
-                        response.setEncoding('utf8');
-                        response.on('data', chunk => { body += chunk; });
-                        response.on('end', () => {
-                            const status = response.statusCode || 0;
-                            if (status >= 200 && status < 300) {
-                                try {
-                                    resolve(JSON.parse(body));
-                                } catch (e) {
-                                    e.status = status;
-                                    reject(e);
-                                }
-                                return;
-                            }
-
-                            const error = new Error(`Request returned HTTP ${status}`);
-                            error.status = status;
-                            const retryAfter = Number(response.headers['retry-after']);
-                            error.retryAfter = Number.isFinite(retryAfter) ? retryAfter : 0;
-                            reject(error);
-                        });
-                    });
-                    req.on('timeout', () => req.destroy(new Error('Request timed out')));
-                    req.on('error', reject);
-                });
+                const response = await httpsGetFollowingRedirects(url, { accept: 'application/json' });
+                let result;
+                try {
+                    result = JSON.parse(response.body.toString('utf8'));
+                } catch (e) {
+                    e.status = response.status;
+                    throw e;
+                }
 
                 return result;
             } catch (error) {
                 lastError = error;
                 const status = Number(error?.status || 0);
-                const retryable = !status || status === 408 || status === 429 ||
-                    status === 500 || status === 502 || status === 503 || status === 504;
+                const retryable = !error?.fatal && (!status || status === 408 || status === 429 ||
+                    status === 500 || status === 502 || status === 503 || status === 504);
 
                 // A 400 is a malformed/unsupported query, not a transient
                 // connection failure. The caller can fall back to a simpler query.
@@ -118,40 +158,13 @@ function genericFetch(url, accept = '*/*') {
         let lastError = null;
         for (let attempt = 0; attempt <= 3; attempt++) {
             try {
-                const result = await new Promise((res, rej) => {
-                    const req = https.get(url, {
-                        agent: httpsAgent,
-                        headers: { 'User-Agent': USER_AGENT, 'Accept': accept },
-                        timeout: 15000
-                    }, response => {
-                        const chunks = [];
-                        response.on('data', chunk => chunks.push(chunk));
-                        response.on('end', () => {
-                            const status = response.statusCode || 0;
-                            if (status >= 200 && status < 300) {
-                                res({
-                                    status,
-                                    headers: response.headers,
-                                    body: Buffer.concat(chunks)
-                                });
-                            } else {
-                                const e = new Error(`Request returned HTTP ${status}`);
-                                e.status = status;
-                                const retryAfter = Number(response.headers['retry-after']);
-                                e.retryAfter = Number.isFinite(retryAfter) ? retryAfter : 0;
-                                rej(e);
-                            }
-                        });
-                    });
-                    req.on('timeout', () => req.destroy(new Error('Request timed out')));
-                    req.on('error', rej);
-                });
+                const result = await httpsGetFollowingRedirects(url, { accept, maxBytes: MAX_IMAGE_BYTES });
                 return resolve(result);
             } catch (e) {
                 lastError = e;
                 const status = Number(e?.status || 0);
-                const retryable = !status || status === 408 || status === 429 || status === 500 ||
-                    status === 502 || status === 503 || status === 504;
+                const retryable = !e?.fatal && (!status || status === 408 || status === 429 || status === 500 ||
+                    status === 502 || status === 503 || status === 504);
                 if (!retryable || attempt >= 3) return reject(e);
                 const retryAfterMs = Number(e?.retryAfter || 0) * 1000;
                 await sleep(Math.max(retryAfterMs, 600 * Math.pow(2, attempt)));
@@ -170,24 +183,44 @@ function saveJson(fileUrl, payload) {
     fs.writeFileSync(p, JSON.stringify(payload, null, 2), 'utf8');
     return p;
 }
-function sanitizeExt(contentType, url) {
-    const type = String(contentType || '').toLowerCase();
-    if (type.includes('png')) return '.png';
-    if (type.includes('webp')) return '.webp';
-    if (type.includes('gif')) return '.gif';
-    if (type.includes('jpeg') || type.includes('jpg')) return '.jpg';
-    const ext = path.extname(new URL(url).pathname).toLowerCase();
-    return ['.jpg','.jpeg','.png','.webp','.gif'].includes(ext) ? ext : '.jpg';
+// Decide the file type from the bytes themselves (archive.org may label images application/octet-stream).
+function imageExtFromBytes(buf) {
+    if (!buf || buf.length < 12) return '';
+    if (buf[0] === 0xFF && buf[1] === 0xD8) return '.jpg';
+    if (buf[0] === 0x89 && buf.toString('latin1', 1, 4) === 'PNG') return '.png';
+    if (buf.toString('latin1', 0, 4) === 'GIF8') return '.gif';
+    if (buf.toString('latin1', 0, 4) === 'RIFF' && buf.toString('latin1', 8, 12) === 'WEBP') return '.webp';
+    return '';
 }
 async function downloadCover(fileUrl, imageUrl) {
     const response = await genericFetch(imageUrl, 'image/*');
-    const ext = sanitizeExt(response.headers['content-type'], imageUrl);
-    const p = path.join(ensureCache(), `${keyFor(fileUrl)}-cover${ext}`);
+    const ext = imageExtFromBytes(response.body);
+    if (!ext) throw fatalError('The downloaded file is not an image');
+    const dir = ensureCache();
+    const p = path.join(dir, `${keyFor(fileUrl)}-cover${ext}`);
     fs.writeFileSync(p, response.body);
+    // remove a previous cover saved with a different extension so a stale one can never be picked up
+    for (const other of ['.jpg', '.png', '.gif', '.webp']) {
+        if (other !== ext) { try { fs.unlinkSync(path.join(dir, `${keyFor(fileUrl)}-cover${other}`)); } catch (_) {} }
+    }
     return p;
+}
+// Prefer a 1200px thumbnail: plenty for a player and far smaller than a multi-megabyte original scan.
+function pickCoverImageUrl(image) {
+    const t = image?.thumbnails || {};
+    return t['1200'] || t.large || t['500'] || image?.image || '';
 }
 function artistText(credits) {
     return (credits || []).map(x => `${x.name || x.artist?.name || ''}${x.joinphrase || ''}`).join('').trim();
+}
+// MusicBrainz already tells us which individual artists are credited (artist-credit is an
+// array of { name/artist.name, joinphrase }). Use that list directly instead of splitting the
+// joined display text on commas, which broke on a single artist whose own name has a comma in
+// it (e.g. "Earth, Wind & Fire" became two artists: "Earth" and "Wind & Fire").
+function artistCreditNames(credits) {
+    return (credits || [])
+        .map(x => String(x.name || x.artist?.name || '').trim())
+        .filter(Boolean);
 }
 function first(arr) { return Array.isArray(arr) && arr.length ? arr[0] : null; }
 function releaseInfo(release) {
@@ -350,7 +383,16 @@ async function getOnlineMetadata({ fileUrl, recordingId, releaseId, title='' }) 
         const relOnly = await mbFetch(buildUrl(`${MB_BASE}/release/${encodeURIComponent(releaseId)}`, { inc:'artist-credits+recordings+labels+release-groups', fmt:'json' }));
         const wanted=String(title||'').trim().toLowerCase();
         const tracks=(relOnly.media||[]).flatMap(m=>m.tracks||[]).filter(t=>t.recording?.id);
-        const track=tracks.find(t=>String(t.title||t.recording?.title||'').trim().toLowerCase()===wanted)||tracks[0];
+        // If we know which title we're importing for, only accept a track whose title
+        // actually matches it. Falling back to track 1 silently imported the wrong song's
+        // metadata whenever the title didn't match anything in the release.
+        let track;
+        if (wanted) {
+            track = tracks.find(t=>String(t.title||t.recording?.title||'').trim().toLowerCase()===wanted);
+            if (!track) throw new Error('No track in that release matches this song\'s title. Pick a different release, or search by song instead.');
+        } else {
+            track = tracks[0];
+        }
         recordingId = track?.recording?.id || '';
         if (!recordingId) throw new Error('No recording was found in that release');
     }
@@ -363,13 +405,25 @@ async function getOnlineMetadata({ fileUrl, recordingId, releaseId, title='' }) 
     }
     let coverPath = '';
     let coverUrl = '';
+    let coverStatus = 'none'; // 'downloaded' | 'none' (the release has no cover art) | 'failed'
+    let coverError = '';
     if (selectedReleaseId) {
         try {
             const coverMeta = await requestJson(`${CAA_BASE}/release/${encodeURIComponent(selectedReleaseId)}`, { maxRetries: 3 });
             const image = (coverMeta.images || []).find(x => x.front) || first(coverMeta.images);
-            coverUrl = image?.image || image?.thumbnails?.['1200'] || '';
-            if (coverUrl) coverPath = await downloadCover(fileUrl, coverUrl);
-        } catch (_) {}
+            coverUrl = pickCoverImageUrl(image);
+            if (coverUrl) {
+                coverPath = await downloadCover(fileUrl, coverUrl);
+                coverStatus = 'downloaded';
+            }
+        } catch (error) {
+            if (Number(error?.status) === 404) {
+                coverStatus = 'none';
+            } else {
+                coverStatus = 'failed';
+                coverError = error?.message || 'unknown error';
+            }
+        }
     }
     const rel = releaseInfo(release);
     const releaseCandidates = (recording.releases || []).filter(x => x?.id).slice().sort((a,b) => String(a.date || '9999').localeCompare(String(b.date || '9999')));
@@ -378,7 +432,7 @@ async function getOnlineMetadata({ fileUrl, recordingId, releaseId, title='' }) 
     const genres = (recording.genres || []).map(x => x.name).filter(Boolean);
     const metadata = {
         title: recording.title || '',
-        artist: artistText(recording['artist-credit']) ? artistText(recording['artist-credit']).split(/,\s*/).filter(Boolean) : [],
+        artist: artistText(recording['artist-credit']) ? artistCreditNames(recording['artist-credit']) : [],
         album: rel.album || recording.releases?.[0]?.title || '',
         albumArtist: rel.albumArtist ? [rel.albumArtist] : [],
         composer: [],
@@ -399,7 +453,7 @@ async function getOnlineMetadata({ fileUrl, recordingId, releaseId, title='' }) 
         encodedBy: ''
     };
     const cachePath = saveJson(fileUrl, { source: 'musicbrainz', recording, release, coverUrl, metadata, fetchedAt: new Date().toISOString() });
-    return { success: true, metadata, coverPath, coverUrl, cachePath, source: 'musicbrainz' };
+    return { success: true, metadata, coverPath, coverUrl, coverStatus, coverError, cachePath, source: 'musicbrainz' };
 }
 
 module.exports = { searchOnlineMetadata, getOnlineMetadata };

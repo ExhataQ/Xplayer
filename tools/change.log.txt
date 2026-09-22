@@ -1473,3 +1473,56 @@ ui-playground (relocated)
 - vite.config.js: added sourceRoot pointing at ../../Source/, lyrics.svg resolves from Source/tools/icons/, fs.allow widened to the parent of Source/
 - node_modules reinstalled in the new location
 - Verified: Vite dev server runs, CSS loads, fonts render, layout matches production
+
+
+2026-09-21
+src/js/03a-recents.js (new), src/js/03-storage.js, src/js/04b-ui-render-views.js
+- Recently played: playing a song now moves it to the top instead of adding another copy (replaying one song 50 times used to erase the whole list). Entries no longer store the cover. An older stored list is cleaned up (duplicates, covers) the next time a song is played.
+- The recents views show the CURRENT library data (getRecentlyPlayedSongs), so a metadata edit or a rescan that changed ids is reflected; deleted/vanished songs are left out. getRecentCount() is the count to show in a "song counter" (unique, still-existing songs).
+- saveToRecentlyPlayed no longer throws if localStorage is full. Info text now says "Your last 50 different songs, most recent first".
+- getRecentlyPlayed() keeps its old contract (raw stored list), so existing code and storage.test.js are unchanged.
+
+2026-09-21
+src/js/03b-search-engine.js (new), 07-views.js, 08-panels.js, 14-song-navigation.js, 15-playback-controls.js
+- One search engine: searchSongs(songs, query, {rank, filters}), normalizeSearchText, applySongFilters, getSearchResults(query). It ignores case, accents and apostrophes, requires every word of the query to match (in title/artist/album/albumArtist), ranks exact > prefix > word start > anywhere (title weighs more than artist, then album), keeps the original order for ties, and never throws on songs with missing fields. Filters: artist, album, genre, yearFrom/yearTo, minDuration/maxDuration (usable for recents too).
+- The same title/artist/album match was copy-pasted in 8 places (search provider, search-history view, in-list search, song navigation, 3x playback controls) and they disagreed (some searched deleted songs). All now call the engine, so next/previous always walk the list that is shown. The in-list search uses rank:false to keep an album/playlist in its own order. Left-panel item search uses normalizeSearchText.
+- performSearch: one typing burst = ONE search-history entry (it used to create a new entry on every pause); debounce 500 ms -> 300 ms (SEARCH_DEBOUNCE_MS).
+
+2026-09-21
+build/music_player.html, build/music_player.py
+- Registered 03a-recents.js and 03b-search-engine.js (script tags and the copy list in music_player.py).
+
+2026-09-21
+tools/tests/search-engine.test.js, recents.test.js (Node only), search-ui.test.js (Playwright)
+- 23 pure-logic tests for the engine and recents, 4 browser tests for the wiring (ranked results = shown list = next/previous list, one history entry per typing burst, history view excludes deleted songs, recents show edited titles and no duplicates).
+
+prompt.txt note: add 03a-recents.js and 03b-search-engine.js to the JS file list right after 03-storage.js; describe them as above; the recents view functions (renderRecentlyPlayed, renderPortableRecentlyPlayed) read getRecentlyPlayedSongs().
+
+
+2026-09-22
+electron/online-metadata.js, src/js/20-metadata-editor.js, src/js/10-playback.js, tools/tests/online-metadata.test.js
+- Cover art download made safe: redirects are only followed to trusted MusicBrainz/Cover Art Archive/archive.org hosts, capped in count and in response size; the image type is sniffed from the actual bytes instead of trusting the server's Content-Type; a cover is now reported as downloaded / none (no cover art for that release) / failed (with a reason) instead of failing silently.
+- Metadata editor shows a notification when the online release has no cover art or the download failed, instead of leaving the cover box empty with no explanation.
+- The lyrics toggle button now also lights up for songs that only have synced (.lrc) lyrics, not just plain lyrics.
+- Added tools/tests/online-metadata.test.js (mocked network).
+
+2026-09-22
+electron/scan-folder.js, tools/tests/scan-folder-tags.test.js
+- Scanner no longer mangles tags. Titles were being cut at 50 characters, and artist/genre/composer/albumArtist at 30; every literal " and ' was being stripped from every text field (so "Don't Stop Me Now" became "Dont Stop Me Now"). Fixed: sanitizeString only strips control characters now, and the .substring(0, 30/50) caps are gone from all 4 scan code paths (full scan, incremental scan, the fast-pass/streamed scan, and single-file rescans). The UI is expected to shorten long values visually (CSS ellipsis) rather than the scanner truncating the stored value.
+- Also found and fixed the same 30-char truncation hitting the album tag, but only in the fast-pass/streamed scan path (the other 3 paths never truncated album) -- same bug, just not one that had been reported yet.
+- Existing libraries need a rescan to pick up the untruncated/unstripped values for already-scanned songs.
+- scan-folder.js is now require()-able (CLI dispatch guarded behind require.main === module) with module.exports for sanitizeString, sanitizeLyrics, extractAllNativeTags, extractExtendedMetadata, scanSingleFile, scanMultipleFiles, so these are unit-testable instead of only checkable by eye. Added tools/tests/scan-folder-tags.test.js (10 tests).
+
+2026-09-22
+electron/online-metadata.js, tools/tests/online-metadata.test.js
+- Online (MusicBrainz) import no longer splits artist names on commas. It used to take the correctly-joined artist-credit display text and split it back apart on ", " -- which broke any single artist whose own name contains a comma (e.g. "Earth, Wind & Fire" became two wrong artists: "Earth" and "Wind & Fire"). Now uses MusicBrainz's own artist-credit list (the individually credited artists) directly.
+- USER_AGENT now has a real-contact-info placeholder as MusicBrainz's API guidelines require -- replace-with-your-email@example.com in electron/online-metadata.js still needs to be swapped for a real email or project URL before this is used against the real MusicBrainz API day to day.
+- Importing from a release (no specific recording chosen) no longer silently falls back to track 1 when no track title matches the song being edited; it now raises a clear error asking to pick a different release or search by recording instead.
+- Added 6 tests: single artist with a comma in the name stays one artist, two genuinely separate credited artists stay two artists, release-only import matches by track title, release-only import refuses to fall back to track 1 on no match.
+
+2026-09-22
+electron/metadata-editor.py, src/js/20-metadata-editor.js, tools/tests/metadata_backend_logic.py, tools/tests/helpers/fake_mutagen.py
+- Sort Composer now actually saves for MP3 (ID3 TSOC frame). It was explicitly marked unsupported even though it was already being read.
+- Lyricist and Writer no longer share an ID3 frame. Writer used to be written to TEXT and Lyricist to TOLY, but Lyricist was always read from TEXT first -- so saving both fields, then reopening the file, showed the Writer's text in the Lyricist field. TEXT (the real ID3 "Lyricist" frame) is now used only for lyricist; Writer now has its own TXXX:WRITER frame, matching how Grouping/Compilation are already stored. TOLY is still read as a legacy fallback for old files but is no longer written.
+- Fixed the song list and left panel (Albums/Artists groups) showing the old title/artist/album/genre after a metadata save until the app was restarted. The in-memory song objects were already being updated correctly; the visible list and left panel just weren't being re-rendered. saveMetadataEditor now calls onSongsChanged() + refreshCurrentViewAfterMutation() after a successful save, the same pair already used elsewhere (delete, rescan) to refresh everything derived from SONGS_DATA.
+- Note: FLAC/OGG files still silently fail to save Lyricist, Writer, Producer, Description, Mood, Language, Media Kind, Sort Composer and MusicBrainz Release Group Id at all -- not a frame-sharing bug there, just never implemented for Vorbis comments. Out of scope for this pass; flagging for a future task.

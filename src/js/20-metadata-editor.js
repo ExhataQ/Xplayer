@@ -420,6 +420,12 @@ async function saveMetadataEditor() {
             );
         closeMetadataEditor();
         updateAlbumArt();
+        // The in-memory song objects above are already updated, but the song list and the
+        // left panel's Albums/Artists groups are rendered from a snapshot taken earlier, so
+        // without this they kept showing the old title/artist/album/genre until the app was
+        // restarted (or something else happened to trigger a re-render).
+        onSongsChanged();
+        refreshCurrentViewAfterMutation();
     } catch (e) {
         showNotification(e.message || 'Failed to save metadata', 'error', 4000);
         if (b) {
@@ -557,6 +563,12 @@ async function useOnlineMetadata(recordingId, releaseId = '') {
         }
         if (box) box.innerHTML = '';
         showNotification('MusicBrainz metadata loaded — review and save', 'success', 3000);
+        // Say what happened with the cover instead of failing silently.
+        if (!r.coverPath && r.coverStatus === 'none') {
+            showNotification('MusicBrainz has no cover art for this release', 'info', 4000);
+        } else if (!r.coverPath && r.coverStatus === 'failed') {
+            showNotification(`Cover art could not be downloaded${r.coverError ? ` (${r.coverError})` : ''}`, 'warning', 5000);
+        }
     } catch (e) {
         if (box)
             box.innerHTML = `<div class="metadata-online-state">${escapeHtml(

@@ -208,7 +208,6 @@ function sanitizeString(str) {
     let cleaned = String(str);
     cleaned = cleaned.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
     cleaned = cleaned.replace(/\\/g, '/');
-    cleaned = cleaned.replace(/["']/g, '');
     return cleaned.trim();
 }
 
@@ -347,8 +346,8 @@ async function scanMusicFolderSync(folderPath, coversFolder, mm) {
             artist = common.artist || '';
             if (common.album) album = common.album;
             if (common.composer)
-                composer = (Array.isArray(common.composer) ? common.composer[0] : common.composer).substring(0, 30);
-            if (common.genre) genre = (Array.isArray(common.genre) ? common.genre[0] : common.genre).substring(0, 30);
+                composer = (Array.isArray(common.composer) ? common.composer[0] : common.composer);
+            if (common.genre) genre = (Array.isArray(common.genre) ? common.genre[0] : common.genre);
             if (common.year) year = String(common.year).substring(0, 4);
             if (common.track && common.track.no) track = common.track.no;
 
@@ -381,8 +380,8 @@ async function scanMusicFolderSync(folderPath, coversFolder, mm) {
 
         songs.push({
             id: 0,
-            title: sanitizeString(title).substring(0, 50),
-            artist: sanitizeString(artist).substring(0, 30),
+            title: sanitizeString(title),
+            artist: sanitizeString(artist),
             album: sanitizeString(album),
             composer: sanitizeString(composer),
             genre: sanitizeString(genre),
@@ -448,14 +447,14 @@ function extractAllNativeTags(native) {
                 result.album = String(val).trim();
             }
             if (!result.composer && (id === 'TCOM' || id === 'COMPOSER' || id === 'TCM')) {
-                result.composer = String(val).trim().substring(0, 30);
+                result.composer = String(val).trim();
             }
             if (!result.genre && (id === 'TCON' || id === 'GENRE' || id === 'TCO')) {
                 let g = String(val).trim();
                 if (g.startsWith('(') && g.includes(')')) {
                     g = g.substring(g.indexOf(')') + 1).trim();
                 }
-                result.genre = g.substring(0, 30);
+                result.genre = g;
             }
             if (!result.year && (id === 'TYER' || id === 'TDRC' || id === 'YEAR' || id === 'TORY')) {
                 result.year = String(val).trim().substring(0, 4);
@@ -503,7 +502,7 @@ function extractExtendedMetadata(common, format, native) {
     };
 
     if (common) {
-        if (common.albumartist) result.albumArtist = String(common.albumartist).substring(0, 30);
+        if (common.albumartist) result.albumArtist = String(common.albumartist);
         if (common.disk && common.disk.no) result.discNumber = String(common.disk.no);
         if (common.disk && common.disk.of) result.discTotal = String(common.disk.of);
         if (common.track && common.track.of) result.trackTotal = String(common.track.of);
@@ -624,7 +623,7 @@ function extractExtendedMetadata(common, format, native) {
                     !result.albumArtist &&
                     (id === 'TPE2' || id === 'ALBUMARTIST' || id === 'ALBUM ARTIST' || id === 'aART')
                 ) {
-                    result.albumArtist = String(val).substring(0, 30);
+                    result.albumArtist = String(val);
                 }
                 if (!result.discNumber && (id === 'TPOS' || id === 'DISCNUMBER')) {
                     result.discNumber = String(val).trim().split('/')[0];
@@ -765,12 +764,12 @@ async function scanMusicFolder(folderPath, coversFolder, mm) {
             album = common.album || nativeTags.album || album;
             composer =
                 (Array.isArray(common.composer) ? common.composer[0] : common.composer) || nativeTags.composer || '';
-            composer = String(composer).substring(0, 30);
+            composer = String(composer);
             genre =
                 Array.isArray(common.genre) && common.genre.length > 0
                     ? common.genre[0]
                     : common.genre || nativeTags.genre || '';
-            genre = String(genre).substring(0, 30);
+            genre = String(genre);
             year = common.year ? String(common.year).substring(0, 4) : nativeTags.year || '';
             if (common.track && common.track.no) {
                 track = common.track.no;
@@ -812,8 +811,8 @@ async function scanMusicFolder(folderPath, coversFolder, mm) {
 
         songs.push({
             id: songs.length,
-            title: sanitizeString(title).substring(0, 50),
-            artist: sanitizeString(artist).substring(0, 30),
+            title: sanitizeString(title),
+            artist: sanitizeString(artist),
             album: sanitizeString(album),
             composer: sanitizeString(composer),
             genre: sanitizeString(genre),
@@ -904,7 +903,7 @@ async function scanFilesStreamed(allFiles, coversFolder, mm, Jimp, onFastPass) {
             const fileName = path.basename(filePath, path.extname(filePath));
             let title = '';
             let artist = '';
-            let album = path.basename(path.dirname(filePath)).substring(0, 30);
+            let album = path.basename(path.dirname(filePath));
             let composer = '';
             let genre = '';
             let year = '';
@@ -920,17 +919,17 @@ async function scanFilesStreamed(allFiles, coversFolder, mm, Jimp, onFastPass) {
 
                 title = common.title || nativeTags.title || '';
                 artist = common.artist || nativeTags.artist || '';
-                album = (common.album || nativeTags.album || album).substring(0, 30);
+                album = (common.album || nativeTags.album || album);
                 composer =
                     (Array.isArray(common.composer) ? common.composer[0] : common.composer) ||
                     nativeTags.composer ||
                     '';
-                composer = String(composer).substring(0, 30);
+                composer = String(composer);
                 genre =
                     Array.isArray(common.genre) && common.genre.length > 0
                         ? common.genre[0]
                         : common.genre || nativeTags.genre || '';
-                genre = String(genre).substring(0, 30);
+                genre = String(genre);
                 year = common.year ? String(common.year).substring(0, 4) : nativeTags.year || '';
                 if (common.track && common.track.no) {
                     track = common.track.no;
@@ -952,8 +951,8 @@ async function scanFilesStreamed(allFiles, coversFolder, mm, Jimp, onFastPass) {
 
             songs[i] = {
                 id: i,
-                title: sanitizeString(title).substring(0, 50),
-                artist: sanitizeString(artist).substring(0, 30),
+                title: sanitizeString(title),
+                artist: sanitizeString(artist),
                 album: sanitizeString(album),
                 composer: sanitizeString(composer),
                 genre: sanitizeString(genre),
@@ -1270,34 +1269,49 @@ async function main(folderPath, outputDir, mode, specificFile) {
     );
 }
 
-const folderPath = process.argv[2];
-const outputDir = process.argv[3];
-const mode = process.argv[4] || 'full';
-const specificFile = process.argv[5] || null;
+// This file doubles as a CLI script (spawned by scanner.js) and, below, as a module that
+// tests can require() for its pure helpers. Only run the CLI dispatch when invoked directly
+// (`node scan-folder.js ...`), never when require()'d, so requiring it in a test doesn't
+// read process.argv or call process.exit.
+if (require.main === module) {
+    const folderPath = process.argv[2];
+    const outputDir = process.argv[3];
+    const mode = process.argv[4] || 'full';
+    const specificFile = process.argv[5] || null;
 
-if (!folderPath || !outputDir) {
-    process.stdout.write('ERROR: Missing arguments\n');
-    process.exit(1);
-}
+    if (!folderPath || !outputDir) {
+        process.stdout.write('ERROR: Missing arguments\n');
+        process.exit(1);
+    }
 
-if (folderPath === '__files__') {
-    import('music-metadata')
-        .then((mm) => {
-            return scanMultipleFiles(process.argv.slice(5), outputDir, mm);
-        })
-        .then((songs) => {
-            process.stdout.write(JSON.stringify(songs));
-        })
-        .catch((err) => {
-            process.stdout.write(JSON.stringify([]));
-            process.exit(1);
-        });
-} else if (folderPath === '__rebuild__') {
-    import('music-metadata')
-        .then((mm) => {
-            return main(folderPath, outputDir, mode, specificFile);
-        })
-        .catch((err) => {
+    if (folderPath === '__files__') {
+        import('music-metadata')
+            .then((mm) => {
+                return scanMultipleFiles(process.argv.slice(5), outputDir, mm);
+            })
+            .then((songs) => {
+                process.stdout.write(JSON.stringify(songs));
+            })
+            .catch((err) => {
+                process.stdout.write(JSON.stringify([]));
+                process.exit(1);
+            });
+    } else if (folderPath === '__rebuild__') {
+        import('music-metadata')
+            .then((mm) => {
+                return main(folderPath, outputDir, mode, specificFile);
+            })
+            .catch((err) => {
+                process.stdout.write(
+                    JSON.stringify({
+                        success: false,
+                        error: err.message
+                    })
+                );
+                process.exit(1);
+            });
+    } else {
+        main(folderPath, outputDir, mode, specificFile).catch((err) => {
             process.stdout.write(
                 JSON.stringify({
                     success: false,
@@ -1306,16 +1320,7 @@ if (folderPath === '__files__') {
             );
             process.exit(1);
         });
-} else {
-    main(folderPath, outputDir, mode, specificFile).catch((err) => {
-        process.stdout.write(
-            JSON.stringify({
-                success: false,
-                error: err.message
-            })
-        );
-        process.exit(1);
-    });
+    }
 }
 
 async function scanMultipleFiles(filePaths, outputDir, mm) {
@@ -1364,12 +1369,12 @@ async function scanSingleFile(filePath, coversFolder, mm) {
         artist = common.artist || nativeTags.artist || '';
         album = common.album || nativeTags.album || album;
         composer = (Array.isArray(common.composer) ? common.composer[0] : common.composer) || nativeTags.composer || '';
-        composer = String(composer).substring(0, 30);
+        composer = String(composer);
         genre =
             Array.isArray(common.genre) && common.genre.length > 0
                 ? common.genre[0]
                 : common.genre || nativeTags.genre || '';
-        genre = String(genre).substring(0, 30);
+        genre = String(genre);
         year = common.year ? String(common.year).substring(0, 4) : nativeTags.year || '';
         if (common.track && common.track.no) {
             track = common.track.no;
@@ -1415,8 +1420,8 @@ async function scanSingleFile(filePath, coversFolder, mm) {
 
     return {
         id: 0,
-        title: sanitizeString(title).substring(0, 50),
-        artist: sanitizeString(artist).substring(0, 30),
+        title: sanitizeString(title),
+        artist: sanitizeString(artist),
         album: sanitizeString(album),
         composer: sanitizeString(composer),
         genre: sanitizeString(genre),
@@ -1429,3 +1434,12 @@ async function scanSingleFile(filePath, coversFolder, mm) {
         ...extendedMeta
     };
 }
+
+module.exports = {
+    sanitizeString,
+    sanitizeLyrics,
+    extractAllNativeTags,
+    extractExtendedMetadata,
+    scanSingleFile,
+    scanMultipleFiles
+};

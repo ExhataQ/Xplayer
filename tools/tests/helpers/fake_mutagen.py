@@ -8,7 +8,7 @@ class Frame:
     @property
     def HashKey(s): return type(s).__name__ if type(s).__name__ not in ('TXXX','COMM') else f"{type(s).__name__}:{s.desc}"+(f":{s.lang}" if type(s).__name__=='COMM' else '')
 def mk(name): return type(name,(Frame,),{})
-FRAMES="TIT2 TPE1 TALB TPE2 TCOM TCON TDRC TRCK TPOS TPUB TCOP TENC TPE3 TPE4 TBPM TSRC TPRO TEXT TOLY TIT3 TMOO TLAN TMED TSOT TSOP TSOA COMM TXXX APIC".split()
+FRAMES="TIT2 TPE1 TALB TPE2 TCOM TCON TDRC TRCK TPOS TPUB TCOP TENC TPE3 TPE4 TBPM TSRC TPRO TEXT TOLY TIT3 TMOO TLAN TMED TSOT TSOP TSOA TSOC COMM TXXX APIC".split()
 frame_cls={n:mk(n) for n in FRAMES}
 class ID3(dict):
     version=(2,4,0)

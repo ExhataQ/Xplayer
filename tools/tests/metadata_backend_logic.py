@@ -84,9 +84,31 @@ class Id3Save(unittest.TestCase):
         call(mod, {'action': 'save', 'metadata': {'comment': ''}})
         self.assertNotIn('COMM::eng', audio.tags); self.assertIn('COMM:iTunNORM:eng', audio.tags)
 
-    def test_unsupported_field_is_reported_not_silently_dropped(self):
-        r = call(load(id3_file()), {'action': 'save', 'metadata': {'sortComposer': 'x'}})
-        self.assertTrue(r['success']); self.assertEqual(r.get('skipped'), ['sortComposer'])
+    def test_sort_composer_is_saved_for_mp3(self):
+        audio = id3_file(); mod = load(audio)
+        r = call(mod, {'action': 'save', 'metadata': {'sortComposer': 'White, Maurice'}})
+        self.assertTrue(r['success']); self.assertNotIn('skipped', r)
+        self.assertEqual(str(audio.tags.get('TSOC')), 'White, Maurice')
+        r2 = call(mod, {'action': 'read'})
+        self.assertEqual(r2['metadata']['sortComposer'], 'White, Maurice')
+
+    def test_lyricist_and_writer_no_longer_share_a_frame(self):
+        audio = id3_file(); mod = load(audio)
+        call(mod, {'action': 'save', 'metadata': {'lyricist': 'Bernie Taupin', 'writer': 'Elton John'}})
+        self.assertEqual(str(audio.tags.get('TEXT')), 'Bernie Taupin')
+        self.assertEqual(str(audio.tags.get('TXXX:WRITER')), 'Elton John')
+        r = call(mod, {'action': 'read'})
+        self.assertEqual(r['metadata']['lyricist'], 'Bernie Taupin')
+        self.assertEqual(r['metadata']['writer'], 'Elton John')
+
+    def test_saving_writer_alone_does_not_change_the_existing_lyricist(self):
+        # id3_file() seeds TEXT='Freddie'. Before the fix, saving 'writer' wrote into TEXT
+        # too, silently replacing whatever lyricist was already stored there.
+        audio = id3_file(); mod = load(audio)
+        call(mod, {'action': 'save', 'metadata': {'writer': 'Elton John'}})
+        r = call(mod, {'action': 'read'})
+        self.assertEqual(r['metadata']['lyricist'], 'Freddie')
+        self.assertEqual(r['metadata']['writer'], 'Elton John')
 
 class VorbisSave(unittest.TestCase):
     def make(self):

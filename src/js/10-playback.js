@@ -1164,7 +1164,9 @@ function playSongFromQueue(queueIndex) {
 
     const lyricsToggleBtnEl = document.getElementById('lyrics-toggle-btn');
     if (lyricsToggleBtnEl) {
-        const hasLyrics = typeof getLyricsForSong === 'function' && String(getLyricsForSong(song) || '').trim() !== '';
+        const hasPlainLyrics = typeof getLyricsForSong === 'function' && String(getLyricsForSong(song) || '').trim() !== '';
+        const hasSyncedLyrics = typeof getSyncedLyricsForSong === 'function' && String(getSyncedLyricsForSong(song) || '').trim() !== '';
+        const hasLyrics = hasPlainLyrics || hasSyncedLyrics;
         lyricsToggleBtnEl.disabled = false;
         lyricsToggleBtnEl.setAttribute('data-original-title', hasLyrics ? 'Lyrics' : 'No lyrics for this song');
     }
