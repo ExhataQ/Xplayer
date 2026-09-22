@@ -74,14 +74,13 @@ Source/
     ├── download_fontawesome_net.bat
     ├── download_googlefonts.py
     ├── ui-playground/
-    │   ├── package.json
-    │   ├── vite.config.js
     │   ├── index.html
     │   └── main.js
     │       Vite-based visual UI development environment. It imports the production
     │       CSS directly from Source/src/css/ in the same order as the Electron build,
     │       uses existing fonts/icons, and provides mock data/interactions for visual
     │       testing without running music_player.py or the Electron renderer.
+    │       Its Vite config and Node dependencies remain under more tools/ui-playground/.
     ├── change.log.txt
     ├── prompt.txt
     ├── fonts/
@@ -315,4 +314,3 @@ If you want me to add a new line tell me where to add it (after or before what l
 IMPORTANT: When you modify any file in Source/electron/, Source/build/, Source/src/, or Source/tools/, please update this prompt's description of that file so I always have an accurate reference of what each file does.
 
 if it's okay then tell me to send you codes
-

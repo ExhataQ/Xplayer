@@ -1478,6 +1478,11 @@ ui-playground (relocated)
 2026-09-21
 src/js/03a-recents.js (new), src/js/03-storage.js, src/js/04b-ui-render-views.js
 - Recently played: playing a song now moves it to the top instead of adding another copy (replaying one song 50 times used to erase the whole list). Entries no longer store the cover. An older stored list is cleaned up (duplicates, covers) the next time a song is played.
+
+2026-09-22
+tools/ui-playground/, more tools/ui-playground/
+- Moved the playground HTML and entry script to Source/tools/ui-playground/ while retaining the Vite config, package files, and node_modules in more tools/ui-playground/.
+- Updated playground paths and package scripts for the split source/dependency layout.
 - The recents views show the CURRENT library data (getRecentlyPlayedSongs), so a metadata edit or a rescan that changed ids is reflected; deleted/vanished songs are left out. getRecentCount() is the count to show in a "song counter" (unique, still-existing songs).
 - saveToRecentlyPlayed no longer throws if localStorage is full. Info text now says "Your last 50 different songs, most recent first".
 - getRecentlyPlayed() keeps its old contract (raw stored list), so existing code and storage.test.js are unchanged.
