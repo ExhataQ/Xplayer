@@ -4,10 +4,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const playbackSource = fs.readFileSync(
-    path.join(__dirname, '../../src/js/10-playback.js'),
-    'utf8'
-);
+const playbackSource = [
+    path.join(__dirname, '../../src/js/10a-playback-shuffle.js'),
+    path.join(__dirname, '../../src/js/10b-playback-smart-shuffle.js')
+]
+    .map((p) => fs.readFileSync(p, 'utf8'))
+    .join('\n');
 
 function loadShuffleFunctions() {
     const context = {
