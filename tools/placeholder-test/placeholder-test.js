@@ -74,7 +74,7 @@ function syncAlbumPlaceholderAlignment() {
 }
 
 // ==============================================================================
-// External scrollbar — ported from src/js/06c-ui-widgets.js, trimmed to just
+// External scrollbar — ported from src/js/06c-scrollbar-widget.js, trimmed to just
 // the pieces needed for the test page (no drag-to-track animation, no shared
 // state across pages).
 // ==============================================================================
@@ -407,7 +407,7 @@ function initTracklistScrollEffect() {
 
 // ==============================================================================
 // Panel collapse — ported from src/js/99-player.js's collapseLeftPanel and
-// src/js/08-panels.js's collapseRightPanel. Toggles the .collapsed class and
+// src/js/08a-panel-layout.js's collapseRightPanel. Toggles the .collapsed class and
 // updates panel widths so the app's collapse CSS applies to the placeholders.
 // ==============================================================================
 function collapseLeftPanel() {

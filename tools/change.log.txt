@@ -1622,3 +1622,16 @@ tools/tests/storage.test.js
 
 tools/tests/scroll.test.js
 - Skipped "a tiny thumb nudge shows real rows only, no placeholders": confirmed this fails identically on the pre-split baseline in this sandboxed/headless environment (timing-sensitive, unrelated to the file split). Left as a skip per instruction.
+
+2026-09-24
+src/js/08-panels.js -> src/js/08a-panel-layout.js, 08b-panel-album-art.js, 08c-panel-track-lyrics.js, 08d-panel-right-tabs.js, 08e-panel-settings.js, 08f-panel-extended-metadata.js, 08g-panel-saved-lyrics.js, 08h-panel-search.js
+- Agent 3 (code-cleanup-plan.md): split along the file's existing section banners (right-panel layout toggle/collapse, album art, track-lyrics box, right-panel info/tabs, settings panel, extended metadata settings, saved lyrics management, search panel). The oversized "ALBUM ART & RIGHT PANEL TABS" banner was further divided into album-art / track-lyrics-box / right-panel-tabs, since it covered three distinct concerns. No behavior change; verified the handful of section-local state vars (trackLyrics*) don't leak across the split boundaries.
+
+src/js/06c-ui-widgets.js -> src/js/06c-scrollbar-widget.js, 06d-tooltip-system.js, 06e-tooltip-titles.js, 06f-drag-drop-songs.js, 06g-drag-drop-left-panel.js, 06h-fullscreen-viewer.js, 06i-theme-switcher.js, 06j-notification-system.js, 06k-keyboard-shortcuts.js
+- Agent 3: split by widget type along the file's existing section banners. No behavior change; verified section-local state vars (tooltip, zoomLens, coverNotifyIndex, etc.) don't leak across the split boundaries.
+
+Both files
+- Replaced local SONGS_DATA.find((s) => s.id === x) calls with getSongById(x) (one occurrence, in the keyboard-shortcuts delete-selection handler). Pre-existing SONGS_DATA.find(...) occurrences in 06a-context-menus.js and 06b-modals.js were left as-is; those files aren't part of Agent 3's or Agent 2's scope in code-cleanup-plan.md.
+
+build/music_player.html, build/music_player.py, tools/placeholder-test/placeholder-test.js
+- Updated the renderer <script> tag list and simple_js_files build manifest for all of the above split files, preserving original relative script order. Updated two file-path comments in placeholder-test.js that referenced the old filenames.
