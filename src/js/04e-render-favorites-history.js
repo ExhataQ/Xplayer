@@ -104,6 +104,10 @@ function renderRecentlyPlayed() {
     const recentSongs = getRecentlyPlayedSongs();
     const listId = 'recent';
 
+    if (typeof teardownLazyLoading === 'function') {
+        teardownLazyLoading();
+    }
+
     if (recentSongs.length === 0) {
         document.getElementById('song-list').innerHTML = `
             <div class="empty-state-container">

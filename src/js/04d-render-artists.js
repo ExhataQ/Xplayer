@@ -26,6 +26,9 @@ function renderArtistDetailView(artistId) {
 
     if (artistSongs.length === 0) {
         showTracklistHeader(false);
+        if (typeof teardownLazyLoading === 'function') {
+            teardownLazyLoading();
+        }
         document.getElementById('song-list').innerHTML = `
                 <div class="empty-state-container">
                         <i class="fas fa-music"></i>

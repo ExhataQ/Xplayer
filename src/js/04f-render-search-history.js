@@ -5,6 +5,10 @@ function renderSearchHistoryView() {
     const searchHistory = getSearchHistory();
     const songList = document.getElementById('song-list');
 
+    if (typeof teardownLazyLoading === 'function') {
+        teardownLazyLoading();
+    }
+
     showHeroSection(false);
     showTracklistHeader(false);
 

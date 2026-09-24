@@ -15,6 +15,10 @@ function openSettingsPanel() {
         return;
     }
 
+    if (typeof teardownLazyLoading === 'function') {
+        teardownLazyLoading();
+    }
+
     resetLeftPanelActiveState();
     if (settingsButton) {
         settingsButton.classList.add('active');
@@ -279,6 +283,10 @@ function closeAdvancedSettings() {
 
 function renderAdvancedSettingsPanel() {
     const songList = songListElement;
+
+    if (typeof teardownLazyLoading === 'function') {
+        teardownLazyLoading();
+    }
 
     const settings = getExtendedMetadataSettings();
     const groupOrder = ['People', 'Structure', 'Publishing', 'Identifiers', 'Technical', 'Misc', 'Sort'];

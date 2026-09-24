@@ -5,6 +5,10 @@ function renderAlbumsView() {
     const albums = getAlbums();
     const songListElement = document.getElementById('song-list');
 
+    if (typeof teardownLazyLoading === 'function') {
+        teardownLazyLoading();
+    }
+
     showHeroSection(true);
     updateHeroSection('Albums', albums.length, 'Collection');
     showTracklistHeader(false);
@@ -104,6 +108,9 @@ function renderAlbumDetailView(albumId) {
 
     if (albumSongs.length === 0) {
         showTracklistHeader(false);
+        if (typeof teardownLazyLoading === 'function') {
+            teardownLazyLoading();
+        }
         document.getElementById('song-list').innerHTML = `
                 <div class="empty-state-container">
                         <i class="fas fa-music"></i>
