@@ -22,7 +22,7 @@ function snapVirtualScrollThreshold(value) {
 }
 
 let VIRTUAL_SCROLL_THRESHOLD = (function () {
-    const saved = localStorage.getItem('virtualScrollThreshold');
+    const saved = localStorage.getItem(STORAGE_KEYS.VIRTUAL_SCROLL_THRESHOLD);
     const parsed = parseInt(saved, 10);
     if (!isNaN(parsed) && parsed >= MIN_VIRTUAL_SCROLL_THRESHOLD && parsed <= MAX_VIRTUAL_SCROLL_THRESHOLD) {
         return snapVirtualScrollThreshold(parsed);
@@ -33,7 +33,7 @@ let VIRTUAL_SCROLL_THRESHOLD = (function () {
 function setVirtualScrollThreshold(value) {
     const v = snapVirtualScrollThreshold(value);
     VIRTUAL_SCROLL_THRESHOLD = v;
-    localStorage.setItem('virtualScrollThreshold', String(v));
+    localStorage.setItem(STORAGE_KEYS.VIRTUAL_SCROLL_THRESHOLD, String(v));
 
     if (currentView === 'settings') return v;
 

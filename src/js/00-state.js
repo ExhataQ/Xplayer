@@ -72,12 +72,12 @@ let advancedSettingsOpen = false;
 let lyricsPreScrollTop = 0;
 let lyricsPreView = null;
 
-let leftPanelCollapsed = localStorage.getItem('leftPanelCollapsed') === 'true';
+let leftPanelCollapsed = localStorage.getItem(STORAGE_KEYS.LEFT_PANEL_COLLAPSED) === 'true';
 
-let rightPanelCollapsed = localStorage.getItem('rightPanelCollapsed') === 'true';
-if (localStorage.getItem('rightPanelCollapsed') === null) {
+let rightPanelCollapsed = localStorage.getItem(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED) === 'true';
+if (localStorage.getItem(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED) === null) {
     rightPanelCollapsed = false;
-    localStorage.setItem('rightPanelCollapsed', 'false');
+    localStorage.setItem(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED, 'false');
 }
 
 let lastRightPanelStateBeforeQueue = {

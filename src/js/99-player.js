@@ -173,7 +173,7 @@ function collapseLeftPanel() {
     if (titleGroup) titleGroup.setAttribute('data-original-title', 'Open your library');
     if (collapseIcon) collapseIcon.textContent = 'left_panel_open';
     panelWidths.left = COLLAPSED_WIDTH;
-    localStorage.setItem('leftPanelCollapsed', 'true');
+    localStorage.setItem(STORAGE_KEYS.LEFT_PANEL_COLLAPSED, 'true');
     recalcLayoutWidths();
     setTimeout(function () {
         if (typeof updateSettingsMargins === 'function') updateSettingsMargins();
@@ -193,7 +193,7 @@ function expandLeftPanel() {
     if (titleGroup) titleGroup.setAttribute('data-original-title', 'Collapse your library');
     if (collapseIcon) collapseIcon.textContent = 'left_panel_close';
     panelWidths.left = MIN_PANEL_WIDTH;
-    localStorage.setItem('leftPanelCollapsed', 'false');
+    localStorage.setItem(STORAGE_KEYS.LEFT_PANEL_COLLAPSED, 'false');
     recalcLayoutWidths();
     setTimeout(function () {
         if (typeof updateSettingsMargins === 'function') updateSettingsMargins();

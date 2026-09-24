@@ -3,7 +3,7 @@
 // ==============================================================================
 function getExtendedMetadataSettings() {
     try {
-        const saved = localStorage.getItem('extendedMetadataEnabled');
+        const saved = localStorage.getItem(STORAGE_KEYS.EXTENDED_METADATA_ENABLED);
         if (saved) {
             const parsed = JSON.parse(saved);
             const result = {};
@@ -16,7 +16,9 @@ function getExtendedMetadataSettings() {
             });
             return result;
         }
-    } catch (e) {}
+    } catch (e) {
+        console.warn('[extendedMetadataEnabled] failed to parse saved value, using defaults', e);
+    }
     const defaults = {};
     EXTENDED_METADATA_FIELDS.forEach((f) => {
         defaults[f.key] = f.hidden ? false : !!f.defaultOn;
@@ -25,7 +27,7 @@ function getExtendedMetadataSettings() {
 }
 
 function saveExtendedMetadataSettings(settings) {
-    localStorage.setItem('extendedMetadataEnabled', JSON.stringify(settings));
+    localStorage.setItem(STORAGE_KEYS.EXTENDED_METADATA_ENABLED, JSON.stringify(settings));
 }
 
 function toggleExtendedMetadataField(fieldKey, enabled) {
@@ -36,11 +38,11 @@ function toggleExtendedMetadataField(fieldKey, enabled) {
 }
 
 function getHideRightPanelLyrics() {
-    return localStorage.getItem('hideRightPanelLyrics') === 'true';
+    return localStorage.getItem(STORAGE_KEYS.HIDE_RIGHT_PANEL_LYRICS) === 'true';
 }
 
 function setHideRightPanelLyrics(value) {
-    localStorage.setItem('hideRightPanelLyrics', value ? 'true' : 'false');
+    localStorage.setItem(STORAGE_KEYS.HIDE_RIGHT_PANEL_LYRICS, value ? 'true' : 'false');
     if (typeof renderTrackLyricsBox === 'function') {
         renderTrackLyricsBox();
     }

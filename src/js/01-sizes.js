@@ -9,12 +9,14 @@ const LYRICS_NARROW_THRESHOLD = SCREEN_WIDTH * (1280 / 1920);
 const LYRICS_VERY_NARROW_THRESHOLD = SCREEN_WIDTH * (1000 / 1920);
 
 const panelWidths = (function () {
-    const saved = localStorage.getItem('panelWidths');
+    const saved = localStorage.getItem(STORAGE_KEYS.PANEL_WIDTHS);
     if (saved) {
         try {
             const parsed = JSON.parse(saved);
             if (parsed.left && parsed.right) return parsed;
-        } catch (e) {}
+        } catch (e) {
+            console.warn('[panelWidths] failed to parse saved value, using defaults', e);
+        }
     }
     return {
         left: SCREEN_WIDTH * (400 / 1920),
@@ -142,7 +144,7 @@ function applyPanelWidths() {
     }
 
     localStorage.setItem(
-        'panelWidths',
+        STORAGE_KEYS.PANEL_WIDTHS,
         JSON.stringify({
             left: panelWidths.left,
             right: panelWidths.right

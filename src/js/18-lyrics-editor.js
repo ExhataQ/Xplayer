@@ -3,14 +3,16 @@
 // ==============================================================================
 function getCustomLyricsStore() {
     try {
-        const saved = localStorage.getItem('customLyrics');
+        const saved = localStorage.getItem(STORAGE_KEYS.CUSTOM_LYRICS);
         if (saved) return JSON.parse(saved);
-    } catch (e) {}
+    } catch (e) {
+        console.warn('[customLyrics] failed to parse saved value, using empty store', e);
+    }
     return {};
 }
 
 function saveCustomLyricsStore(store) {
-    localStorage.setItem('customLyrics', JSON.stringify(store));
+    localStorage.setItem(STORAGE_KEYS.CUSTOM_LYRICS, JSON.stringify(store));
 }
 
 function getLyricsForSong(song) {
@@ -59,14 +61,16 @@ function _nextVariantId() {
 
 function getSyncedLyricsStore() {
     try {
-        const saved = localStorage.getItem('customSyncedLyrics');
+        const saved = localStorage.getItem(STORAGE_KEYS.CUSTOM_SYNCED_LYRICS);
         if (saved) return JSON.parse(saved);
-    } catch (e) {}
+    } catch (e) {
+        console.warn('[customSyncedLyrics] failed to parse saved value, using empty store', e);
+    }
     return {};
 }
 
 function saveSyncedLyricsStore(store) {
-    localStorage.setItem('customSyncedLyrics', JSON.stringify(store));
+    localStorage.setItem(STORAGE_KEYS.CUSTOM_SYNCED_LYRICS, JSON.stringify(store));
 }
 
 function _migrateEntry(raw) {

@@ -5,7 +5,7 @@
 // ==============================================================================
 
 function getPlaylists() {
-    return getStoredJson('playlists', []);
+    return getStoredJson(STORAGE_KEYS.PLAYLISTS, []);
 }
 
 function updatePlaylistCount(playlistId, count) {
@@ -19,7 +19,7 @@ function updatePlaylistCount(playlistId, count) {
 }
 
 function savePlaylists(playlists) {
-    localStorage.setItem('playlists', JSON.stringify(playlists));
+    localStorage.setItem(STORAGE_KEYS.PLAYLISTS, JSON.stringify(playlists));
 }
 
 function createPlaylist(name) {

@@ -4,14 +4,14 @@
 function deleteHistoryEntry() {
     if (currentContextSongId === null) return;
 
-    let history = JSON.parse(localStorage.getItem('playHistory') || '[]');
+    let history = JSON.parse(localStorage.getItem(STORAGE_KEYS.PLAY_HISTORY) || '[]');
 
     const slotIndex = activeContextMenuSlot;
 
     if (slotIndex !== null && slotIndex < history.length) {
         removeHistoryGhostSlot(slotIndex);
         history.splice(slotIndex, 1);
-        localStorage.setItem('playHistory', JSON.stringify(history));
+        localStorage.setItem(STORAGE_KEYS.PLAY_HISTORY, JSON.stringify(history));
 
         if (currentView === 'history') {
             refreshCurrentViewAfterMutation();
