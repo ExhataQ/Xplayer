@@ -1,0 +1,571 @@
+diff --git a/electron/downloads.js b/electron/downloads.js
+index f4d29e3..46764c8 100644
+--- a/electron/downloads.js
++++ b/electron/downloads.js
+@@ -13,7 +13,9 @@ function getConfiguredDownloadFolder() {
+             const parsed = JSON.parse(data);
+             if (parsed.downloadFolder) return parsed.downloadFolder;
+         }
+-    } catch (e) {}
++    } catch (e) {
++        console.warn('[downloads] failed to read download folder config', e);
++    }
+     return null;
+ }
+ 
+diff --git a/electron/fast-scan.js b/electron/fast-scan.js
+index 43041c3..02f092e 100644
+--- a/electron/fast-scan.js
++++ b/electron/fast-scan.js
+@@ -52,7 +52,9 @@ function createFastScanner({ walkDir, loadMusicFolders, printProgress }) {
+                 let metadata = null;
+                 try {
+                     metadata = await mm.parseFile(filePath, { duration: true, skipCovers: true });
+-                } catch (e) {}
++                } catch (e) {
++                    console.warn(`[fast-scan] failed to read tags for ${filePath}: ${e.message}`);
++                }
+                 songs[i] = await buildSongFromTags({
+                     filePath,
+                     metadata,
+diff --git a/electron/full-scan.js b/electron/full-scan.js
+index 24c29fe..e8c09b2 100644
+--- a/electron/full-scan.js
++++ b/electron/full-scan.js
+@@ -11,7 +11,9 @@ function createFullScanner({ walkDir, printProgress }) {
+             let metadata = null;
+             try {
+                 metadata = await mm.parseFile(filePath, { duration: true, skipCovers: false });
+-            } catch (e) {}
++            } catch (e) {
++                console.warn(`[full-scan] failed to read tags for ${filePath}: ${e.message}`);
++            }
+             songs.push(await buildSongFromTags({
+                 filePath,
+                 metadata,
+diff --git a/electron/incremental-scan.js b/electron/incremental-scan.js
+index 896db96..0fde0ef 100644
+--- a/electron/incremental-scan.js
++++ b/electron/incremental-scan.js
+@@ -15,7 +15,9 @@ function createIncrementalScanner({ walkDir, loadMusicFolders, printProgress, is
+             let metadata = null;
+             try {
+                 metadata = await mm.parseFile(filePath, { duration: true, skipCovers: false });
+-            } catch (err) {}
++            } catch (err) {
++                console.warn(`[incremental-scan] failed to read tags for ${filePath}: ${err.message}`);
++            }
+             songs.push(await buildSongFromTags({
+                 filePath,
+                 metadata,
+diff --git a/electron/main.js b/electron/main.js
+index c453d3d..82840d9 100644
+--- a/electron/main.js
++++ b/electron/main.js
+@@ -513,7 +513,9 @@ app.whenReady().then(async () => {
+                 const songs = JSON.parse(match[1]);
+                 hasSongs = songs.length > 0;
+             }
+-        } catch (e) {}
++        } catch (e) {
++            console.warn('[main] failed to read existing player.js while checking for songs', e);
++        }
+     }
+ 
+     const needsSetup = !fs.existsSync(configPath) && !hasSongs;
+diff --git a/electron/online-metadata.js b/electron/online-metadata.js
+index fd18910..359efc7 100644
+--- a/electron/online-metadata.js
++++ b/electron/online-metadata.js
+@@ -201,6 +201,8 @@ async function downloadCover(fileUrl, imageUrl) {
+     fs.writeFileSync(p, response.body);
+     // remove a previous cover saved with a different extension so a stale one can never be picked up
+     for (const other of ['.jpg', '.png', '.gif', '.webp']) {
++        // Intentionally silent: this is expected to fail with ENOENT whenever no stale cover
++        // with that extension exists, which is the common case.
+         if (other !== ext) { try { fs.unlinkSync(path.join(dir, `${keyFor(fileUrl)}-cover${other}`)); } catch (_) {} }
+     }
+     return p;
+diff --git a/electron/scan-folder.js b/electron/scan-folder.js
+index 25cd08e..9fff09a 100644
+--- a/electron/scan-folder.js
++++ b/electron/scan-folder.js
+@@ -26,6 +26,15 @@ let silentMode = false;
+ let activeFolders = [];
+ let foldersConfigPath = null;
+ 
++// Verbose scan banners/progress (output dir, source folders, counts, written paths) are
++// dev-only leftovers from CLI use. They're harmless noise for a normal Electron-triggered
++// scan, so they're gated behind DEBUG_SCAN instead of always logging. Set DEBUG_SCAN=1 in
++// the environment to see them again when troubleshooting a scan.
++const DEBUG_SCAN = process.env.DEBUG_SCAN === '1' || process.env.DEBUG_SCAN === 'true';
++function debugLog(...args) {
++    if (DEBUG_SCAN) console.log(...args);
++}
++
+ function getFoldersConfigPath() {
+     if (!foldersConfigPath) {
+         foldersConfigPath = path.join(__dirname, 'music-folders-config.json');
+@@ -42,7 +51,9 @@ function loadMusicFolders() {
+             activeFolders = parsed.folders || [];
+             return activeFolders;
+         }
+-    } catch (e) {}
++    } catch (e) {
++        console.warn('[scan-folder] failed to read folders config', e);
++    }
+     activeFolders = [];
+     return activeFolders;
+ }
+@@ -124,7 +135,10 @@ async function main(folderPath, outputDir, mode, specificFile) {
+         Jimp = null;
+         try {
+             fs.appendFileSync(path.join(outputDir, 'jimp-debug.log'), `Jimp failed to load: ${e && e.stack ? e.stack : e}\n`);
+-        } catch (e2) {}
++        } catch (e2) {
++            // Intentionally silent: this is only a best-effort debug log for an optional
++            // dependency failure; if we can't even write the log, there's nothing more to do.
++        }
+     }
+ 
+     if (mode === 'rebuild-all') {
+@@ -149,27 +163,27 @@ async function main(folderPath, outputDir, mode, specificFile) {
+             return;
+         }
+ 
+-        console.log(`\n📁 Output: ${outputDir}`);
+-        console.log(`🎶 Sources: ${folders.length} folder(s)`);
++        debugLog(`\n📁 Output: ${outputDir}`);
++        debugLog(`🎶 Sources: ${folders.length} folder(s)`);
+         for (const f of folders) {
+-            console.log(`     - ${f}`);
++            debugLog(`     - ${f}`);
+         }
+ 
+-        console.log('\n' + '─'.repeat(60));
+-        console.log('📀  SCANNING SONGS & COVERS');
+-        console.log('─'.repeat(60));
++        debugLog('\n' + '─'.repeat(60));
++        debugLog('📀  SCANNING SONGS & COVERS');
++        debugLog('─'.repeat(60));
+ 
+         const allSongs = await scanAllFolders(coversFolder, mm);
+ 
+         if (allSongs.length === 0) {
+-            console.log('  ℹ️  No supported audio files found');
++            debugLog('  ℹ️  No supported audio files found');
+         }
+ 
+-        console.log(`\n  ✅  Found ${allSongs.length} songs`);
++        debugLog(`\n  ✅  Found ${allSongs.length} songs`);
+ 
+-        console.log('\n' + '─'.repeat(60));
+-        console.log('🎵  STEP 3: GENERATING MUSIC PLAYER');
+-        console.log('─'.repeat(60));
++        debugLog('\n' + '─'.repeat(60));
++        debugLog('🎵  STEP 3: GENERATING MUSIC PLAYER');
++        debugLog('─'.repeat(60));
+ 
+         const jsPath = path.join(outputDir, 'player.js');
+         const songsJson = JSON.stringify(allSongs);
+@@ -185,8 +199,8 @@ async function main(folderPath, outputDir, mode, specificFile) {
+             fs.writeFileSync(jsPath, 'const SONGS_DATA = ' + songsJson + ';', 'utf-8');
+         }
+ 
+-        console.log(`  ✅  ${jsPath}`);
+-        console.log(`  ✅  ${allSongs.length} songs written`);
++        debugLog(`  ✅  ${jsPath}`);
++        debugLog(`  ✅  ${allSongs.length} songs written`);
+ 
+         const resultJson = JSON.stringify({
+             success: true,
+@@ -230,11 +244,11 @@ async function main(folderPath, outputDir, mode, specificFile) {
+             return;
+         }
+ 
+-        console.log(`\n📁 Output: ${outputDir}`);
+-        console.log(`🎶 Sources: ${folders.length} folder(s)`);
+-        console.log('\n' + '─'.repeat(60));
+-        console.log('📀  SCANNING SONGS (FAST PASS)');
+-        console.log('─'.repeat(60));
++        debugLog(`\n📁 Output: ${outputDir}`);
++        debugLog(`🎶 Sources: ${folders.length} folder(s)`);
++        debugLog('\n' + '─'.repeat(60));
++        debugLog('📀  SCANNING SONGS (FAST PASS)');
++        debugLog('─'.repeat(60));
+ 
+         const jsPath = path.join(outputDir, 'player.js');
+         function writePlayerJsRebuild(songsToWrite) {
+@@ -254,7 +268,7 @@ async function main(folderPath, outputDir, mode, specificFile) {
+         const allSongs = await scanAllFoldersStreamed(streamedCoversFolder, mm, Jimp, writePlayerJsRebuild);
+ 
+         if (allSongs.length === 0) {
+-            console.log('  ℹ️  No supported audio files found');
++            debugLog('  ℹ️  No supported audio files found');
+         }
+ 
+         writePlayerJsRebuild(allSongs);
+@@ -291,11 +305,11 @@ async function main(folderPath, outputDir, mode, specificFile) {
+             fs.mkdirSync(streamedCoversFolder, { recursive: true });
+         }
+ 
+-        console.log(`\n📁 Output: ${outputDir}`);
+-        console.log(`🎶 Source: ${folderPath}`);
+-        console.log('\n' + '─'.repeat(60));
+-        console.log('📀  SCANNING SONGS (FAST PASS)');
+-        console.log('─'.repeat(60));
++        debugLog(`\n📁 Output: ${outputDir}`);
++        debugLog(`🎶 Source: ${folderPath}`);
++        debugLog('\n' + '─'.repeat(60));
++        debugLog('📀  SCANNING SONGS (FAST PASS)');
++        debugLog('─'.repeat(60));
+ 
+         const jsPath = path.join(outputDir, 'player.js');
+         function writePlayerJs(songsToWrite) {
+@@ -336,12 +350,12 @@ async function main(folderPath, outputDir, mode, specificFile) {
+             recursive: true
+         });
+ 
+-    console.log(`\n📁 Output: ${outputDir}`);
+-    console.log(`🎶 Source: ${folderPath}`);
++    debugLog(`\n📁 Output: ${outputDir}`);
++    debugLog(`🎶 Source: ${folderPath}`);
+ 
+-    console.log('\n' + '─'.repeat(60));
+-    console.log('📀  SCANNING SONGS & COVERS');
+-    console.log('─'.repeat(60));
++    debugLog('\n' + '─'.repeat(60));
++    debugLog('📀  SCANNING SONGS & COVERS');
++    debugLog('─'.repeat(60));
+ 
+     const allSongs = await scanMusicFolder(folderPath, coversFolder, mm);
+ 
+@@ -350,11 +364,11 @@ async function main(folderPath, outputDir, mode, specificFile) {
+         process.exit(1);
+     }
+ 
+-    console.log(`\n  ✅  Found ${allSongs.length} songs`);
++    debugLog(`\n  ✅  Found ${allSongs.length} songs`);
+ 
+-    console.log('\n' + '─'.repeat(60));
+-    console.log('🎵  STEP 3: GENERATING MUSIC PLAYER');
+-    console.log('─'.repeat(60));
++    debugLog('\n' + '─'.repeat(60));
++    debugLog('🎵  STEP 3: GENERATING MUSIC PLAYER');
++    debugLog('─'.repeat(60));
+ 
+     const jsPath = path.join(outputDir, 'player.js');
+ 
+@@ -372,8 +386,8 @@ async function main(folderPath, outputDir, mode, specificFile) {
+         fs.writeFileSync(jsPath, jsContent, 'utf-8');
+     }
+ 
+-    console.log(`  ✅  ${jsPath}`);
+-    console.log(`  ✅  ${allSongs.length} songs written`);
++    debugLog(`  ✅  ${jsPath}`);
++    debugLog(`  ✅  ${allSongs.length} songs written`);
+ 
+     process.stdout.write(
+         JSON.stringify({
+diff --git a/electron/scanner.js b/electron/scanner.js
+index cecbd18..75e16c7 100644
+--- a/electron/scanner.js
++++ b/electron/scanner.js
+@@ -93,14 +93,18 @@ function runScan(args, options = {}) {
+                                 resultData
+                             });
+                         }
+-                    } catch (e) {}
++                    } catch (e) {
++                        console.warn('[scanner] failed to parse FASTRESULT line from scan process', e);
++                    }
+                     continue;
+                 }
+                 if (line.startsWith('COVERBATCH:')) {
+                     try {
+                         const updates = JSON.parse(line.slice('COVERBATCH:'.length));
+                         if (options.onCoverBatch) options.onCoverBatch(updates);
+-                    } catch (e) {}
++                    } catch (e) {
++                        console.warn('[scanner] failed to parse COVERBATCH line from scan process', e);
++                    }
+                     continue;
+                 }
+ 
+diff --git a/electron/single-file-rescan.js b/electron/single-file-rescan.js
+index 277c817..72b437b 100644
+--- a/electron/single-file-rescan.js
++++ b/electron/single-file-rescan.js
+@@ -6,7 +6,9 @@ async function scanSingleFile(filePath, coversFolder, mm) {
+     let metadata = null;
+     try {
+         metadata = await mm.parseFile(filePath, { duration: true, skipCovers: false });
+-    } catch (e) {}
++    } catch (e) {
++        console.warn(`[single-file-rescan] failed to read tags for ${filePath}: ${e.message}`);
++    }
+     return buildSongFromTags({
+         filePath,
+         metadata,
+diff --git a/electron/tag-builder.js b/electron/tag-builder.js
+index b110295..d698f4c 100644
+--- a/electron/tag-builder.js
++++ b/electron/tag-builder.js
+@@ -82,7 +82,9 @@ function logThumbEngine(coversFolder, sharp, Jimp) {
+     }
+     try {
+         fs.appendFileSync(path.join(coversFolder, 'thumb-debug.log'), `${new Date().toISOString()} ${line}\n`);
+-    } catch (e) {}
++    } catch (e) {
++        // Intentionally silent: best-effort debug log write, nothing more useful to do if it fails.
++    }
+ }
+ 
+ function thumbFileNameFor(hash) {
+@@ -124,7 +126,10 @@ function logCoverError(coversFolder, what, err) {
+             path.join(coversFolder, 'thumb-debug.log'),
+             `${what}: ${err && err.stack ? err.stack : err}\n`
+         );
+-    } catch (e2) {}
++    } catch (e2) {
++        // Intentionally silent: this itself is a best-effort debug log write about another
++        // failure; nothing more useful to do if writing the log also fails.
++    }
+ }
+ 
+ async function generateThumbnail(coverData, coversFolder, hash, Jimp) {
+@@ -137,7 +142,9 @@ async function generateThumbnail(coverData, coversFolder, hash, Jimp) {
+                 path.join(coversFolder, 'thumb-debug.log'),
+                 `${hash}: no thumbnail engine loaded\n`
+             );
+-        } catch (e2) {}
++        } catch (e2) {
++            // Intentionally silent: best-effort debug log write, nothing more useful to do if it fails.
++        }
+         return null;
+     }
+     try {
+@@ -146,7 +153,9 @@ async function generateThumbnail(coverData, coversFolder, hash, Jimp) {
+         let usable = false;
+         try {
+             usable = fs.statSync(thumbPath).size > 0;
+-        } catch (e) {}
++        } catch (e) {
++            // Intentionally silent: expected ENOENT when this thumbnail hasn't been generated yet.
++        }
+         if (!usable) {
+             let buffer = null;
+             let sharpError = null;
+@@ -169,7 +178,9 @@ async function generateThumbnail(coverData, coversFolder, hash, Jimp) {
+         // The old un-resized thumbs (thumb_<hash>.jpg) are never referenced again: drop the twin.
+         try {
+             fs.unlinkSync(path.join(coversFolder, `thumb_${hash}.jpg`));
+-        } catch (e) {}
++        } catch (e) {
++            // Intentionally silent: expected ENOENT when no old-format twin ever existed.
++        }
+         return `covers/${thumbFileName}`;
+     } catch (e) {
+         try {
+@@ -177,7 +188,10 @@ async function generateThumbnail(coverData, coversFolder, hash, Jimp) {
+                 path.join(coversFolder, 'thumb-debug.log'),
+                 `${hash}: ${e && e.stack ? e.stack : e}\n`
+             );
+-        } catch (e2) {}
++        } catch (e2) {
++            // Intentionally silent: this itself is a best-effort debug log write about another
++            // failure; nothing more useful to do if writing the log also fails.
++        }
+         return null;
+     }
+ }
+@@ -546,7 +560,9 @@ async function buildSongFromTags({ filePath, metadata, coversFolder, id = 0, pro
+     if (profile.includeCover && metadata) {
+         try {
+             ({ cover, largeCover } = await buildCoverFromMetadata(metadata, coversFolder, Jimp, profile));
+-        } catch (e) {}
++        } catch (e) {
++            console.warn(`[tag-builder] cover extraction failed for ${filePath}: ${e.message}`);
++        }
+     }
+ 
+     let cleanPath = filePath.replace(/\\/g, '/');
+diff --git a/electron/window-manager.js b/electron/window-manager.js
+index 7a31f17..eff0de3 100644
+--- a/electron/window-manager.js
++++ b/electron/window-manager.js
+@@ -11,7 +11,9 @@ function loadWindowState() {
+             const data = fs.readFileSync(storePath, 'utf-8');
+             return JSON.parse(data);
+         }
+-    } catch (e) {}
++    } catch (e) {
++        console.warn('[window-manager] failed to read saved window state', e);
++    }
+     return {
+         width: 1200,
+         height: 800,
+@@ -34,7 +36,9 @@ function saveWindowState(mainWindow) {
+     };
+     try {
+         fs.writeFileSync(storePath, JSON.stringify(state, null, 2), 'utf-8');
+-    } catch (e) {}
++    } catch (e) {
++        console.warn('[window-manager] failed to save window state', e);
++    }
+ }
+ 
+ let mainWindow = null;
+diff --git a/src/js/01-sizes.js b/src/js/01-sizes.js
+index ad46db8..e4ae086 100644
+--- a/src/js/01-sizes.js
++++ b/src/js/01-sizes.js
+@@ -14,7 +14,9 @@ const panelWidths = (function () {
+         try {
+             const parsed = JSON.parse(saved);
+             if (parsed.left && parsed.right) return parsed;
+-        } catch (e) {}
++        } catch (e) {
++            console.warn('[panelWidths] failed to parse saved value, using defaults', e);
++        }
+     }
+     return {
+         left: SCREEN_WIDTH * (400 / 1920),
+diff --git a/src/js/03-storage.js b/src/js/03-storage.js
+index 1311645..a4f58c7 100644
+--- a/src/js/03-storage.js
++++ b/src/js/03-storage.js
+@@ -378,7 +378,9 @@ function getFolderPinnedItemsMap() {
+     try {
+         const saved = localStorage.getItem('folderPinnedItems');
+         if (saved) return JSON.parse(saved);
+-    } catch (e) {}
++    } catch (e) {
++        console.warn('[folderPinnedItems] failed to parse saved value, using empty map', e);
++    }
+     return {};
+ }
+ 
+@@ -1551,7 +1553,7 @@ function showImportChoiceModal(data, filename) {
+     modal.innerHTML = `
+                         <h3 class="playlist-modal-title">Import Data</h3>
+                         <p style="color: var(--text-secondary); font-size: 13px; margin: 10px 0;">
+-                                File: ${filename}
++                                File: ${escapeHtml(filename)}
+                         </p>
+                         <p style="color: var(--text-secondary); font-size: 13px; margin: 10px 0;">
+                                 How would you like to import?
+diff --git a/src/js/08f-panel-extended-metadata.js b/src/js/08f-panel-extended-metadata.js
+index eacbe52..23d1828 100644
+--- a/src/js/08f-panel-extended-metadata.js
++++ b/src/js/08f-panel-extended-metadata.js
+@@ -16,7 +16,9 @@ function getExtendedMetadataSettings() {
+             });
+             return result;
+         }
+-    } catch (e) {}
++    } catch (e) {
++        console.warn('[extendedMetadataEnabled] failed to parse saved value, using defaults', e);
++    }
+     const defaults = {};
+     EXTENDED_METADATA_FIELDS.forEach((f) => {
+         defaults[f.key] = f.hidden ? false : !!f.defaultOn;
+diff --git a/src/js/11e-sync-editor-line-edit.js b/src/js/11e-sync-editor-line-edit.js
+index 1dffec6..c9da99d 100644
+--- a/src/js/11e-sync-editor-line-edit.js
++++ b/src/js/11e-sync-editor-line-edit.js
+@@ -232,7 +232,10 @@ function copySyncCurrentTime() {
+         try {
+             document.execCommand('copy');
+             showNotification('Copied ' + t, 'success', 1500);
+-        } catch (e) {}
++        } catch (e) {
++            console.warn('[sync editor] execCommand(copy) fallback failed', e);
++            showNotification('Could not copy to clipboard', 'error', 2000);
++        }
+         ta.remove();
+     }
+ }
+diff --git a/src/js/11g-sync-editor-line-actions.js b/src/js/11g-sync-editor-line-actions.js
+index 448881e..79fafd5 100644
+--- a/src/js/11g-sync-editor-line-actions.js
++++ b/src/js/11g-sync-editor-line-actions.js
+@@ -161,7 +161,9 @@ function showSyncLineContextMenu(event, index) {
+             if (item && typeof item.handler === 'function') {
+                 try {
+                     item.handler();
+-                } catch (err) {}
++                } catch (err) {
++                    console.error('[sync editor] line context menu action failed', item.label, err);
++                }
+             }
+         });
+     });
+diff --git a/src/js/18-lyrics-editor.js b/src/js/18-lyrics-editor.js
+index 8b4cdcb..bb2662e 100644
+--- a/src/js/18-lyrics-editor.js
++++ b/src/js/18-lyrics-editor.js
+@@ -5,7 +5,9 @@ function getCustomLyricsStore() {
+     try {
+         const saved = localStorage.getItem('customLyrics');
+         if (saved) return JSON.parse(saved);
+-    } catch (e) {}
++    } catch (e) {
++        console.warn('[customLyrics] failed to parse saved value, using empty store', e);
++    }
+     return {};
+ }
+ 
+@@ -61,7 +63,9 @@ function getSyncedLyricsStore() {
+     try {
+         const saved = localStorage.getItem('customSyncedLyrics');
+         if (saved) return JSON.parse(saved);
+-    } catch (e) {}
++    } catch (e) {
++        console.warn('[customSyncedLyrics] failed to parse saved value, using empty store', e);
++    }
+     return {};
+ }
+ 
+diff --git a/tools/change.log.txt b/tools/change.log.txt
+index 49fcd5a..c95ea16 100644
+--- a/tools/change.log.txt
++++ b/tools/change.log.txt
+@@ -1671,3 +1671,37 @@ tools/test-shuffle/shuffle-test.html
+ - Updated its <script> tags (dev-only standalone shuffle demo page, not part of npm test) to load 10a-playback-shuffle.js + 10b-playback-smart-shuffle.js instead of the old 10-playback.js.
+ 
+ Final checkpoint: full tools/tests/* suite run (storage, recents, search-engine, scroll, search-ui, playback-settings, shuffle, music-folders, scanner, scan-folder-tags, metadata-backend, metadata-editor, online-metadata) - 0 fail, 1 skip (the pre-existing scroll.test.js "tiny thumb nudge" skip from Agent 2, confirmed unrelated to any of these changes). This closes out the 4-agent code-cleanup-plan.md serial execution plan.
++
++2026-09-26
++src/js/99-player.js
++- Added escapeHtmlAttr(text): escapeHtml(text) plus quote-escaping, for interpolating dynamic text into double- or single-quoted HTML attributes (escapeHtml alone does not escape quotes, so it is not safe for attribute context on its own).
++
++src/js/04a-ui-render-core.js
++- code-cleanup-plan.md Agent 5, Checkpoint 5 (innerHTML/escaping audit): buildSongItemHTML() and renderRightPanelItem() were interpolating raw song.title/song.artist (or the title/artist config values derived from them) into innerHTML with no escaping in the aria-label, alt, and title attributes and in the .song-title/.queue-item-title/.queue-item-artist text content. A crafted ID3 title/artist tag could inject markup or break out of an attribute via a quote character. These are the two functions behind every song row and every right-panel queue/now-playing/recently-played item in the app, so this was the highest-impact finding of the audit. Wrapped with escapeHtml() for text content and escapeHtmlAttr() for attribute context. No behavior change for normal tag data.
++
++src/js/06b-modals.js
++- showPlayedDataModal(): song.title/song.artist were unescaped in innerHTML text content. Wrapped with escapeHtml().
++- showEditPlaylistDialog(): playlist.cover was interpolated unescaped into an <img src="..."> attribute. Wrapped with escapeHtmlAttr(). Low practical risk (playlist.cover is a base64 data URI from a locally chosen image file, which cannot contain a quote character), fixed for defense in depth and consistency.
++
++src/js/03-storage.js
++- showImportChoiceModal(): the imported backup file's filename (file.name, from the OS/file picker) was unescaped in innerHTML text content. Wrapped with escapeHtml().
++
++Audit method
++- Every .innerHTML assignment across src/js/*.js (129 sites, 39 files) was extracted and every ${...} interpolation inside each was checked for escapeHtml()/escapeOnlineLyricsAttribute() wrapping. All other flagged sites were confirmed already escaped at the point of interpolation (existing escapeHtml() calls one level up, e.g. safeKey/titleText/artistText in 08g-panel-saved-lyrics.js, or 19-online-lyrics.js and 20-metadata-editor.js which already escape all song/online-API text) or are not attacker-influenced (numeric counts, internally generated ids, static enum/theme lists, loop indices). Full tools/tests/* suite re-run after the fix: 91 pass, 0 fail, 2 pre-existing skips (unchanged from the Agent 4 final checkpoint).
++
++Remaining code-cleanup-plan.md Agent 5 checkpoints (STORAGE_KEYS/VIEWS constants, silent-catch-block audit, DEBUG_SCAN gating, optional CSS-variables audit) are still open.
++
++2026-09-27
++electron/scan-folder.js
++- code-cleanup-plan.md Agent 5, Checkpoint 4 (debug logging cleanup): main() (the CLI dispatcher, forked as the actual scan child process by electron/scanner.js for every real full/rebuild-all/rebuild-all-streamed/full-streamed scan) had 35 unconditional console.log calls - decorative box-drawing banners plus genuinely useful troubleshooting info (output dir, source folder list, songs found, player.js path written). None of it is parsed by the parent process (scanner.js only watches for specific progress markers), so it was pure always-on stdout noise. Added a DEBUG_SCAN flag (env var DEBUG_SCAN=1/true) and a debugLog() helper, and switched all 35 console.log calls in main() to debugLog() so this output is opt-in instead of always-on. The existing silentMode flag and the one console.log in incremental-scan.js (already gated behind isSilentMode()) were left untouched - different, pre-existing mechanism, out of scope for this checkpoint. full-scan.js, fast-scan.js, single-file-rescan.js, and tag-builder.js had no console.log calls to begin with. No behavior/output-content change - only whether the banners print to stdout, controlled by DEBUG_SCAN.
++
++Verification: node --check passes, tools/tests/scanner.test.js + scan-folder-tags.test.js + music-folders.test.js pass unchanged, manual CLI invocation confirms identical behavior with and without DEBUG_SCAN set (only debugLog output differs).
++
++2026-09-28
++code-cleanup-plan.md Agent 5, Checkpoint 3 (silent error swallowing)
++- Found 85 catch blocks across src/js/*.js and electron/*.js. 27 were completely empty (catch (e) {}), meaning a real failure there had zero trace anywhere - no console output, no user feedback, no fallback comment explaining it was expected.
++- 19 of the 27 were failures worth knowing about, and got a console.warn/console.error with enough context to identify what failed and (where relevant) which file: every localStorage JSON.parse fallback (panelWidths, folderPinnedItems, extendedMetadataEnabled, customLyrics, customSyncedLyrics), every music-metadata mm.parseFile() per-song tag-read failure (fast-scan.js, full-scan.js, incremental-scan.js, single-file-rescan.js - these were previously silent about exactly which file failed to read and why), the folders-config.json and download-folder config.json reads, window-manager.js window-state read/write, the FASTRESULT:/COVERBATCH: streamed-line JSON.parse in scanner.js, the player.js SONGS_DATA read in main.js used for the first-run welcome check, tag-builder.js cover-extraction failures (a song silently getting no cover with zero trace), the sync editor's execCommand(copy) clipboard fallback (previously failed with literally no feedback to the user at all - now also shows a "Could not copy to clipboard" notification, matching the existing pattern used elsewhere), and the sync editor context-menu action handler (previously any bug in a menu action would vanish silently).
++- 8 of the 27 were genuinely fine to stay silent (expected-to-fail cleanup/best-effort-logging patterns: deleting a stale cover file that may not exist, deleting an old-format thumbnail twin that may not exist, checking whether a thumbnail already exists via fs.statSync, and four internal thumb-debug.log write attempts where logging the failure to log something is not useful). These got a one-line comment explaining why, instead of a console call, so nobody "fixes" them by adding noisy logging later.
++- No behavior change: every fix only adds a console.warn/console.error/comment or (in the one execCommand(copy) case) a user notification that mirrors what already happens elsewhere in the app on copy failure. Full tools/tests/* suite re-run after the fix: 91 pass, 0 fail, 2 pre-existing skips (unchanged).
++
++Remaining code-cleanup-plan.md Agent 5 checkpoints (STORAGE_KEYS/VIEWS constants, optional CSS-variables audit) are still open.
