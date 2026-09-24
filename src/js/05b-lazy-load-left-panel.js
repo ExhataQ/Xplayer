@@ -1,7 +1,17 @@
 // ==============================================================================
 // VIRTUAL SCROLL - LEFT PANEL
 // ==============================================================================
-const LEFT_ITEM_HEIGHT = 59;
+// Single source of truth for the row height is the CSS variable --left-item-height
+// (left-panel.css). JS reads it here so the scroll math can never disagree with what is
+// rendered. 61 is only a fallback.
+const LEFT_ITEM_HEIGHT = (() => {
+    try {
+        const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--left-item-height'));
+        return v > 0 ? v : 61;
+    } catch (_) {
+        return 61;
+    }
+})();
 const LEFT_OVERSCAN_COUNT = 5;
 
 let leftPanelVirtualState = {

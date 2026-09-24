@@ -1,3 +1,12 @@
+:root {
+    /* Single source of truth for the left-panel row height; JS reads it as LEFT_ITEM_HEIGHT.
+       8px top/bottom padding (--vertical-padding-items) + the 45px artist/album cover -
+       the tallest thing a row can contain - is what actually sets the height today. Pinning
+       it here (instead of leaving rows auto-height) means JS and CSS can't drift apart the
+       way they did before (a hardcoded 59 vs. the real 61px this produces). */
+    --left-item-height: 61px;
+}
+
 /* ==============================================================================
            LEFT PANEL (Main Sidebar)
            ============================================================================== */
@@ -451,6 +460,7 @@
     margin: 0;
     cursor: pointer;
     box-sizing: border-box;
+    height: var(--left-item-height);
     transition: opacity 0.15s ease;
     position: relative;
 }
@@ -463,6 +473,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    height: 100%;
     padding: var(--vertical-padding-items);
     border-radius: 6px;
     box-sizing: border-box;
