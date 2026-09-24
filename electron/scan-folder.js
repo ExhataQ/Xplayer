@@ -26,6 +26,15 @@ let silentMode = false;
 let activeFolders = [];
 let foldersConfigPath = null;
 
+// Verbose scan banners/progress (output dir, source folders, counts, written paths) are
+// dev-only leftovers from CLI use. They're harmless noise for a normal Electron-triggered
+// scan, so they're gated behind DEBUG_SCAN instead of always logging. Set DEBUG_SCAN=1 in
+// the environment to see them again when troubleshooting a scan.
+const DEBUG_SCAN = process.env.DEBUG_SCAN === '1' || process.env.DEBUG_SCAN === 'true';
+function debugLog(...args) {
+    if (DEBUG_SCAN) console.log(...args);
+}
+
 function getFoldersConfigPath() {
     if (!foldersConfigPath) {
         foldersConfigPath = path.join(__dirname, 'music-folders-config.json');
@@ -149,27 +158,27 @@ async function main(folderPath, outputDir, mode, specificFile) {
             return;
         }
 
-        console.log(`\n📁 Output: ${outputDir}`);
-        console.log(`🎶 Sources: ${folders.length} folder(s)`);
+        debugLog(`\n📁 Output: ${outputDir}`);
+        debugLog(`🎶 Sources: ${folders.length} folder(s)`);
         for (const f of folders) {
-            console.log(`     - ${f}`);
+            debugLog(`     - ${f}`);
         }
 
-        console.log('\n' + '─'.repeat(60));
-        console.log('📀  SCANNING SONGS & COVERS');
-        console.log('─'.repeat(60));
+        debugLog('\n' + '─'.repeat(60));
+        debugLog('📀  SCANNING SONGS & COVERS');
+        debugLog('─'.repeat(60));
 
         const allSongs = await scanAllFolders(coversFolder, mm);
 
         if (allSongs.length === 0) {
-            console.log('  ℹ️  No supported audio files found');
+            debugLog('  ℹ️  No supported audio files found');
         }
 
-        console.log(`\n  ✅  Found ${allSongs.length} songs`);
+        debugLog(`\n  ✅  Found ${allSongs.length} songs`);
 
-        console.log('\n' + '─'.repeat(60));
-        console.log('🎵  STEP 3: GENERATING MUSIC PLAYER');
-        console.log('─'.repeat(60));
+        debugLog('\n' + '─'.repeat(60));
+        debugLog('🎵  STEP 3: GENERATING MUSIC PLAYER');
+        debugLog('─'.repeat(60));
 
         const jsPath = path.join(outputDir, 'player.js');
         const songsJson = JSON.stringify(allSongs);
@@ -185,8 +194,8 @@ async function main(folderPath, outputDir, mode, specificFile) {
             fs.writeFileSync(jsPath, 'const SONGS_DATA = ' + songsJson + ';', 'utf-8');
         }
 
-        console.log(`  ✅  ${jsPath}`);
-        console.log(`  ✅  ${allSongs.length} songs written`);
+        debugLog(`  ✅  ${jsPath}`);
+        debugLog(`  ✅  ${allSongs.length} songs written`);
 
         const resultJson = JSON.stringify({
             success: true,
@@ -230,11 +239,11 @@ async function main(folderPath, outputDir, mode, specificFile) {
             return;
         }
 
-        console.log(`\n📁 Output: ${outputDir}`);
-        console.log(`🎶 Sources: ${folders.length} folder(s)`);
-        console.log('\n' + '─'.repeat(60));
-        console.log('📀  SCANNING SONGS (FAST PASS)');
-        console.log('─'.repeat(60));
+        debugLog(`\n📁 Output: ${outputDir}`);
+        debugLog(`🎶 Sources: ${folders.length} folder(s)`);
+        debugLog('\n' + '─'.repeat(60));
+        debugLog('📀  SCANNING SONGS (FAST PASS)');
+        debugLog('─'.repeat(60));
 
         const jsPath = path.join(outputDir, 'player.js');
         function writePlayerJsRebuild(songsToWrite) {
@@ -254,7 +263,7 @@ async function main(folderPath, outputDir, mode, specificFile) {
         const allSongs = await scanAllFoldersStreamed(streamedCoversFolder, mm, Jimp, writePlayerJsRebuild);
 
         if (allSongs.length === 0) {
-            console.log('  ℹ️  No supported audio files found');
+            debugLog('  ℹ️  No supported audio files found');
         }
 
         writePlayerJsRebuild(allSongs);
@@ -291,11 +300,11 @@ async function main(folderPath, outputDir, mode, specificFile) {
             fs.mkdirSync(streamedCoversFolder, { recursive: true });
         }
 
-        console.log(`\n📁 Output: ${outputDir}`);
-        console.log(`🎶 Source: ${folderPath}`);
-        console.log('\n' + '─'.repeat(60));
-        console.log('📀  SCANNING SONGS (FAST PASS)');
-        console.log('─'.repeat(60));
+        debugLog(`\n📁 Output: ${outputDir}`);
+        debugLog(`🎶 Source: ${folderPath}`);
+        debugLog('\n' + '─'.repeat(60));
+        debugLog('📀  SCANNING SONGS (FAST PASS)');
+        debugLog('─'.repeat(60));
 
         const jsPath = path.join(outputDir, 'player.js');
         function writePlayerJs(songsToWrite) {
@@ -336,12 +345,12 @@ async function main(folderPath, outputDir, mode, specificFile) {
             recursive: true
         });
 
-    console.log(`\n📁 Output: ${outputDir}`);
-    console.log(`🎶 Source: ${folderPath}`);
+    debugLog(`\n📁 Output: ${outputDir}`);
+    debugLog(`🎶 Source: ${folderPath}`);
 
-    console.log('\n' + '─'.repeat(60));
-    console.log('📀  SCANNING SONGS & COVERS');
-    console.log('─'.repeat(60));
+    debugLog('\n' + '─'.repeat(60));
+    debugLog('📀  SCANNING SONGS & COVERS');
+    debugLog('─'.repeat(60));
 
     const allSongs = await scanMusicFolder(folderPath, coversFolder, mm);
 
@@ -350,11 +359,11 @@ async function main(folderPath, outputDir, mode, specificFile) {
         process.exit(1);
     }
 
-    console.log(`\n  ✅  Found ${allSongs.length} songs`);
+    debugLog(`\n  ✅  Found ${allSongs.length} songs`);
 
-    console.log('\n' + '─'.repeat(60));
-    console.log('🎵  STEP 3: GENERATING MUSIC PLAYER');
-    console.log('─'.repeat(60));
+    debugLog('\n' + '─'.repeat(60));
+    debugLog('🎵  STEP 3: GENERATING MUSIC PLAYER');
+    debugLog('─'.repeat(60));
 
     const jsPath = path.join(outputDir, 'player.js');
 
@@ -372,8 +381,8 @@ async function main(folderPath, outputDir, mode, specificFile) {
         fs.writeFileSync(jsPath, jsContent, 'utf-8');
     }
 
-    console.log(`  ✅  ${jsPath}`);
-    console.log(`  ✅  ${allSongs.length} songs written`);
+    debugLog(`  ✅  ${jsPath}`);
+    debugLog(`  ✅  ${allSongs.length} songs written`);
 
     process.stdout.write(
         JSON.stringify({

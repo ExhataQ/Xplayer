@@ -1,3 +1,9 @@
+2026-09-24 (4)
+electron/scan-folder.js
+- Fixed: the scanner's 35 verbose CLI-style console.log calls were always writing decorative scan banners, output/source paths, song counts, and generated-file paths to stdout during normal Electron scans, creating unnecessary console noise.
+- Fix: added DEBUG_SCAN=1/true gating through a debugLog() helper and switched those verbose main() logs to debugLog(). Normal scans are now quiet while DEBUG_SCAN can be enabled when troubleshooting. The existing silentMode handling and incremental-scan.js logging were left unchanged.
+- No scan behavior or generated output changes; only the diagnostic stdout is now opt-in.
+- Verification: node --check passes, and the scanner-related test suites should be run after this change.
 2026-09-24 (3)
 src/js/08e-panel-settings.js, src/js/04c-render-albums.js, src/js/04d-render-artists.js, src/js/04b-render-playlists-folders.js, src/js/04e-render-favorites-history.js, src/js/04f-render-search-history.js, tools/tests/view-switch-song-list-cleanup.test.js
 - Fixed: opening Settings (or Advanced Settings, Albums, Recently Played, Search History, or an empty playlist/album/artist detail page) right after a big virtualized All Songs list left #song-list with a stale song-list--virtual class and stale inline height, producing a large blank scrollable area below the real content. renderAlbumsView and renderRecentlyPlayed additionally reuse the .song-item class for their own rows, so the stale class would have absolute-positioned every row on top of itself instead of laying out normally.
@@ -1695,3 +1701,4 @@ Audit method
 - Every .innerHTML assignment across src/js/*.js (129 sites, 39 files) was extracted and every ${...} interpolation inside each was checked for escapeHtml()/escapeOnlineLyricsAttribute() wrapping. All other flagged sites were confirmed already escaped at the point of interpolation (existing escapeHtml() calls one level up, e.g. safeKey/titleText/artistText in 08g-panel-saved-lyrics.js, or 19-online-lyrics.js and 20-metadata-editor.js which already escape all song/online-API text) or are not attacker-influenced (numeric counts, internally generated ids, static enum/theme lists, loop indices). Full tools/tests/* suite re-run after the fix: 91 pass, 0 fail, 2 pre-existing skips (unchanged from the Agent 4 final checkpoint).
 
 Remaining code-cleanup-plan.md Agent 5 checkpoints (STORAGE_KEYS/VIEWS constants, silent-catch-block audit, DEBUG_SCAN gating, optional CSS-variables audit) are still open.
+
