@@ -1,3 +1,9 @@
+2026-09-23
+src/js/05a-lazy-load-main-list.js, src/js/04a-ui-render-core.js, src/css/song-list.css
+- Main song list virtual scroll: replaced the flow-layout spacer/insertBefore approach with absolute-positioned rows (transform: translateY()) inside a fixed-height .song-list--virtual container, so scrolling no longer reflows sibling rows on every insert/remove.
+- Simplified the incremental scroll-render path to drop/append rows by index comparison instead of tracking sibling DOM positions.
+- Left the shared spacer-based primitives (used by the left panel and smart-lyrics virtual lists) and all row HTML/attribute generation untouched.
+
 2026-09-22
 src/js/03-storage.js, src/js/08-panels.js, src/js/10-playback.js, src/js/15-playback-controls.js, tools/tests/playback-settings.test.js
 - Fixed automatic-ended tracks bypassing the preloaded gapless audio element.

@@ -49,6 +49,24 @@
     z-index: 1;
 }
 
+/* Virtual-scroll mode: JS (05a-lazy-load-main-list.js) sets an explicit height equal to
+   the full row count and positions each row with `transform: translateY()` instead of
+   relying on document flow. This means adding/removing a row while scrolling never
+   reflows the rest of the list the way inserting/removing a flex child would - only
+   .song-list--virtual rows are affected, every other (non-virtualized) .song-item use
+   (queue, playlists, search, etc.) is untouched. */
+.song-list.song-list--virtual {
+    display: block;
+}
+
+.song-list.song-list--virtual > .song-item {
+    position: absolute;
+    top: 15px;
+    left: 0;
+    right: 0;
+    width: auto;
+}
+
 .song-list-container {
     display: flex;
     flex-direction: column;

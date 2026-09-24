@@ -451,7 +451,10 @@ function renderSongsList(songs, listId = 'all-songs') {
     }
 
     if (!songs || songs.length === 0) {
-        document.getElementById('song-list').innerHTML = `
+        const emptySongList = document.getElementById('song-list');
+        emptySongList.classList.remove('song-list--virtual');
+        emptySongList.style.height = '';
+        emptySongList.innerHTML = `
             <div class="empty-state-container">
                 <i class="fas fa-music"></i>
                 <span>No songs found</span>

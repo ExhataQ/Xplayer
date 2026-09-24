@@ -151,6 +151,32 @@ function attachRafScroll(content, onFrame, onResize) {
 const OVERSCAN_COUNT = 15;
 
 // ------------------------------------------------------------------------------
+// MAIN LIST ROW POSITIONING (absolute + transform, not flow + spacers)
+// Only the main song list uses these - the left panel and smart-lyrics list keep using
+// the flow+spacer primitives above unchanged. Rows are positioned with `transform:
+// translateY()` inside a `.song-list--virtual` container of a fixed, JS-set height, so
+// adding/removing a row at the edge of the window never reflows sibling rows the way
+// inserting/removing a normal-flow child would - the browser only has to composite the
+// moved row, not re-lay-out the list.
+// ------------------------------------------------------------------------------
+function createVirtualRowElement(html) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    const element = tempDiv.firstElementChild;
+    if (element) element.style.flexShrink = '0';
+    return element;
+}
+
+function positionVirtualRow(element, index, itemHeight) {
+    element.style.transform = `translateY(${index * itemHeight}px)`;
+}
+
+function setVirtualListHeight(list, count, itemHeight) {
+    const height = count * itemHeight + 'px';
+    if (list.style.height !== height) list.style.height = height;
+}
+
+// ------------------------------------------------------------------------------
 // COVER PRELOAD CACHE
 // Row images used to be created and decoded only at the moment the row entered the DOM, so
 // during a scroll they painted in visible steps. Holding an already-decoded Image object per
@@ -264,132 +290,93 @@ function renderVisibleItems(content, showPlaceholders) {
     }
 
     state.placeholderMode = !!showPlaceholders;
+    setVirtualListHeight(songList, state.currentSongs.length, ITEM_HEIGHT);
 
     if (showPlaceholders) {
         // Placeholders are on screen for ~150ms before the real rows land: start decoding the
         // destination thumbs now so they are ready the instant the rows are built.
         prewarmSongCovers(state.currentSongs, startIndex, endIndex);
 
+        songList.innerHTML = '';
+
+        for (let i = startIndex; i <= endIndex; i++) {
+            const element = createVirtualRowElement(buildPlaceholderHTML(i));
+            if (!element) continue;
+            positionVirtualRow(element, i, ITEM_HEIGHT);
+            songList.appendChild(element);
+        }
+
+        // Sentinel, not the real window: placeholder rows are never recycled into real
+        // rows, so this forces the next real-content render to hit the full-rebuild
+        // branch below instead of the no-op guard at the top of this function.
+        state.visibleItems = [];
         state.firstVisibleIndex = -1;
         state.lastVisibleIndex = -1;
-        state.visibleItems = [];
-
         state.lastRenderedStart = startIndex;
         state.lastRenderedEnd = endIndex;
-
-        state.spacerDiv = rebuildVirtualWindow(
-            songList,
-            { start: startIndex, end: endIndex },
-            ITEM_HEIGHT,
-            buildPlaceholderHTML
-        ).spacer;
     } else if (
         state.visibleItems.length === 0 ||
         startIndex > state.lastVisibleIndex ||
         endIndex < state.firstVisibleIndex
     ) {
+        // Non-overlapping jump (thumb dropped far away, etc.): nothing to reuse, rebuild
+        // the window from scratch.
+        songList.innerHTML = '';
+        state.visibleItems = [];
+
+        for (let i = startIndex; i <= endIndex; i++) {
+            const html = buildSongItemAt(i, state.currentListId);
+            if (!html) continue;
+            const element = createVirtualRowElement(html);
+            if (!element) continue;
+            positionVirtualRow(element, i, ITEM_HEIGHT);
+            songList.appendChild(element);
+            state.visibleItems.push({ element, index: i });
+        }
+
         state.firstVisibleIndex = startIndex;
         state.lastVisibleIndex = endIndex;
-
-        const rebuilt = rebuildVirtualWindow(
-            songList,
-            { start: startIndex, end: endIndex },
-            ITEM_HEIGHT,
-            (i) => buildSongItemAt(i, state.currentListId)
-        );
-        state.spacerDiv = rebuilt.spacer;
-        state.visibleItems = rebuilt.items;
     } else {
+        // Overlapping window shift (normal scrolling): drop the rows that scrolled out,
+        // append the rows that scrolled in. Because every row is positioned with
+        // `transform` rather than document order, this never has to reflow the rest of
+        // the list the way the old insertBefore/spacer-resize approach did - inserting or
+        // removing an absolutely positioned element only repaints, it doesn't re-lay-out
+        // its siblings.
+        while (state.visibleItems.length && state.visibleItems[0].index < startIndex) {
+            state.visibleItems.shift().element.remove();
+        }
+        while (state.visibleItems.length && state.visibleItems[state.visibleItems.length - 1].index > endIndex) {
+            state.visibleItems.pop().element.remove();
+        }
+
         if (startIndex < state.firstVisibleIndex) {
             for (let i = state.firstVisibleIndex - 1; i >= startIndex; i--) {
                 const html = buildSongItemAt(i, state.currentListId);
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = html;
-                const item = tempDiv.firstElementChild;
-                if (state.spacerDiv && state.spacerDiv.nextSibling) {
-                    songList.insertBefore(item, state.spacerDiv.nextSibling);
-                } else if (songList.children.length > 0) {
-                    songList.insertBefore(item, songList.children[1]);
-                } else {
-                    songList.appendChild(item);
-                }
-                state.visibleItems.unshift({
-                    element: item,
-                    index: i
-                });
+                if (!html) continue;
+                const element = createVirtualRowElement(html);
+                if (!element) continue;
+                positionVirtualRow(element, i, ITEM_HEIGHT);
+                songList.appendChild(element);
+                state.visibleItems.unshift({ element, index: i });
             }
         }
 
         if (endIndex > state.lastVisibleIndex) {
-            const bottomSpacer = songList.lastElementChild;
             for (let i = state.lastVisibleIndex + 1; i <= endIndex; i++) {
                 const html = buildSongItemAt(i, state.currentListId);
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = html;
-                const item = tempDiv.firstElementChild;
-                if (bottomSpacer && bottomSpacer.style.height && parseInt(bottomSpacer.style.height) > 0) {
-                    songList.insertBefore(item, bottomSpacer);
-                } else {
-                    songList.appendChild(item);
-                }
-                state.visibleItems.push({
-                    element: item,
-                    index: i
-                });
+                if (!html) continue;
+                const element = createVirtualRowElement(html);
+                if (!element) continue;
+                positionVirtualRow(element, i, ITEM_HEIGHT);
+                songList.appendChild(element);
+                state.visibleItems.push({ element, index: i });
             }
         }
 
-        if (startIndex > state.firstVisibleIndex) {
-            for (let i = state.firstVisibleIndex; i < startIndex; i++) {
-                if (
-                    state.spacerDiv &&
-                    state.spacerDiv.nextSibling &&
-                    state.spacerDiv.nextSibling !== songList.lastElementChild
-                ) {
-                    state.spacerDiv.nextSibling.remove();
-                    state.visibleItems.shift();
-                }
-            }
-        }
-
-        if (endIndex < state.lastVisibleIndex) {
-            for (let i = endIndex + 1; i <= state.lastVisibleIndex; i++) {
-                const allChildren = songList.children;
-                if (allChildren.length > 2) {
-                    const beforeBottom = allChildren[allChildren.length - 2];
-                    if (
-                        beforeBottom &&
-                        beforeBottom !== state.spacerDiv &&
-                        beforeBottom.classList.contains('song-item')
-                    ) {
-                        beforeBottom.remove();
-                        state.visibleItems.pop();
-                    }
-                }
-            }
-        }
-
-        state.spacerDiv.style.height = startIndex * ITEM_HEIGHT + 'px';
         state.firstVisibleIndex = startIndex;
         state.lastVisibleIndex = endIndex;
     }
-
-    const totalHeight = state.currentSongs.length * ITEM_HEIGHT;
-    const renderedHeight = startIndex * ITEM_HEIGHT + (endIndex - startIndex + 1) * ITEM_HEIGHT;
-    const bottomSpacerHeight = Math.max(0, totalHeight - renderedHeight);
-
-    let bottomSpacer = songList.lastElementChild;
-    if (bottomSpacer && (bottomSpacer === state.spacerDiv || bottomSpacer.classList.contains('song-item'))) {
-        bottomSpacer = document.createElement('div');
-        bottomSpacer.style.width = '100%';
-        songList.appendChild(bottomSpacer);
-    }
-    if (!bottomSpacer || bottomSpacer.style.height === undefined) {
-        bottomSpacer = document.createElement('div');
-        bottomSpacer.style.width = '100%';
-        songList.appendChild(bottomSpacer);
-    }
-    bottomSpacer.style.height = bottomSpacerHeight + 'px';
 
     if (!showPlaceholders) {
         prewarmSongCovers(state.currentSongs, startIndex - COVER_PREWARM_MARGIN, endIndex + COVER_PREWARM_MARGIN);
@@ -508,6 +495,9 @@ function initLazyLoading(songs, listId) {
     virtualScrollState.container = content;
     virtualScrollState.lastScrollTop = content ? content.scrollTop : 0;
     virtualScrollState.placeholderMode = false;
+
+    const songListEl = document.getElementById('song-list');
+    if (songListEl) songListEl.classList.add('song-list--virtual');
 
     let fastStreak = 0;
     virtualScrollState.lastRenderedStart = -1;
@@ -672,6 +662,12 @@ function settleVirtualScrollAfterThumbRelease(content) {
 }
 
 function teardownLazyLoading() {
+    const songListEl = document.getElementById('song-list');
+    if (songListEl) {
+        songListEl.classList.remove('song-list--virtual');
+        songListEl.style.height = '';
+    }
+
     if (virtualScrollState._scrollCleanup) {
         virtualScrollState._scrollCleanup();
         virtualScrollState._scrollCleanup = null;
