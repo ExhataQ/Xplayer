@@ -6,6 +6,16 @@ const vm = require('vm');
 
 function loadStorageWith(values) {
     const source = fs.readFileSync(path.join(__dirname, '../../src/js/03-storage.js'), 'utf8');
+    // 03-storage.js references STORAGE_KEYS, defined in 00-state.js (code-cleanup-plan.md
+    // Agent 5, Checkpoint 1). Pull just that constant out rather than vm-loading the whole
+    // of 00-state.js, which has top-level document.getElementById(...) calls this plain vm
+    // context doesn't provide - same "load exactly what's needed, nothing more" approach
+    // already used for getPlaylists() below.
+    const stateSource = fs.readFileSync(path.join(__dirname, '../../src/js/00-state.js'), 'utf8');
+    const storageKeysMatch = stateSource.match(/const STORAGE_KEYS = \{[\s\S]*?\n\};/);
+    if (!storageKeysMatch) {
+        throw new Error('storage.test.js: could not find STORAGE_KEYS in 00-state.js - did it move or get renamed?');
+    }
     const storage = {
         getItem(key) {
             return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : null;
@@ -15,6 +25,7 @@ function loadStorageWith(values) {
     };
     const context = { localStorage: storage, console, Date, JSON, setTimeout, clearTimeout };
     vm.createContext(context);
+    vm.runInContext(storageKeysMatch[0], context);
     vm.runInContext(source, context);
     return context;
 }

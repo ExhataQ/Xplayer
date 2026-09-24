@@ -16,6 +16,15 @@ function load({ stored = {}, library = [], deleted = [], failWrites = false } = 
     const document = { getElementById: () => null, querySelector: () => null };
     const context = { localStorage: storage, document, console: { ...console, warn() {} }, Date, JSON, setTimeout, clearTimeout, SONGS_DATA: library, deletedSongIds: new Set(deleted) };
     vm.createContext(context);
+    // 03-storage.js references STORAGE_KEYS, defined in 00-state.js (code-cleanup-plan.md
+    // Agent 5, Checkpoint 1). Pull just that constant out rather than vm-loading the whole
+    // of 00-state.js, which pulls in unrelated player-state globals this test has no need for.
+    const stateSource = fs.readFileSync(path.join(__dirname, '../../src/js/00-state.js'), 'utf8');
+    const storageKeysMatch = stateSource.match(/const STORAGE_KEYS = \{[\s\S]*?\n\};/);
+    if (!storageKeysMatch) {
+        throw new Error('recents.test.js: could not find STORAGE_KEYS in 00-state.js - did it move or get renamed?');
+    }
+    vm.runInContext(storageKeysMatch[0], context);
     for (const file of ['03-storage.js', '03a-recents.js']) {
         vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/js', file), 'utf8'), context);
     }

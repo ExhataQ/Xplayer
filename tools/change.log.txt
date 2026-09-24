@@ -1710,3 +1710,15 @@ src/js/00-state.js
 src/js/00-state.js
 - code-cleanup-plan.md Agent 5, Checkpoint 1: added a single STORAGE_KEYS source of truth for localStorage keys used by the app. Existing key values are unchanged.
 
+
+2026-09-30
+code-cleanup-plan.md Agent 5, Checkpoint 1, step 2 of 4 (swap src/js/03-storage.js)
+src/js/03-storage.js
+- Swapped all 38 raw localStorage key string literals over to STORAGE_KEYS.* (getStoredJson() callers and every direct localStorage.getItem/setItem/removeItem call). The getStoredJson(key, fallback) function definition itself was left untouched - it already takes the key as a parameter, now always supplied as a STORAGE_KEYS.* value by its callers. Confirmed zero raw storage-key literals remain in this file.
+
+tools/tests/storage.test.js, tools/tests/recents.test.js
+- Both vm-load 03-storage.js in isolation (a plain vm context, not the real app), so STORAGE_KEYS - defined in 00-state.js, which these tests do not load - was undefined and 3 previously-passing tests broke. Fixed by extracting just the STORAGE_KEYS object out of 00-state.js with a small regex and running it in the vm context before 03-storage.js, rather than vm-loading the whole of 00-state.js (which pulls in unrelated player-state globals, and in storage.test.js there is no document stub for its top-level document.getElementById(...) calls). Matches the existing "load exactly what a test needs, nothing more" approach already used for the getPlaylists() skip in storage.test.js.
+
+Verification: node --check passes; storage.test.js + recents.test.js: 11 pass, 0 fail, 1 pre-existing skip.
+
+Next: step 3 of 4 swaps the remaining 9 files (00-state.js, 01-sizes.js, 05a-lazy-load-main-list.js, 08a-panel-layout.js, 08f-panel-extended-metadata.js, 16-context-menu-actions.js, 18-lyrics-editor.js, 99-player.js, 03c-playlists.js).

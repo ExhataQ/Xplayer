@@ -21,10 +21,10 @@ function getStoredJson(key, fallback) {
 // ==============================================================================
 function saveToRecentlyPlayed(song) {
     // List logic (move-to-top instead of duplicating, cap, clean-up) lives in 03a-recents.js.
-    const recentSongs = addToRecentList(getStoredJson('recentlyPlayed', []), song, Date.now(), MAX_RECENT_SONGS);
+    const recentSongs = addToRecentList(getStoredJson(STORAGE_KEYS.RECENTLY_PLAYED, []), song, Date.now(), MAX_RECENT_SONGS);
 
     try {
-        localStorage.setItem('recentlyPlayed', JSON.stringify(recentSongs));
+        localStorage.setItem(STORAGE_KEYS.RECENTLY_PLAYED, JSON.stringify(recentSongs));
     } catch (e) {
         console.warn('Could not save the recently played list:', e);
     }
@@ -37,7 +37,7 @@ function saveToRecentlyPlayed(song) {
 }
 
 function getRecentlyPlayed() {
-    const recentSongs = getStoredJson('recentlyPlayed', []);
+    const recentSongs = getStoredJson(STORAGE_KEYS.RECENTLY_PLAYED, []);
     return recentSongs;
 }
 
@@ -57,7 +57,7 @@ async function clearRecentlyPlayed() {
     });
 
     if (confirmed) {
-        localStorage.removeItem('recentlyPlayed');
+        localStorage.removeItem(STORAGE_KEYS.RECENTLY_PLAYED);
         clearGhostList('recent');
         updateRecentCount();
 
@@ -81,7 +81,7 @@ async function clearRecentlyPlayed() {
 function saveToPlayHistory(song, playDuration) {
     const actualSong = song.song || song;
 
-    let history = getStoredJson('playHistory', []);
+    let history = getStoredJson(STORAGE_KEYS.PLAY_HISTORY, []);
 
     const ghostSlotId = addHistoryGhostSlot(actualSong.id);
 
@@ -105,7 +105,7 @@ function saveToPlayHistory(song, playDuration) {
         history = history.slice(0, MAX_HISTORY_ENTRIES);
     }
 
-    localStorage.setItem('playHistory', JSON.stringify(history));
+    localStorage.setItem(STORAGE_KEYS.PLAY_HISTORY, JSON.stringify(history));
 
     if (currentView === 'history') {
         renderHistoryView();
@@ -113,7 +113,7 @@ function saveToPlayHistory(song, playDuration) {
 }
 
 function getPlayHistory() {
-    return getStoredJson('playHistory', []);
+    return getStoredJson(STORAGE_KEYS.PLAY_HISTORY, []);
 }
 
 async function clearPlayHistory() {
@@ -125,7 +125,7 @@ async function clearPlayHistory() {
     });
 
     if (confirmed) {
-        localStorage.removeItem('playHistory');
+        localStorage.removeItem(STORAGE_KEYS.PLAY_HISTORY);
         historyGhostSlots = [];
         nextHistorySlotId = 1;
 
@@ -148,7 +148,7 @@ async function clearPlayHistory() {
 // FAVORITES
 // ==============================================================================
 function getFavorites() {
-    return getStoredJson('favorites', []);
+    return getStoredJson(STORAGE_KEYS.FAVORITES, []);
 }
 
 const DEFAULT_SMART_SHUFFLE_SETTINGS = {
@@ -179,14 +179,14 @@ const DEFAULT_AUDIO_PLAYBACK_SETTINGS = {
 function getSmartShuffleSettings() {
     return {
         ...DEFAULT_SMART_SHUFFLE_SETTINGS,
-        ...getStoredJson('smartShuffleSettings', {})
+        ...getStoredJson(STORAGE_KEYS.SMART_SHUFFLE_SETTINGS, {})
     };
 }
 
 function getAudioPlaybackSettings() {
     const settings = {
         ...DEFAULT_AUDIO_PLAYBACK_SETTINGS,
-        ...getStoredJson('audioPlaybackSettings', {})
+        ...getStoredJson(STORAGE_KEYS.AUDIO_PLAYBACK_SETTINGS, {})
     };
     // Both modes control the same transition and cannot run together. Preserve
     // the gapless preference for settings saved by older builds with both on.
@@ -197,7 +197,7 @@ function getAudioPlaybackSettings() {
 }
 
 function saveAudioPlaybackSettings(settings) {
-    localStorage.setItem('audioPlaybackSettings', JSON.stringify(settings));
+    localStorage.setItem(STORAGE_KEYS.AUDIO_PLAYBACK_SETTINGS, JSON.stringify(settings));
 }
 
 function setAudioPlaybackSetting(key, value) {
@@ -239,13 +239,13 @@ function setAudioPlaybackSetting(key, value) {
 
 function getWindowSettings() {
     return {
-        minimizeOnClose: localStorage.getItem('minimizeOnClose') === 'true'
+        minimizeOnClose: localStorage.getItem(STORAGE_KEYS.MINIMIZE_ON_CLOSE) === 'true'
     };
 }
 
 function setMinimizeOnClose(enabled) {
     const value = Boolean(enabled);
-    localStorage.setItem('minimizeOnClose', String(value));
+    localStorage.setItem(STORAGE_KEYS.MINIMIZE_ON_CLOSE, String(value));
     if (typeof window !== 'undefined' && window.electronAPI && window.electronAPI.setMinimizeOnClose) {
         window.electronAPI.setMinimizeOnClose(value);
     }
@@ -254,21 +254,21 @@ function setMinimizeOnClose(enabled) {
 function saveSmartShuffleSetting(key, value) {
     const settings = getSmartShuffleSettings();
     settings[key] = value;
-    localStorage.setItem('smartShuffleSettings', JSON.stringify(settings));
+    localStorage.setItem(STORAGE_KEYS.SMART_SHUFFLE_SETTINGS, JSON.stringify(settings));
 }
 
 function saveFavorite(songId) {
     let favorites = getFavorites();
     if (!favorites.includes(songId)) {
         favorites.unshift(songId);
-        localStorage.setItem('favorites', JSON.stringify(favorites));
+        localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(favorites));
     }
 }
 
 function removeFavorite(songId) {
     let favorites = getFavorites();
     favorites = favorites.filter((id) => id !== songId);
-    localStorage.setItem('favorites', JSON.stringify(favorites));
+    localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(favorites));
 }
 
 function isFavorite(songId) {
@@ -280,11 +280,11 @@ function isFavorite(songId) {
 // PINNED ITEMS & ITEM ORDER
 // ==============================================================================
 function getPinnedItems() {
-    return getStoredJson('pinnedItems', []);
+    return getStoredJson(STORAGE_KEYS.PINNED_ITEMS, []);
 }
 
 function savePinnedItems(pinnedIds) {
-    localStorage.setItem('pinnedItems', JSON.stringify(pinnedIds));
+    localStorage.setItem(STORAGE_KEYS.PINNED_ITEMS, JSON.stringify(pinnedIds));
 }
 
 function isItemPinned(itemId) {
@@ -322,11 +322,11 @@ function togglePinItem(itemId, itemName) {
 }
 
 function getPlayedItemOrder() {
-    return getStoredJson('playedItemOrder', []);
+    return getStoredJson(STORAGE_KEYS.PLAYED_ITEM_ORDER, []);
 }
 
 function savePlayedItemOrder(order) {
-    localStorage.setItem('playedItemOrder', JSON.stringify(order));
+    localStorage.setItem(STORAGE_KEYS.PLAYED_ITEM_ORDER, JSON.stringify(order));
 }
 
 function movePlayedItemToTop(listId) {
@@ -376,14 +376,16 @@ function movePlayedItemToTop(listId) {
 // ==============================================================================
 function getFolderPinnedItemsMap() {
     try {
-        const saved = localStorage.getItem('folderPinnedItems');
+        const saved = localStorage.getItem(STORAGE_KEYS.FOLDER_PINNED_ITEMS);
         if (saved) return JSON.parse(saved);
-    } catch (e) {}
+    } catch (e) {
+        console.warn('[folderPinnedItems] failed to parse saved value, using empty map', e);
+    }
     return {};
 }
 
 function saveFolderPinnedItemsMap(map) {
-    localStorage.setItem('folderPinnedItems', JSON.stringify(map));
+    localStorage.setItem(STORAGE_KEYS.FOLDER_PINNED_ITEMS, JSON.stringify(map));
 }
 
 function getFolderPinnedItems(folderId) {
@@ -428,11 +430,11 @@ function refreshLeftPanelAfterFolderPinChange(folderId) {
 // FOLDERS
 // ==============================================================================
 function getFolders() {
-    return getStoredJson('folders', []);
+    return getStoredJson(STORAGE_KEYS.FOLDERS, []);
 }
 
 function saveFolders(folders) {
-    localStorage.setItem('folders', JSON.stringify(folders));
+    localStorage.setItem(STORAGE_KEYS.FOLDERS, JSON.stringify(folders));
 }
 
 function createFolder(name) {
@@ -685,11 +687,11 @@ function getItemFolderState(folderId, itemId, itemType) {
 }
 
 function getExpandedFolderKeys() {
-    return getStoredJson('expandedFolders', []);
+    return getStoredJson(STORAGE_KEYS.EXPANDED_FOLDERS, []);
 }
 
 function saveExpandedFolderKeys(keys) {
-    localStorage.setItem('expandedFolders', JSON.stringify(keys));
+    localStorage.setItem(STORAGE_KEYS.EXPANDED_FOLDERS, JSON.stringify(keys));
 }
 
 function isFolderExpanded(parentKey, folderId) {
@@ -835,11 +837,11 @@ function flattenLeftPanelItems(items, depth, parentKey, out, visited) {
 // SEARCH HISTORY
 // ==============================================================================
 function getSearchHistory() {
-    return getStoredJson('searchHistory', []);
+    return getStoredJson(STORAGE_KEYS.SEARCH_HISTORY, []);
 }
 
 function saveSearchToHistory(searchQuery, searchSessionId, resultCount) {
-    let searchHistory = getStoredJson('searchHistory', []);
+    let searchHistory = getStoredJson(STORAGE_KEYS.SEARCH_HISTORY, []);
 
     const searchEntry = {
         sessionId: searchSessionId,
@@ -856,7 +858,7 @@ function saveSearchToHistory(searchQuery, searchSessionId, resultCount) {
         searchHistory = searchHistory.slice(0, MAX_SEARCH_HISTORY);
     }
 
-    localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
+    localStorage.setItem(STORAGE_KEYS.SEARCH_HISTORY, JSON.stringify(searchHistory));
 }
 
 async function clearSearchHistory() {
@@ -868,7 +870,7 @@ async function clearSearchHistory() {
     });
 
     if (confirmed) {
-        localStorage.removeItem('searchHistory');
+        localStorage.removeItem(STORAGE_KEYS.SEARCH_HISTORY);
 
         if (currentView === 'search-history') {
             renderSearchHistoryView();
@@ -1481,9 +1483,9 @@ function changeMusicFolder() {
 }
 
 function deleteSearchHistoryEntry(sessionId) {
-    let searchHistory = getStoredJson('searchHistory', []);
+    let searchHistory = getStoredJson(STORAGE_KEYS.SEARCH_HISTORY, []);
     searchHistory = searchHistory.filter((entry) => entry.sessionId !== sessionId);
-    localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
+    localStorage.setItem(STORAGE_KEYS.SEARCH_HISTORY, JSON.stringify(searchHistory));
 
     if (currentView === 'search-history') {
         renderSearchHistoryView();
@@ -1597,7 +1599,7 @@ function doImportMerge(data) {
     if (data.favorites) {
         const existing = getFavorites();
         const merged = [...new Set([...existing, ...data.favorites])];
-        localStorage.setItem('favorites', JSON.stringify(merged));
+        localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(merged));
     }
     if (data.pinnedItems) {
         const existing = getPinnedItems();
@@ -1619,10 +1621,10 @@ function doImportMerge(data) {
 
 function doImportReplace(data) {
     if (data.playlists) savePlaylists(data.playlists);
-    if (data.favorites) localStorage.setItem('favorites', JSON.stringify(data.favorites));
-    if (data.playHistory) localStorage.setItem('playHistory', JSON.stringify(data.playHistory));
-    if (data.recentlyPlayed) localStorage.setItem('recentlyPlayed', JSON.stringify(data.recentlyPlayed));
-    if (data.searchHistory) localStorage.setItem('searchHistory', JSON.stringify(data.searchHistory));
+    if (data.favorites) localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(data.favorites));
+    if (data.playHistory) localStorage.setItem(STORAGE_KEYS.PLAY_HISTORY, JSON.stringify(data.playHistory));
+    if (data.recentlyPlayed) localStorage.setItem(STORAGE_KEYS.RECENTLY_PLAYED, JSON.stringify(data.recentlyPlayed));
+    if (data.searchHistory) localStorage.setItem(STORAGE_KEYS.SEARCH_HISTORY, JSON.stringify(data.searchHistory));
     if (data.pinnedItems) savePinnedItems(data.pinnedItems);
     if (data.folders) saveFolders(data.folders);
     finishImport();
