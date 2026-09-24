@@ -1702,3 +1702,11 @@ Audit method
 
 Remaining code-cleanup-plan.md Agent 5 checkpoints (STORAGE_KEYS/VIEWS constants, silent-catch-block audit, DEBUG_SCAN gating, optional CSS-variables audit) are still open.
 
+
+src/js/00-state.js
+- code-cleanup-plan.md Agent 5, Checkpoint 1: added a single STORAGE_KEYS source of truth for localStorage keys used by the app. Existing key values are unchanged.
+
+
+src/js/00-state.js
+- code-cleanup-plan.md Agent 5, Checkpoint 1: added a single STORAGE_KEYS source of truth for localStorage keys used by the app. Existing key values are unchanged.
+

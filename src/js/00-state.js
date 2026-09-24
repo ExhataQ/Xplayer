@@ -1,6 +1,34 @@
 // ==============================================================================
 // PLAYER STATE VARIABLES
 // ==============================================================================
+
+// code-cleanup-plan.md Agent 5, Checkpoint 1: single source of truth for every
+// localStorage key the app uses. Values are unchanged from what each key already
+// was, so existing saved data in users' localStorage keeps working as-is.
+const STORAGE_KEYS = {
+    FAVORITES: 'favorites',
+    PLAY_HISTORY: 'playHistory',
+    RECENTLY_PLAYED: 'recentlyPlayed',
+    SEARCH_HISTORY: 'searchHistory',
+    RIGHT_PANEL_COLLAPSED: 'rightPanelCollapsed',
+    LEFT_PANEL_COLLAPSED: 'leftPanelCollapsed',
+    VIRTUAL_SCROLL_THRESHOLD: 'virtualScrollThreshold',
+    MINIMIZE_ON_CLOSE: 'minimizeOnClose',
+    HIDE_RIGHT_PANEL_LYRICS: 'hideRightPanelLyrics',
+    FOLDER_PINNED_ITEMS: 'folderPinnedItems',
+    EXTENDED_METADATA_ENABLED: 'extendedMetadataEnabled',
+    CUSTOM_SYNCED_LYRICS: 'customSyncedLyrics',
+    CUSTOM_LYRICS: 'customLyrics',
+    SMART_SHUFFLE_SETTINGS: 'smartShuffleSettings',
+    PLAYLISTS: 'playlists',
+    PLAYED_ITEM_ORDER: 'playedItemOrder',
+    PINNED_ITEMS: 'pinnedItems',
+    PANEL_WIDTHS: 'panelWidths',
+    FOLDERS: 'folders',
+    EXPANDED_FOLDERS: 'expandedFolders',
+    AUDIO_PLAYBACK_SETTINGS: 'audioPlaybackSettings'
+};
+
 function getSongById(id) {
     return typeof SONGS_DATA !== 'undefined' ? SONGS_DATA.find((s) => s.id === id) : null;
 }
