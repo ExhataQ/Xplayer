@@ -1551,7 +1551,7 @@ function showImportChoiceModal(data, filename) {
     modal.innerHTML = `
                         <h3 class="playlist-modal-title">Import Data</h3>
                         <p style="color: var(--text-secondary); font-size: 13px; margin: 10px 0;">
-                                File: ${filename}
+                                File: ${escapeHtml(filename)}
                         </p>
                         <p style="color: var(--text-secondary); font-size: 13px; margin: 10px 0;">
                                 How would you like to import?

@@ -371,7 +371,7 @@ function buildSongItemHTML(config) {
          onkeydown="if(event.key === 'Enter') playSongFromList(${song.id}, '${listId}', ${
         index !== null ? index : 'null'
     })"
-         aria-label="Play ${song.title} by ${song.artist}"
+         aria-label="Play ${escapeHtmlAttr(song.title)} by ${escapeHtmlAttr(song.artist)}"
          data-song-id="${song.id}"
          data-ghost-slot="${ghostSlot}"
          data-cover="${song.largeCover || song.cover || ''}">
@@ -379,11 +379,11 @@ function buildSongItemHTML(config) {
             <div class="left-song-item">
                     <img class="song-cover" 
                          src="${song.cover || PLACEHOLDER_IMAGE}" 
-                         alt="Cover for ${song.title}"
+                         alt="Cover for ${escapeHtmlAttr(song.title)}"
                          decoding="sync"
                          onerror="this.onerror=null; this.src=PLACEHOLDER_IMAGE">
                     <div class="song-info">
-                            <div class="song-title">${song.title}</div>
+                            <div class="song-title">${escapeHtml(song.title)}</div>
                             <div class="song-artist">${buildSongArtistHTML(song)}${langBadge}</div>
                     </div>
             </div>
@@ -391,10 +391,7 @@ function buildSongItemHTML(config) {
             <div class="right-song-item">
                     ${extraButtonsHTML}
                     <div class="song-duration">${song.duration}</div>
-                    <div class="more-info" onclick="event.stopPropagation(); ${onContextMenu}" ondblclick="event.stopPropagation()" title="More options for ${song.title.replace(
-        /"/g,
-        '&quot;'
-    )}">
+                    <div class="more-info" onclick="event.stopPropagation(); ${onContextMenu}" ondblclick="event.stopPropagation()" title="More options for ${escapeHtmlAttr(song.title)}">
                             <span class="material-symbols-outlined">more_horiz</span>
                     </div>
             </div>
@@ -423,13 +420,10 @@ function renderRightPanelItem(song, config = {}) {
                     <div class="queue-item-info">
                             <div class="queue-item-title"${
                                 isNowPlaying ? ' style="color: var(--accent); font-weight: 600;"' : ''
-                            }>${title}</div>
-                            <div class="queue-item-artist">${artist}</div>
+                            }>${escapeHtml(title)}</div>
+                            <div class="queue-item-artist">${escapeHtml(artist)}</div>
                     </div>
-                    <div class="more-info" onclick="event.stopPropagation(); showContextMenu(event, ${contextMenuArgs})" title="More options for ${title.replace(
-        /"/g,
-        '&quot;'
-    )}">
+                    <div class="more-info" onclick="event.stopPropagation(); showContextMenu(event, ${contextMenuArgs})" title="More options for ${escapeHtmlAttr(title)}">
                             <span class="material-symbols-outlined">more_horiz</span>
                     </div>
             </div>`;

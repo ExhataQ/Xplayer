@@ -300,7 +300,7 @@ function showEditPlaylistDialog(playlistId) {
                 <div style="width: 100px; height: 100px; border-radius: 8px; overflow: hidden; background: var(--bg-card); flex-shrink: 0; position: relative; cursor: pointer;" id="edit-playlist-cover-preview" onclick="document.getElementById('edit-playlist-cover-input').click()">
                         ${
                             playlist.cover
-                                ? `<img src="${playlist.cover}" style="width: 100%; height: 100%; object-fit: cover;">`
+                                ? `<img src="${escapeHtmlAttr(playlist.cover)}" style="width: 100%; height: 100%; object-fit: cover;">`
                                 : `
 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>                                        <rect x="140" y="230" width="120" height="30" rx="6" fill="var(--accent)" opacity="0.4"/>
                         </svg>`
@@ -827,8 +827,8 @@ function showPlayedDataModal(songId) {
 
     modal.innerHTML = `
         <h3 class="playlist-modal-title">Play History</h3>
-        <p style="color: var(--text-primary); font-size: 14px; margin: 5px 0;">${song.title}</p>
-        <p style="color: var(--text-secondary); font-size: 12px; margin: 5px 0;">${song.artist}</p>
+        <p style="color: var(--text-primary); font-size: 14px; margin: 5px 0;">${escapeHtml(song.title)}</p>
+        <p style="color: var(--text-secondary); font-size: 12px; margin: 5px 0;">${escapeHtml(song.artist)}</p>
         <div style="display: flex; gap: 20px; margin: 15px 0; padding: 10px; background: var(--bg-card); border-radius: 6px;">
                 <div style="text-align: center;">
                         <div style="font-size: 18px; font-weight: 700; color: var(--accent);">${totalPlays}</div>

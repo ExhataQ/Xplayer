@@ -35,6 +35,10 @@ function escapeHtml(text) {
     });
 }
 
+function escapeHtmlAttr(text) {
+    return escapeHtml(text).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function generateLongId(prefix) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';

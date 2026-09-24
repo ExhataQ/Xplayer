@@ -1671,3 +1671,22 @@ tools/test-shuffle/shuffle-test.html
 - Updated its <script> tags (dev-only standalone shuffle demo page, not part of npm test) to load 10a-playback-shuffle.js + 10b-playback-smart-shuffle.js instead of the old 10-playback.js.
 
 Final checkpoint: full tools/tests/* suite run (storage, recents, search-engine, scroll, search-ui, playback-settings, shuffle, music-folders, scanner, scan-folder-tags, metadata-backend, metadata-editor, online-metadata) - 0 fail, 1 skip (the pre-existing scroll.test.js "tiny thumb nudge" skip from Agent 2, confirmed unrelated to any of these changes). This closes out the 4-agent code-cleanup-plan.md serial execution plan.
+
+2026-09-26
+src/js/99-player.js
+- Added escapeHtmlAttr(text): escapeHtml(text) plus quote-escaping, for interpolating dynamic text into double- or single-quoted HTML attributes (escapeHtml alone does not escape quotes, so it is not safe for attribute context on its own).
+
+src/js/04a-ui-render-core.js
+- code-cleanup-plan.md Agent 5, Checkpoint 5 (innerHTML/escaping audit): buildSongItemHTML() and renderRightPanelItem() were interpolating raw song.title/song.artist (or the title/artist config values derived from them) into innerHTML with no escaping in the aria-label, alt, and title attributes and in the .song-title/.queue-item-title/.queue-item-artist text content. A crafted ID3 title/artist tag could inject markup or break out of an attribute via a quote character. These are the two functions behind every song row and every right-panel queue/now-playing/recently-played item in the app, so this was the highest-impact finding of the audit. Wrapped with escapeHtml() for text content and escapeHtmlAttr() for attribute context. No behavior change for normal tag data.
+
+src/js/06b-modals.js
+- showPlayedDataModal(): song.title/song.artist were unescaped in innerHTML text content. Wrapped with escapeHtml().
+- showEditPlaylistDialog(): playlist.cover was interpolated unescaped into an <img src="..."> attribute. Wrapped with escapeHtmlAttr(). Low practical risk (playlist.cover is a base64 data URI from a locally chosen image file, which cannot contain a quote character), fixed for defense in depth and consistency.
+
+src/js/03-storage.js
+- showImportChoiceModal(): the imported backup file's filename (file.name, from the OS/file picker) was unescaped in innerHTML text content. Wrapped with escapeHtml().
+
+Audit method
+- Every .innerHTML assignment across src/js/*.js (129 sites, 39 files) was extracted and every ${...} interpolation inside each was checked for escapeHtml()/escapeOnlineLyricsAttribute() wrapping. All other flagged sites were confirmed already escaped at the point of interpolation (existing escapeHtml() calls one level up, e.g. safeKey/titleText/artistText in 08g-panel-saved-lyrics.js, or 19-online-lyrics.js and 20-metadata-editor.js which already escape all song/online-API text) or are not attacker-influenced (numeric counts, internally generated ids, static enum/theme lists, loop indices). Full tools/tests/* suite re-run after the fix: 91 pass, 0 fail, 2 pre-existing skips (unchanged from the Agent 4 final checkpoint).
+
+Remaining code-cleanup-plan.md Agent 5 checkpoints (STORAGE_KEYS/VIEWS constants, silent-catch-block audit, DEBUG_SCAN gating, optional CSS-variables audit) are still open.
