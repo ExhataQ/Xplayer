@@ -58,10 +58,10 @@ async function clearRecentlyPlayed() {
 
     if (confirmed) {
         localStorage.removeItem(STORAGE_KEYS.RECENTLY_PLAYED);
-        clearGhostList('recent');
+        clearGhostList(VIEWS.RECENT);
         updateRecentCount();
 
-        if (currentView === 'recent') {
+        if (currentView === VIEWS.RECENT) {
             renderRecentlyPlayed();
             setTimeout(() => updateExternalScrollbar(), 100);
         }
@@ -107,7 +107,7 @@ function saveToPlayHistory(song, playDuration) {
 
     localStorage.setItem(STORAGE_KEYS.PLAY_HISTORY, JSON.stringify(history));
 
-    if (currentView === 'history') {
+    if (currentView === VIEWS.HISTORY) {
         renderHistoryView();
     }
 }
@@ -129,7 +129,7 @@ async function clearPlayHistory() {
         historyGhostSlots = [];
         nextHistorySlotId = 1;
 
-        if (currentView === 'history') {
+        if (currentView === VIEWS.HISTORY) {
             showHeroSection(true);
             updateHeroSection('Recents', 0, 'Playlist', 'History');
             renderHistoryView();
@@ -331,10 +331,10 @@ function savePlayedItemOrder(order) {
 
 function movePlayedItemToTop(listId) {
     if (
-        listId === 'all-songs' ||
-        listId === 'favorites' ||
-        listId === 'albums' ||
-        listId === 'artists' ||
+        listId === VIEWS.ALL_SONGS ||
+        listId === VIEWS.FAVORITES ||
+        listId === VIEWS.ALBUMS ||
+        listId === VIEWS.ARTISTS ||
         (listId &&
             (listId.startsWith('playlist-') ||
                 (listId.startsWith('a') && listId.length === 13) ||
@@ -502,7 +502,7 @@ function deleteFolder(folderId, deleteContents = false) {
     removeItemFromAllFolders(folderId, 'folder');
 
     if (wasCurrentView) {
-        switchView('all-songs');
+        switchView(VIEWS.ALL_SONGS);
     }
 
     renderFoldersView();
@@ -574,7 +574,7 @@ function getFolderContents(folderId) {
             childSpecials.push({
                 data: {
                     id: child.id,
-                    name: child.id === 'all-songs' ? 'All Songs' : child.id === 'favorites' ? 'Liked Songs' : child.id
+                    name: child.id === VIEWS.ALL_SONGS ? 'All Songs' : child.id === VIEWS.FAVORITES ? 'Liked Songs' : child.id
                 },
                 shortcut: !!child.shortcut
             });
@@ -872,7 +872,7 @@ async function clearSearchHistory() {
     if (confirmed) {
         localStorage.removeItem(STORAGE_KEYS.SEARCH_HISTORY);
 
-        if (currentView === 'search-history') {
+        if (currentView === VIEWS.SEARCH_HISTORY) {
             renderSearchHistoryView();
         }
 
@@ -1270,9 +1270,9 @@ async function rebuildLibraryFromFolders() {
         SONGS_DATA.length = 0;
         Array.prototype.push.apply(SONGS_DATA, result.songs);
 
-        clearGhostList('all-songs');
-        clearGhostList('favorites');
-        clearGhostList('history');
+        clearGhostList(VIEWS.ALL_SONGS);
+        clearGhostList(VIEWS.FAVORITES);
+        clearGhostList(VIEWS.HISTORY);
 
         for (const key in activeSlotHighlights) {
             activeSlotHighlights[key] = null;
@@ -1298,9 +1298,9 @@ async function rebuildLibraryFromFolders() {
         renderArtistLeftPanelItems();
         renderLeftPanelMainList();
 
-        if (currentView === 'all-songs') {
-            const songs = getSongsForList('all-songs');
-            renderSongsList(songs, 'all-songs');
+        if (currentView === VIEWS.ALL_SONGS) {
+            const songs = getSongsForList(VIEWS.ALL_SONGS);
+            renderSongsList(songs, VIEWS.ALL_SONGS);
             setupHeroSection(true, 'All Songs', songs.length, 'Playlist');
         }
 
@@ -1439,9 +1439,9 @@ function changeMusicFolder() {
             SONGS_DATA.length = 0;
             Array.prototype.push.apply(SONGS_DATA, result.songs);
 
-            clearGhostList('all-songs');
-            clearGhostList('favorites');
-            clearGhostList('history');
+            clearGhostList(VIEWS.ALL_SONGS);
+            clearGhostList(VIEWS.FAVORITES);
+            clearGhostList(VIEWS.HISTORY);
 
             for (const key in activeSlotHighlights) {
                 activeSlotHighlights[key] = null;
@@ -1469,9 +1469,9 @@ function changeMusicFolder() {
             renderLeftPanelMainList();
 
             updateAllCounts();
-            if (currentView === 'all-songs') {
-                const songs = getSongsForList('all-songs');
-                renderSongsList(songs, 'all-songs');
+            if (currentView === VIEWS.ALL_SONGS) {
+                const songs = getSongsForList(VIEWS.ALL_SONGS);
+                renderSongsList(songs, VIEWS.ALL_SONGS);
                 setupHeroSection(true, 'All Songs', songs.length, 'Playlist');
             }
 
@@ -1487,7 +1487,7 @@ function deleteSearchHistoryEntry(sessionId) {
     searchHistory = searchHistory.filter((entry) => entry.sessionId !== sessionId);
     localStorage.setItem(STORAGE_KEYS.SEARCH_HISTORY, JSON.stringify(searchHistory));
 
-    if (currentView === 'search-history') {
+    if (currentView === VIEWS.SEARCH_HISTORY) {
         renderSearchHistoryView();
     }
 

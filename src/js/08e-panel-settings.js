@@ -26,13 +26,13 @@ function openSettingsPanel() {
     if (typeof updateActiveHighlight === 'function') {
         updateActiveHighlight(null);
     }
-    pushViewToHistory('settings');
+    pushViewToHistory(VIEWS.SETTINGS);
     const smartShuffleSettings = getSmartShuffleSettings();
 
     showHeroSection(false);
     showTracklistHeader(false);
 
-    setSubheroVisibility('settings');
+    setSubheroVisibility(VIEWS.SETTINGS);
 
     const gradientWrapper = document.querySelector('.content-gradient-wrapper');
     if (gradientWrapper) gradientWrapper.classList.add('no-gradient');
@@ -276,7 +276,7 @@ function openAdvancedSettings() {
 }
 
 function closeAdvancedSettings() {
-    pushViewToHistory('settings');
+    pushViewToHistory(VIEWS.SETTINGS);
     advancedSettingsOpen = false;
     openSettingsPanel();
 }
@@ -410,13 +410,13 @@ function updateThresholdSliderFill(value) {
 
 function enterSettingsFromHistory() {
     advancedSettingsOpen = false;
-    currentView = 'settings';
+    currentView = VIEWS.SETTINGS;
     resetLeftPanelActiveState();
     resetViewScroll();
-    setSubheroVisibility('settings');
+    setSubheroVisibility(VIEWS.SETTINGS);
     showHeroSection(false);
     showTracklistHeader(false);
-    updateHeroCover('settings');
+    updateHeroCover(VIEWS.SETTINGS);
 
     const settingsToggleBtn = document.querySelector('.settings-toggle-btn');
     if (settingsToggleBtn) settingsToggleBtn.classList.add('active');
@@ -426,13 +426,13 @@ function enterSettingsFromHistory() {
 
 function enterAdvancedSettingsFromHistory() {
     advancedSettingsOpen = true;
-    currentView = 'settings';
+    currentView = VIEWS.SETTINGS;
     resetLeftPanelActiveState();
     resetViewScroll();
-    setSubheroVisibility('settings');
+    setSubheroVisibility(VIEWS.SETTINGS);
     showHeroSection(false);
     showTracklistHeader(false);
-    updateHeroCover('settings');
+    updateHeroCover(VIEWS.SETTINGS);
 
     const settingsToggleBtn = document.querySelector('.settings-toggle-btn');
     if (settingsToggleBtn) settingsToggleBtn.classList.add('active');
@@ -442,7 +442,7 @@ function enterAdvancedSettingsFromHistory() {
 
 function closeSettingsPanelOnly() {
     advancedSettingsOpen = false;
-    if (currentView === 'all-songs') {
+    if (currentView === VIEWS.ALL_SONGS) {
         teardownLazyLoading();
     }
 
@@ -460,7 +460,7 @@ function closeSettingsPanelOnly() {
     const gradientWrapper = document.querySelector('.content-gradient-wrapper');
     if (gradientWrapper) gradientWrapper.classList.remove('no-gradient');
 
-    const viewToRestore = currentView === 'settings' ? 'all-songs' : currentView;
+    const viewToRestore = currentView === VIEWS.SETTINGS ? VIEWS.ALL_SONGS : currentView;
     switchView(viewToRestore);
     updateSettingsMargins();
 }
@@ -470,14 +470,14 @@ function closeSettingsPanel() {
 }
 
 function toggleSettingsPanel() {
-    if (currentView === 'settings' && advancedSettingsOpen) {
+    if (currentView === VIEWS.SETTINGS && advancedSettingsOpen) {
         closeAdvancedSettings();
         return;
     }
-    if (currentView === 'settings') {
+    if (currentView === VIEWS.SETTINGS) {
         closeSettingsPanelOnly();
     } else {
-        if (currentView === 'lyrics' || currentView === 'online-lyrics') {
+        if (currentView === VIEWS.LYRICS || currentView === VIEWS.ONLINE_LYRICS) {
             if (typeof teardownLyricsView === 'function') {
                 teardownLyricsView();
             }
@@ -490,8 +490,8 @@ function toggleSettingsPanel() {
         }
 
         advancedSettingsOpen = false;
-        pushViewToHistory('settings');
-        currentView = 'settings';
+        pushViewToHistory(VIEWS.SETTINGS);
+        currentView = VIEWS.SETTINGS;
         resetLeftPanelActiveState();
         resetViewScroll();
 
@@ -507,12 +507,12 @@ function toggleSettingsPanel() {
             settingsToggleBtn.classList.add('active');
         }
 
-        setSubheroVisibility('settings');
+        setSubheroVisibility(VIEWS.SETTINGS);
         showHeroSection(false);
         showTracklistHeader(false);
         openSettingsPanel();
 
-        updateHeroCover('settings');
+        updateHeroCover(VIEWS.SETTINGS);
 
         setTimeout(() => {
             if (typeof updateExternalScrollbar === 'function') {

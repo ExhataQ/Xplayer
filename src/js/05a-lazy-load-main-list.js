@@ -35,7 +35,7 @@ function setVirtualScrollThreshold(value) {
     VIRTUAL_SCROLL_THRESHOLD = v;
     localStorage.setItem(STORAGE_KEYS.VIRTUAL_SCROLL_THRESHOLD, String(v));
 
-    if (currentView === 'settings') return v;
+    if (currentView === VIEWS.SETTINGS) return v;
 
     const songs = getSongsForList(currentView);
     if (!songs || songs.length === 0) return v;
@@ -262,7 +262,7 @@ function buildPlaceholderHTML(index) {
 }
 
 function renderVisibleItems(content, showPlaceholders) {
-    if (currentView === 'settings') return;
+    if (currentView === VIEWS.SETTINGS) return;
 
     const state = virtualScrollState;
     const { start: startIndex, end: endIndex } = computeVirtualWindow(
@@ -382,14 +382,14 @@ function renderVisibleItems(content, showPlaceholders) {
         prewarmSongCovers(state.currentSongs, startIndex - COVER_PREWARM_MARGIN, endIndex + COVER_PREWARM_MARGIN);
     }
 
-    if (!showPlaceholders && currentView !== 'lyrics') {
+    if (!showPlaceholders && currentView !== VIEWS.LYRICS) {
         applyStoredHighlight(state.currentListId);
     }
 }
 
 function syncPlaceholdersForJump(content, topOverride) {
     if (virtualScrollState.enabled && virtualScrollState.container === content) {
-        if (currentView === 'settings') return;
+        if (currentView === VIEWS.SETTINGS) return;
 
         const state = virtualScrollState;
         const top = typeof topOverride === 'number' ? topOverride : content.scrollTop;
@@ -414,7 +414,7 @@ function syncPlaceholdersForJump(content, topOverride) {
 
 function attachWheelPlaceholderSync(content) {
     function onWheel(e) {
-        if (currentView === 'settings') return;
+        if (currentView === VIEWS.SETTINGS) return;
         if (!virtualScrollState.enabled) return;
         const maxTop = content.scrollHeight - content.clientHeight;
         if (maxTop <= 0) return;
@@ -461,7 +461,7 @@ function scheduleVirtualScrollSettle(content) {
     clearTimeout(virtualScrollState.scrollSettleTimeout);
     virtualScrollState.scrollSettleTimeout = setTimeout(() => {
         virtualScrollState.scrollSettleTimeout = null;
-        if (currentView === 'settings') return;
+        if (currentView === VIEWS.SETTINGS) return;
         if (!virtualScrollState.enabled) return;
 
         renderVisibleItems(target, false);
@@ -476,7 +476,7 @@ function scheduleVirtualScrollSettle(content) {
 }
 
 function initLazyLoading(songs, listId) {
-    if (currentView === 'settings') return;
+    if (currentView === VIEWS.SETTINGS) return;
 
     teardownLazyLoading();
 
@@ -504,7 +504,7 @@ function initLazyLoading(songs, listId) {
     virtualScrollState.lastRenderedEnd = -1;
 
     function doRender() {
-        if (currentView === 'settings') return;
+        if (currentView === VIEWS.SETTINGS) return;
         const viewportTop = content.scrollTop;
         const viewportHeight = content.clientHeight;
         const { start: startIndex, end: endIndex } = computeVirtualWindow(
@@ -579,7 +579,7 @@ function initLazyLoading(songs, listId) {
     }
 
     const scrollHandle = attachRafScroll(content, doRender, () => {
-        if (currentView === 'settings') return;
+        if (currentView === VIEWS.SETTINGS) return;
         if (virtualScrollState.enabled && virtualScrollState.container) {
             renderVisibleItems(virtualScrollState.container, false);
             virtualScrollState.lastRenderedStart = virtualScrollState.firstVisibleIndex;
@@ -602,7 +602,7 @@ function initLazyLoading(songs, listId) {
 
 function renderVirtualScrollImmediate(content) {
     if (!virtualScrollState.enabled) return;
-    if (currentView === 'settings') return;
+    if (currentView === VIEWS.SETTINGS) return;
 
     const target = content || virtualScrollState.container;
     if (!target) return;
@@ -635,7 +635,7 @@ function scheduleThumbHoldSettle(content) {
     virtualScrollState.thumbHoldSettleTimeout = setTimeout(() => {
         virtualScrollState.thumbHoldSettleTimeout = null;
         if (!virtualScrollState.enabled || virtualScrollState.container !== content) return;
-        if (currentView === 'settings') return;
+        if (currentView === VIEWS.SETTINGS) return;
         renderVirtualScrollImmediate(content);
     }, THUMB_HOLD_SETTLE_MS);
 }
@@ -707,7 +707,7 @@ function getLazyState() {
 }
 
 function reapplySelectionState() {
-    if (typeof currentView !== 'undefined' && currentView === 'lyrics') return;
+    if (typeof currentView !== 'undefined' && currentView === VIEWS.LYRICS) return;
     if (typeof selectedSongIds === 'undefined' || !selectedSongIds || selectedSongIds.size === 0) return;
 
     const songItems = document.querySelectorAll('#song-list .song-item:not(.lazy-skeleton)');

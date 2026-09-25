@@ -366,7 +366,7 @@ function saveLyricsForSong(songId) {
     setLyricsForSong(songId, normalized);
     closeLyricsEditor();
 
-    if (currentView === 'lyrics') {
+    if (currentView === VIEWS.LYRICS) {
         renderLyricsView();
     }
 
@@ -389,7 +389,7 @@ function clearLyricsForSong(songId) {
     setLyricsForSong(songId, '');
     closeLyricsEditor();
 
-    if (currentView === 'lyrics') {
+    if (currentView === VIEWS.LYRICS) {
         renderLyricsView();
     }
 
@@ -454,7 +454,7 @@ function selectSyncedVariant(variantId) {
     const queueItem = playbackQueue[currentQueueIndex];
     const song = queueItem.song || queueItem;
     if (setActiveSyncedLyricsVariant(song.id, variantId)) {
-        if (currentView === 'lyrics') renderLyricsView();
+        if (currentView === VIEWS.LYRICS) renderLyricsView();
     }
 }
 
@@ -469,7 +469,7 @@ function renameSyncedVariant(variantId) {
     const newName = prompt('Rename variant:', variant.name);
     if (!newName || newName.trim() === '') return;
     if (renameSyncedLyricsVariant(song.id, variantId, newName.trim())) {
-        if (currentView === 'lyrics') renderLyricsView();
+        if (currentView === VIEWS.LYRICS) renderLyricsView();
     }
 }
 
@@ -485,7 +485,7 @@ function deleteSyncedVariant(variantId) {
     }).then((confirmed) => {
         if (!confirmed) return;
         if (deleteSyncedLyricsVariant(song.id, variantId)) {
-            if (currentView === 'lyrics') renderLyricsView();
+            if (currentView === VIEWS.LYRICS) renderLyricsView();
             showNotification('Variant deleted', 'info', 2000);
         }
     });

@@ -37,11 +37,11 @@ function syncAllUIState() {
     updateLeftPanelCounts();
     updateAllCounts();
 
-    if (currentView === 'favorites') {
+    if (currentView === VIEWS.FAVORITES) {
         renderFavoritesView();
         const favorites = getFavorites();
         updateHeroSongCount(favorites.length);
-    } else if (currentView === 'all-songs') {
+    } else if (currentView === VIEWS.ALL_SONGS) {
         updateHeroSongCount(getActiveSongs().length);
     } else if (currentView && currentView.startsWith('playlist-')) {
         const playlistId = currentView.replace('playlist-', '');
@@ -77,7 +77,7 @@ function refreshCurrentViewAfterMutation() {
     selectionHighlights.forEach((el) => el.remove());
     selectionHighlights = [];
 
-    if (currentView === 'favorites') {
+    if (currentView === VIEWS.FAVORITES) {
         const validIds = new Set(
             getActiveFavoritesCount() > 0
                 ? filterDeletedSongs(getFavorites().map((id) => SONGS_DATA.find((s) => s.id === id))).map((s) => s.id)
@@ -86,7 +86,7 @@ function refreshCurrentViewAfterMutation() {
         pruneSelectionSet(validIds);
         renderFavoritesView();
         updateHeroSongCount(validIds.size);
-    } else if (currentView === 'all-songs') {
+    } else if (currentView === VIEWS.ALL_SONGS) {
         const validIds = new Set(getActiveSongs().map((s) => s.id));
         pruneSelectionSet(validIds);
         if (virtualScrollState.enabled) {
@@ -94,7 +94,7 @@ function refreshCurrentViewAfterMutation() {
         }
         updateHeroSongCount(validIds.size);
         reapplySelectionState();
-    } else if (currentView === 'history') {
+    } else if (currentView === VIEWS.HISTORY) {
         const validIds = new Set(
             filterDeletedSongs(getPlayHistory().map((e) => SONGS_DATA.find((s) => s.id === e.id))).map((s) => s.id)
         );
