@@ -11,7 +11,10 @@ function createFullScanner({ walkDir, printProgress }) {
             let metadata = null;
             try {
                 metadata = await mm.parseFile(filePath, { duration: true, skipCovers: false });
-            } catch (e) {}
+            } catch (e) {
+                // Intentionally silent: an unreadable/corrupted file shouldn't abort the
+                // scan; buildSongFromTags() below falls back to filename-derived metadata.
+            }
             songs.push(await buildSongFromTags({
                 filePath,
                 metadata,

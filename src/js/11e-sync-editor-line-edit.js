@@ -232,7 +232,11 @@ function copySyncCurrentTime() {
         try {
             document.execCommand('copy');
             showNotification('Copied ' + t, 'success', 1500);
-        } catch (e) {}
+        } catch (e) {
+            // Intentionally silent: execCommand('copy') can be blocked by the browser/OS
+            // clipboard permissions with no reliable way to recover; failing to notify
+            // is preferable to throwing over a non-critical convenience action.
+        }
         ta.remove();
     }
 }

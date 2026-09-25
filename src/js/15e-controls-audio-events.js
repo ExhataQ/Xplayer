@@ -286,21 +286,16 @@ if (window.electronAPI && window.electronAPI.onThumbarPrev) {
 }
 
 let isWindowMaximized = false;
-let maximizeIconDebounce = null;
 
 if (window.electronAPI && window.electronAPI.onWindowMaximize) {
-    window.electronAPI.onWindowMaximize((isMax) => {
-        if (maximizeIconDebounce) {
-            clearTimeout(maximizeIconDebounce);
-            maximizeIconDebounce = null;
+    const handleWindowMaximizeChange = debounce((isMax) => {
+        isWindowMaximized = isMax;
+        if (typeof updateMaximizeIcon === 'function') {
+            updateMaximizeIcon(isMax);
         }
-        maximizeIconDebounce = setTimeout(() => {
-            maximizeIconDebounce = null;
-            isWindowMaximized = isMax;
-            if (typeof updateMaximizeIcon === 'function') {
-                updateMaximizeIcon(isMax);
-            }
-        }, 80);
+    }, 80);
+    window.electronAPI.onWindowMaximize((isMax) => {
+        handleWindowMaximizeChange(isMax);
     });
     if (window.electronAPI.getWindowMaximized) {
         window.electronAPI.getWindowMaximized().then((isMax) => {

@@ -82,7 +82,9 @@ function logThumbEngine(coversFolder, sharp, Jimp) {
     }
     try {
         fs.appendFileSync(path.join(coversFolder, 'thumb-debug.log'), `${new Date().toISOString()} ${line}\n`);
-    } catch (e) {}
+    } catch (e) {
+        // Intentionally silent: this is the debug-log write itself failing; nothing left to log it to.
+    }
 }
 
 function thumbFileNameFor(hash) {
@@ -124,7 +126,9 @@ function logCoverError(coversFolder, what, err) {
             path.join(coversFolder, 'thumb-debug.log'),
             `${what}: ${err && err.stack ? err.stack : err}\n`
         );
-    } catch (e2) {}
+    } catch (e2) {
+        // Intentionally silent: this is the debug-log write itself failing; nothing left to log it to.
+    }
 }
 
 async function generateThumbnail(coverData, coversFolder, hash, Jimp) {
@@ -137,7 +141,9 @@ async function generateThumbnail(coverData, coversFolder, hash, Jimp) {
                 path.join(coversFolder, 'thumb-debug.log'),
                 `${hash}: no thumbnail engine loaded\n`
             );
-        } catch (e2) {}
+        } catch (e2) {
+            // Intentionally silent: this is the debug-log write itself failing; nothing left to log it to.
+        }
         return null;
     }
     try {
@@ -146,7 +152,10 @@ async function generateThumbnail(coverData, coversFolder, hash, Jimp) {
         let usable = false;
         try {
             usable = fs.statSync(thumbPath).size > 0;
-        } catch (e) {}
+        } catch (e) {
+            // Intentionally silent: statSync throws when the thumb simply doesn't exist yet
+            // (the common case); usable stays false and a fresh thumbnail gets built below.
+        }
         if (!usable) {
             let buffer = null;
             let sharpError = null;
@@ -169,7 +178,10 @@ async function generateThumbnail(coverData, coversFolder, hash, Jimp) {
         // The old un-resized thumbs (thumb_<hash>.jpg) are never referenced again: drop the twin.
         try {
             fs.unlinkSync(path.join(coversFolder, `thumb_${hash}.jpg`));
-        } catch (e) {}
+        } catch (e) {
+            // Intentionally silent: the old twin usually doesn't exist (ENOENT is the
+            // expected/common case), so failure here is not an error.
+        }
         return `covers/${thumbFileName}`;
     } catch (e) {
         try {
@@ -177,7 +189,9 @@ async function generateThumbnail(coverData, coversFolder, hash, Jimp) {
                 path.join(coversFolder, 'thumb-debug.log'),
                 `${hash}: ${e && e.stack ? e.stack : e}\n`
             );
-        } catch (e2) {}
+        } catch (e2) {
+            // Intentionally silent: this is the debug-log write itself failing; nothing left to log it to.
+        }
         return null;
     }
 }
@@ -546,7 +560,10 @@ async function buildSongFromTags({ filePath, metadata, coversFolder, id = 0, pro
     if (profile.includeCover && metadata) {
         try {
             ({ cover, largeCover } = await buildCoverFromMetadata(metadata, coversFolder, Jimp, profile));
-        } catch (e) {}
+        } catch (e) {
+            // Intentionally silent: a failed cover extraction shouldn't abort tag building
+            // for the track; cover/largeCover just stay empty and the UI falls back to the default cover.
+        }
     }
 
     let cleanPath = filePath.replace(/\\/g, '/');

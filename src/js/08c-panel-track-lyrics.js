@@ -268,30 +268,29 @@ function attachTrackLyricsScrollWatcher() {
         trackLyricsScrollCleanup();
     }
 
-    let scrollEndTimeout = null;
+    const checkScrollSettled = debounce(() => {
+        if (trackLyricsActiveIndex < 0 || !trackLyricsLineElements[trackLyricsActiveIndex]) return;
+        const containerRect = container.getBoundingClientRect();
+        const elRect = trackLyricsLineElements[trackLyricsActiveIndex].getBoundingClientRect();
+        const distance = Math.abs(elRect.top + elRect.height / 2 - (containerRect.top + containerRect.height / 2));
+        if (distance > containerRect.height * 0.5) {
+            trackLyricsUserScrolledAway = true;
+            showTrackLyricsSyncButton();
+        } else {
+            trackLyricsUserScrolledAway = false;
+            hideTrackLyricsSyncButton();
+        }
+    }, 150);
 
     function onScroll() {
         if (trackLyricsProgrammaticScroll) return;
-        clearTimeout(scrollEndTimeout);
-        scrollEndTimeout = setTimeout(() => {
-            if (trackLyricsActiveIndex < 0 || !trackLyricsLineElements[trackLyricsActiveIndex]) return;
-            const containerRect = container.getBoundingClientRect();
-            const elRect = trackLyricsLineElements[trackLyricsActiveIndex].getBoundingClientRect();
-            const distance = Math.abs(elRect.top + elRect.height / 2 - (containerRect.top + containerRect.height / 2));
-            if (distance > containerRect.height * 0.5) {
-                trackLyricsUserScrolledAway = true;
-                showTrackLyricsSyncButton();
-            } else {
-                trackLyricsUserScrolledAway = false;
-                hideTrackLyricsSyncButton();
-            }
-        }, 150);
+        checkScrollSettled();
     }
 
     container.addEventListener('scroll', onScroll, { passive: true });
     trackLyricsScrollCleanup = () => {
         container.removeEventListener('scroll', onScroll);
-        clearTimeout(scrollEndTimeout);
+        checkScrollSettled.cancel();
     };
 }
 

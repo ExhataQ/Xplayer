@@ -14,27 +14,7 @@ function renderPlaylistsView() {
 
     const pinnedIds = getPinnedItems();
     const playedOrder = getPlayedItemOrder();
-    const sortedPlaylists = [...playlists].sort((a, b) => {
-        const aId = `playlist-${a.id}`;
-        const bId = `playlist-${b.id}`;
-        const aPinned = pinnedIds.includes(aId);
-        const bPinned = pinnedIds.includes(bId);
-
-        if (aPinned && bPinned) {
-            const aIndex = pinnedIds.indexOf(aId);
-            const bIndex = pinnedIds.indexOf(bId);
-            return aIndex - bIndex;
-        }
-        if (aPinned && !bPinned) return -1;
-        if (!aPinned && bPinned) return 1;
-
-        const aPlayedIndex = playedOrder.indexOf(aId);
-        const bPlayedIndex = playedOrder.indexOf(bId);
-        if (aPlayedIndex !== -1 && bPlayedIndex !== -1) return aPlayedIndex - bPlayedIndex;
-        if (aPlayedIndex !== -1) return -1;
-        if (bPlayedIndex !== -1) return 1;
-        return 0;
-    });
+    const sortedPlaylists = sortByPinnedThenRecent(playlists, (p) => `playlist-${p.id}`, pinnedIds, playedOrder);
 
     const currentItem =
         currentQueueIndex >= 0 && playbackQueue[currentQueueIndex] ? playbackQueue[currentQueueIndex] : null;
@@ -109,23 +89,7 @@ function renderFoldersView() {
 
     const pinnedIds = getPinnedItems();
     const playedOrder = getPlayedItemOrder();
-    const sortedFolders = [...folders].sort((a, b) => {
-        const aId = `folder-${a.id}`;
-        const bId = `folder-${b.id}`;
-        const aPinned = pinnedIds.includes(aId);
-        const bPinned = pinnedIds.includes(bId);
-
-        if (aPinned && bPinned) return pinnedIds.indexOf(aId) - pinnedIds.indexOf(bId);
-        if (aPinned && !bPinned) return -1;
-        if (!aPinned && bPinned) return 1;
-
-        const aPlayed = playedOrder.indexOf(aId);
-        const bPlayed = playedOrder.indexOf(bId);
-        if (aPlayed !== -1 && bPlayed !== -1) return aPlayed - bPlayed;
-        if (aPlayed !== -1) return -1;
-        if (bPlayed !== -1) return 1;
-        return 0;
-    });
+    const sortedFolders = sortByPinnedThenRecent(folders, (f) => `folder-${f.id}`, pinnedIds, playedOrder);
 
     sortedFolders.forEach((folder) => {
         const folderItem = document.createElement('li');

@@ -188,10 +188,7 @@ function updateSyncedLyricsHighlight(currentTime) {
         ) {
             state.programmaticScroll = true;
             state.container.scrollTo({ top: 0, behavior: 'smooth' });
-            clearTimeout(state._programmaticScrollTimeout);
-            state._programmaticScrollTimeout = setTimeout(() => {
-                state.programmaticScroll = false;
-            }, 700);
+            markProgrammaticScroll(state);
         }
     }
 }
@@ -233,7 +230,27 @@ function attachSyncedLyricsScrollWatcher() {
     if (!state.container) return;
 
     const container = state.container;
-    let scrollEndTimeout = null;
+
+    const checkScrollSettled = debounce(() => {
+        if (!state.entries || state.activeIndex < 0 || !state.lineElements[state.activeIndex]) return;
+        if (state.programmaticScroll) return;
+
+        const containerRect = container.getBoundingClientRect();
+        const activeEl = state.lineElements[state.activeIndex];
+        const elRect = activeEl.getBoundingClientRect();
+
+        const distanceFromCenter = Math.abs(
+            elRect.top + elRect.height / 2 - (containerRect.top + containerRect.height / 2)
+        );
+
+        if (distanceFromCenter > containerRect.height * 0.4) {
+            state.userScrolledAway = true;
+            showFollowLyricsButton();
+        } else {
+            state.userScrolledAway = false;
+            hideFollowLyricsButton();
+        }
+    }, 180);
 
     function onScroll() {
         if (state.programmaticScroll) {
@@ -241,27 +258,7 @@ function attachSyncedLyricsScrollWatcher() {
             return;
         }
 
-        clearTimeout(scrollEndTimeout);
-        scrollEndTimeout = setTimeout(() => {
-            if (!state.entries || state.activeIndex < 0 || !state.lineElements[state.activeIndex]) return;
-            if (state.programmaticScroll) return;
-
-            const containerRect = container.getBoundingClientRect();
-            const activeEl = state.lineElements[state.activeIndex];
-            const elRect = activeEl.getBoundingClientRect();
-
-            const distanceFromCenter = Math.abs(
-                elRect.top + elRect.height / 2 - (containerRect.top + containerRect.height / 2)
-            );
-
-            if (distanceFromCenter > containerRect.height * 0.4) {
-                state.userScrolledAway = true;
-                showFollowLyricsButton();
-            } else {
-                state.userScrolledAway = false;
-                hideFollowLyricsButton();
-            }
-        }, 180);
+        checkScrollSettled();
     }
 
     container.addEventListener('scroll', onScroll, {
@@ -269,7 +266,7 @@ function attachSyncedLyricsScrollWatcher() {
     });
     state.scrollCleanup = () => {
         container.removeEventListener('scroll', onScroll);
-        clearTimeout(scrollEndTimeout);
+        checkScrollSettled.cancel();
     };
 }
 

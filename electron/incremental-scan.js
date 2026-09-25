@@ -15,7 +15,10 @@ function createIncrementalScanner({ walkDir, loadMusicFolders, printProgress, is
             let metadata = null;
             try {
                 metadata = await mm.parseFile(filePath, { duration: true, skipCovers: false });
-            } catch (err) {}
+            } catch (err) {
+                // Intentionally silent: an unreadable/corrupted file shouldn't abort the
+                // scan; buildSongFromTags() below falls back to filename-derived metadata.
+            }
             songs.push(await buildSongFromTags({
                 filePath,
                 metadata,

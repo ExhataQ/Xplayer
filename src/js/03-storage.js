@@ -329,6 +329,32 @@ function savePlayedItemOrder(order) {
     localStorage.setItem(STORAGE_KEYS.PLAYED_ITEM_ORDER, JSON.stringify(order));
 }
 
+// Phase 2 Checkpoint 3: the exact same "pinned items first (tied by pin order), then
+// most-recently-played order, else stable" comparator was duplicated byte-for-byte in
+// 04b-render-playlists-folders.js (x2), 04c-render-albums.js (x2), 04d-render-artists.js,
+// 06a-context-menus.js, and 03c-playlists.js (x2) — 8 call sites total, only differing in
+// how each item's id string is derived (idFn). Verified every call site's idFn before
+// replacing it below; do not assume they're interchangeable if adding a new caller.
+function sortByPinnedThenRecent(items, idFn, pinnedIds, playedOrder) {
+    return [...items].sort((a, b) => {
+        const aId = idFn(a);
+        const bId = idFn(b);
+        const aPinned = pinnedIds.includes(aId);
+        const bPinned = pinnedIds.includes(bId);
+
+        if (aPinned && bPinned) return pinnedIds.indexOf(aId) - pinnedIds.indexOf(bId);
+        if (aPinned && !bPinned) return -1;
+        if (!aPinned && bPinned) return 1;
+
+        const aPlayed = playedOrder.indexOf(aId);
+        const bPlayed = playedOrder.indexOf(bId);
+        if (aPlayed !== -1 && bPlayed !== -1) return aPlayed - bPlayed;
+        if (aPlayed !== -1) return -1;
+        if (bPlayed !== -1) return 1;
+        return 0;
+    });
+}
+
 function movePlayedItemToTop(listId) {
     if (
         listId === VIEWS.ALL_SONGS ||

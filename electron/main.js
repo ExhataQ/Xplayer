@@ -513,7 +513,11 @@ app.whenReady().then(async () => {
                 const songs = JSON.parse(match[1]);
                 hasSongs = songs.length > 0;
             }
-        } catch (e) {}
+        } catch (e) {
+            // Intentionally silent: this is just a best-effort peek at the generated
+            // player.js to decide whether to show the empty-library state; if it can't be
+            // read/parsed, hasSongs simply stays at its default.
+        }
     }
 
     const needsSetup = !fs.existsSync(configPath) && !hasSongs;

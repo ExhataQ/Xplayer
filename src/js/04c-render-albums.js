@@ -26,23 +26,7 @@ function renderAlbumsView() {
 
     const pinnedIds = getPinnedItems();
     const playedOrder = getPlayedItemOrder();
-    const sortedAlbums = [...albums].sort((a, b) => {
-        const aPinned = pinnedIds.includes(a.id);
-        const bPinned = pinnedIds.includes(b.id);
-
-        if (aPinned && bPinned) {
-            return pinnedIds.indexOf(a.id) - pinnedIds.indexOf(b.id);
-        }
-        if (aPinned && !bPinned) return -1;
-        if (!aPinned && bPinned) return 1;
-
-        const aPlayed = playedOrder.indexOf(a.id);
-        const bPlayed = playedOrder.indexOf(b.id);
-        if (aPlayed !== -1 && bPlayed !== -1) return aPlayed - bPlayed;
-        if (aPlayed !== -1) return -1;
-        if (bPlayed !== -1) return 1;
-        return 0;
-    });
+    const sortedAlbums = sortByPinnedThenRecent(albums, (item) => item.id, pinnedIds, playedOrder);
 
     const albumsHtml = sortedAlbums
         .map((album, index) => {
@@ -142,21 +126,7 @@ function renderAlbumLeftPanelItems() {
 
     const pinnedIds = getPinnedItems();
     const playedOrder = getPlayedItemOrder();
-    const sortedAlbums = [...albums].sort((a, b) => {
-        const aPinned = pinnedIds.includes(a.id);
-        const bPinned = pinnedIds.includes(b.id);
-
-        if (aPinned && bPinned) return pinnedIds.indexOf(a.id) - pinnedIds.indexOf(b.id);
-        if (aPinned && !bPinned) return -1;
-        if (!aPinned && bPinned) return 1;
-
-        const aPlayed = playedOrder.indexOf(a.id);
-        const bPlayed = playedOrder.indexOf(b.id);
-        if (aPlayed !== -1 && bPlayed !== -1) return aPlayed - bPlayed;
-        if (aPlayed !== -1) return -1;
-        if (bPlayed !== -1) return 1;
-        return 0;
-    });
+    const sortedAlbums = sortByPinnedThenRecent(albums, (item) => item.id, pinnedIds, playedOrder);
 
     sortedAlbums.forEach((album) => {
         const albumItem = document.createElement('li');

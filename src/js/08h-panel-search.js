@@ -29,75 +29,73 @@ function resetSubheroSearch() {
 let searchTypingSessionId = null;
 const SEARCH_DEBOUNCE_MS = 300;
 
-function performSearch() {
-    if (searchTimeout) {
-        clearTimeout(searchTimeout);
+// Phase 2 Checkpoint 2: performSearch is the debounced entry point every keystroke
+// calls; performSearchNow is the actual search logic, unchanged, just renamed and
+// no longer responsible for its own timer bookkeeping.
+function performSearchNow() {
+    searchQuery = document.getElementById('search-input').value.toLowerCase().trim();
+
+    if (searchQuery === '') {
+        searchTypingSessionId = null;
+        pushViewToHistory('all-songs');
+        currentView = 'all-songs';
+        currentSearchSessionId = null;
+        const allSongs = getSongsForList('all-songs');
+        renderSongsList(allSongs, 'all-songs');
+        reapplyHighlightAfterFilter('all-songs', allSongs);
+        reapplySelectionAfterFilter('all-songs', allSongs);
+        document.getElementById('all-songs-count').textContent = allSongs.length;
+        resetLeftPanelActiveState();
+        activateLeftPanelItem('all-songs');
+    } else {
+        const filteredSongs = getSongsForList('search');
+
+        pushViewToHistory('search-items');
+        currentView = 'search-items';
+
+        const continuingSearch =
+            currentSearchSessionId !== null && currentSearchSessionId === searchTypingSessionId;
+        if (!continuingSearch) {
+            currentSearchSessionId = 'Search' + Date.now();
+            searchTypingSessionId = currentSearchSessionId;
+        }
+        ghostLists['search'] = [currentSearchSessionId];
+
+        ghostLists['search-items'] = [];
+        for (let i = 0; i < filteredSongs.length; i++) {
+            ghostLists['search-items'].push(`SearchItem${String(i + 1).padStart(5, '0')}`);
+        }
+        nextSearchItemSlotId = filteredSongs.length + 1;
+
+        saveSearchToHistory(searchQuery, currentSearchSessionId, filteredSongs.length);
+
+        showTracklistHeader(true);
+        setupHeroSection(
+            true,
+            `"${escapeHtml(searchQuery)}"`,
+            filteredSongs.length,
+            'Search Results',
+            currentSearchSessionId,
+            false
+        );
+        updateHeroCover('search-items');
+
+        const countElement = document.getElementById('all-songs-count');
+        if (countElement) {
+            countElement.textContent = filteredSongs.length;
+        }
+        renderSongsList(filteredSongs, 'search-items');
+        reapplyHighlightAfterFilter('search-items', filteredSongs);
+        reapplySelectionAfterFilter('search-items', filteredSongs);
+
+        resetLeftPanelActiveState();
     }
 
-    searchTimeout = setTimeout(() => {
-        searchQuery = document.getElementById('search-input').value.toLowerCase().trim();
-
-        if (searchQuery === '') {
-            searchTypingSessionId = null;
-            pushViewToHistory('all-songs');
-            currentView = 'all-songs';
-            currentSearchSessionId = null;
-            const allSongs = getSongsForList('all-songs');
-            renderSongsList(allSongs, 'all-songs');
-            reapplyHighlightAfterFilter('all-songs', allSongs);
-            reapplySelectionAfterFilter('all-songs', allSongs);
-            document.getElementById('all-songs-count').textContent = allSongs.length;
-            resetLeftPanelActiveState();
-            activateLeftPanelItem('all-songs');
-        } else {
-            const filteredSongs = getSongsForList('search');
-
-            pushViewToHistory('search-items');
-            currentView = 'search-items';
-
-            const continuingSearch =
-                currentSearchSessionId !== null && currentSearchSessionId === searchTypingSessionId;
-            if (!continuingSearch) {
-                currentSearchSessionId = 'Search' + Date.now();
-                searchTypingSessionId = currentSearchSessionId;
-            }
-            ghostLists['search'] = [currentSearchSessionId];
-
-            ghostLists['search-items'] = [];
-            for (let i = 0; i < filteredSongs.length; i++) {
-                ghostLists['search-items'].push(`SearchItem${String(i + 1).padStart(5, '0')}`);
-            }
-            nextSearchItemSlotId = filteredSongs.length + 1;
-
-            saveSearchToHistory(searchQuery, currentSearchSessionId, filteredSongs.length);
-
-            showTracklistHeader(true);
-            setupHeroSection(
-                true,
-                `"${escapeHtml(searchQuery)}"`,
-                filteredSongs.length,
-                'Search Results',
-                currentSearchSessionId,
-                false
-            );
-            updateHeroCover('search-items');
-
-            const countElement = document.getElementById('all-songs-count');
-            if (countElement) {
-                countElement.textContent = filteredSongs.length;
-            }
-            renderSongsList(filteredSongs, 'search-items');
-            reapplyHighlightAfterFilter('search-items', filteredSongs);
-            reapplySelectionAfterFilter('search-items', filteredSongs);
-
-            resetLeftPanelActiveState();
-        }
-
-        setTimeout(() => {
-            updateExternalScrollbar();
-        }, 100);
-    }, SEARCH_DEBOUNCE_MS);
+    setTimeout(() => {
+        updateExternalScrollbar();
+    }, 100);
 }
+const performSearch = debounce(performSearchNow, SEARCH_DEBOUNCE_MS);
 
 function focusSubheroSearch() {
     const input = document.getElementById('subhero-search-input');

@@ -33,6 +33,38 @@ function getSongById(id) {
     return typeof SONGS_DATA !== 'undefined' ? SONGS_DATA.find((s) => s.id === id) : null;
 }
 
+// Phase 2 Checkpoint 2: shared debounce helper. Replaces the many hand-rolled
+// "clearTimeout(x); x = setTimeout(fn, ms)" pairs scattered across src/js/.
+// debounced(...args) resets the pending call on every invocation (last-call-wins
+// args), firing fn after `delay` ms of silence. debounced.cancel() cancels any
+// pending call without firing it, for call sites that need to cancel from
+// outside the function that scheduled it (e.g. a mouseleave handler canceling
+// a hover-triggered show). debounced.pending() reports whether a call is queued.
+// Only ever applied where a site was confirmed to be a genuine debounce
+// (same fixed action, reset-on-repeat semantics) — NOT applied to throttle
+// patterns (immediate-run + trailing-pending flag) or to timers whose slot is
+// reused for two different callbacks, since those aren't the same behavior.
+function debounce(fn, delay) {
+    let timerId = null;
+    function debounced(...args) {
+        if (timerId) clearTimeout(timerId);
+        timerId = setTimeout(() => {
+            timerId = null;
+            fn(...args);
+        }, delay);
+    }
+    debounced.cancel = function () {
+        if (timerId) {
+            clearTimeout(timerId);
+            timerId = null;
+        }
+    };
+    debounced.pending = function () {
+        return timerId !== null;
+    };
+    return debounced;
+}
+
 let playbackQueue = [];
 let currentQueueIndex = -1;
 let isShuffled = false;
@@ -41,7 +73,6 @@ let repeatMode = 0;
 let repeatVisualState = 0;
 let wasPlaying = false;
 let showRemainingTime = false;
-let searchTimeout = null;
 let currentView = 'all-songs';
 let lastPlaybackListId = 'all-songs';
 let searchQuery = '';

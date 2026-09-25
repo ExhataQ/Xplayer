@@ -143,10 +143,7 @@ function scheduleCrossfadeTransition(song) {
     const fadeMs = Math.max(150, (Number(settings.crossfadeDuration) || 4) * 1000);
     const currentVolume = clampVolume(audioElement.volume);
 
-    if (pendingCrossfadeTimer) {
-        clearTimeout(pendingCrossfadeTimer);
-        pendingCrossfadeTimer = null;
-    }
+    cancelPendingCrossfade();
 
     startFadeOut(fadeMs);
 
@@ -167,6 +164,20 @@ function scheduleCrossfadeTransition(song) {
     }, Math.max(120, fadeMs * 0.6));
 
     return true;
+}
+
+// Phase 2 Checkpoint 2: this one doesn't fit the shared debounce() helper — the delay is
+// computed per-call from the user's crossfade-duration setting (Math.max(120, fadeMs * 0.6)),
+// not a fixed constant, and debounce() only supports a fixed delay set once at creation.
+// Forcing it in would have meant baking in a wrong delay. Instead, just gave the cross-file
+// cancellation (10d-playback-song.js was reaching directly into this file's raw timer
+// variable) a proper named function, so 10d calls cancelPendingCrossfade() instead of
+// poking pendingCrossfadeTimer directly. Same behavior, better encapsulation.
+function cancelPendingCrossfade() {
+    if (pendingCrossfadeTimer) {
+        clearTimeout(pendingCrossfadeTimer);
+        pendingCrossfadeTimer = null;
+    }
 }
 
 function setVolume(e) {

@@ -60,21 +60,7 @@ function renderArtistLeftPanelItems() {
 
     const pinnedIds = getPinnedItems();
     const playedOrder = getPlayedItemOrder();
-    const sortedArtists = [...artists].sort((a, b) => {
-        const aPinned = pinnedIds.includes(a.id);
-        const bPinned = pinnedIds.includes(b.id);
-
-        if (aPinned && bPinned) return pinnedIds.indexOf(a.id) - pinnedIds.indexOf(b.id);
-        if (aPinned && !bPinned) return -1;
-        if (!aPinned && bPinned) return 1;
-
-        const aPlayed = playedOrder.indexOf(a.id);
-        const bPlayed = playedOrder.indexOf(b.id);
-        if (aPlayed !== -1 && bPlayed !== -1) return aPlayed - bPlayed;
-        if (aPlayed !== -1) return -1;
-        if (bPlayed !== -1) return 1;
-        return 0;
-    });
+    const sortedArtists = sortByPinnedThenRecent(artists, (item) => item.id, pinnedIds, playedOrder);
 
     sortedArtists.forEach((artist) => {
         const artistItem = document.createElement('li');

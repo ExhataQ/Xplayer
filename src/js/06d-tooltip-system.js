@@ -2,15 +2,26 @@
 // GLOBAL TOOLTIP SYSTEM
 // ==============================================================================
 let tooltip = null;
-let tooltipTimeout = null;
+
+function showTooltipNow(target, titleText) {
+    tooltip.textContent = titleText;
+
+    if (target.hasAttribute('title')) {
+        target.setAttribute('data-original-title', titleText);
+        target.removeAttribute('title');
+    }
+
+    positionTooltip(target);
+    tooltip.style.opacity = '1';
+}
+const scheduleTooltipShow = debounce(showTooltipNow, 300);
 
 function temporarilySuppressTooltip(element, duration = 200) {
     if (!element) return;
 
     if (tooltip) {
         tooltip.style.opacity = '0';
-        clearTimeout(tooltipTimeout);
-        tooltipTimeout = null;
+        scheduleTooltipShow.cancel();
     }
 
     element.classList.add('tooltip-suppressed');
@@ -81,25 +92,14 @@ document.addEventListener('mouseover', function (e) {
         document.body.appendChild(tooltip);
     }
 
-    clearTimeout(tooltipTimeout);
     tooltip.style.opacity = '0';
 
-    tooltipTimeout = setTimeout(() => {
-        tooltip.textContent = titleText;
-
-        if (target.hasAttribute('title')) {
-            target.setAttribute('data-original-title', titleText);
-            target.removeAttribute('title');
-        }
-
-        positionTooltip(target);
-        tooltip.style.opacity = '1';
-    }, 300);
+    scheduleTooltipShow(target, titleText);
 
     target.addEventListener(
         'mouseleave',
         function hideTooltip() {
-            clearTimeout(tooltipTimeout);
+            scheduleTooltipShow.cancel();
             if (tooltip) {
                 tooltip.style.opacity = '0';
             }

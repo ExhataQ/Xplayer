@@ -72,21 +72,7 @@ function deletePlaylist(playlistId) {
     if (wasCurrentView) {
         const pinnedIds = getPinnedItems();
         const playedOrder = getPlayedItemOrder();
-        const sortedPlaylists = [...playlists].sort((a, b) => {
-            const aId = `playlist-${a.id}`;
-            const bId = `playlist-${b.id}`;
-            const aPinned = pinnedIds.includes(aId);
-            const bPinned = pinnedIds.includes(bId);
-            if (aPinned && bPinned) return pinnedIds.indexOf(aId) - pinnedIds.indexOf(bId);
-            if (aPinned && !bPinned) return -1;
-            if (!aPinned && bPinned) return 1;
-            const aPlayedIndex = playedOrder.indexOf(aId);
-            const bPlayedIndex = playedOrder.indexOf(bId);
-            if (aPlayedIndex !== -1 && bPlayedIndex !== -1) return aPlayedIndex - bPlayedIndex;
-            if (aPlayedIndex !== -1) return -1;
-            if (bPlayedIndex !== -1) return 1;
-            return 0;
-        });
+        const sortedPlaylists = sortByPinnedThenRecent(playlists, (p) => `playlist-${p.id}`, pinnedIds, playedOrder);
         deletedIndex = sortedPlaylists.findIndex((p) => p.id == playlistId || p.id === playlistId);
     }
 
@@ -100,21 +86,7 @@ function deletePlaylist(playlistId) {
         if (playlists.length > 0) {
             const pinnedIds = getPinnedItems();
             const playedOrder = getPlayedItemOrder();
-            const sortedRemaining = [...playlists].sort((a, b) => {
-                const aId = `playlist-${a.id}`;
-                const bId = `playlist-${b.id}`;
-                const aPinned = pinnedIds.includes(aId);
-                const bPinned = pinnedIds.includes(bId);
-                if (aPinned && bPinned) return pinnedIds.indexOf(aId) - pinnedIds.indexOf(bId);
-                if (aPinned && !bPinned) return -1;
-                if (!aPinned && bPinned) return 1;
-                const aPlayedIndex = playedOrder.indexOf(aId);
-                const bPlayedIndex = playedOrder.indexOf(bId);
-                if (aPlayedIndex !== -1 && bPlayedIndex !== -1) return aPlayedIndex - bPlayedIndex;
-                if (aPlayedIndex !== -1) return -1;
-                if (bPlayedIndex !== -1) return 1;
-                return 0;
-            });
+            const sortedRemaining = sortByPinnedThenRecent(playlists, (p) => `playlist-${p.id}`, pinnedIds, playedOrder);
 
             let targetPlaylist;
             if (deletedIndex < sortedRemaining.length) {

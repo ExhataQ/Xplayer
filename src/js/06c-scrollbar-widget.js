@@ -111,15 +111,15 @@ function initExternalScrollbar(contentId, scrollbarId, thumbId) {
     setTimeout(checkMouseOver, 500);
     setTimeout(checkMouseOver, 800);
 
-    let hideTimeout = null;
     let isDragging = false;
     let isDraggingTrack = false;
 
+    const scheduleHideScrollbar = debounce(() => {
+        externalScrollbar.classList.remove('visible');
+    }, 750);
+
     function showScrollbar() {
-        if (hideTimeout) {
-            clearTimeout(hideTimeout);
-            hideTimeout = null;
-        }
+        scheduleHideScrollbar.cancel();
         if (content.scrollHeight > content.clientHeight) {
             externalScrollbar.classList.add('visible');
         }
@@ -128,13 +128,7 @@ function initExternalScrollbar(contentId, scrollbarId, thumbId) {
     function hideScrollbarAfterDelay() {
         if (isDragging) return;
         if (isDraggingTrack) return;
-        if (hideTimeout) {
-            clearTimeout(hideTimeout);
-        }
-        hideTimeout = setTimeout(() => {
-            externalScrollbar.classList.remove('visible');
-            hideTimeout = null;
-        }, 750);
+        scheduleHideScrollbar();
     }
 
     function handleMouseEnter() {

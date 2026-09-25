@@ -51,7 +51,9 @@ function loadMusicFolders() {
             activeFolders = parsed.folders || [];
             return activeFolders;
         }
-    } catch (e) {}
+    } catch (e) {
+        // Intentionally silent: missing/corrupt config just falls back to no folders below.
+    }
     activeFolders = [];
     return activeFolders;
 }
@@ -133,7 +135,10 @@ async function main(folderPath, outputDir, mode, specificFile) {
         Jimp = null;
         try {
             fs.appendFileSync(path.join(outputDir, 'jimp-debug.log'), `Jimp failed to load: ${e && e.stack ? e.stack : e}\n`);
-        } catch (e2) {}
+        } catch (e2) {
+            // Intentionally silent: this is the debug-log write itself failing (e.g. no
+            // write permission to outputDir); nothing left to log the failure to.
+        }
     }
 
     if (mode === 'rebuild-all') {

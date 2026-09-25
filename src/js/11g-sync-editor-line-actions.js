@@ -161,7 +161,10 @@ function showSyncLineContextMenu(event, index) {
             if (item && typeof item.handler === 'function') {
                 try {
                     item.handler();
-                } catch (err) {}
+                } catch (err) {
+                    // Intentionally silent: a context-menu action failing shouldn't crash
+                    // the menu itself; the menu still closes normally either way.
+                }
             }
         });
     });

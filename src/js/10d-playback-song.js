@@ -30,9 +30,8 @@ function playSongFromQueue(queueIndex) {
     }
 
     if (playbackSettings.gaplessEnabled && isTrackSwitch) {
-        if (pendingCrossfadeTimer) {
-            clearTimeout(pendingCrossfadeTimer);
-            pendingCrossfadeTimer = null;
+        if (typeof cancelPendingCrossfade === 'function') {
+            cancelPendingCrossfade();
         }
 
         const usedPreloadedTrack = usePreloadedGaplessTrack(song);

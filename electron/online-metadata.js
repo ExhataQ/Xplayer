@@ -201,6 +201,8 @@ async function downloadCover(fileUrl, imageUrl) {
     fs.writeFileSync(p, response.body);
     // remove a previous cover saved with a different extension so a stale one can never be picked up
     for (const other of ['.jpg', '.png', '.gif', '.webp']) {
+        // Intentionally silent: the stale file for that extension usually doesn't exist
+        // (ENOENT is the expected/common case), so failure here is not an error.
         if (other !== ext) { try { fs.unlinkSync(path.join(dir, `${keyFor(fileUrl)}-cover${other}`)); } catch (_) {} }
     }
     return p;

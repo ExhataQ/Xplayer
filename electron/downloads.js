@@ -13,7 +13,9 @@ function getConfiguredDownloadFolder() {
             const parsed = JSON.parse(data);
             if (parsed.downloadFolder) return parsed.downloadFolder;
         }
-    } catch (e) {}
+    } catch (e) {
+        // Intentionally silent: missing/corrupt config just falls back to the default below.
+    }
     return null;
 }
 

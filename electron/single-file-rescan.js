@@ -6,7 +6,10 @@ async function scanSingleFile(filePath, coversFolder, mm) {
     let metadata = null;
     try {
         metadata = await mm.parseFile(filePath, { duration: true, skipCovers: false });
-    } catch (e) {}
+    } catch (e) {
+        // Intentionally silent: an unreadable/corrupted file shouldn't abort the rescan;
+        // buildSongFromTags() below falls back to filename-derived metadata when metadata is null.
+    }
     return buildSongFromTags({
         filePath,
         metadata,

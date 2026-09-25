@@ -55,7 +55,13 @@ document.getElementById('next-btn').onclick = () => {
     }
 };
 
-let prevRestartTimeout = null;
+const restartThenPlay = debounce(() => {
+    audioElement.play();
+
+    if (lastPlayedSong) {
+        lastPlayedSongStartTime = Date.now();
+    }
+}, 500);
 
 document.getElementById('prev-btn').onclick = () => {
     temporarilySuppressTooltip(document.getElementById('prev-btn'));
@@ -64,21 +70,10 @@ document.getElementById('prev-btn').onclick = () => {
     const PREV_RESTART_THRESHOLD = 3;
 
     if (currentQueueIndex >= 0 && audioElement.currentTime > PREV_RESTART_THRESHOLD) {
-        if (prevRestartTimeout) {
-            clearTimeout(prevRestartTimeout);
-        }
-
         audioElement.currentTime = 0;
         audioElement.pause();
 
-        prevRestartTimeout = setTimeout(() => {
-            audioElement.play();
-            prevRestartTimeout = null;
-
-            if (lastPlayedSong) {
-                lastPlayedSongStartTime = Date.now();
-            }
-        }, 500);
+        restartThenPlay();
 
         return;
     }

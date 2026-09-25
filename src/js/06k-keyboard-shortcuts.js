@@ -230,7 +230,6 @@ function initMarqueeOnHover(element, options = {}) {
 
     let inner = null;
     let rafId = null;
-    let timeoutId = null;
     let active = false;
     let paused = false;
     let menuPaused = false;
@@ -253,15 +252,19 @@ function initMarqueeOnHover(element, options = {}) {
         wrapping = false;
     }
 
+    const scheduleResumeAfterEndPause = debounce(() => {
+        if (active && !paused && !menuPaused) {
+            lastTs = null;
+            rafId = requestAnimationFrame(tick);
+        }
+    }, END_PAUSE);
+
     function clear() {
         if (rafId) {
             cancelAnimationFrame(rafId);
             rafId = null;
         }
-        if (timeoutId) {
-            clearTimeout(timeoutId);
-            timeoutId = null;
-        }
+        scheduleResumeAfterEndPause.cancel();
     }
 
     function applyTransform() {
@@ -301,12 +304,7 @@ function initMarqueeOnHover(element, options = {}) {
             if (phase === 'forward') {
                 phase = 'back';
                 progress = 0;
-                timeoutId = setTimeout(() => {
-                    if (active && !paused && !menuPaused) {
-                        lastTs = null;
-                        rafId = requestAnimationFrame(tick);
-                    }
-                }, END_PAUSE);
+                scheduleResumeAfterEndPause();
             } else {
                 finish();
             }
@@ -363,16 +361,10 @@ function initMarqueeOnHover(element, options = {}) {
         }
     });
 
-    let autoTimeoutId = null;
-
-    function scheduleAutoStart() {
-        if (autoTimeoutId) clearTimeout(autoTimeoutId);
-        autoTimeoutId = setTimeout(() => {
-            autoTimeoutId = null;
-            if (active || paused || menuPaused) return;
-            runOnce();
-        }, AUTO_START_DELAY);
-    }
+    const scheduleAutoStart = debounce(() => {
+        if (active || paused || menuPaused) return;
+        runOnce();
+    }, AUTO_START_DELAY);
 
     const observer = new MutationObserver(() => {
         if (wrapping) return;

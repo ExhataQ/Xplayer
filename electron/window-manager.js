@@ -11,7 +11,9 @@ function loadWindowState() {
             const data = fs.readFileSync(storePath, 'utf-8');
             return JSON.parse(data);
         }
-    } catch (e) {}
+    } catch (e) {
+        // Intentionally silent: missing/corrupt window-state.json just falls back to the defaults below.
+    }
     return {
         width: 1200,
         height: 800,
@@ -34,7 +36,10 @@ function saveWindowState(mainWindow) {
     };
     try {
         fs.writeFileSync(storePath, JSON.stringify(state, null, 2), 'utf-8');
-    } catch (e) {}
+    } catch (e) {
+        // Intentionally silent: failing to persist window position/size on close is
+        // non-critical — the app just reopens with the defaults next launch.
+    }
 }
 
 let mainWindow = null;

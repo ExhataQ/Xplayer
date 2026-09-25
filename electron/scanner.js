@@ -93,14 +93,20 @@ function runScan(args, options = {}) {
                                 resultData
                             });
                         }
-                    } catch (e) {}
+                    } catch (e) {
+                        // Intentionally silent: a malformed/truncated FASTRESULT line from the
+                        // worker process shouldn't crash the parent; just skip that line.
+                    }
                     continue;
                 }
                 if (line.startsWith('COVERBATCH:')) {
                     try {
                         const updates = JSON.parse(line.slice('COVERBATCH:'.length));
                         if (options.onCoverBatch) options.onCoverBatch(updates);
-                    } catch (e) {}
+                    } catch (e) {
+                        // Intentionally silent: same as above, a malformed COVERBATCH line
+                        // is skipped rather than crashing the scan.
+                    }
                     continue;
                 }
 
