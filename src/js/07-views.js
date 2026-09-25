@@ -1,6 +1,38 @@
 // ==============================================================================
 // VIEW HELPERS
 // ==============================================================================
+
+// code-cleanup-plan.md Agent 5, Checkpoint 2: single source of truth for the app's
+// fixed, named view names - the ones ever assigned to or compared against currentView
+// as a literal string, or passed to switchView(...). Values are unchanged from what
+// they already were.
+//
+// Deliberately NOT included here (different, larger concepts that happen to share some
+// of the same words):
+// - Per-item detail views (an open playlist/album/artist/folder). currentView for those
+//   is the item's own generated id (see getCurrentViewLabel() below, which detects an
+//   album/artist id by prefix+length), not a fixed name - there's no finite list of
+//   "every playlist" to put in a constant.
+// - item.type / itemType tags ('playlist', 'folder', 'song', 'album', 'artist') used for
+//   drag-and-drop, the folders system, and context menus. These classify a data item,
+//   not a currentView value, even though a few of the words overlap (e.g. 'playlist').
+const VIEWS = {
+    ALL_SONGS: 'all-songs',
+    FAVORITES: 'favorites',
+    HISTORY: 'history',
+    RECENT: 'recent',
+    PLAYLISTS: 'playlists',
+    ALBUMS: 'albums',
+    ARTISTS: 'artists',
+    LYRICS: 'lyrics',
+    ONLINE_LYRICS: 'online-lyrics',
+    SMART_LYRICS: 'smart-lyrics',
+    SEARCH: 'search',
+    SEARCH_ITEMS: 'search-items',
+    SEARCH_HISTORY: 'search-history',
+    SETTINGS: 'settings'
+};
+
 function getCurrentViewLabel() {
     if (currentView && currentView.startsWith('a') && currentView.length === 13) return 'Album';
     if (currentView && currentView.startsWith('r') && currentView.length === 13) return 'Artist';
@@ -44,7 +76,7 @@ function buildPlayerArtistHTML(artist) {
 
 function resetViewScroll() {
     if (
-        currentView !== 'lyrics' &&
+        currentView !== VIEWS.LYRICS &&
         typeof lyricsPreView !== 'undefined' &&
         lyricsPreView !== null &&
         currentView === lyricsPreView
@@ -115,7 +147,7 @@ function refreshCurrentView() {
     const songs = getSongsForList(currentView);
     renderSongsList(songs, currentView);
     setupHeroSection(true, getCurrentViewDisplayName(), songs.length, getCurrentViewLabel());
-    if (currentView === 'all-songs') {
+    if (currentView === VIEWS.ALL_SONGS) {
         const el = document.getElementById('all-songs-count-display');
         if (el) el.textContent = songs.length + (songs.length === 1 ? ' song' : ' songs');
     }
@@ -128,17 +160,17 @@ function updateAllCounts() {
         allSongsCountDisplay.textContent = activeSongs.length + (activeSongs.length === 1 ? ' song' : ' songs');
     }
     const heroCount = document.getElementById('hero-song-count');
-    if (heroCount && currentView === 'all-songs') {
+    if (heroCount && currentView === VIEWS.ALL_SONGS) {
         heroCount.textContent = activeSongs.length + (activeSongs.length === 1 ? ' song' : ' songs');
     }
 }
 
 function getCurrentViewDisplayName() {
-    if (currentView === 'all-songs') return 'All Songs';
-    if (currentView === 'favorites') return 'Liked Songs';
-    if (currentView === 'history') return 'Recents';
-    if (currentView === 'albums') return 'Albums';
-    if (currentView === 'search-items' || currentView === 'search') return 'Search Results';
+    if (currentView === VIEWS.ALL_SONGS) return 'All Songs';
+    if (currentView === VIEWS.FAVORITES) return 'Liked Songs';
+    if (currentView === VIEWS.HISTORY) return 'Recents';
+    if (currentView === VIEWS.ALBUMS) return 'Albums';
+    if (currentView === VIEWS.SEARCH_ITEMS || currentView === VIEWS.SEARCH) return 'Search Results';
     if (currentView && currentView.startsWith('playlist-')) {
         const playlistId = currentView.replace('playlist-', '');
         const playlist = getPlaylists().find((p) => p.id == playlistId || p.id === playlistId);
@@ -164,7 +196,7 @@ function setSubheroVisibility(view) {
     const subheroSection = document.getElementById('subhero-section');
     if (!subheroSection) return;
 
-    if (view === 'settings' || view === 'search-history' || view === 'lyrics' || view === 'online-lyrics' || view === 'smart-lyrics') {
+    if (view === VIEWS.SETTINGS || view === VIEWS.SEARCH_HISTORY || view === VIEWS.LYRICS || view === VIEWS.ONLINE_LYRICS || view === VIEWS.SMART_LYRICS) {
         subheroSection.style.display = 'none';
     } else {
         subheroSection.style.display = '';
@@ -219,7 +251,7 @@ function toggleShuffleFromSubhero() {
 function isViewCurrentlyPlaying(viewId) {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) return false;
     const curItem = playbackQueue[currentQueueIndex];
-    const curListId = curItem.listId || 'all-songs';
+    const curListId = curItem.listId || VIEWS.ALL_SONGS;
     return curListId === viewId;
 }
 
@@ -227,41 +259,41 @@ function isViewCurrentlyPlaying(viewId) {
 // VIEW CONFIGS
 // ==============================================================================
 const viewConfigs = {
-    'all-songs': {
+    [VIEWS.ALL_SONGS]: {
         heroTitle: 'All Songs',
         heroLabel: 'Playlist',
         showClear: false,
         showHero: true,
-        getCount: () => getSongCountForList('all-songs'),
-        render: () => renderSongsList(getSongsForList('all-songs'), 'all-songs'),
+        getCount: () => getSongCountForList(VIEWS.ALL_SONGS),
+        render: () => renderSongsList(getSongsForList(VIEWS.ALL_SONGS), VIEWS.ALL_SONGS),
         finalize: (listId) => finalizeViewSwitch(listId),
         updateCount: () => {
             const el = document.getElementById('all-songs-count-display');
             if (el)
                 el.textContent =
-                    getSongCountForList('all-songs') + (getSongCountForList('all-songs') === 1 ? ' song' : ' songs');
+                    getSongCountForList(VIEWS.ALL_SONGS) + (getSongCountForList(VIEWS.ALL_SONGS) === 1 ? ' song' : ' songs');
         }
     },
-    history: {
+    [VIEWS.HISTORY]: {
         heroTitle: 'Recents',
         heroLabel: 'Playlist',
         showClear: false,
         showHero: true,
         idValue: 'History',
-        getCount: () => getSongCountForList('history'),
+        getCount: () => getSongCountForList(VIEWS.HISTORY),
         render: () => renderHistoryView(),
         finalize: (listId) => finalizeViewSwitch(listId)
     },
-    favorites: {
+    [VIEWS.FAVORITES]: {
         heroTitle: 'Liked Songs',
         heroLabel: 'Playlist',
         showClear: false,
         showHero: true,
-        getCount: () => getSongCountForList('favorites'),
+        getCount: () => getSongCountForList(VIEWS.FAVORITES),
         render: () => renderFavoritesView(),
         finalize: (listId) => finalizeViewSwitch(listId)
     },
-    settings: {
+    [VIEWS.SETTINGS]: {
         heroTitle: '',
         heroLabel: '',
         showClear: false,
@@ -270,7 +302,7 @@ const viewConfigs = {
         render: () => openSettingsPanel(),
         finalize: (listId) => refreshUIAfterViewSwitch()
     },
-    'search-history': {
+    [VIEWS.SEARCH_HISTORY]: {
         heroTitle: '',
         heroLabel: '',
         showClear: false,
@@ -279,7 +311,7 @@ const viewConfigs = {
         render: () => renderSearchHistoryView(),
         finalize: (listId) => refreshUIAfterViewSwitch()
     },
-    'online-lyrics': {
+    [VIEWS.ONLINE_LYRICS]: {
         heroTitle: '',
         heroLabel: '',
         showClear: false,
@@ -288,7 +320,7 @@ const viewConfigs = {
         render: () => renderOnlineLyricsView(),
         finalize: (listId) => refreshUIAfterViewSwitch()
     },
-    'smart-lyrics': {
+    [VIEWS.SMART_LYRICS]: {
         heroTitle: '',
         heroLabel: '',
         showClear: false,
@@ -297,7 +329,7 @@ const viewConfigs = {
         render: () => renderSmartLyricsFinder(),
         finalize: (listId) => refreshUIAfterViewSwitch()
     },
-    lyrics: {
+    [VIEWS.LYRICS]: {
         heroTitle: 'Lyrics',
         heroLabel: 'Now Playing',
         showClear: false,
@@ -309,51 +341,51 @@ const viewConfigs = {
 };
 
 const viewHandlers = {
-    settings: {
+    [VIEWS.SETTINGS]: {
         enter: () => {
             closeSettingsPanelOnly();
             openSettingsPanel();
         }
     },
-    'online-lyrics': {
+    [VIEWS.ONLINE_LYRICS]: {
         enter: () => {
-            currentView = 'online-lyrics';
+            currentView = VIEWS.ONLINE_LYRICS;
             resetLeftPanelActiveState();
             resetViewScroll();
-            setSubheroVisibility('online-lyrics');
+            setSubheroVisibility(VIEWS.ONLINE_LYRICS);
             showHeroSection(false);
             showTracklistHeader(false);
-            updateHeroCover('online-lyrics');
+            updateHeroCover(VIEWS.ONLINE_LYRICS);
             renderOnlineLyricsView();
         }
     },
-    'smart-lyrics': {
+    [VIEWS.SMART_LYRICS]: {
         enter: () => {
-            currentView = 'smart-lyrics';
+            currentView = VIEWS.SMART_LYRICS;
             resetLeftPanelActiveState();
             resetViewScroll();
-            setSubheroVisibility('smart-lyrics');
+            setSubheroVisibility(VIEWS.SMART_LYRICS);
             showHeroSection(false);
             showTracklistHeader(false);
-            updateHeroCover('smart-lyrics');
+            updateHeroCover(VIEWS.SMART_LYRICS);
             renderSmartLyricsFinder();
         }
     },
-    lyrics: {
+    [VIEWS.LYRICS]: {
         enter: () => {
-            currentView = 'lyrics';
+            currentView = VIEWS.LYRICS;
             resetLeftPanelActiveState();
             resetViewScroll();
-            setSubheroVisibility('lyrics');
+            setSubheroVisibility(VIEWS.LYRICS);
             showHeroSection(false);
             showTracklistHeader(false);
-            updateHeroCover('lyrics');
+            updateHeroCover(VIEWS.LYRICS);
             const lyricsToggleBtn = document.getElementById('lyrics-toggle-btn');
             if (lyricsToggleBtn) lyricsToggleBtn.classList.add('active');
             renderLyricsView();
         }
     },
-    'search-items': {
+    [VIEWS.SEARCH_ITEMS]: {
         enter: () => {
             const searchHistory = getSearchHistory();
             if (searchHistory.length > 0) {
@@ -362,7 +394,7 @@ const viewHandlers = {
                 searchQuery = lastSearch.query.toLowerCase().trim();
                 currentSearchSessionId = lastSearch.sessionId;
             }
-            currentView = 'search-items';
+            currentView = VIEWS.SEARCH_ITEMS;
             resetLeftPanelActiveState();
             closeSettingsPanel();
             resetViewScroll();
@@ -370,12 +402,12 @@ const viewHandlers = {
             setupHeroSection(
                 true,
                 `"${searchQuery}"`,
-                getSongCountForList('search-items'),
+                getSongCountForList(VIEWS.SEARCH_ITEMS),
                 'Search Results',
                 currentSearchSessionId,
                 false
             );
-            renderSongsList(getSongsForList('search-items'), 'search-items');
+            renderSongsList(getSongsForList(VIEWS.SEARCH_ITEMS), VIEWS.SEARCH_ITEMS);
             refreshUIAfterViewSwitch();
         }
     },
@@ -386,7 +418,7 @@ const viewHandlers = {
             if (playlist) {
                 openPlaylist(playlistId);
             } else {
-                switchView('playlists');
+                switchView(VIEWS.PLAYLISTS);
             }
         }
     },
@@ -410,17 +442,17 @@ const viewHandlers = {
 
             const settingsToggleBtn = document.querySelector('.settings-toggle-btn');
             if (settingsToggleBtn) {
-                settingsToggleBtn.classList.toggle('active', currentView === 'settings');
+                settingsToggleBtn.classList.toggle('active', currentView === VIEWS.SETTINGS);
             }
 
             showTracklistHeader(true);
-            setupHeroSection(true, 'All Songs', getSongCountForList('all-songs'), 'Playlist');
-            renderSongsList(getSongsForList('all-songs'), 'all-songs');
+            setupHeroSection(true, 'All Songs', getSongCountForList(VIEWS.ALL_SONGS), 'Playlist');
+            renderSongsList(getSongsForList(VIEWS.ALL_SONGS), VIEWS.ALL_SONGS);
 
             const allSongsCountDisplay = document.getElementById('all-songs-count-display');
             if (allSongsCountDisplay) {
                 allSongsCountDisplay.textContent =
-                    getSongCountForList('all-songs') + (getSongCountForList('all-songs') === 1 ? ' song' : ' songs');
+                    getSongCountForList(VIEWS.ALL_SONGS) + (getSongCountForList(VIEWS.ALL_SONGS) === 1 ? ' song' : ' songs');
             }
 
             refreshUIAfterViewSwitch();
@@ -432,33 +464,33 @@ const viewHandlers = {
 // LIST PROVIDERS
 // ==============================================================================
 const listProviders = {
-    'all-songs': {
+    [VIEWS.ALL_SONGS]: {
         getSongs: () => getActiveSongs(),
         getCount: () => getActiveSongs().length
     },
-    search: {
+    [VIEWS.SEARCH]: {
         getSongs: () => getSearchResults(searchQuery),
         getCount: () => listProviders.search.getSongs().length
     },
-    'search-items': {
+    [VIEWS.SEARCH_ITEMS]: {
         getSongs: () => listProviders.search.getSongs(),
         getCount: () => listProviders.search.getSongs().length
     },
-    favorites: {
+    [VIEWS.FAVORITES]: {
         getSongs: () => {
             const favorites = getFavorites();
             return filterDeletedSongs(favorites.map((id) => SONGS_DATA.find((s) => s.id === id)));
         },
         getCount: () => getActiveFavoritesCount()
     },
-    history: {
+    [VIEWS.HISTORY]: {
         getSongs: () => {
             const history = getPlayHistory();
             return filterDeletedSongs(history.map((entry) => SONGS_DATA.find((s) => s.id === entry.id)));
         },
         getCount: () => getPlayHistory().length
     },
-    albums: {
+    [VIEWS.ALBUMS]: {
         getSongs: () => {
             const albums = getAlbums();
             const allSongIds = [];
@@ -469,7 +501,7 @@ const listProviders = {
         },
         getCount: () => listProviders.albums.getSongs().length
     },
-    artists: {
+    [VIEWS.ARTISTS]: {
         getSongs: () => {
             const artists = getArtists();
             const allSongIds = [];
@@ -619,11 +651,11 @@ function goBack() {
         openDetailView(targetView, 'artist');
     } else if (targetView === 'settings-advanced') {
         enterAdvancedSettingsFromHistory();
-    } else if (targetView === 'settings') {
+    } else if (targetView === VIEWS.SETTINGS) {
         enterSettingsFromHistory();
-    } else if (targetView === 'search-items' || targetView === 'search') {
-        switchView('all-songs');
-    } else if (targetView === 'lyrics') {
+    } else if (targetView === VIEWS.SEARCH_ITEMS || targetView === VIEWS.SEARCH) {
+        switchView(VIEWS.ALL_SONGS);
+    } else if (targetView === VIEWS.LYRICS) {
         if (typeof switchToLyrics === 'function') switchToLyrics();
     } else {
         switchView(targetView);
@@ -658,11 +690,11 @@ function goForward() {
         openDetailView(targetView, 'artist');
     } else if (targetView === 'settings-advanced') {
         enterAdvancedSettingsFromHistory();
-    } else if (targetView === 'settings') {
+    } else if (targetView === VIEWS.SETTINGS) {
         enterSettingsFromHistory();
-    } else if (targetView === 'search-items' || targetView === 'search') {
-        switchView('all-songs');
-    } else if (targetView === 'lyrics') {
+    } else if (targetView === VIEWS.SEARCH_ITEMS || targetView === VIEWS.SEARCH) {
+        switchView(VIEWS.ALL_SONGS);
+    } else if (targetView === VIEWS.LYRICS) {
         if (typeof switchToLyrics === 'function') switchToLyrics();
     } else {
         switchView(targetView);
@@ -704,7 +736,7 @@ function openDetailView(id, type) {
     const item = items.find((i) => i.id === id);
     if (!item) return;
 
-    if (currentView === 'lyrics') {
+    if (currentView === VIEWS.LYRICS) {
         if (typeof teardownLyricsView === 'function') {
             teardownLyricsView();
         }
@@ -722,9 +754,9 @@ function openDetailView(id, type) {
     resetLeftPanelActiveState();
 
     if (type === 'album') {
-        activateLeftPanelItem('albums');
+        activateLeftPanelItem(VIEWS.ALBUMS);
     } else {
-        activateLeftPanelItem('artists');
+        activateLeftPanelItem(VIEWS.ARTISTS);
     }
 
     const detailItem = document.querySelector(`.left-panel-main-item[data-view="${viewName}"]`);
@@ -790,11 +822,11 @@ function switchToLyrics() {
         return;
     }
 
-    if (currentView === 'settings') {
+    if (currentView === VIEWS.SETTINGS) {
         closeSettingsPanelOnly();
     }
 
-    if (currentView === 'lyrics') {
+    if (currentView === VIEWS.LYRICS) {
         if (lyricsToggleBtn) lyricsToggleBtn.classList.remove('active');
 
         document.body.classList.remove('in-lyrics-view');
@@ -809,7 +841,7 @@ function switchToLyrics() {
         if (canGoBack()) {
             goBack();
         } else {
-            switchView('all-songs');
+            switchView(VIEWS.ALL_SONGS);
         }
 
         const songListContainerAfter = document.getElementById('song-list-container');
@@ -858,26 +890,26 @@ function switchToLyrics() {
     }
 
     document.body.classList.add('in-lyrics-view');
-    switchView('lyrics');
+    switchView(VIEWS.LYRICS);
 }
 
 function switchView(view) {
     let isSameView = currentView === view;
 
-    if ((currentView === 'lyrics' || currentView === 'online-lyrics' || currentView === 'smart-lyrics') && view !== 'lyrics' && view !== 'online-lyrics' && view !== 'smart-lyrics') {
+    if ((currentView === VIEWS.LYRICS || currentView === VIEWS.ONLINE_LYRICS || currentView === VIEWS.SMART_LYRICS) && view !== VIEWS.LYRICS && view !== VIEWS.ONLINE_LYRICS && view !== VIEWS.SMART_LYRICS) {
         if (typeof teardownLyricsView === 'function') {
             teardownLyricsView();
         }
         isSameView = false;
     }
 
-    if (currentView === 'smart-lyrics' && view !== 'smart-lyrics') {
+    if (currentView === VIEWS.SMART_LYRICS && view !== VIEWS.SMART_LYRICS) {
         if (typeof teardownSmartLyricsVirtualScroll === 'function') {
             teardownSmartLyricsVirtualScroll();
         }
     }
     
-    if (view !== 'lyrics' && view !== 'online-lyrics' && view !== 'smart-lyrics') {
+    if (view !== VIEWS.LYRICS && view !== VIEWS.ONLINE_LYRICS && view !== VIEWS.SMART_LYRICS) {
         const lyricsRoot = document.getElementById('lyrics-view-root');
         if (lyricsRoot) lyricsRoot.style.display = 'none';
         const songListContainer = document.getElementById('song-list-container');
@@ -890,7 +922,7 @@ function switchView(view) {
             requestAnimationFrame(() => applyTrackLyricsExpandedState());
         }
     } else {
-        document.body.classList.toggle('in-lyrics-view', view === 'lyrics');
+        document.body.classList.toggle('in-lyrics-view', view === VIEWS.LYRICS);
         if (typeof applyTrackLyricsExpandedState === 'function') {
             applyTrackLyricsExpandedState();
             requestAnimationFrame(() => applyTrackLyricsExpandedState());
@@ -904,30 +936,30 @@ function switchView(view) {
     }
 
     if (isSameView) {
-        if (view !== 'settings') {
+        if (view !== VIEWS.SETTINGS) {
             return;
         }
     }
 
     pushViewToHistory(view);
 
-    if (view !== 'lyrics') {
+    if (view !== VIEWS.LYRICS) {
         resetLeftPanelActiveState();
     }
 
     const lyricsToggleBtn = document.getElementById('lyrics-toggle-btn');
     if (lyricsToggleBtn) {
-        lyricsToggleBtn.classList.toggle('active', view === 'lyrics');
+        lyricsToggleBtn.classList.toggle('active', view === VIEWS.LYRICS);
     }
 
-    if (view !== 'lyrics' && view !== 'online-lyrics' && view !== 'smart-lyrics') {
+    if (view !== VIEWS.LYRICS && view !== VIEWS.ONLINE_LYRICS && view !== VIEWS.SMART_LYRICS) {
         if (view && view.startsWith('playlist-')) {
-            activateLeftPanelItem('playlists');
+            activateLeftPanelItem(VIEWS.PLAYLISTS);
             const playlistItem = document.querySelector(`.left-panel-main-item[data-view="${view}"]`);
             if (playlistItem) {
                 playlistItem.classList.add('active');
             }
-        } else if (view === 'all-songs' || view === 'favorites') {
+        } else if (view === VIEWS.ALL_SONGS || view === VIEWS.FAVORITES) {
             activateLeftPanelItem(view);
         } else {
             activateLeftPanelItem(view);
@@ -944,8 +976,8 @@ function switchView(view) {
     resetSubheroSearch();
 
     currentView = view;
-    document.body.classList.toggle('view-all-songs', view === 'all-songs');
-    document.body.classList.toggle('view-favorites', view === 'favorites');
+    document.body.classList.toggle('view-all-songs', view === VIEWS.ALL_SONGS);
+    document.body.classList.toggle('view-favorites', view === VIEWS.FAVORITES);
     updateHeroCover(view);
     updateSubheroPlayButton(isCurrentViewPlaying());
 
@@ -953,19 +985,19 @@ function switchView(view) {
 
     const settingsToggleBtn = document.querySelector('.settings-toggle-btn');
     if (settingsToggleBtn) {
-        settingsToggleBtn.classList.toggle('active', currentView === 'settings');
+        settingsToggleBtn.classList.toggle('active', currentView === VIEWS.SETTINGS);
     }
 
     if (typeof setOnlineLyricsSearchButtonActive === 'function') {
-        setOnlineLyricsSearchButtonActive(currentView === 'online-lyrics');
+        setOnlineLyricsSearchButtonActive(currentView === VIEWS.ONLINE_LYRICS);
     }
 
-    if (view === 'albums') {
+    if (view === VIEWS.ALBUMS) {
         showTracklistHeader(false);
         setupHeroSection(true, 'Albums', getAlbums().length, 'Collection');
         renderAlbumsView();
         renderAlbumLeftPanelItems();
-        updateHeroCover('albums');
+        updateHeroCover(VIEWS.ALBUMS);
         refreshUIAfterViewSwitch();
         return;
     }
@@ -982,10 +1014,10 @@ function switchView(view) {
 
     const gradientWrapper = document.querySelector('.content-gradient-wrapper');
 
-    if (view === 'playlists' || view === 'settings' || view === 'search-history' || view === 'lyrics' || view === 'online-lyrics' || view === 'smart-lyrics') {
+    if (view === VIEWS.PLAYLISTS || view === VIEWS.SETTINGS || view === VIEWS.SEARCH_HISTORY || view === VIEWS.LYRICS || view === VIEWS.ONLINE_LYRICS || view === VIEWS.SMART_LYRICS) {
         showTracklistHeader(false);
         setupHeroSection(false);
-        if (view === 'settings' && gradientWrapper) {
+        if (view === VIEWS.SETTINGS && gradientWrapper) {
             gradientWrapper.classList.add('no-gradient');
         } else if (gradientWrapper) {
             gradientWrapper.classList.remove('no-gradient');
@@ -1004,15 +1036,15 @@ function switchView(view) {
         }
     }
 
-    if (view === 'playlists') {
+    if (view === VIEWS.PLAYLISTS) {
         return;
     }
 
-    if (view === 'search-items') {
+    if (view === VIEWS.SEARCH_ITEMS) {
         const searchHistory = getSearchHistory();
         const lastSearch = searchHistory.find((entry) => entry.sessionId === currentSearchSessionId);
         if (lastSearch) {
-            viewConfigs['search-items'].heroTitle = `"${lastSearch.query}"`;
+            viewConfigs[VIEWS.SEARCH_ITEMS].heroTitle = `"${lastSearch.query}"`;
         }
     }
 
@@ -1055,19 +1087,19 @@ function switchView(view) {
 // SETTINGS/HISTORY NAVIGATION HELPERS
 // ==============================================================================
 function switchToHistoryFromSettings() {
-    switchView('history');
+    switchView(VIEWS.HISTORY);
 }
 
 function switchToSearchHistoryFromSettings() {
-    switchView('search-history');
+    switchView(VIEWS.SEARCH_HISTORY);
 }
 
 function handleHeroClear() {
-    if (currentView === 'history') {
+    if (currentView === VIEWS.HISTORY) {
         clearPlayHistory();
-    } else if (currentView === 'search-history') {
+    } else if (currentView === VIEWS.SEARCH_HISTORY) {
         clearSearchHistory();
-    } else if (currentView === 'search-items' && currentSearchSessionId) {
+    } else if (currentView === VIEWS.SEARCH_ITEMS && currentSearchSessionId) {
         deleteSearchHistoryEntry(currentSearchSessionId);
     }
 }
@@ -1078,24 +1110,24 @@ function openSearchHistoryChild(sessionId, query) {
 
     const filteredSongs = getSearchResults(searchQuery);
 
-    pushViewToHistory('search-items');
+    pushViewToHistory(VIEWS.SEARCH_ITEMS);
 
-    currentView = 'search-items';
+    currentView = VIEWS.SEARCH_ITEMS;
     currentSearchSessionId = sessionId;
 
     resetViewScroll();
 
-    ghostLists['search-items'] = [];
+    ghostLists[VIEWS.SEARCH_ITEMS] = [];
     for (let i = 0; i < filteredSongs.length; i++) {
-        ghostLists['search-items'].push(`SearchItem${String(i + 1).padStart(5, '0')}`);
+        ghostLists[VIEWS.SEARCH_ITEMS].push(`SearchItem${String(i + 1).padStart(5, '0')}`);
     }
     nextSearchItemSlotId = filteredSongs.length + 1;
 
     setupHeroSection(true, escapeHtml(query), filteredSongs.length, 'Search', sessionId, true);
 
-    renderSongsList(filteredSongs, 'search-items');
-    reapplyHighlightAfterFilter('search-items', filteredSongs);
-    reapplySelectionAfterFilter('search-items', filteredSongs);
+    renderSongsList(filteredSongs, VIEWS.SEARCH_ITEMS);
+    reapplyHighlightAfterFilter(VIEWS.SEARCH_ITEMS, filteredSongs);
+    reapplySelectionAfterFilter(VIEWS.SEARCH_ITEMS, filteredSongs);
 
     resetLeftPanelActiveState();
 
