@@ -48,13 +48,13 @@ function initLeftPanelDragAndDrop() {
     function parseItemMetadata(item) {
         const view = item.getAttribute('data-view');
         if (!view) return null;
-        if (view === 'all-songs')
+        if (view === VIEWS.ALL_SONGS)
             return {
                 id: 'all-songs',
                 type: 'special',
                 pinId: 'all-songs'
             };
-        if (view === 'favorites')
+        if (view === VIEWS.FAVORITES)
             return {
                 id: 'favorites',
                 type: 'special',

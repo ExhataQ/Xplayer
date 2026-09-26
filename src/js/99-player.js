@@ -483,7 +483,7 @@ document.addEventListener('DOMContentLoaded', function () {
     resetSearchState();
 
     playbackHistoryStack.push({
-        listId: 'all-songs',
+        listId: VIEWS.ALL_SONGS,
         timestamp: Date.now(),
         queueIndex: -1
     });
@@ -575,7 +575,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initSongDragToLeftPanel();
 
     // Ensure we're showing all songs on launch
-    currentView = 'all-songs';
+    currentView = VIEWS.ALL_SONGS;
     document.body.classList.add('view-all-songs');
     document.body.classList.remove('view-favorites');
 
@@ -584,7 +584,7 @@ document.addEventListener('DOMContentLoaded', function () {
     updateHeroSongCount(SONGS_DATA.length);
     showTracklistHeader(true);
     setupHeroSection(true, 'All Songs', SONGS_DATA.length, 'Playlist');
-    updateHeroCover('all-songs');
+    updateHeroCover(VIEWS.ALL_SONGS);
     updateSubheroShuffleButton();
 
     const subheroMoreBtnInit = document.getElementById('subhero-more-btn');

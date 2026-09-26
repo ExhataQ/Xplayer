@@ -18,31 +18,31 @@ function navigateToCurrentSongInList() {
 
     const currentItem = playbackQueue[currentQueueIndex];
     const currentSong = currentItem.song || currentItem;
-    const sourceListId = currentItem.listId || 'all-songs';
+    const sourceListId = currentItem.listId || VIEWS.ALL_SONGS;
 
     let targetView = sourceListId;
     let songIndex = -1;
     let songList = [];
 
-    if (sourceListId === 'all-songs') {
+    if (sourceListId === VIEWS.ALL_SONGS) {
         songList = SONGS_DATA;
         songIndex = songList.findIndex((s) => s.id === currentSong.id);
-        targetView = 'all-songs';
-    } else if (sourceListId === 'favorites') {
+        targetView = VIEWS.ALL_SONGS;
+    } else if (sourceListId === VIEWS.FAVORITES) {
         const favorites = getFavorites();
         songList = SONGS_DATA.filter((s) => favorites.includes(s.id));
         songIndex = songList.findIndex((s) => s.id === currentSong.id);
-        targetView = 'favorites';
-    } else if (sourceListId === 'search' && currentItem.searchQuery) {
+        targetView = VIEWS.FAVORITES;
+    } else if (sourceListId === VIEWS.SEARCH && currentItem.searchQuery) {
         songList = getSearchResults(currentItem.searchQuery);
         songIndex = songList.findIndex((s) => s.id === currentSong.id);
-        targetView = 'search';
+        targetView = VIEWS.SEARCH;
         searchInput.value = currentItem.searchQuery;
         searchQuery = currentItem.searchQuery;
-    } else if (sourceListId === 'history') {
+    } else if (sourceListId === VIEWS.HISTORY) {
         const history = getPlayHistory();
         songIndex = history.findIndex((e) => e.id === currentSong.id);
-        targetView = 'history';
+        targetView = VIEWS.HISTORY;
     } else if (sourceListId && sourceListId.startsWith('a') && sourceListId.length === 13) {
         const albumSongs = getAlbumSongs(sourceListId);
         songList = albumSongs;
@@ -64,20 +64,20 @@ function navigateToCurrentSongInList() {
         } else {
             songList = SONGS_DATA;
             songIndex = songList.findIndex((s) => s.id === currentSong.id);
-            targetView = 'all-songs';
+            targetView = VIEWS.ALL_SONGS;
         }
-    } else if (sourceListId === 'search-history') {
+    } else if (sourceListId === VIEWS.SEARCH_HISTORY) {
         songList = SONGS_DATA;
         songIndex = songList.findIndex((s) => s.id === currentSong.id);
-        targetView = 'all-songs';
-    } else if (sourceListId === 'playlists') {
+        targetView = VIEWS.ALL_SONGS;
+    } else if (sourceListId === VIEWS.PLAYLISTS) {
         songList = SONGS_DATA;
         songIndex = songList.findIndex((s) => s.id === currentSong.id);
-        targetView = 'all-songs';
+        targetView = VIEWS.ALL_SONGS;
     } else {
         songList = getActiveSongs();
         songIndex = songList.findIndex((s) => s.id === currentSong.id);
-        targetView = 'all-songs';
+        targetView = VIEWS.ALL_SONGS;
     }
 
     if (targetView === currentView && songIndex !== -1) {

@@ -2,10 +2,10 @@
 // UI RENDER - FAVORITES & HISTORY
 // ==============================================================================
 function renderFavoritesView() {
-    updateHeroCover('favorites');
+    updateHeroCover(VIEWS.FAVORITES);
     const favorites = getFavorites();
     const favoriteSongs = filterDeletedSongs(favorites.map((id) => getSongById(id)));
-    const listId = 'favorites';
+    const listId = VIEWS.FAVORITES;
     const songListElement = document.getElementById('song-list');
 
     if (favoriteSongs.length === 0) {
@@ -33,10 +33,10 @@ function renderFavoritesView() {
 }
 
 function renderHistoryView() {
-    updateHeroCover('history');
+    updateHeroCover(VIEWS.HISTORY);
     const history = getPlayHistory().filter((entry) => !deletedSongIds.has(entry.id));
     const songList = document.getElementById('song-list');
-    const listId = 'history';
+    const listId = VIEWS.HISTORY;
 
     showHeroSection(true);
     showHeroClearButton(false);
@@ -102,7 +102,7 @@ function renderHistoryView() {
 
 function renderRecentlyPlayed() {
     const recentSongs = getRecentlyPlayedSongs();
-    const listId = 'recent';
+    const listId = VIEWS.RECENT;
 
     if (typeof teardownLazyLoading === 'function') {
         teardownLazyLoading();
@@ -176,7 +176,7 @@ function renderPortableRecentlyPlayed() {
                 ${renderRightPanelItem(song, {
                     title: escapeHtml(song.title),
                     artist: escapeHtml(song.artist),
-                    onClick: `playSongFromList(${song.id}, 'history')`
+                    onClick: `playSongFromList(${song.id}, VIEWS.HISTORY)`
                 })}`;
     });
 

@@ -30,7 +30,8 @@ const VIEWS = {
     SEARCH: 'search',
     SEARCH_ITEMS: 'search-items',
     SEARCH_HISTORY: 'search-history',
-    SETTINGS: 'settings'
+    SETTINGS: 'settings',
+    SETTINGS_ADVANCED: 'settings-advanced'
 };
 
 function getCurrentViewLabel() {
@@ -649,7 +650,7 @@ function goBack() {
         openDetailView(targetView, 'album');
     } else if (targetView && targetView.startsWith('r') && targetView.length === 13) {
         openDetailView(targetView, 'artist');
-    } else if (targetView === 'settings-advanced') {
+    } else if (targetView === VIEWS.SETTINGS_ADVANCED) {
         enterAdvancedSettingsFromHistory();
     } else if (targetView === VIEWS.SETTINGS) {
         enterSettingsFromHistory();
@@ -688,7 +689,7 @@ function goForward() {
         openDetailView(targetView, 'album');
     } else if (targetView && targetView.startsWith('r') && targetView.length === 13) {
         openDetailView(targetView, 'artist');
-    } else if (targetView === 'settings-advanced') {
+    } else if (targetView === VIEWS.SETTINGS_ADVANCED) {
         enterAdvancedSettingsFromHistory();
     } else if (targetView === VIEWS.SETTINGS) {
         enterSettingsFromHistory();

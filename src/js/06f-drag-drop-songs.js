@@ -58,7 +58,7 @@ function initSongDragToLeftPanel() {
                     const targetView = item.getAttribute('data-view');
                     const targetPinId = item.getAttribute('data-pin-id');
                     const isValid =
-                        targetView === 'favorites' ||
+                        targetView === VIEWS.FAVORITES ||
                         targetPinId === 'favorites' ||
                         (targetView && targetView.startsWith('playlist-')) ||
                         (targetPinId && targetPinId.startsWith('playlist-'));
@@ -157,7 +157,7 @@ function initSongDragToLeftPanel() {
                     const targetView = targetItem.getAttribute('data-view');
                     const targetPinId = targetItem.getAttribute('data-pin-id');
 
-                    if (targetView === 'favorites' || targetPinId === 'favorites') {
+                    if (targetView === VIEWS.FAVORITES || targetPinId === 'favorites') {
                         const ids = Array.isArray(dragSongId) ? dragSongId : [dragSongId];
                         let addedCount = 0;
                         ids.forEach((id) => {

@@ -96,7 +96,7 @@ document.addEventListener('keydown', function (e) {
                 }
             } else if (playbackQueue.length === 0 && currentQueueIndex === -1) {
                 if (isShuffled) {
-                    resetShuffle(SONGS_DATA, null, 'all-songs');
+                    resetShuffle(SONGS_DATA, null, VIEWS.ALL_SONGS);
                     const newQueue = [];
                     for (let i = 0; i < 20; i++) {
                         const nextSong = getNextShuffledSong();

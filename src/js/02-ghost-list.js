@@ -72,7 +72,7 @@ function rebuildGhostListFromMain(listId, songs) {
 
     for (let i = 0; i < ghostList.length; i++) {
         if (i < songs.length) {
-            if (listId === 'all-songs') {
+            if (listId === VIEWS.ALL_SONGS) {
                 ghostList[i] = `AllSongs${String(i + 1).padStart(5, '0')}`;
             } else {
                 ghostList[i] = songs[i].id;
@@ -83,7 +83,7 @@ function rebuildGhostListFromMain(listId, songs) {
     }
 
     for (let i = ghostList.length; i < songs.length; i++) {
-        if (listId === 'all-songs') {
+        if (listId === VIEWS.ALL_SONGS) {
             ghostList.push(`AllSongs${String(i + 1).padStart(5, '0')}`);
         } else {
             ghostList.push(songs[i].id);
@@ -95,7 +95,7 @@ function getGhostSlotId(listId, songId, occurrenceIndex = 0) {
     const ghostList = ghostLists[listId];
     if (!ghostList) return null;
 
-    if (listId === 'all-songs') {
+    if (listId === VIEWS.ALL_SONGS) {
         if (typeof songId === 'number') {
             return songId;
         }

@@ -270,7 +270,7 @@ function setSmartShuffleSetting(key, value) {
 }
 
 function openAdvancedSettings() {
-    pushViewToHistory('settings-advanced');
+    pushViewToHistory(VIEWS.SETTINGS_ADVANCED);
     advancedSettingsOpen = true;
     renderAdvancedSettingsPanel();
 }
