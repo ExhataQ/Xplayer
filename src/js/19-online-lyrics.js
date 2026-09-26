@@ -29,7 +29,7 @@ function openSmartLyricsFinder() {
         skipExisting: true,
         lrclibCache: new Map()
     };
-    switchView('smart-lyrics');
+    switchView(VIEWS.SMART_LYRICS);
 }
 
 function getSmartLyricsFinderSongs() {
@@ -305,7 +305,7 @@ function renderSmartLyricsFinder() {
     root.innerHTML = `<div class="online-lyrics-view-container smart-lyrics-finder-container">
         <div class="online-lyrics-header">
             <div><h2>Find multi song lyrics &amp; LRC</h2><p>Choose songs and automatically find and save synced LRC or plain lyrics.</p></div>
-            <button class="lyrics-view-edit-btn" onclick="switchView('lyrics')"><span class="material-symbols-outlined">arrow_back</span>Back to Lyrics</button>
+            <button class="lyrics-view-edit-btn" onclick="switchView('${VIEWS.LYRICS}')"><span class="material-symbols-outlined">arrow_back</span>Back to Lyrics</button>
         </div>
         <div class="smart-lyrics-toolbar">
             <input class="smart-lyrics-search" placeholder="Search songs..." value="${escapeOnlineLyricsAttribute(smartLyricsFinderState.query)}" oninput="handleSmartLyricsFinderSearch(this.value)" ${smartLyricsFinderState.processing ? 'disabled' : ''}>
@@ -404,12 +404,12 @@ function setOnlineLyricsSearchButtonActive(active) {
 }
 
 function toggleOnlineLyricsSearchView() {
-    if (currentView === 'online-lyrics') {
+    if (currentView === VIEWS.ONLINE_LYRICS) {
         setOnlineLyricsSearchButtonActive(false);
         if (canGoBack()) {
             goBack();
         } else {
-            switchView(lastPlaybackListId || 'all-songs');
+            switchView(lastPlaybackListId || VIEWS.ALL_SONGS);
         }
         return;
     }
@@ -449,7 +449,7 @@ function openOnlineLyricsSearchView(song = null, autoSearch = false) {
         pickerSelectedSongId: null
     };
 
-    switchView('online-lyrics');
+    switchView(VIEWS.ONLINE_LYRICS);
     if (autoSearch) searchOnlineLyrics();
 }
 
@@ -618,10 +618,10 @@ function applyOnlineLyricsToSong(songId, text, type, isInstrumental = false) {
         markSongInstrumental(songId);
     }
 
-    if (currentView === 'online-lyrics') {
+    if (currentView === VIEWS.ONLINE_LYRICS) {
         updateOnlineLyricsResultsSection();
     }
-    if (currentView === 'lyrics') {
+    if (currentView === VIEWS.LYRICS) {
         renderLyricsView();
     }
     return true;
@@ -1030,7 +1030,7 @@ function renderOnlineLyricsView() {
             ${
                 state.fromHeader
                     ? ''
-                    : `<button class="lyrics-view-edit-btn" onclick="switchView('lyrics')">
+                    : `<button class="lyrics-view-edit-btn" onclick="switchView('${VIEWS.LYRICS}')">
                             <span class="material-symbols-outlined">arrow_back</span>
                             Back to Lyrics
                         </button>`

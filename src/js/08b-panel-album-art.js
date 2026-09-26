@@ -106,7 +106,7 @@ function updateAlbumArt() {
 
     updateInfoButtonVisibility();
 
-    if (currentView === 'lyrics') {
+    if (currentView === VIEWS.LYRICS) {
         renderLyricsView();
     }
 }

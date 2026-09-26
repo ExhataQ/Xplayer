@@ -18,7 +18,7 @@ function renderPlaylistsView() {
 
     const currentItem =
         currentQueueIndex >= 0 && playbackQueue[currentQueueIndex] ? playbackQueue[currentQueueIndex] : null;
-    const currentListId = currentItem ? currentItem.listId || 'all-songs' : null;
+    const currentListId = currentItem ? currentItem.listId || VIEWS.ALL_SONGS : null;
     const isPlayingGlobal = !!currentItem;
     const isPausedGlobal = isPlayingGlobal && audioElement.paused;
 
@@ -176,7 +176,7 @@ function renderFolderContents(folderId) {
         if (currentView === item.viewId) listItem.classList.add('active');
         const currentItem =
             currentQueueIndex >= 0 && playbackQueue[currentQueueIndex] ? playbackQueue[currentQueueIndex] : null;
-        const currentListId = currentItem ? currentItem.listId || 'all-songs' : null;
+        const currentListId = currentItem ? currentItem.listId || VIEWS.ALL_SONGS : null;
         const isPlaying = !!(currentItem && currentListId === item.viewId);
         const isPaused = isPlaying && audioElement.paused;
         if (isPlaying) {
@@ -236,8 +236,8 @@ function renderFolderContents(folderId) {
             listItem.setAttribute('onclick', `openArtist('${item.id}')`);
             listItem.setAttribute('oncontextmenu', `showArtistContextMenu(event, '${item.id}'); return false;`);
         } else if (item.type === 'special') {
-            const isAllSongs = item.id === 'all-songs';
-            const isFavorites = item.id === 'favorites';
+            const isAllSongs = item.id === VIEWS.ALL_SONGS;
+            const isFavorites = item.id === VIEWS.FAVORITES;
             if (isAllSongs) {
                 coverHTML = `<svg class="main-item-cover-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
                         <rect width="400" height="400" rx="8" fill="var(--accent)"/>
@@ -316,7 +316,7 @@ function renderPlaylistDetailView(playlistId) {
     const playlists = getPlaylists();
     const playlist = playlists.find((p) => p.id == playlistId || p.id === playlistId);
     if (!playlist) {
-        switchView('playlists');
+        switchView(VIEWS.PLAYLISTS);
         return;
     }
 

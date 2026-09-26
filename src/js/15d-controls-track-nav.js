@@ -12,7 +12,7 @@ document.getElementById('next-btn').onclick = () => {
             saveToRecentlyPlayed(lastPlayedSong);
         }
 
-        if (currentView === 'recent') {
+        if (currentView === VIEWS.RECENT) {
             renderRecentlyPlayed();
         }
 

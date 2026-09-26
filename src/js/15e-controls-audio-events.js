@@ -27,7 +27,7 @@ function handleNumberCellClick(songId, listId, index) {
     const currentItem =
         currentQueueIndex >= 0 && playbackQueue[currentQueueIndex] ? playbackQueue[currentQueueIndex] : null;
     const currentSong = currentItem ? currentItem.song || currentItem : null;
-    const currentListId = currentItem ? currentItem.listId || 'all-songs' : null;
+    const currentListId = currentItem ? currentItem.listId || VIEWS.ALL_SONGS : null;
 
     const isSameSong =
         !!currentSong && !!audioElement.src && currentSong.url === clickedSong.url && currentSong.id === clickedSong.id;
@@ -65,7 +65,7 @@ function syncPlayPauseButtons() {
         const btnViewId = btn.getAttribute('data-view');
         const currentPlayingViewId =
             currentQueueIndex >= 0 && playbackQueue[currentQueueIndex]
-                ? playbackQueue[currentQueueIndex].listId || 'all-songs'
+                ? playbackQueue[currentQueueIndex].listId || VIEWS.ALL_SONGS
                 : null;
         const shouldPause = currentPlayingViewId && btnViewId === currentPlayingViewId && !isPaused;
         btn.classList.toggle('is-pause', shouldPause);
@@ -98,7 +98,7 @@ function updateAudioProgress(audio) {
         totalTimeDisplay.textContent = formatTime(audio.duration);
     }
 
-    if (currentView === 'lyrics' && syncedLyricsState.entries) {
+    if (currentView === VIEWS.LYRICS && syncedLyricsState.entries) {
         updateSyncedLyricsHighlight(audio.currentTime);
     }
 
@@ -144,7 +144,7 @@ function bindPlaybackAudioEvents(audio) {
                 saveToRecentlyPlayed(playbackQueue[currentQueueIndex]);
             }
 
-            if (currentView === 'recent') {
+            if (currentView === VIEWS.RECENT) {
                 renderRecentlyPlayed();
             }
 
@@ -164,7 +164,7 @@ function bindPlaybackAudioEvents(audio) {
             if (currentQueueIndex >= 0 && playbackQueue[currentQueueIndex]) {
                 const currentItem = playbackQueue[currentQueueIndex];
                 const song = currentItem.song || currentItem;
-                const listId = currentItem.listId || lastPlaybackListId || 'all-songs';
+                const listId = currentItem.listId || lastPlaybackListId || VIEWS.ALL_SONGS;
                 updatePlayingHighlight(song.id, listId, currentItem.ghostSlot ?? null);
                 updateAlbumArt();
             }
@@ -243,12 +243,12 @@ function bindPlaybackAudioEvents(audio) {
                     lyricsToggleBtnEl.classList.remove('active');
                 }
 
-                if (currentView === 'lyrics') {
-                    const restoreView = (lyricsPreView && lyricsPreView !== 'lyrics') ? lyricsPreView : (lastPlaybackListId || currentView || 'all-songs');
+                if (currentView === VIEWS.LYRICS) {
+                    const restoreView = (lyricsPreView && lyricsPreView !== VIEWS.LYRICS) ? lyricsPreView : (lastPlaybackListId || currentView || VIEWS.ALL_SONGS);
                     const endedQueueItem = currentQueueIndex >= 0 && playbackQueue[currentQueueIndex] ? playbackQueue[currentQueueIndex] : null;
                     const endedSong = endedQueueItem ? endedQueueItem.song || endedQueueItem : null;
                     const endedListId = endedQueueItem ? endedQueueItem.listId || restoreView : restoreView;
-                    const endedSongIndex = endedSong && endedListId && endedListId !== 'all-songs'
+                    const endedSongIndex = endedSong && endedListId && endedListId !== VIEWS.ALL_SONGS
                         ? getSongsForList(endedListId).findIndex((song) => song.id === endedSong.id)
                         : -1;
 
@@ -260,7 +260,7 @@ function bindPlaybackAudioEvents(audio) {
                     lyricsPreView = null;
                     lyricsPreScrollTop = 0;
 
-                    if (endedSong && restoreView && restoreView !== 'lyrics' && restoreView !== 'all-songs' && endedSongIndex >= 0) {
+                    if (endedSong && restoreView && restoreView !== VIEWS.LYRICS && restoreView !== VIEWS.ALL_SONGS && endedSongIndex >= 0) {
                         switchToViewAndScroll(restoreView, endedSongIndex, endedSong.id, endedListId);
                     } else {
                         switchView(restoreView);

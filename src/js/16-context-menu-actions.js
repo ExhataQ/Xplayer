@@ -13,7 +13,7 @@ function deleteHistoryEntry() {
         history.splice(slotIndex, 1);
         localStorage.setItem(STORAGE_KEYS.PLAY_HISTORY, JSON.stringify(history));
 
-        if (currentView === 'history') {
+        if (currentView === VIEWS.HISTORY) {
             refreshCurrentViewAfterMutation();
         }
 

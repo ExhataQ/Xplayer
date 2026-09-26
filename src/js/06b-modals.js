@@ -715,8 +715,8 @@ function playFromUrl(saveToFolder) {
                             renderAlbumLeftPanelItems();
                             renderArtistLeftPanelItems();
 
-                            if (currentView === 'all-songs') {
-                                renderSongsList(SONGS_DATA, 'all-songs');
+                            if (currentView === VIEWS.ALL_SONGS) {
+                                renderSongsList(SONGS_DATA, VIEWS.ALL_SONGS);
                                 setupHeroSection(true, 'All Songs', SONGS_DATA.length, 'Playlist');
                             }
 
@@ -908,7 +908,7 @@ function addSongToQueueAndPlay(song) {
 
     const queueItem = {
         song: song,
-        listId: 'all-songs',
+        listId: VIEWS.ALL_SONGS,
         ghostSlot: null,
         source: 'url',
         addedManually: true

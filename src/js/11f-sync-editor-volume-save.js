@@ -155,7 +155,7 @@ function saveSyncEditor() {
         setActiveSyncedLyricsVariant(song.id, variant.id);
         closeSyncEditor();
         showNotification('Saved as ' + variant.name, 'success', 2000);
-        if (currentView === 'lyrics') renderLyricsView();
+        if (currentView === VIEWS.LYRICS) renderLyricsView();
     };
 
     if (untimedCount > 0) {

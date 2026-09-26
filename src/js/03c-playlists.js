@@ -80,8 +80,8 @@ function deletePlaylist(playlistId) {
     savePlaylists(playlists);
     removeItemFromAllFolders(playlistId, 'playlist');
 
-    if (currentView === 'playlists') {
-        switchView('playlists');
+    if (currentView === VIEWS.PLAYLISTS) {
+        switchView(VIEWS.PLAYLISTS);
     } else if (wasCurrentView) {
         if (playlists.length > 0) {
             const pinnedIds = getPinnedItems();
@@ -97,7 +97,7 @@ function deletePlaylist(playlistId) {
 
             switchView(`playlist-${targetPlaylist.id}`);
         } else {
-            switchView('all-songs');
+            switchView(VIEWS.ALL_SONGS);
         }
     }
 

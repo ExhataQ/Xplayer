@@ -60,7 +60,7 @@ function playViewFromLeftPanel(viewId) {
         run();
         return;
     }
-    if (viewId === 'all-songs' || viewId === 'favorites' || viewId === 'history') {
+    if (viewId === VIEWS.ALL_SONGS || viewId === VIEWS.FAVORITES || viewId === VIEWS.HISTORY) {
         switchView(viewId);
         setTimeout(run, 30);
     } else if (viewId.startsWith('playlist-')) {
@@ -98,7 +98,7 @@ function openPlaylist(playlistId, callback = null) {
     const playlist = playlists.find((p) => p.id == playlistId || p.id === playlistId);
     if (!playlist) return;
 
-    if (currentView === 'lyrics') {
+    if (currentView === VIEWS.LYRICS) {
         if (typeof teardownLyricsView === 'function') {
             teardownLyricsView();
         }
@@ -137,7 +137,7 @@ function openPlaylist(playlistId, callback = null) {
     renderPlaylistDetailView(playlistId);
 
     resetLeftPanelActiveState();
-    activateLeftPanelItem('playlists');
+    activateLeftPanelItem(VIEWS.PLAYLISTS);
 
     const playlistItem = document.querySelector(`.left-panel-main-item[data-view="${viewName}"]`);
     if (playlistItem) {
@@ -189,7 +189,7 @@ function openFolder(folderId) {
     const folder = folders.find((f) => f.id === folderId);
     if (!folder) return;
 
-    if (currentView === 'lyrics') {
+    if (currentView === VIEWS.LYRICS) {
         if (typeof teardownLyricsView === 'function') {
             teardownLyricsView();
         }
@@ -269,7 +269,7 @@ function closeFolder() {
     const leftPanelMainList = document.querySelector('.left-panel-main-list');
     if (leftPanelMainList) {
         leftPanelMainList.innerHTML = `
-                <li class="left-panel-main-item active" onclick="switchView('all-songs')" oncontextmenu="showSpecialItemContextMenu(event, 'all-songs', 'All Songs'); return false;" data-view="all-songs" data-pin-id="all-songs" tabindex="0">
+                <li class="left-panel-main-item active" onclick="switchView(VIEWS.ALL_SONGS)" oncontextmenu="showSpecialItemContextMenu(event, VIEWS.ALL_SONGS, 'All Songs'); return false;" data-view="all-songs" data-pin-id="all-songs" tabindex="0">
             <div class="subfolder-row">
                 <div class="main-item-cover-wrapper">
                     <svg class="main-item-cover-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
@@ -290,7 +290,7 @@ function closeFolder() {
                 <span class="now-playing-indicator"><span></span><span></span><span></span><span></span></span>
             </div>
         </li>
-        <li class="left-panel-main-item" onclick="switchView('favorites')" oncontextmenu="showSpecialItemContextMenu(event, 'favorites', 'Liked Songs'); return false;" data-view="favorites" data-pin-id="favorites" tabindex="0">
+        <li class="left-panel-main-item" onclick="switchView(VIEWS.FAVORITES)" oncontextmenu="showSpecialItemContextMenu(event, VIEWS.FAVORITES, 'Liked Songs'); return false;" data-view="favorites" data-pin-id="favorites" tabindex="0">
             <div class="subfolder-row">
                 <div class="main-item-cover-wrapper">
                     <svg class="main-item-cover-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">

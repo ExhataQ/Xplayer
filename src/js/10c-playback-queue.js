@@ -202,12 +202,12 @@ function removeFromQueue(queueIndex) {
         }
 
         updateQueueDisplay();
-        if (currentView === 'recent') {
+        if (currentView === VIEWS.RECENT) {
             renderRecentlyPlayed();
-        } else if (currentView === 'all-songs') {
-            renderSongsList(getSongsForList('all-songs'), 'all-songs');
-        } else if (currentView === 'search' || currentView === 'search-items') {
-            renderSongsList(getSongsForList('search-items'), 'search-items');
+        } else if (currentView === VIEWS.ALL_SONGS) {
+            renderSongsList(getSongsForList(VIEWS.ALL_SONGS), VIEWS.ALL_SONGS);
+        } else if (currentView === VIEWS.SEARCH || currentView === VIEWS.SEARCH_ITEMS) {
+            renderSongsList(getSongsForList(VIEWS.SEARCH_ITEMS), VIEWS.SEARCH_ITEMS);
         }
     }
 }

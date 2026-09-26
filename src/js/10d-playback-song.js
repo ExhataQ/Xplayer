@@ -13,7 +13,7 @@ function playSongFromQueue(queueIndex) {
     const listId = queueItem.listId || currentView;
     const ghostSlot = queueItem.ghostSlot !== undefined ? queueItem.ghostSlot : null;
 
-    if (listId === 'search' && searchQuery) {
+    if (listId === VIEWS.SEARCH && searchQuery) {
         queueItem.searchQuery = searchQuery;
     }
 
@@ -116,7 +116,7 @@ function playSongFromQueue(queueIndex) {
     }
 }
 
-function createQueueFromSongList(songList, startIndex = 0, listId = 'all-songs') {
+function createQueueFromSongList(songList, startIndex = 0, listId = VIEWS.ALL_SONGS) {
     queueDisplayLimit = 50;
     playbackQueue = songList.map((song, idx) => ({
         song: song,
@@ -155,16 +155,16 @@ function playSongFromList(songId, listId = null, clickedIndex = null) {
 
     const songList = getSongsForList(activeListId);
 
-    if (activeListId === 'search-items' || activeListId === 'search') {
-        ghostLists['search-items'] = [];
+    if (activeListId === VIEWS.SEARCH_ITEMS || activeListId === VIEWS.SEARCH) {
+        ghostLists[VIEWS.SEARCH_ITEMS] = [];
         for (let i = 0; i < songList.length; i++) {
-            ghostLists['search-items'].push(`SearchItem${String(i + 1).padStart(5, '0')}`);
+            ghostLists[VIEWS.SEARCH_ITEMS].push(`SearchItem${String(i + 1).padStart(5, '0')}`);
         }
         nextSearchItemSlotId = songList.length + 1;
-    } else if (activeListId === 'favorites') {
-        ghostLists['favorites'] = [];
+    } else if (activeListId === VIEWS.FAVORITES) {
+        ghostLists[VIEWS.FAVORITES] = [];
         for (let i = 0; i < songList.length; i++) {
-            ghostLists['favorites'].push(`Favorites${String(i + 1).padStart(5, '0')}`);
+            ghostLists[VIEWS.FAVORITES].push(`Favorites${String(i + 1).padStart(5, '0')}`);
         }
         nextFavoriteSlotId = songList.length + 1;
     } else if (activeListId && activeListId.startsWith('playlist-')) {
@@ -236,22 +236,22 @@ function playSongFromHistory(songId) {
         playbackQueue = [
             {
                 song: song,
-                listId: 'all-songs',
+                listId: VIEWS.ALL_SONGS,
                 ghostSlot: null
             }
         ];
 
         currentQueueIndex = 0;
         if (shuffleMode === 'smart') {
-            resetSmartShuffle(currentListSongs, songId, 'all-songs');
+            resetSmartShuffle(currentListSongs, songId, VIEWS.ALL_SONGS);
         } else {
-            resetShuffle(currentListSongs, songId, 'all-songs');
+            resetShuffle(currentListSongs, songId, VIEWS.ALL_SONGS);
         }
         playSongFromQueue(0);
     } else {
         playbackQueue = SONGS_DATA.map((s, idx) => ({
             song: s,
-            listId: 'all-songs',
+            listId: VIEWS.ALL_SONGS,
             ghostSlot: idx
         }));
         currentQueueIndex = SONGS_DATA.findIndex((s) => s.id === songId);
@@ -267,9 +267,9 @@ function playSongFromHistory(songId) {
 function playAllFromCurrentView() {
     const currentItem =
         currentQueueIndex >= 0 && playbackQueue[currentQueueIndex] ? playbackQueue[currentQueueIndex] : null;
-    const currentListId = currentItem ? currentItem.listId || 'all-songs' : null;
+    const currentListId = currentItem ? currentItem.listId || VIEWS.ALL_SONGS : null;
 
-    const nonPlayableViews = ['lyrics', 'online-lyrics', 'smart-lyrics', 'settings', 'search-history'];
+    const nonPlayableViews = [VIEWS.LYRICS, VIEWS.ONLINE_LYRICS, VIEWS.SMART_LYRICS, VIEWS.SETTINGS, VIEWS.SEARCH_HISTORY];
     const isNonPlayableView = nonPlayableViews.includes(currentView);
 
     const isSameViewPaused = currentItem && currentListId === currentView && audioElement.paused;
@@ -280,7 +280,7 @@ function playAllFromCurrentView() {
         return;
     }
 
-    if (!audioElement.src && currentQueueIndex < 0 && lastPlaybackListId && lastPlaybackListId !== 'all-songs') {
+    if (!audioElement.src && currentQueueIndex < 0 && lastPlaybackListId && lastPlaybackListId !== VIEWS.ALL_SONGS) {
         playCurrentViewFromStart(lastPlaybackListId);
         return;
     }
@@ -313,16 +313,16 @@ function playCurrentViewFromStart(targetListId = currentView) {
     const previousListId = lastPlaybackListId;
     lastPlaybackListId = listId;
 
-    if (currentView === 'all-songs') {
+    if (currentView === VIEWS.ALL_SONGS) {
         songsToPlay = [...SONGS_DATA];
-    } else if (currentView === 'favorites') {
+    } else if (currentView === VIEWS.FAVORITES) {
         const favorites = getFavorites();
         songsToPlay = favorites.map((id) => getSongById(id)).filter((s) => s);
-    } else if (currentView === 'history') {
+    } else if (currentView === VIEWS.HISTORY) {
         const history = getPlayHistory();
         songsToPlay = history.map((entry) => getSongById(entry.id)).filter((s) => s);
-    } else if (currentView === 'search-items' || currentView === 'search') {
-        songsToPlay = getSongsForList('search-items');
+    } else if (currentView === VIEWS.SEARCH_ITEMS || currentView === VIEWS.SEARCH) {
+        songsToPlay = getSongsForList(VIEWS.SEARCH_ITEMS);
     } else if (currentView && currentView.startsWith('playlist-')) {
         const playlistId = currentView.replace('playlist-', '');
         songsToPlay = getPlaylistSongs(playlistId);
@@ -330,7 +330,7 @@ function playCurrentViewFromStart(targetListId = currentView) {
         songsToPlay = getAlbumSongs(currentView);
     } else if (currentView && currentView.startsWith('r') && currentView.length === 13) {
         songsToPlay = getArtistSongs(currentView);
-    } else if (lastPlaybackListId && lastPlaybackListId !== 'all-songs' && lastPlaybackListId !== 'lyrics') {
+    } else if (lastPlaybackListId && lastPlaybackListId !== VIEWS.ALL_SONGS && lastPlaybackListId !== VIEWS.LYRICS) {
         listId = lastPlaybackListId;
         lastPlaybackListId = listId;
         songsToPlay = getSongsForList(listId);
@@ -403,7 +403,7 @@ function playCurrentViewFromStart(targetListId = currentView) {
 function isCurrentViewPlaying() {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) return false;
     const currentItem = playbackQueue[currentQueueIndex];
-    const currentListId = currentItem.listId || 'all-songs';
+    const currentListId = currentItem.listId || VIEWS.ALL_SONGS;
     return currentListId === currentView && !audioElement.paused;
 }
 

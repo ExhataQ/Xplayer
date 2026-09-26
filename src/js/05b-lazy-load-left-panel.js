@@ -43,7 +43,7 @@ function buildLeftPanelItemAt(index, currentOpenFolderId) {
         playbackQueue[currentQueueIndex]
             ? playbackQueue[currentQueueIndex]
             : null;
-    const currentListId = currentItem ? currentItem.listId || 'all-songs' : null;
+    const currentListId = currentItem ? currentItem.listId || VIEWS.ALL_SONGS : null;
     const isPlaying = !!(currentItem && currentListId === item.viewId);
     const isPaused = isPlaying && typeof audioElement !== 'undefined' && audioElement.paused;
 
@@ -127,8 +127,8 @@ function buildLeftPanelItemAt(index, currentOpenFolderId) {
     else if (item.type === 'album') onclickAttr = `openAlbum('${item.id}')`;
     else if (item.type === 'artist') onclickAttr = `openArtist('${item.id}')`;
     else if (item.type === 'folder') onclickAttr = `openFolder('${item.id}')`;
-    else if (item.type === 'all-songs') onclickAttr = `switchView('all-songs')`;
-    else if (item.type === 'favorites') onclickAttr = `switchView('favorites')`;
+    else if (item.type === 'all-songs') onclickAttr = `switchView('${VIEWS.ALL_SONGS}')`;
+    else if (item.type === 'favorites') onclickAttr = `switchView('${VIEWS.FAVORITES}')`;
 
     let contextMenuFn = '';
     if (item.type === 'playlist') contextMenuFn = `showPlaylistContextMenu(event, '${item.id}')`;

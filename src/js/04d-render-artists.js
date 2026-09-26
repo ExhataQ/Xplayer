@@ -5,7 +5,7 @@ function renderArtistDetailView(artistId) {
     const artists = getArtists();
     const artist = artists.find((a) => a.id === artistId);
     if (!artist) {
-        switchView('artists');
+        switchView(VIEWS.ARTISTS);
         return;
     }
 

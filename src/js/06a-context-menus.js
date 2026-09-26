@@ -285,7 +285,7 @@ function showContextMenu(event, songId, options = {}) {
     if (songElement) {
         const ghostSlotAttr = songElement.getAttribute('data-ghost-slot');
         if (ghostSlotAttr) {
-            if (currentView === 'history') {
+            if (currentView === VIEWS.HISTORY) {
                 const history = getPlayHistory();
                 const parts = ghostSlotAttr.split('-');
                 const slotId = parts[parts.length - 1];
@@ -305,8 +305,8 @@ function showContextMenu(event, songId, options = {}) {
         showFavorite: true,
         showAddToQueue: true,
         showFileActions: true,
-        showDeleteFromHistory: currentView === 'history',
-        showPlayedData: currentView === 'history',
+        showDeleteFromHistory: currentView === VIEWS.HISTORY,
+        showPlayedData: currentView === VIEWS.HISTORY,
         queueIndex: options.queueIndex
     };
 
@@ -783,7 +783,7 @@ function showSubheroContextMenu(event) {
     let itemName = getCurrentViewDisplayName();
     let itemType = getViewItemType(currentView);
 
-    if (currentView === 'history') {
+    if (currentView === VIEWS.HISTORY) {
         event.stopPropagation();
         event.preventDefault();
 

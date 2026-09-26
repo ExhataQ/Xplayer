@@ -52,13 +52,13 @@ repeatButton.onclick = () => {
 
         updateQueueDisplay();
 
-        if (currentView === 'recent') {
+        if (currentView === VIEWS.RECENT) {
             renderRecentlyPlayed();
-        } else if (currentView === 'all-songs') {
+        } else if (currentView === VIEWS.ALL_SONGS) {
             renderSongsList(SONGS_DATA);
-        } else if ((currentView === 'search' || currentView === 'search-items') && searchQuery) {
+        } else if ((currentView === VIEWS.SEARCH || currentView === VIEWS.SEARCH_ITEMS) && searchQuery) {
             const filteredSongs = getSearchResults(searchQuery);
-            renderSongsList(filteredSongs, 'search-items');
+            renderSongsList(filteredSongs, VIEWS.SEARCH_ITEMS);
         }
         return;
     }

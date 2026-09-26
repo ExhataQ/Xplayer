@@ -91,7 +91,7 @@ function setLyricsDisplayMode(mode) {
     lyricsDisplayMode.songId = song.id;
     lyricsDisplayMode.mode = mode;
 
-    if (currentView === 'lyrics') {
+    if (currentView === VIEWS.LYRICS) {
         renderLyricsView();
     }
 

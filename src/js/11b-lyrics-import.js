@@ -29,7 +29,7 @@ function importLrcFile() {
 
             showNotification(`Imported ${parsed.length} synced lines`, 'success', 2000);
 
-            if (currentView === 'lyrics') {
+            if (currentView === VIEWS.LYRICS) {
                 renderLyricsView();
             }
         };
@@ -136,7 +136,7 @@ function saveLrcPaste() {
     closeLrcPasteDialog();
     showNotification(`Saved ${parsed.length} synced lines`, 'success', 2000);
 
-    if (currentView === 'lyrics') {
+    if (currentView === VIEWS.LYRICS) {
         renderLyricsView();
     }
 }
@@ -148,7 +148,7 @@ function clearSyncedLyricsForCurrentSong() {
     clearSyncedLyricsForSong(song.id);
     closeLrcPasteDialog();
     showNotification('Synced lyrics cleared', 'info', 2000);
-    if (currentView === 'lyrics') {
+    if (currentView === VIEWS.LYRICS) {
         renderLyricsView();
     }
 }

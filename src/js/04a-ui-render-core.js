@@ -74,8 +74,8 @@ function showTracklistHeader(show) {
 }
 
 function updateHeroCover(view) {
-    document.body.classList.toggle('view-all-songs', view === 'all-songs');
-    document.body.classList.toggle('view-favorites', view === 'favorites');
+    document.body.classList.toggle('view-all-songs', view === VIEWS.ALL_SONGS);
+    document.body.classList.toggle('view-favorites', view === VIEWS.FAVORITES);
     const defaultSvg = document.getElementById('hero-cover-svg');
     const heartSvg = document.getElementById('hero-cover-svg-heart');
     const historySvg = document.getElementById('hero-cover-svg-history');
@@ -93,11 +93,11 @@ function updateHeroCover(view) {
 
     let coverUrlForColor = null;
 
-    if (view === 'favorites') {
+    if (view === VIEWS.FAVORITES) {
         heartSvg.style.display = 'block';
-    } else if (view === 'history') {
+    } else if (view === VIEWS.HISTORY) {
         historySvg.style.display = 'block';
-    } else if (view === 'albums') {
+    } else if (view === VIEWS.ALBUMS) {
         playlistSvg.style.display = 'block';
     } else if (view && view.startsWith('playlist-')) {
         const playlistId = view.replace('playlist-', '');
@@ -149,7 +149,7 @@ function collectAllLeftPanelItems() {
     items.push({
         type: 'all-songs',
         title: 'All Songs',
-        viewId: 'all-songs',
+        viewId: VIEWS.ALL_SONGS,
         pinId: 'all-songs',
         count: allSongsCount,
         isPinned: pinnedIds.includes('all-songs'),
@@ -160,7 +160,7 @@ function collectAllLeftPanelItems() {
     items.push({
         type: 'favorites',
         title: 'Liked Songs',
-        viewId: 'favorites',
+        viewId: VIEWS.FAVORITES,
         pinId: 'favorites',
         count: favoritesCount,
         isPinned: pinnedIds.includes('favorites'),
@@ -265,7 +265,7 @@ function createSongItemHTML(song, index = null, listId = null) {
 
     const ghostList = ghostLists[listId];
     let ghostSlotValue = null;
-    if (listId === 'all-songs') {
+    if (listId === VIEWS.ALL_SONGS) {
         ghostSlotValue = index !== null ? `${listId}-${index}` : null;
     } else if (ghostList && index !== null && ghostList[index] !== undefined) {
         ghostSlotValue = `${listId}-${ghostList[index]}`;
@@ -432,8 +432,8 @@ function renderRightPanelItem(song, config = {}) {
 // ==============================================================================
 // UI RENDER - SONG LISTS
 // ==============================================================================
-function renderSongsList(songs, listId = 'all-songs') {
-    if (currentView === 'settings') return;
+function renderSongsList(songs, listId = VIEWS.ALL_SONGS) {
+    if (currentView === VIEWS.SETTINGS) return;
 
     const songListContainer = document.getElementById('song-list-container');
     if (songListContainer && songListContainer.style.display === 'none') {
@@ -459,16 +459,16 @@ function renderSongsList(songs, listId = 'all-songs') {
         return;
     }
 
-    if (listId === 'search-items') {
-        ghostLists['search-items'] = [];
+    if (listId === VIEWS.SEARCH_ITEMS) {
+        ghostLists[VIEWS.SEARCH_ITEMS] = [];
         for (let i = 0; i < songs.length; i++) {
-            ghostLists['search-items'].push(`SearchItem${String(i + 1).padStart(5, '0')}`);
+            ghostLists[VIEWS.SEARCH_ITEMS].push(`SearchItem${String(i + 1).padStart(5, '0')}`);
         }
         nextSearchItemSlotId = songs.length + 1;
-    } else if (listId === 'favorites') {
-        ghostLists['favorites'] = [];
+    } else if (listId === VIEWS.FAVORITES) {
+        ghostLists[VIEWS.FAVORITES] = [];
         for (let i = 0; i < songs.length; i++) {
-            ghostLists['favorites'].push(`Favorites${String(i + 1).padStart(5, '0')}`);
+            ghostLists[VIEWS.FAVORITES].push(`Favorites${String(i + 1).padStart(5, '0')}`);
         }
         nextFavoriteSlotId = songs.length + 1;
     } else if (listId && listId.startsWith('playlist-')) {
@@ -509,10 +509,10 @@ function renderSongsList(songs, listId = 'all-songs') {
         applyStoredHighlight(listId);
     }
 
-    if (listId === 'all-songs') {
+    if (listId === VIEWS.ALL_SONGS) {
         updateHeroSongCount(songs.length);
     }
-    if (listId === 'favorites') {
+    if (listId === VIEWS.FAVORITES) {
         updateHeroSongCount(songs.length);
     }
 
@@ -710,7 +710,7 @@ function updateHoverHighlight(foundItem) {
         hoveredRowEl = null;
     }
 
-    if (typeof currentView !== 'undefined' && currentView === 'lyrics') {
+    if (typeof currentView !== 'undefined' && currentView === VIEWS.LYRICS) {
         if (hoverEl) hoverEl.style.display = 'none';
         return;
     }

@@ -195,13 +195,13 @@ function getCurrentPlayingSourceName() {
     }
 
     const queueItem = playbackQueue[currentQueueIndex];
-    const listId = queueItem.listId || 'all-songs';
+    const listId = queueItem.listId || VIEWS.ALL_SONGS;
 
-    if (listId === 'all-songs') {
+    if (listId === VIEWS.ALL_SONGS) {
         return 'All Songs';
-    } else if (listId === 'favorites') {
+    } else if (listId === VIEWS.FAVORITES) {
         return 'Liked Songs';
-    } else if (listId === 'history') {
+    } else if (listId === VIEWS.HISTORY) {
         return 'Recents';
     } else if (listId && listId.startsWith('playlist-')) {
         const playlistId = listId.replace('playlist-', '');
@@ -227,14 +227,14 @@ function navigateToCurrentSourceView() {
     }
 
     const queueItem = playbackQueue[currentQueueIndex];
-    const listId = queueItem.listId || 'all-songs';
+    const listId = queueItem.listId || VIEWS.ALL_SONGS;
 
-    if (listId === 'all-songs') {
-        switchView('all-songs');
-    } else if (listId === 'favorites') {
-        switchView('favorites');
-    } else if (listId === 'history') {
-        switchView('history');
+    if (listId === VIEWS.ALL_SONGS) {
+        switchView(VIEWS.ALL_SONGS);
+    } else if (listId === VIEWS.FAVORITES) {
+        switchView(VIEWS.FAVORITES);
+    } else if (listId === VIEWS.HISTORY) {
+        switchView(VIEWS.HISTORY);
     } else if (listId && listId.startsWith('playlist-')) {
         const playlistId = listId.replace('playlist-', '');
         openPlaylist(playlistId);
@@ -252,14 +252,14 @@ function showCurrentSourceContextMenu(event) {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) return;
 
     const queueItem = playbackQueue[currentQueueIndex];
-    const listId = queueItem.listId || 'all-songs';
+    const listId = queueItem.listId || VIEWS.ALL_SONGS;
 
-    if (listId === 'all-songs') {
-        showSpecialItemContextMenu(event, 'all-songs', 'All Songs');
-    } else if (listId === 'favorites') {
-        showSpecialItemContextMenu(event, 'favorites', 'Liked Songs');
-    } else if (listId === 'history') {
-        showSpecialItemContextMenu(event, 'history', 'Recents');
+    if (listId === VIEWS.ALL_SONGS) {
+        showSpecialItemContextMenu(event, VIEWS.ALL_SONGS, 'All Songs');
+    } else if (listId === VIEWS.FAVORITES) {
+        showSpecialItemContextMenu(event, VIEWS.FAVORITES, 'Liked Songs');
+    } else if (listId === VIEWS.HISTORY) {
+        showSpecialItemContextMenu(event, VIEWS.HISTORY, 'Recents');
     } else if (listId.startsWith('playlist-')) {
         const playlistId = listId.replace('playlist-', '');
         showPlaylistContextMenu(event, playlistId);

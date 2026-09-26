@@ -2,7 +2,7 @@
 // SONG HIGHLIGHT SYSTEM
 // ==============================================================================
 function getSlotIdentifier(listId, playingSongId) {
-    if (listId === 'history') {
+    if (listId === VIEWS.HISTORY) {
         const history = getPlayHistory();
         const currentEntry = history.find((entry) => entry.id === playingSongId);
         return currentEntry ? currentEntry.ghostSlotId : null;
@@ -40,7 +40,7 @@ function getSlotIdentifier(listId, playingSongId) {
         if ((prefix === 'a' || prefix === 'r') && listId && listId.startsWith(prefix) && listId.length === 13) {
             return getter();
         }
-        if (prefix === 'favorites' && listId === 'favorites') {
+        if (prefix === VIEWS.FAVORITES && listId === VIEWS.FAVORITES) {
             return getter();
         }
     }
@@ -80,7 +80,7 @@ function updatePlayingHighlight(playingSongId, listId = currentView, clickedInde
         item.classList.remove('paused');
     });
 
-    if (currentView === 'lyrics') {
+    if (currentView === VIEWS.LYRICS) {
         if (typeof updateActiveHighlight === 'function') {
             updateActiveHighlight(null);
         }
@@ -154,7 +154,7 @@ function applyStoredHighlight(listId) {
         unpaintEqOnNumberCell(item);
     });
 
-    if (currentView === 'lyrics') {
+    if (currentView === VIEWS.LYRICS) {
         if (typeof updateActiveHighlight === 'function') {
             updateActiveHighlight(null);
         }
@@ -167,7 +167,7 @@ function applyStoredHighlight(listId) {
         const item = playbackQueue[currentQueueIndex];
         const song = item.song || item;
         currentPlayingSongId = song.id;
-        currentPlayingListId = item.listId || lastPlaybackListId || 'all-songs';
+        currentPlayingListId = item.listId || lastPlaybackListId || VIEWS.ALL_SONGS;
     }
 
     // A song can exist in several views.  The playing style belongs only to
@@ -198,7 +198,7 @@ function reapplyHighlightAfterFilter(listId, filteredSongs) {
         unpaintEqOnNumberCell(item);
     });
 
-    if (typeof currentView !== 'undefined' && currentView === 'lyrics') {
+    if (typeof currentView !== 'undefined' && currentView === VIEWS.LYRICS) {
         if (typeof updateActiveHighlight === 'function') {
             updateActiveHighlight(null);
         }

@@ -12,7 +12,7 @@ function renderAlbumsView() {
     showHeroSection(true);
     updateHeroSection('Albums', albums.length, 'Collection');
     showTracklistHeader(false);
-    updateHeroCover('albums');
+    updateHeroCover(VIEWS.ALBUMS);
 
     if (albums.length === 0) {
         songListElement.innerHTML = `
@@ -71,7 +71,7 @@ function renderAlbumDetailView(albumId) {
     const albums = getAlbums();
     const album = albums.find((a) => a.id === albumId);
     if (!album) {
-        switchView('albums');
+        switchView(VIEWS.ALBUMS);
         return;
     }
 
