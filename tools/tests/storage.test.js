@@ -6,6 +6,16 @@ const vm = require('vm');
 
 function loadStorageWith(values) {
     const source = fs.readFileSync(path.join(__dirname, '../../src/js/03-storage.js'), 'utf8');
+    // Phase 2 Checkpoint 5 split 03-storage.js's remaining getters out into topic files
+    // (03e recents/history, 03f favorites/settings, 03g pinned items, 03h folders,
+    // 03i search history). None of these have top-level DOM/window references (verified
+    // before adding them here), so they're safe to vm-load alongside 03-storage.js the
+    // same way 00-state.js's STORAGE_KEYS constant already was below. getPlaylists()
+    // stays unloaded/skipped below -- it lives in 03c-playlists.js, which does have
+    // other top-level concerns, left alone per the existing explicit instruction.
+    const splitSources = ['03e-recents-history.js', '03f-favorites-settings.js',
+        '03g-pinned-items.js', '03h-folders.js', '03i-search-history.js']
+        .map((name) => fs.readFileSync(path.join(__dirname, '../../src/js/' + name), 'utf8'));
     // 03-storage.js references STORAGE_KEYS, defined in 00-state.js (code-cleanup-plan.md
     // Agent 5, Checkpoint 1). Pull just that constant out rather than vm-loading the whole
     // of 00-state.js, which has top-level document.getElementById(...) calls this plain vm
@@ -27,14 +37,18 @@ function loadStorageWith(values) {
     vm.createContext(context);
     vm.runInContext(storageKeysMatch[0], context);
     vm.runInContext(source, context);
+    for (const s of splitSources) {
+        vm.runInContext(s, context);
+    }
     return context;
 }
 
 // Skipped: getPlaylists() moved to src/js/03c-playlists.js in the Agent 2 file-split
-// (code-cleanup-plan.md). loadStorageWith() only vm-loads 03-storage.js, so
-// context.getPlaylists is undefined here even though it works fine in the real app
-// (loaded via build/music_player.html, see scroll.test.js). Left skipped per explicit
-// instruction rather than widening loadStorageWith's file list.
+// (code-cleanup-plan.md). loadStorageWith() only vm-loads 03-storage.js plus the topic
+// files it was split into by Phase 2 Checkpoint 5, so context.getPlaylists is undefined
+// here even though it works fine in the real app (loaded via build/music_player.html,
+// see scroll.test.js). Left skipped per explicit instruction rather than widening
+// loadStorageWith's file list further.
 test('storage getters fall back to empty arrays when JSON is malformed', { skip: 'getPlaylists moved to 03c-playlists.js; loadStorageWith only loads 03-storage.js' }, () => {
     const context = loadStorageWith({
         favorites: '{broken', playHistory: '{broken', playlists: '{broken', folders: '{broken',

@@ -25,7 +25,11 @@ function load({ stored = {}, library = [], deleted = [], failWrites = false } = 
         throw new Error('recents.test.js: could not find STORAGE_KEYS in 00-state.js - did it move or get renamed?');
     }
     vm.runInContext(storageKeysMatch[0], context);
-    for (const file of ['03-storage.js', '03a-recents.js']) {
+    // Phase 2 Checkpoint 5 moved saveToRecentlyPlayed/getRecentCount out of 03-storage.js
+    // into 03e-recents-history.js; loaded alongside 03a-recents.js since this test exercises
+    // both the raw storage layer (saveToRecentlyPlayed/getRecentCount) and the
+    // library-resolution layer (addToRecentList/resolveRecentSongs/getRecentlyPlayedSongs).
+    for (const file of ['03-storage.js', '03e-recents-history.js', '03a-recents.js']) {
         vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/js', file), 'utf8'), context);
     }
     context.__stored = stored;
