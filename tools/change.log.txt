@@ -1730,3 +1730,8 @@ Rather than force the stale patch, the same 23 files (plus 19-online-lyrics.js) 
 135 conversions applied this pass (04a-ui-render-core.js: 19, others matching original counts).
 Verification: node --check passes on all 23 files; grepped for the [VIEWS.X]: -with-space ternary-bug pattern found in the first attempt at this step - none present; grepped all 23 files for remaining raw literals and confirmed the list matches the intentional-exclusion list exactly, one for one; full tools/tests/* suite (now including tools/tests/view-switch-song-list-cleanup.test.js from your Phase 2/bugfix work, unrelated to this checkpoint and confirmed by inspection to test DOM state via Playwright, not vm-load any of these files) - 97 pass, 0 fail, 2 pre-existing skips, unchanged from the pre-step-4 baseline on this codebase.
 Next: step 5 of 6, a dedicated pass over switchView(...) call sites specifically, then step 6 final verification sweep.
+
+
+2026-10-07
+code-cleanup-plan.md Phase 2, Checkpoints 5-6: storage split
+Split the monolithic src/js/03-storage.js (1647 lines) into nine focused modules: 03e-recents-history.js, 03f-favorites-settings.js, 03g-pinned-items.js, 03h-folders.js, 03i-search-history.js, 03j-library-locations.js, 03k-cover-sync.js, 03l-import-export.js, 03m-library-folder-render.js. Updated build/music_player.html and build/music_player.py to load the new files in script order; 03-storage.js removed. Updated tools/tests/storage.test.js and tools/tests/recents.test.js for the new file layout. Applied from 0011-phase2-checkpoint5-6-storage-split-reconciled.patch; the patch's change.log.txt hunk was skipped and this entry was written manually.
