@@ -1735,3 +1735,20 @@ Next: step 5 of 6, a dedicated pass over switchView(...) call sites specifically
 2026-10-07
 code-cleanup-plan.md Phase 2, Checkpoints 5-6: storage split
 Split the monolithic src/js/03-storage.js (1647 lines) into nine focused modules: 03e-recents-history.js, 03f-favorites-settings.js, 03g-pinned-items.js, 03h-folders.js, 03i-search-history.js, 03j-library-locations.js, 03k-cover-sync.js, 03l-import-export.js, 03m-library-folder-render.js. Updated build/music_player.html and build/music_player.py to load the new files in script order; 03-storage.js removed. Updated tools/tests/storage.test.js and tools/tests/recents.test.js for the new file layout. Applied from 0011-phase2-checkpoint5-6-storage-split-reconciled.patch; the patch's change.log.txt hunk was skipped and this entry was written manually.
+
+2026-09-27
+code-cleanup-plan.md Agent 5, Checkpoint 2, step 6 of 6 (final verification sweep) - CHECKPOINT 2 COMPLETE
+
+Grepped every one of the 15 VIEWS values as a raw quoted string literal across all of src/js/*.js (not just the files touched in steps 1-5). Every remaining occurrence was checked and confirmed to be one of:
+- The VIEWS definition itself in 07-views.js (15 lines - the intended single source of truth).
+- The plain-lyrics-vs-LRC "mode"/"type" system in 19-online-lyrics.js (13 occurrences - a different concept from the lyrics view, established in step 4).
+- item.type / itemType tags and item.pinId / pin-tracking arrays in 04a-ui-render-core.js, 05b-lazy-load-left-panel.js, and 06g-drag-drop-left-panel.js (a data-item classification enum that shares some of the same words as view names, established in steps 4-5).
+- leftPanelFilterMode in 04a-ui-render-core.js and 99-player.js (a separate filter-tag enum, established in step 4).
+- The search/searches pluralization string in 04a-ui-render-core.js, the filename fallback in 11f-sync-editor-volume-save.js, the STORAGE_KEYS FAVORITES/PLAYLISTS values and the EXTENDED_METADATA_FIELDS key:'lyrics' entry in 00-state.js, and targetPinId in 06f-drag-drop-songs.js (all established exclusions from steps 4-5).
+- The two top-level (module-load-time) usages in 00-state.js and 02-ghost-list.js that were deliberately reverted to raw literals in step 5 because VIEWS is not yet defined at that point in the script load order.
+
+Zero unexplained or newly-discovered raw literals found. Full tools/tests/* suite - including the Playwright tests that boot the real built app through build/music_player.html - 97 pass, 0 fail, 2 pre-existing skips, matching baseline.
+
+Checkpoint 2 (VIEWS) is complete: a single VIEWS constant (15 names, defined in 07-views.js) is now the source of truth for every fixed, named view/list id the app uses, with every switchView(...)/pushViewToHistory(...) call and every currentView/listId comparison across the whole src/js/ tree using it, except the documented cases above where the same word denotes a genuinely different concept.
+
+Both code-cleanup-plan.md Agent 5 checkpoints attempted in this session (Checkpoint 1: STORAGE_KEYS, and Checkpoint 2: VIEWS) are now done. Checkpoint 3 (silent error swallowing) and Checkpoint 4 (scan-folder.js debug logging) were completed earlier in this session. Checkpoint 5 (innerHTML/escaping audit) was completed earlier in this session. Remaining and not started: the optional, lower-priority Checkpoint 6 (CSS variables audit).
