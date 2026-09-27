@@ -2,7 +2,7 @@
 // SEARCH PANEL
 // ==============================================================================
 function resetSearchState() {
-    const searchInput = document.getElementById('search-input');
+    const searchInput = getCachedEl('search-input');
     if (searchInput) {
         searchInput.value = '';
     }
@@ -11,12 +11,12 @@ function resetSearchState() {
 }
 
 function resetSubheroSearch() {
-    const input = document.getElementById('subhero-search-input');
+    const input = getCachedEl('subhero-search-input');
     if (input) {
         input.value = '';
         input.classList.remove('active');
     }
-    const wrapper = document.getElementById('subhero-search-wrapper');
+    const wrapper = getCachedEl('subhero-search-wrapper');
     if (wrapper) {
         wrapper.classList.remove('expanded');
         wrapper.classList.add('collapsed');
@@ -33,7 +33,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 // calls; performSearchNow is the actual search logic, unchanged, just renamed and
 // no longer responsible for its own timer bookkeeping.
 function performSearchNow() {
-    searchQuery = document.getElementById('search-input').value.toLowerCase().trim();
+    searchQuery = getCachedEl('search-input').value.toLowerCase().trim();
 
     if (searchQuery === '') {
         searchTypingSessionId = null;
@@ -44,7 +44,7 @@ function performSearchNow() {
         renderSongsList(allSongs, VIEWS.ALL_SONGS);
         reapplyHighlightAfterFilter(VIEWS.ALL_SONGS, allSongs);
         reapplySelectionAfterFilter(VIEWS.ALL_SONGS, allSongs);
-        document.getElementById('all-songs-count').textContent = allSongs.length;
+        getCachedEl('all-songs-count').textContent = allSongs.length;
         resetLeftPanelActiveState();
         activateLeftPanelItem(VIEWS.ALL_SONGS);
     } else {
@@ -80,7 +80,7 @@ function performSearchNow() {
         );
         updateHeroCover(VIEWS.SEARCH_ITEMS);
 
-        const countElement = document.getElementById('all-songs-count');
+        const countElement = getCachedEl('all-songs-count');
         if (countElement) {
             countElement.textContent = filteredSongs.length;
         }
@@ -98,8 +98,8 @@ function performSearchNow() {
 const performSearch = debounce(performSearchNow, SEARCH_DEBOUNCE_MS);
 
 function focusSubheroSearch() {
-    const input = document.getElementById('subhero-search-input');
-    const wrapper = document.getElementById('subhero-search-wrapper');
+    const input = getCachedEl('subhero-search-input');
+    const wrapper = getCachedEl('subhero-search-wrapper');
     if (!input) return;
     if (input.classList.contains('active')) return;
     input.classList.add('active');
@@ -114,7 +114,7 @@ function focusSubheroSearch() {
 }
 
 function clearSubheroSearch() {
-    const input = document.getElementById('subhero-search-input');
+    const input = getCachedEl('subhero-search-input');
     if (!input) return;
     input.value = '';
     performSubheroSearch();
@@ -123,8 +123,8 @@ function clearSubheroSearch() {
 
 function handleSubheroSearchBlur() {
     setTimeout(() => {
-        const input = document.getElementById('subhero-search-input');
-        const wrapper = document.getElementById('subhero-search-wrapper');
+        const input = getCachedEl('subhero-search-input');
+        const wrapper = getCachedEl('subhero-search-wrapper');
         const activeEl = document.activeElement;
         if (!input) return;
         if (activeEl === input) return;
@@ -140,7 +140,7 @@ function handleSubheroSearchBlur() {
 }
 
 function performSubheroSearch() {
-    const input = document.getElementById('subhero-search-input');
+    const input = getCachedEl('subhero-search-input');
     const clearBtn = document.getElementById('subhero-search-clear');
     if (!input) return;
     const query = input.value.toLowerCase().trim();
@@ -170,8 +170,8 @@ function performSubheroSearch() {
 }
 
 function focusLeftPanelSearch() {
-    const input = document.getElementById('left-panel-search-input');
-    const wrapper = document.getElementById('left-panel-search-wrapper');
+    const input = getCachedEl('left-panel-search-input');
+    const wrapper = getCachedEl('left-panel-search-wrapper');
     if (!input) return;
     if (input.classList.contains('active')) return;
     input.classList.add('active');
@@ -186,7 +186,7 @@ function focusLeftPanelSearch() {
 }
 
 function clearLeftPanelSearch() {
-    const input = document.getElementById('left-panel-search-input');
+    const input = getCachedEl('left-panel-search-input');
     if (!input) return;
     input.value = '';
     performLeftPanelSearch();
@@ -195,8 +195,8 @@ function clearLeftPanelSearch() {
 
 function handleLeftPanelSearchBlur() {
     setTimeout(() => {
-        const input = document.getElementById('left-panel-search-input');
-        const wrapper = document.getElementById('left-panel-search-wrapper');
+        const input = getCachedEl('left-panel-search-input');
+        const wrapper = getCachedEl('left-panel-search-wrapper');
         const activeEl = document.activeElement;
         if (!input) return;
         if (activeEl === input) return;
@@ -212,7 +212,7 @@ function handleLeftPanelSearchBlur() {
 }
 
 function performLeftPanelSearch() {
-    const input = document.getElementById('left-panel-search-input');
+    const input = getCachedEl('left-panel-search-input');
     const clearBtn = document.getElementById('left-panel-search-clear');
     if (!input) return;
     const query = input.value.toLowerCase().trim();

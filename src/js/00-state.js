@@ -65,6 +65,24 @@ function debounce(fn, delay) {
     return debounced;
 }
 
+// Phase 2 Checkpoint 4: shared cached DOM lookup. Plain getElementById(id) was called
+// repeatedly for the same id within a single file/module in several places (e.g.
+// 'subhero-search-input' 5x in 08h-panel-search.js, 'notification-badge' 5x in
+// 06j-notification-system.js). Caches by id, but verifies the cached element is still
+// el.isConnected (still attached to the document) before reusing it -- if the element
+// was removed/replaced since the last lookup, it transparently re-queries instead of
+// returning a stale reference. This sidesteps needing to individually prove every call
+// site's element is never removed/recreated; only applied where a file was confirmed to
+// repeat the same id lookup, not applied blindly everywhere getElementById appears.
+const _cachedElById = {};
+function getCachedEl(id) {
+    const cached = _cachedElById[id];
+    if (cached && cached.isConnected) return cached;
+    const el = document.getElementById(id);
+    if (el) _cachedElById[id] = el;
+    return el;
+}
+
 let playbackQueue = [];
 let currentQueueIndex = -1;
 let isShuffled = false;

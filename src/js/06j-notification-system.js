@@ -15,7 +15,7 @@ function showNotification(message, type = 'success', duration) {
     renderNotificationPanel();
 
     if (!notificationPanelOpen) {
-        const badge = document.getElementById('notification-badge');
+        const badge = getCachedEl('notification-badge');
         if (badge) {
             const unreadCount = notificationHistory.filter((n) => !n.isDownloadProgress && !n.isCoverProgress && !n._viewed).length;
             if (unreadCount > 0) {
@@ -66,7 +66,7 @@ function completeCoverProgressNotification() {
     renderNotificationPanel();
 
     if (!notificationPanelOpen) {
-        const badge = document.getElementById('notification-badge');
+        const badge = getCachedEl('notification-badge');
         if (badge) {
             const unreadCount = notificationHistory.filter((n) => !n.isDownloadProgress && !n.isCoverProgress && !n._viewed).length;
             if (unreadCount > 0) {
@@ -81,8 +81,8 @@ let notificationPanelOpen = false;
 let notificationHistory = [];
 
 function toggleNotificationPanel() {
-    const panel = document.getElementById('notification-panel');
-    const btn = document.getElementById('notification-panel-btn');
+    const panel = getCachedEl('notification-panel');
+    const btn = getCachedEl('notification-panel-btn');
 
     if (!panel || !btn) return;
 
@@ -103,8 +103,8 @@ function toggleNotificationPanel() {
                     document.removeEventListener('mousedown', closeHandler);
                     return;
                 }
-                const panel = document.getElementById('notification-panel');
-                const btn = document.getElementById('notification-panel-btn');
+                const panel = getCachedEl('notification-panel');
+                const btn = getCachedEl('notification-panel-btn');
                 if (!panel) return;
                 if (panel.contains(e.target)) return;
                 if (btn && btn.contains(e.target)) return;
@@ -122,7 +122,7 @@ function toggleNotificationPanel() {
 
         panel.classList.add('active');
         btn.classList.add('active');
-        const badge = document.getElementById('notification-badge');
+        const badge = getCachedEl('notification-badge');
         if (badge) {
             badge.style.display = 'none';
             badge.textContent = '0';
@@ -142,8 +142,8 @@ function toggleNotificationPanel() {
 }
 
 function closeNotificationPanel() {
-    const panel = document.getElementById('notification-panel');
-    const btn = document.getElementById('notification-panel-btn');
+    const panel = getCachedEl('notification-panel');
+    const btn = getCachedEl('notification-panel-btn');
 
     if (panel) panel.classList.remove('active');
     if (btn) btn.classList.remove('active');
@@ -155,7 +155,7 @@ function clearAllNotifications() {
     notificationHistory = [];
     downloadNotifyIndex = -1;
     renderNotificationPanel();
-    const badge = document.getElementById('notification-badge');
+    const badge = getCachedEl('notification-badge');
     if (badge) {
         badge.style.display = 'none';
         badge.textContent = '0';
@@ -177,7 +177,7 @@ function removeNotificationItem(index) {
 }
 
 function updateNotificationBadge() {
-    const badge = document.getElementById('notification-badge');
+    const badge = getCachedEl('notification-badge');
     if (!badge) return;
     if (notificationPanelOpen) {
         badge.style.display = 'none';

@@ -125,18 +125,18 @@ function metadataEditorChanges() {
 function setMetadataEditorLoading(on) {
     // fields stay locked until the real tags have been read from the file
     metadataEditorLoaded = !on;
-    const root = document.getElementById('metadata-editor-content');
+    const root = getCachedEl('metadata-editor-content');
     if (!root) return;
     root.classList.toggle('is-loading', on);
     root.querySelectorAll(
         '.metadata-editor-fields input,.metadata-editor-fields textarea,.metadata-editor-fields button,.metadata-editor-toolbar-actions button,.metadata-editor-toolbar-actions select,.metadata-cover-box,.metadata-cover-info button'
     ).forEach((x) => (x.disabled = on));
-    const b = document.getElementById('metadata-editor-save');
+    const b = getCachedEl('metadata-editor-save');
     if (b) b.disabled = on || !metadataEditorDirty;
 }
 function applyCoverFile(p, status) {
-    const img = document.getElementById('metadata-cover-preview'),
-        ph = document.getElementById('metadata-cover-placeholder');
+    const img = getCachedEl('metadata-cover-preview'),
+        ph = getCachedEl('metadata-cover-placeholder');
     if (img) {
         img.src = `file://${p.replace(/\\/g, '/')}`;
         img.style.display = 'block';
@@ -166,7 +166,7 @@ function metadataFieldIsVisible(key) {
 }
 function markMetadataDirty() {
     metadataEditorDirty = true;
-    const b = document.getElementById('metadata-editor-save');
+    const b = getCachedEl('metadata-editor-save');
     if (b) b.disabled = !metadataEditorLoaded;
 }
 function renderMultiField(key, label, value) {
@@ -183,7 +183,7 @@ function renderMultiField(key, label, value) {
     )}…" onkeydown="metadataMultiKeydown(event)"></div></div>`;
 }
 function renderMetadataEditor(m) {
-    const root = document.getElementById('metadata-editor-content');
+    const root = getCachedEl('metadata-editor-content');
     if (!root) return;
     let html = '';
     for (const [title, ...fields] of ME_SECTIONS) {
@@ -261,8 +261,8 @@ async function openMetadataEditor() {
     }
 }
 function applyCoverPreview(cover) {
-    const img = document.getElementById('metadata-cover-preview'),
-        ph = document.getElementById('metadata-cover-placeholder');
+    const img = getCachedEl('metadata-cover-preview'),
+        ph = getCachedEl('metadata-cover-placeholder');
     if (!img || !ph) return;
     const src = metadataCoverSource(cover);
     if (src) {
@@ -345,7 +345,7 @@ function toggleMetadataMore() {
     if (metadataEditorLoaded) {
         setOtherTags(metadataEditorBaseline?.otherTags || []);
         if (metadataEditorCoverPath) applyCoverFile(metadataEditorCoverPath, 'Cover selected and ready to save.');
-        const b = document.getElementById('metadata-editor-save');
+        const b = getCachedEl('metadata-editor-save');
         if (b) b.disabled = !metadataEditorDirty;
     }
 }
@@ -368,13 +368,13 @@ function updateCoverStatus(text) {
 }
 
 function renderMetadataEditorError(msg) {
-    const r = document.getElementById('metadata-editor-content');
+    const r = getCachedEl('metadata-editor-content');
     if (r) r.innerHTML = `<div class="metadata-editor-state">${escapeHtml(msg)}</div>`;
 }
 async function saveMetadataEditor() {
     const url = metadataEditorSongUrl;
     if (!url || !metadataEditorLoaded) return;
-    const b = document.getElementById('metadata-editor-save');
+    const b = getCachedEl('metadata-editor-save');
     const changes = metadataEditorChanges();
     if (!Object.keys(changes).length && !metadataEditorCoverPath) {
         showNotification('No changes to save', 'info', 2500);
@@ -461,7 +461,7 @@ async function importMetadataJson() {
     }
     applyMetadataValues(r.metadata || {});
     metadataEditorDirty = true;
-    const b = document.getElementById('metadata-editor-save');
+    const b = getCachedEl('metadata-editor-save');
     if (b) {
         b.disabled = false;
         b.textContent = 'Save changes';
@@ -482,7 +482,7 @@ function setMetadataFields(metadata) {
 async function findOnlineMetadata() {
     const song = metadataEditorTargetSong();
     if (!song || !window.electronAPI?.searchOnlineMetadata) return;
-    const box = document.getElementById('metadata-online-results');
+    const box = getCachedEl('metadata-online-results');
     if (box) box.innerHTML = '<div class="metadata-online-state">Searching MusicBrainz…</div>';
     try {
         const scope = document.getElementById('metadata-search-scope')?.value || 'recording';
@@ -539,7 +539,7 @@ async function findOnlineMetadata() {
 }
 async function useOnlineMetadata(recordingId, releaseId = '') {
     if (!metadataEditorSongUrl || !window.electronAPI?.getOnlineMetadata) return;
-    const box = document.getElementById('metadata-online-results');
+    const box = getCachedEl('metadata-online-results');
     if (box) box.innerHTML = '<div class="metadata-online-state">Downloading metadata…</div>';
     try {
         const r = await window.electronAPI.getOnlineMetadata({
@@ -552,8 +552,8 @@ async function useOnlineMetadata(recordingId, releaseId = '') {
         setMetadataFields(r.metadata || {});
         if (r.coverPath) {
             metadataEditorCoverPath = r.coverPath;
-            const img = document.getElementById('metadata-cover-preview'),
-                ph = document.getElementById('metadata-cover-placeholder');
+            const img = getCachedEl('metadata-cover-preview'),
+                ph = getCachedEl('metadata-cover-placeholder');
             if (img) {
                 img.src = `file://${r.coverPath.replace(/\\/g, '/')}`;
                 img.style.display = 'block';
@@ -584,8 +584,8 @@ async function chooseMetadataCover() {
         return;
     }
     metadataEditorCoverPath = r.imagePath;
-    const img = document.getElementById('metadata-cover-preview'),
-        ph = document.getElementById('metadata-cover-placeholder');
+    const img = getCachedEl('metadata-cover-preview'),
+        ph = getCachedEl('metadata-cover-placeholder');
     if (img) {
         img.src = `file://${r.imagePath.replace(/\\/g, '/')}`;
         img.style.display = 'block';

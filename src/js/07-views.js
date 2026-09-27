@@ -149,14 +149,14 @@ function refreshCurrentView() {
     renderSongsList(songs, currentView);
     setupHeroSection(true, getCurrentViewDisplayName(), songs.length, getCurrentViewLabel());
     if (currentView === VIEWS.ALL_SONGS) {
-        const el = document.getElementById('all-songs-count-display');
+        const el = getCachedEl('all-songs-count-display');
         if (el) el.textContent = songs.length + (songs.length === 1 ? ' song' : ' songs');
     }
 }
 
 function updateAllCounts() {
     const activeSongs = getActiveSongs();
-    const allSongsCountDisplay = document.getElementById('all-songs-count-display');
+    const allSongsCountDisplay = getCachedEl('all-songs-count-display');
     if (allSongsCountDisplay) {
         allSongsCountDisplay.textContent = activeSongs.length + (activeSongs.length === 1 ? ' song' : ' songs');
     }
@@ -215,7 +215,7 @@ function updateSubheroPlayButton(isPlaying) {
         btn.innerHTML = '<i class="fas fa-play"></i>';
         btn.setAttribute('title', 'Play ' + viewName.toLowerCase());
     }
-    const subheroSearchIcon = document.getElementById('subhero-search-icon');
+    const subheroSearchIcon = getCachedEl('subhero-search-icon');
     if (subheroSearchIcon) {
         subheroSearchIcon.setAttribute('title', 'Search in ' + viewName);
     }
@@ -269,7 +269,7 @@ const viewConfigs = {
         render: () => renderSongsList(getSongsForList(VIEWS.ALL_SONGS), VIEWS.ALL_SONGS),
         finalize: (listId) => finalizeViewSwitch(listId),
         updateCount: () => {
-            const el = document.getElementById('all-songs-count-display');
+            const el = getCachedEl('all-songs-count-display');
             if (el)
                 el.textContent =
                     getSongCountForList(VIEWS.ALL_SONGS) + (getSongCountForList(VIEWS.ALL_SONGS) === 1 ? ' song' : ' songs');
@@ -381,7 +381,7 @@ const viewHandlers = {
             showHeroSection(false);
             showTracklistHeader(false);
             updateHeroCover(VIEWS.LYRICS);
-            const lyricsToggleBtn = document.getElementById('lyrics-toggle-btn');
+            const lyricsToggleBtn = getCachedEl('lyrics-toggle-btn');
             if (lyricsToggleBtn) lyricsToggleBtn.classList.add('active');
             renderLyricsView();
         }
@@ -428,9 +428,9 @@ const viewHandlers = {
             resetSearchState();
             resetSubheroSearch();
 
-            const songListContainer = document.getElementById('song-list-container');
+            const songListContainer = getCachedEl('song-list-container');
             if (songListContainer) songListContainer.style.display = '';
-            const lyricsRoot = document.getElementById('lyrics-view-root');
+            const lyricsRoot = getCachedEl('lyrics-view-root');
             if (lyricsRoot) lyricsRoot.style.display = 'none';
             document.body.classList.remove('in-lyrics-view');
 
@@ -450,7 +450,7 @@ const viewHandlers = {
             setupHeroSection(true, 'All Songs', getSongCountForList(VIEWS.ALL_SONGS), 'Playlist');
             renderSongsList(getSongsForList(VIEWS.ALL_SONGS), VIEWS.ALL_SONGS);
 
-            const allSongsCountDisplay = document.getElementById('all-songs-count-display');
+            const allSongsCountDisplay = getCachedEl('all-songs-count-display');
             if (allSongsCountDisplay) {
                 allSongsCountDisplay.textContent =
                     getSongCountForList(VIEWS.ALL_SONGS) + (getSongCountForList(VIEWS.ALL_SONGS) === 1 ? ' song' : ' songs');
@@ -742,7 +742,7 @@ function openDetailView(id, type) {
             teardownLyricsView();
         }
         document.body.classList.remove('in-lyrics-view');
-        const lyricsToggleBtn = document.getElementById('lyrics-toggle-btn');
+        const lyricsToggleBtn = getCachedEl('lyrics-toggle-btn');
         if (lyricsToggleBtn) lyricsToggleBtn.classList.remove('active');
     }
 
@@ -779,7 +779,7 @@ function openDetailView(id, type) {
         clearAllSelections();
     }
 
-    const subheroSearchIcon = document.getElementById('subhero-search-icon');
+    const subheroSearchIcon = getCachedEl('subhero-search-icon');
     if (subheroSearchIcon) {
         subheroSearchIcon.setAttribute('title', 'Search in ' + item.name);
     }
@@ -816,7 +816,7 @@ function openArtist(artistId) {
 // VIEW SWITCHING
 // ==============================================================================
 function switchToLyrics() {
-    const lyricsToggleBtn = document.getElementById('lyrics-toggle-btn');
+    const lyricsToggleBtn = getCachedEl('lyrics-toggle-btn');
 
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) {
         if (lyricsToggleBtn && lyricsToggleBtn.disabled) return;
@@ -832,7 +832,7 @@ function switchToLyrics() {
 
         document.body.classList.remove('in-lyrics-view');
 
-        const songListContainer = document.getElementById('song-list-container');
+        const songListContainer = getCachedEl('song-list-container');
         if (songListContainer) songListContainer.style.display = '';
 
         if (typeof teardownLyricsView === 'function') {
@@ -845,7 +845,7 @@ function switchToLyrics() {
             switchView(VIEWS.ALL_SONGS);
         }
 
-        const songListContainerAfter = document.getElementById('song-list-container');
+        const songListContainerAfter = getCachedEl('song-list-container');
         if (songListContainerAfter) songListContainerAfter.style.display = '';
 
         updateNavigationButtons();
@@ -911,9 +911,9 @@ function switchView(view) {
     }
     
     if (view !== VIEWS.LYRICS && view !== VIEWS.ONLINE_LYRICS && view !== VIEWS.SMART_LYRICS) {
-        const lyricsRoot = document.getElementById('lyrics-view-root');
+        const lyricsRoot = getCachedEl('lyrics-view-root');
         if (lyricsRoot) lyricsRoot.style.display = 'none';
-        const songListContainer = document.getElementById('song-list-container');
+        const songListContainer = getCachedEl('song-list-container');
         if (songListContainer) songListContainer.style.display = '';
         document.body.classList.remove('in-lyrics-view');
         const trackLyricsBody = document.getElementById('track-lyrics-body');
@@ -948,7 +948,7 @@ function switchView(view) {
         resetLeftPanelActiveState();
     }
 
-    const lyricsToggleBtn = document.getElementById('lyrics-toggle-btn');
+    const lyricsToggleBtn = getCachedEl('lyrics-toggle-btn');
     if (lyricsToggleBtn) {
         lyricsToggleBtn.classList.toggle('active', view === VIEWS.LYRICS);
     }
