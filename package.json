@@ -1,5 +1,29 @@
 {
   "devDependencies": {
     "playwright": "^1.63.0"
+  },
+  "name": "source",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ExhataQ/Xplayer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ExhataQ/Xplayer/issues"
+  },
+  "homepage": "https://github.com/ExhataQ/Xplayer#readme",
+  "dependencies": {
+    "jimp": "^1.6.1",
+    "music-metadata": "^11.16.1",
+    "sharp": "^0.35.5"
   }
 }

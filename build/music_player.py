@@ -37,7 +37,7 @@ print("=" * 60)
 
 
 def create_placeholder_image():
-    default_cover_path = os.path.join(script_dir, "default-cover.svg")
+    default_cover_path = os.path.join(source_root, "src", "assets", "default-cover.svg")
     if os.path.exists(default_cover_path):
         with open(default_cover_path, "r", encoding="utf-8") as f:
             svg = f.read()
@@ -255,22 +255,38 @@ def generate_html_template(songs_data, placeholder_image):
             if os.path.exists(src):
                 shutil.copy2(src, dst)
 
-    node_modules_src = os.path.join(base_dir, "more tools", "node_modules")
+    # Phase: folder restructure. node_modules used to be synced from the separate
+    # "more tools/node_modules" folder (the old UI playground's dependencies, which
+    # happened to also include jimp/sharp/music-metadata). That folder has been
+    # deleted; the production dependencies now live directly in Source/node_modules
+    # (see Source/package.json). Source/node_modules also contains devDependencies
+    # (currently just playwright, for tools/tests/) that must NOT ship in the
+    # deployed app -- excluded by name below, along with the .bin shim folder and
+    # the unrelated .vite cache. If devDependencies in package.json ever change,
+    # update this exclude set to match.
+    _NODE_MODULES_DEV_ONLY_EXCLUDES = {"playwright", "playwright-core", ".bin", ".vite", ".package-lock.json"}
+
+    def _ignore_dev_only_packages(directory, names):
+        if os.path.normpath(directory) == os.path.normpath(node_modules_src):
+            return set(names) & _NODE_MODULES_DEV_ONLY_EXCLUDES
+        return set()
+
+    node_modules_src = os.path.join(source_root, "node_modules")
     node_modules_dst = os.path.join(app_dir, "node_modules")
     if os.path.exists(node_modules_src):
         nm_start = time.time()
         if os.path.exists(node_modules_dst):
             shutil.rmtree(node_modules_dst)
-        shutil.copytree(node_modules_src, node_modules_dst)
+        shutil.copytree(node_modules_src, node_modules_dst, ignore=_ignore_dev_only_packages)
         print(f"  ✅  node_modules synced from {node_modules_src} ({time.time() - nm_start:.2f}s)")
     else:
         print(f"  ⚠️  node_modules source not found at {node_modules_src} — skipping sync")
 
-    icon_src = os.path.join(script_dir, "icon.png")
+    icon_src = os.path.join(source_root, "src", "assets", "icon.png")
     if os.path.exists(icon_src):
         shutil.copy2(icon_src, os.path.join(app_dir, "icon.png"))
 
-    icons_dir_src = os.path.join(source_root, "tools", "icons")
+    icons_dir_src = os.path.join(source_root, "src", "assets", "icons")
     icons_dir_dst = os.path.join(output_dir, "icons")
     if os.path.exists(icons_dir_src):
         os.makedirs(icons_dir_dst, exist_ok=True)
@@ -282,7 +298,7 @@ def generate_html_template(songs_data, placeholder_image):
 
     fonts_dir = os.path.join(output_dir, "fonts")
     os.makedirs(fonts_dir, exist_ok=True)
-    font_source_dir = os.path.join(source_root, "tools", "fonts")
+    font_source_dir = os.path.join(source_root, "src", "assets", "fonts")
     font_assets = [
         "all.min.css",
         "material-icons.css",

@@ -14,8 +14,9 @@ Main source structure:
 * `Source/build/` — Python build system and HTML template.
 * `Source/src/js/` — renderer JavaScript.
 * `Source/src/css/` — renderer CSS.
+* `Source/src/assets/` — fonts, icons, and other static assets bundled into the app.
 * `Source/electron/` — Electron main process, IPC, scanner, metadata, downloads, lyrics, and other backend functionality.
-* `Source/tools/` — tests, development utilities, fonts, icons, playgrounds, and change log.
+* `Source/tools/` — tests, development utilities, and change log.
 
 The application is built by running:
 
@@ -46,8 +47,6 @@ The renderer files under `Source/src/js/` and `Source/src/css/` are copied into 
 `Source/tools/change.log.txt` is the append-only project change log.
 
 `Source/tools/tests/` contains the project's tests.
-
-The UI playground under `Source/tools/ui-playground/` is a Vite-based visual development environment. Its Vite config, Node dependencies, and package manifest remain under `more tools/ui-playground/`. It uses the production CSS and mock data without requiring the Electron runtime.
 
 ### Important file ownership
 

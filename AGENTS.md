@@ -10,7 +10,7 @@ The project is located at:
 
 The archive root is:
 
-`E:\Programming\Music Player\Workbench\Archive`
+`E:\Backup\Programming\Music player`
 
 ### Archive selection
 
