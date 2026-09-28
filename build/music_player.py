@@ -7,6 +7,8 @@ import logging
 import base64
 from datetime import datetime
 
+from build_manifest import load_manifest, manifest_file_path, render_template
+
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 source_root = os.path.dirname(script_dir)
@@ -118,6 +120,17 @@ def extract_deployed_data():
     return songs, placeholder
 
 
+def copy_manifest_file(src, dest_dir, name):
+    """Copy one manifest entry into dest_dir, keeping any subfolder from the entry name."""
+    if not os.path.exists(src):
+        raise FileNotFoundError(f"src/manifest.json lists '{name}' but {src} does not exist")
+    dst = os.path.join(dest_dir, *name.split("/"))
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    import shutil
+
+    shutil.copy2(src, dst)
+
+
 def generate_html_template(songs_data, placeholder_image):
     template_path = os.path.join(script_dir, "music_player.html")
     js_template_path = os.path.join(source_root, "src", "js", "99-player.js")
@@ -143,109 +156,13 @@ def generate_html_template(songs_data, placeholder_image):
     os.makedirs(output_js_dir, exist_ok=True)
     os.makedirs(output_css_dir, exist_ok=True)
 
-    simple_js_files = [
-        "00-state.js",
-        "01-sizes.js",
-        "02-ghost-list.js",
-        "03-storage.js",
-        "03a-recents.js",
-        "03b-search-engine.js",
-        "03c-playlists.js",
-        "03d-albums-artists.js",
-        "03e-recents-history.js",
-        "03f-favorites-settings.js",
-        "03g-pinned-items.js",
-        "03h-folders.js",
-        "03i-search-history.js",
-        "03j-library-locations.js",
-        "03k-cover-sync.js",
-        "03l-import-export.js",
-        "03m-library-folder-render.js",
-        "04a-ui-render-core.js",
-        "04b-render-playlists-folders.js",
-        "04c-render-albums.js",
-        "04d-render-artists.js",
-        "04e-render-favorites-history.js",
-        "04f-render-search-history.js",
-        "04g-render-lyrics-view.js",
-        "05a-lazy-load-main-list.js",
-        "05b-lazy-load-left-panel.js",
-        "05c-lazy-load-smart-lyrics.js",
-        "06a-context-menus.js",
-        "06b-modals.js",
-        "06c-scrollbar-widget.js",
-        "06d-tooltip-system.js",
-        "06e-tooltip-titles.js",
-        "06f-drag-drop-songs.js",
-        "06g-drag-drop-left-panel.js",
-        "06h-fullscreen-viewer.js",
-        "06i-theme-switcher.js",
-        "06j-notification-system.js",
-        "06k-keyboard-shortcuts.js",
-        "07-views.js",
-        "08a-panel-layout.js",
-        "08b-panel-album-art.js",
-        "08c-panel-track-lyrics.js",
-        "08d-panel-right-tabs.js",
-        "08e-panel-settings.js",
-        "08f-panel-extended-metadata.js",
-        "08g-panel-saved-lyrics.js",
-        "08h-panel-search.js",
-        "09-folders-playlists.js",
-        "10a-playback-shuffle.js",
-        "10b-playback-smart-shuffle.js",
-        "10c-playback-queue.js",
-        "10d-playback-song.js",
-        "11a-lrc-parser-display.js",
-        "11b-lyrics-import.js",
-        "11c-sync-editor-shell.js",
-        "11d-sync-editor-lines.js",
-        "11e-sync-editor-line-edit.js",
-        "11f-sync-editor-volume-save.js",
-        "11g-sync-editor-line-actions.js",
-        "12-color-extract.js",
-        "13-song-highlight.js",
-        "14-song-navigation.js",
-        "15a-controls-time-play.js",
-        "15b-controls-shuffle-btn.js",
-        "15c-controls-repeat-btn.js",
-        "15d-controls-track-nav.js",
-        "15e-controls-audio-events.js",
-        "15f-controls-progress-seek.js",
-        "15g-controls-volume-fade.js",
-        "16-context-menu-actions.js",
-        "17-song-selection.js",
-        "18-lyrics-editor.js",
-        "19-online-lyrics.js",
-        "20-metadata-editor.js",
-        "21-language-detect.js",
-    ]
-    for name in simple_js_files:
-        shutil.copy2(
-            os.path.join(source_root, "src", "js", name),
-            os.path.join(output_js_dir, name)
-        )
+    # Load order lives in src/manifest.json (see build/build_manifest.py), not here.
+    manifest = load_manifest(source_root)
+    for name in manifest["js"]:
+        copy_manifest_file(manifest_file_path(source_root, "js", name), output_js_dir, name)
 
-    css_files = [
-        "base.css",
-        "notifications.css",
-        "left-panel.css",
-        "right-panel.css",
-        "header-topbar.css",
-        "song-list.css",
-        "context-menu.css",
-        "player.css",
-        "fullscreen-viewer.css",
-        "search-history.css",
-        "lyrics.css",
-        "metadata-editor.css",
-        "placeholders.css",
-    ]
-    for name in css_files:
-        shutil.copy2(
-            os.path.join(source_root, "src", "css", name),
-            os.path.join(output_css_dir, name)
-        )
+    for name in manifest["css"]:
+        copy_manifest_file(manifest_file_path(source_root, "css", name), output_css_dir, name)
 
     electron_dir = os.path.join(source_root, "electron")
     if os.path.exists(electron_dir):
@@ -335,7 +252,7 @@ def generate_html_template(songs_data, placeholder_image):
             with open(all_min_css, "w", encoding="utf-8") as f:
                 f.write(css_content)
 
-    html_content = template.replace("{{SONGS_COUNT}}", str(songs_count))
+    html_content = render_template(template, manifest).replace("{{SONGS_COUNT}}", str(songs_count))
     html_content = html_content.replace("{{PLACEHOLDER_IMAGE}}", placeholder_image)
     return html_content
 

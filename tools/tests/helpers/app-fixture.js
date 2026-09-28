@@ -3,6 +3,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { renderTemplate } = require('./render-template');
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..', '..');
 const BROWSER_LAUNCH_TIMEOUT_MS = 2500;
@@ -40,7 +41,7 @@ function buildApp(songCount = 50) {
     const out = fs.mkdtempSync(path.join(os.tmpdir(), `apptest-${songCount}-`));
     fs.cpSync(path.join(ROOT, 'src', 'css'), path.join(out, 'css'), { recursive: true });
     fs.cpSync(path.join(ROOT, 'src', 'js'), path.join(out, 'js'), { recursive: true });
-    const fonts = path.join(ROOT, 'tools', 'fonts');
+    const fonts = path.join(ROOT, 'src', 'assets', 'fonts');
     if (fs.existsSync(fonts)) fs.cpSync(fonts, path.join(out, 'fonts'), { recursive: true });
     const songs = Array.from({ length: songCount }, (_, i) => ({
         id: i + 1, title: `Song title number ${i + 1}`, artist: `Artist ${i % 97}`, album: `Album ${i % 211}`,
@@ -49,6 +50,7 @@ function buildApp(songCount = 50) {
     const tpl = fs.readFileSync(path.join(ROOT, 'src', 'js', '99-player.js'), 'utf8');
     fs.writeFileSync(path.join(out, 'player.js'), tpl.replace('{{SONGS_DATA}}', () => JSON.stringify(songs)).replace('{{PLACEHOLDER_IMAGE}}', () => PH.replace(/'/g, "\\'")));
     let html = fs.readFileSync(path.join(ROOT, 'build', 'music_player.html'), 'utf8');
+    html = renderTemplate(html, ROOT);
     html = html.replace('{{SONGS_COUNT}}', String(songCount)).split('{{PLACEHOLDER_IMAGE}}').join(PH);
     const stub = `<script>window.electronAPI = new Proxy({}, {get:(t,k)=> (k==='then')?undefined:(...a)=>{ if(/^on[A-Z]/.test(String(k))) return ()=>{}; return Promise.resolve(null);} });</script>\n`;
     html = html.replace('<script src="js/00-state.js">', stub + '<script src="js/00-state.js">');

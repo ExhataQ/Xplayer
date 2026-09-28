@@ -6,7 +6,7 @@ Before modifying, creating, deleting, renaming, or moving any project file, crea
 
 The project is located at:
 
-`E:\Programming\Music Player\Workbench\Electron music player`
+`E:\Programming\Music Player`
 
 The archive root is:
 

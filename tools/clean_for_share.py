@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 source_dir = os.path.dirname(script_dir)
@@ -15,6 +16,10 @@ music_config_path = os.path.join(app_dir, "music-folder-config.json")
 
 js_template_path = os.path.join(source_dir, "src", "js", "99-player.js")
 html_template_path = os.path.join(source_dir, "build", "music_player.html")
+
+# build/music_player.html is a template: its stylesheet/script tags come from src/manifest.json
+sys.path.insert(0, os.path.join(source_dir, "build"))
+from build_manifest import load_manifest, render_template
 
 print("\n" + "="*60)
 print("🧹  CLEANING APP FOR SHARING")
@@ -35,6 +40,7 @@ print("  ✅  player.js rebuilt with 0 songs")
 with open(html_template_path, "r", encoding="utf-8") as f:
     html_content = f.read()
 
+html_content = render_template(html_content, load_manifest(source_dir))
 html_content = html_content.replace("{{SONGS_COUNT}}", "0")
 
 with open(html_path, "w", encoding="utf-8") as f:

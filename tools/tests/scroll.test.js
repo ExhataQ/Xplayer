@@ -14,6 +14,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { renderTemplate } = require('./helpers/render-template');
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
 const VIEWPORT = { width: 1500, height: 900 };
@@ -49,7 +50,7 @@ function buildApp(songCount) {
     const out = fs.mkdtempSync(path.join(os.tmpdir(), `scrolltest-${songCount}-`));
     fs.cpSync(path.join(ROOT, 'src', 'css'), path.join(out, 'css'), { recursive: true });
     fs.cpSync(path.join(ROOT, 'src', 'js'), path.join(out, 'js'), { recursive: true });
-    const fonts = path.join(ROOT, 'tools', 'fonts');
+    const fonts = path.join(ROOT, 'src', 'assets', 'fonts');
     if (fs.existsSync(fonts)) fs.cpSync(fonts, path.join(out, 'fonts'), { recursive: true });
 
     const songs = [];
@@ -73,6 +74,7 @@ function buildApp(songCount) {
     fs.writeFileSync(path.join(out, 'player.js'), playerJs);
 
     let html = fs.readFileSync(path.join(ROOT, 'build', 'music_player.html'), 'utf8');
+    html = renderTemplate(html, ROOT);
     html = html.replace('{{SONGS_COUNT}}', String(songCount)).split('{{PLACEHOLDER_IMAGE}}').join(PH);
     const stub = `<script>window.electronAPI = new Proxy({}, {get:(t,k)=> (k==='then')?undefined:(...a)=>{ if(/^on[A-Z]/.test(String(k))) return ()=>{}; return Promise.resolve(null);} });</script>\n`;
     html = html.replace('<script src="js/00-state.js">', stub + '<script src="js/00-state.js">');
