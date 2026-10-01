@@ -2,6 +2,16 @@
 // PINNED ITEMS & ITEM ORDER (global + per-folder)
 // (split out of 03-storage.js, Phase 2 Checkpoint 5)
 // ==============================================================================
+// Event-bus conversion: togglePinItem/movePlayedItemToTop/togglePinItemInFolder
+// used to call renderLeftPanelMainList()/renderPlaylistsView()/showNotification()/
+// etc. directly; that DOM work moved to 04j-pinned-items-events.js, which
+// subscribes to the events emitted below. refreshLeftPanelAfterFolderPinChange()
+// had zero external callers, so it was inlined into the 'folderPin:changed'
+// subscriber rather than kept as a standalone function. Every function still
+// called from outside this file (togglePinItem, movePlayedItemToTop,
+// togglePinItemInFolder, isItemPinned, isItemPinnedInFolder, getFolderPinnedItems -
+// called from 06a-context-menus.js, 10d-playback-song.js, 03h-folders.js,
+// 06g-drag-drop-left-panel.js) kept its exact name and signature.
 
 
 // ==============================================================================
@@ -25,6 +35,7 @@ function isItemPinned(itemId) {
 
 function togglePinItem(itemId, itemName) {
     let pinned = getPinnedItems();
+    let nowPinned;
 
     if (pinned.includes(itemId)) {
         pinned = pinned.filter((id) => id !== itemId);
@@ -33,23 +44,14 @@ function togglePinItem(itemId, itemName) {
         playedOrder = playedOrder.filter((id) => id !== itemId);
         playedOrder.unshift(itemId);
         savePlayedItemOrder(playedOrder);
-        showNotification(`"${itemName}" unpinned`, 'info', 2000);
+        nowPinned = false;
     } else {
         pinned.push(itemId);
-        showNotification(`"${itemName}" pinned`, 'success', 2000);
+        nowPinned = true;
     }
 
     savePinnedItems(pinned);
-    renderLeftPanelMainList();
-
-    // Refresh virtual scroll to reflect new pin order
-    if (leftPanelVirtualState.enabled) {
-        const newItems = getLeftPanelItemsArray();
-        leftPanelVirtualState.currentItems = newItems;
-        renderLeftPanelVisibleItems(false);
-    }
-
-    updateScrollbarById('left-panel-main-content');
+    emit('pinned:changed', { itemId, itemName, pinned: nowPinned });
 }
 
 
@@ -110,25 +112,7 @@ function movePlayedItemToTop(listId) {
         order = order.filter((id) => id !== listId);
         order.unshift(listId);
         savePlayedItemOrder(order);
-        renderPlaylistsView();
-        renderAlbumLeftPanelItems();
-        renderArtistLeftPanelItems();
-
-        // Refresh virtual scroll (no auto-scroll)
-        if (typeof leftPanelVirtualState !== 'undefined' && leftPanelVirtualState.enabled) {
-            const currentScrollTop = leftPanelVirtualState.container?.scrollTop || 0;
-            const newItems = getLeftPanelItemsArray();
-            leftPanelVirtualState.currentItems = newItems;
-            if (typeof renderLeftPanelVisibleItems === 'function') {
-                renderLeftPanelVisibleItems(false);
-            }
-            // Restore original scroll position
-            if (leftPanelVirtualState.container) {
-                leftPanelVirtualState.container.scrollTop = currentScrollTop;
-            }
-        }
-
-        updateScrollbarById('left-panel-main-content');
+        emit('playedOrder:changed', { listId });
     }
 }
 
@@ -174,21 +158,5 @@ function togglePinItemInFolder(folderId, itemId, itemName) {
         map[folderId] = [...current, itemId];
     }
     saveFolderPinnedItemsMap(map);
-    showNotification(isPinned ? `"${itemName}" unpinned` : `"${itemName}" pinned`, isPinned ? 'info' : 'success', 2000);
-    refreshLeftPanelAfterFolderPinChange(folderId);
-}
-
-
-function refreshLeftPanelAfterFolderPinChange(folderId) {
-    if (currentOpenFolderId === folderId) {
-        renderFolderContents(folderId);
-    } else {
-        if (leftPanelVirtualState.enabled) {
-            leftPanelVirtualState.currentItems = getLeftPanelItemsArray();
-            renderLeftPanelVisibleItems(false);
-        } else {
-            renderLeftPanelMainList();
-        }
-    }
-    updateScrollbarById('left-panel-main-content');
+    emit('folderPin:changed', { folderId, itemId, itemName, pinned: !isPinned });
 }

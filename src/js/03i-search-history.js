@@ -2,6 +2,9 @@
 // SEARCH HISTORY
 // (split out of 03-storage.js, Phase 2 Checkpoint 5)
 // ==============================================================================
+// Event-bus conversion: clearSearchHistory()/deleteSearchHistoryEntry() used to call
+// renderSearchHistoryView() and showNotification() directly; that moved to
+// 04l-search-history-events.js. Both keep their exact names and signatures.
 
 
 // ==============================================================================
@@ -44,12 +47,7 @@ async function clearSearchHistory() {
 
     if (confirmed) {
         localStorage.removeItem(STORAGE_KEYS.SEARCH_HISTORY);
-
-        if (currentView === VIEWS.SEARCH_HISTORY) {
-            renderSearchHistoryView();
-        }
-
-        showNotification('Search history cleared', 'success', 3000);
+        emit('searchHistory:cleared');
     }
 }
 
@@ -58,10 +56,5 @@ function deleteSearchHistoryEntry(sessionId) {
     let searchHistory = getStoredJson(STORAGE_KEYS.SEARCH_HISTORY, []);
     searchHistory = searchHistory.filter((entry) => entry.sessionId !== sessionId);
     localStorage.setItem(STORAGE_KEYS.SEARCH_HISTORY, JSON.stringify(searchHistory));
-
-    if (currentView === VIEWS.SEARCH_HISTORY) {
-        renderSearchHistoryView();
-    }
-
-    showNotification('Search removed from history', 'error', 2000);
+    emit('searchHistory:entryDeleted', { sessionId });
 }

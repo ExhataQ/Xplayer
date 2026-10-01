@@ -14,7 +14,24 @@ function load({ stored = {}, library = [], deleted = [], failWrites = false } = 
         removeItem: (k) => { delete stored[k]; }
     };
     const document = { getElementById: () => null, querySelector: () => null };
-    const context = { localStorage: storage, document, console: { ...console, warn() {} }, Date, JSON, setTimeout, clearTimeout, SONGS_DATA: library, deletedSongIds: new Set(deleted) };
+    const context = {
+        localStorage: storage,
+        document,
+        console: { ...console, warn() {} },
+        Date,
+        JSON,
+        setTimeout,
+        clearTimeout,
+        SONGS_DATA: library,
+        deletedSongIds: new Set(deleted),
+        // 03e-recents-history.js now emits events instead of touching the DOM directly
+        // (00b-events.js); this test only cares about the storage/return-value side, so
+        // the real EventTarget/CustomEvent are enough - no UI subscriber is loaded, so
+        // emitted events simply have nobody listening, same as any other emit() with no
+        // subscribers.
+        EventTarget,
+        CustomEvent
+    };
     vm.createContext(context);
     // 03-storage.js references STORAGE_KEYS, defined in 00-state.js (code-cleanup-plan.md
     // Agent 5, Checkpoint 1). Pull just that constant out rather than vm-loading the whole
@@ -29,7 +46,8 @@ function load({ stored = {}, library = [], deleted = [], failWrites = false } = 
     // into 03e-recents-history.js; loaded alongside 03a-recents.js since this test exercises
     // both the raw storage layer (saveToRecentlyPlayed/getRecentCount) and the
     // library-resolution layer (addToRecentList/resolveRecentSongs/getRecentlyPlayedSongs).
-    for (const file of ['03-storage.js', '03e-recents-history.js', '03a-recents.js']) {
+    // 00b-events.js provides emit()/on(), used by 03e since the event-bus conversion.
+    for (const file of ['00b-events.js', '03-storage.js', '03e-recents-history.js', '03a-recents.js']) {
         vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/js', file), 'utf8'), context);
     }
     context.__stored = stored;

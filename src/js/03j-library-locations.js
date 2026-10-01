@@ -10,6 +10,30 @@
 
 let libraryLocationsPanelOpen = false;
 
+// Pulled out of rebuildLibraryFromFolders() in 03m-library-folder-render.js: that
+// function is otherwise pure UI orchestration (see the comment at the top of that
+// file), but this piece - replacing the in-memory song list and resetting playback/
+// ghost-list state after a full library rebuild - is genuine core state, no DOM.
+// Everything DOM-related that used to follow this block inline now lives in the
+// 'library:rebuilt' subscriber in 04i-library-rebuild-events.js.
+function resetLibraryAfterRebuild(songs) {
+    SONGS_DATA.length = 0;
+    Array.prototype.push.apply(SONGS_DATA, songs);
+
+    clearGhostList(VIEWS.ALL_SONGS);
+    clearGhostList(VIEWS.FAVORITES);
+    clearGhostList(VIEWS.HISTORY);
+
+    for (const key in activeSlotHighlights) {
+        activeSlotHighlights[key] = null;
+    }
+
+    currentQueueIndex = -1;
+    playbackQueue = [];
+
+    emit('library:rebuilt', { songs });
+}
+
 async function loadLibraryLocations() {
     const api = typeof window !== 'undefined' ? window.electronAPI : null;
     if (!api || !api.getMusicFolders) {

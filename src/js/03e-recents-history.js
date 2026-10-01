@@ -2,6 +2,16 @@
 // RECENTLY PLAYED & PLAY HISTORY
 // (split out of 03-storage.js, Phase 2 Checkpoint 5)
 // ==============================================================================
+// Event-bus conversion: this file used to call renderPortableRecentlyPlayed(),
+// renderHistoryView(), renderRecentlyPlayed(), updateExternalScrollbar() and
+// showNotification() directly, and updateRecentCount() used to query the DOM
+// itself. All of that moved to 04h-recents-history-events.js, which subscribes to
+// the events emitted below. Every public function here keeps its original name
+// and signature - saveToRecentlyPlayed/updateRecentCount/clearRecentlyPlayed/
+// saveToPlayHistory/clearPlayHistory are still called directly from
+// 03l-import-export.js, 04e-render-favorites-history.js, 06a-context-menus.js,
+// 07-views.js, 15d/15e-controls-*.js, 17-song-selection.js and 99-player.js - none
+// of those call sites needed to change.
 
 
 // ==============================================================================
@@ -17,11 +27,7 @@ function saveToRecentlyPlayed(song) {
         console.warn('Could not save the recently played list:', e);
     }
     updateRecentCount();
-
-    const recentPanel = document.getElementById('recently-played-content');
-    if (recentPanel && recentPanel.classList.contains('active')) {
-        renderPortableRecentlyPlayed();
-    }
+    emit('recents:added', { song });
 }
 
 
@@ -32,10 +38,7 @@ function getRecentlyPlayed() {
 
 
 function updateRecentCount() {
-    const countElement = document.querySelector('.left-panel-item[onclick*="recent"] .song-count');
-    if (countElement) {
-        countElement.textContent = getRecentCount();
-    }
+    emit('recents:count-changed', { count: getRecentCount() });
 }
 
 
@@ -51,18 +54,7 @@ async function clearRecentlyPlayed() {
         localStorage.removeItem(STORAGE_KEYS.RECENTLY_PLAYED);
         clearGhostList(VIEWS.RECENT);
         updateRecentCount();
-
-        if (currentView === VIEWS.RECENT) {
-            renderRecentlyPlayed();
-            setTimeout(() => updateExternalScrollbar(), 100);
-        }
-
-        const recentPanel = document.getElementById('recently-played-content');
-        if (recentPanel && recentPanel.classList.contains('active')) {
-            renderPortableRecentlyPlayed();
-        }
-
-        showNotification('Recently played list cleared', 'success', 3000);
+        emit('recents:cleared');
     }
 }
 
@@ -99,9 +91,7 @@ function saveToPlayHistory(song, playDuration) {
 
     localStorage.setItem(STORAGE_KEYS.PLAY_HISTORY, JSON.stringify(history));
 
-    if (currentView === VIEWS.HISTORY) {
-        renderHistoryView();
-    }
+    emit('history:added');
 }
 
 
@@ -122,18 +112,6 @@ async function clearPlayHistory() {
         localStorage.removeItem(STORAGE_KEYS.PLAY_HISTORY);
         historyGhostSlots = [];
         nextHistorySlotId = 1;
-
-        if (currentView === VIEWS.HISTORY) {
-            showHeroSection(true);
-            updateHeroSection('Recents', 0, 'Playlist', 'History');
-            renderHistoryView();
-            setTimeout(() => {
-                if (typeof updateExternalScrollbar === 'function') {
-                    updateExternalScrollbar();
-                }
-            }, 100);
-        }
-
-        showNotification('Play history cleared', 'success', 3000);
+        emit('history:cleared');
     }
 }

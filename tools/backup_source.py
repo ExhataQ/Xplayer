@@ -89,7 +89,6 @@ def remove_readonly(func, path, exc_info):
     except Exception:
         raise
 
-
 def main():
     print("Source backup tool")
     print("==================")
@@ -102,19 +101,15 @@ def main():
             f"Source folder does not exist:\n{SOURCE}"
         )
 
-    if BACKUP.exists():
-        raise FileExistsError(
-            f"Temporary backup already exists:\n{BACKUP}\n\n"
-            "Delete it before running this tool."
-        )
-
-    if ZIP_FILE.exists():
-        raise FileExistsError(
-            f"Backup ZIP already exists:\n{ZIP_FILE}\n\n"
-            "Delete or rename it before running this tool."
-        )
-
     package_data = read_package_json()
+
+    # Remove any leftover temporary backup directory from a previous run.
+    if BACKUP.exists():
+        print("Removing previous temporary backup folder...")
+        shutil.rmtree(
+            BACKUP,
+            onexc=remove_readonly
+        )
 
     print("Copying Source...")
     print("Excluding node_modules and .git...")
@@ -132,19 +127,37 @@ def main():
 
     create_package_manifest(package_data)
 
+    # Create the new ZIP under a temporary filename first.
+    TEMP_ZIP_FILE = SOURCE.parent / "Source-backup-new.zip"
+
+    if TEMP_ZIP_FILE.exists():
+        TEMP_ZIP_FILE.unlink()
+
     print("Creating ZIP...")
 
-    shutil.make_archive(
-        str(ZIP_FILE.with_suffix("")),
-        "zip",
-        root_dir=BACKUP.parent,
-        base_dir=BACKUP.name
-    )
+    try:
+        shutil.make_archive(
+            str(TEMP_ZIP_FILE.with_suffix("")),
+            "zip",
+            root_dir=BACKUP.parent,
+            base_dir=BACKUP.name
+        )
+    except Exception:
+        if TEMP_ZIP_FILE.exists():
+            TEMP_ZIP_FILE.unlink()
+        raise
 
-    if not ZIP_FILE.exists():
+    if not TEMP_ZIP_FILE.exists():
         raise RuntimeError("ZIP creation failed.")
 
     print("ZIP created successfully.")
+
+    # The new backup is complete, so it is now safe to replace the old one.
+    if ZIP_FILE.exists():
+        print("Replacing previous backup ZIP...")
+        ZIP_FILE.unlink()
+
+    TEMP_ZIP_FILE.replace(ZIP_FILE)
 
     print("Removing temporary uncompressed backup...")
 
@@ -174,7 +187,6 @@ def main():
     print()
     print("Recorded:")
     print("  node_modules\\INSTALLED_PACKAGES.txt")
-
 
 if __name__ == "__main__":
     main()

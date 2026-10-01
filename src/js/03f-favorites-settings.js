@@ -73,14 +73,11 @@ function setAudioPlaybackSetting(key, value) {
 
     saveAudioPlaybackSettings(settings);
 
-    if (typeof document !== 'undefined') {
-        document.querySelectorAll('[data-playback-setting]').forEach((input) => {
-            const settingKey = input.getAttribute('data-playback-setting');
-            if (input.type === 'checkbox' && settingKey in settings) {
-                input.checked = Boolean(settings[settingKey]);
-            }
-        });
-    }
+    // Checkbox sync (gapless and crossfade are mutually exclusive, so changing one can
+    // flip the other's checkbox) lives in 04m-playback-settings-events.js. Emitted at the
+    // exact spot the inline DOM loop used to be, so it still runs after the save and
+    // before the gapless/ReplayGain side effects below.
+    emit('playbackSetting:changed', { key, value, settings });
 
     if (key === 'gaplessEnabled' || key === 'crossfadeEnabled') {
         if (settings.gaplessEnabled && typeof prepareGaplessNextTrack === 'function') {

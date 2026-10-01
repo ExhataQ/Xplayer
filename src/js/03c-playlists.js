@@ -3,19 +3,24 @@
 // Split out of 03-storage.js; still uses the same localStorage helpers from that file
 // (getStoredJson, updatePlaylistCount's siblings, etc.) and getSongById from 00-state.js.
 // ==============================================================================
+// Event-bus conversion: createPlaylist/deletePlaylist/deletePlaylistAndClose/
+// addSongToPlaylist/removeSongFromPlaylist used to call render/DOM functions
+// directly; that moved to 04k-playlists-events.js. updatePlaylistCount() had zero
+// external callers (checked before removing it) and was inlined into the
+// 'playlist:songCountChanged' subscriber. createPlaylist() still returns the new
+// playlist object exactly as before - 06b-modals.js relies on that return value.
+// deletePlaylist()'s switchView(...) navigation calls stayed inline rather than
+// moving to the subscriber: which view to switch to depends on state computed at
+// deletion time (sortByPinnedThenRecent + deletedIndex), not a generic "something
+// changed" reaction, so it isn't the same shape as the rest of this file.
+//
+// Bonus find while doing this: createPlaylist() and deletePlaylist() had a
+// byte-identical 11-line "refresh playlists view + left panel + virtual scroll +
+// scrollbar" tail. Both now emit the same 'playlist:listChanged' event, so that
+// duplication is gone too, not just moved.
 
 function getPlaylists() {
     return getStoredJson(STORAGE_KEYS.PLAYLISTS, []);
-}
-
-function updatePlaylistCount(playlistId, count) {
-    const playlistItem = document.querySelector(`.left-panel-main-item[data-view="playlist-${playlistId}"]`);
-    if (playlistItem) {
-        const countSpan = playlistItem.querySelector('.main-item-count');
-        if (countSpan) {
-            countSpan.textContent = `${count} ${count === 1 ? 'song' : 'songs'}`;
-        }
-    }
 }
 
 function savePlaylists(playlists) {
@@ -42,19 +47,7 @@ function createPlaylist(name) {
         savePlayedItemOrder(order);
     }
 
-    renderPlaylistsView();
-    renderLeftPanelMainList();
-
-    // Refresh virtual scroll
-    if (typeof leftPanelVirtualState !== 'undefined' && leftPanelVirtualState.enabled) {
-        const newItems = getLeftPanelItemsArray();
-        leftPanelVirtualState.currentItems = newItems;
-        if (typeof renderLeftPanelVisibleItems === 'function') {
-            renderLeftPanelVisibleItems(false);
-        }
-    }
-
-    updateScrollbarById('left-panel-main-content');
+    emit('playlist:listChanged');
 
     return newPlaylist;
 }
@@ -101,19 +94,7 @@ function deletePlaylist(playlistId) {
         }
     }
 
-    renderPlaylistsView();
-    renderLeftPanelMainList();
-
-    // Refresh virtual scroll
-    if (typeof leftPanelVirtualState !== 'undefined' && leftPanelVirtualState.enabled) {
-        const newItems = getLeftPanelItemsArray();
-        leftPanelVirtualState.currentItems = newItems;
-        if (typeof renderLeftPanelVisibleItems === 'function') {
-            renderLeftPanelVisibleItems(false);
-        }
-    }
-
-    updateScrollbarById('left-panel-main-content');
+    emit('playlist:listChanged');
 }
 
 async function deletePlaylistAndClose(playlistId) {
@@ -130,10 +111,11 @@ async function deletePlaylistAndClose(playlistId) {
 
     if (confirmed) {
         deletePlaylist(playlistId);
-        renderPlaylistsView();
-        renderLeftPanelMainList();
-        updateScrollbarById('left-panel-main-content');
-        showNotification(`Playlist "${playlistName}" deleted`, 'error', 2000);
+        // Note: deletePlaylist() above already emitted 'playlist:listChanged' (full
+        // refresh). The subscriber for this event repeats a subset of it, exactly as
+        // the inline code here did before the event-bus conversion - preserved as-is,
+        // not removed, since dropping it would be a behavior change, not a refactor.
+        emit('playlist:deleted', { playlistName });
     }
 }
 
@@ -154,7 +136,7 @@ function removeSongFromPlaylist(songId, playlistId) {
     if (playlists[playlistIndex].songs.length === originalLength) return false;
 
     savePlaylists(playlists);
-    updatePlaylistCount(playlistId, playlists[playlistIndex].songs.length);
+    emit('playlist:songCountChanged', { playlistId, count: playlists[playlistIndex].songs.length });
     return true;
 }
 
@@ -166,7 +148,7 @@ function addSongToPlaylist(songId, playlistId) {
     if (!playlists[playlistIndex].songs.includes(songId)) {
         playlists[playlistIndex].songs.push(songId);
         savePlaylists(playlists);
-        updatePlaylistCount(playlistId, playlists[playlistIndex].songs.length);
+        emit('playlist:songCountChanged', { playlistId, count: playlists[playlistIndex].songs.length });
         return true;
     }
     return false;

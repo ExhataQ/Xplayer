@@ -205,42 +205,7 @@ async function rebuildLibraryFromFolders() {
     const result = await window.electronAPI.rebuildFromFolders();
 
     if (result && result.success && Array.isArray(result.songs)) {
-        SONGS_DATA.length = 0;
-        Array.prototype.push.apply(SONGS_DATA, result.songs);
-
-        clearGhostList(VIEWS.ALL_SONGS);
-        clearGhostList(VIEWS.FAVORITES);
-        clearGhostList(VIEWS.HISTORY);
-
-        for (const key in activeSlotHighlights) {
-            activeSlotHighlights[key] = null;
-        }
-
-        currentQueueIndex = -1;
-        playbackQueue = [];
-        audioElement.pause();
-        audioElement.src = '';
-        playButton.innerHTML = '<i class="fas fa-play"></i>';
-        document.querySelector('.player-song-info').classList.remove('has-song');
-        document.getElementById('player-title').textContent = 'No song selected';
-        document.getElementById('player-artist').textContent = '—';
-        document.getElementById('player-cover').src = PLACEHOLDER_IMAGE;
-
-        updateQueueDisplay();
-        updateAlbumArt();
-
-        updateAllCounts();
-        updateLeftPanelCounts();
-        renderPlaylistsView();
-        renderAlbumLeftPanelItems();
-        renderArtistLeftPanelItems();
-        renderLeftPanelMainList();
-
-        if (currentView === VIEWS.ALL_SONGS) {
-            const songs = getSongsForList(VIEWS.ALL_SONGS);
-            renderSongsList(songs, VIEWS.ALL_SONGS);
-            setupHeroSection(true, 'All Songs', songs.length, 'Playlist');
-        }
+        resetLibraryAfterRebuild(result.songs);
 
         await renderLibraryLocations();
 
