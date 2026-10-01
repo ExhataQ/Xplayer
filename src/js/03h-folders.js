@@ -1,6 +1,14 @@
 // ==============================================================================
 // FOLDERS (CRUD, tree building, expand state)
 // (split out of 03-storage.js, Phase 2 Checkpoint 5)
+// Event-bus conversion: createFolder() and deleteFolder() each ended with the same
+// byte-identical "refresh folders view + left panel + virtual scroll + scrollbar" tail.
+// Both now emit 'folder:listChanged'; the DOM work moved to 04o-folders-events.js.
+// Everything else in this file was already pure data/storage and is unchanged.
+// deleteFolder()'s switchView(VIEWS.ALL_SONGS) stayed inline (it navigates away BEFORE
+// the refresh, and is a decision, not a "something changed" reaction), same as
+// deletePlaylist() in 03c. deleteFolder() recurses for nested folders, so the event
+// fires once per folder deleted, exactly as the inline refresh did.
 // ==============================================================================
 
 
@@ -33,19 +41,7 @@ function createFolder(name) {
     order.unshift(`folder-${newFolder.id}`);
     savePlayedItemOrder(order);
 
-    renderFoldersView();
-    renderLeftPanelMainList();
-
-    // Refresh virtual scroll
-    if (typeof leftPanelVirtualState !== 'undefined' && leftPanelVirtualState.enabled) {
-        const newItems = getLeftPanelItemsArray();
-        leftPanelVirtualState.currentItems = newItems;
-        if (typeof renderLeftPanelVisibleItems === 'function') {
-            renderLeftPanelVisibleItems(false);
-        }
-    }
-
-    updateScrollbarById('left-panel-main-content');
+    emit('folder:listChanged');
 
     return newFolder;
 }
@@ -86,19 +82,7 @@ function deleteFolder(folderId, deleteContents = false) {
         switchView(VIEWS.ALL_SONGS);
     }
 
-    renderFoldersView();
-    renderLeftPanelMainList();
-
-    // Refresh virtual scroll
-    if (typeof leftPanelVirtualState !== 'undefined' && leftPanelVirtualState.enabled) {
-        const newItems = getLeftPanelItemsArray();
-        leftPanelVirtualState.currentItems = newItems;
-        if (typeof renderLeftPanelVisibleItems === 'function') {
-            renderLeftPanelVisibleItems(false);
-        }
-    }
-
-    updateScrollbarById('left-panel-main-content');
+    emit('folder:listChanged');
 }
 
 

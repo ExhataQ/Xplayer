@@ -19,12 +19,12 @@ function handleLeftPanelCoverBtnClick(viewId) {
         resetShuffle();
     }
 
-    playbackQueue = songs.map((s, idx) => ({
+    setPlaybackQueue(songs.map((s, idx) => ({
         song: s,
         listId: viewId,
         ghostSlot: idx
-    }));
-    currentQueueIndex = 0;
+    })));
+    setCurrentQueueIndex(0);
 
     updateQueueDisplay();
     playSongFromQueue(0);
@@ -116,7 +116,7 @@ function openPlaylist(playlistId, callback = null) {
 
     pushViewToHistory(viewName);
 
-    currentView = viewName;
+    setCurrentView(viewName);
     updateHeroCover(viewName);
     updateSubheroPlayButton(isCurrentViewPlaying());
     setSubheroVisibility(viewName);
@@ -201,8 +201,8 @@ function openFolder(folderId) {
     if (currentOpenFolderId) {
         folderNavigationStack.push(currentOpenFolderId);
     }
-    currentOpenFolderId = folderId;
-    currentOpenFolderName = folder.name;
+    setCurrentOpenFolderId(folderId);
+    setCurrentOpenFolderName(folder.name);
 
     const titleGroup = document.querySelector('.left-panel-header-title-group');
     const folderNavBar = document.getElementById('folder-nav-bar');
@@ -232,11 +232,11 @@ function openFolder(folderId) {
 function closeFolder() {
     if (folderNavigationStack.length > 0) {
         const parentFolderId = folderNavigationStack.pop();
-        currentOpenFolderId = parentFolderId;
+        setCurrentOpenFolderId(parentFolderId);
 
         const folders = getFolders();
         const folder = folders.find((f) => f.id === parentFolderId);
-        currentOpenFolderName = folder ? folder.name : '';
+        setCurrentOpenFolderName(folder ? folder.name : '');
 
         const folderNameLabel = document.getElementById('folder-name-label');
         if (folderNameLabel) folderNameLabel.textContent = currentOpenFolderName;
@@ -246,9 +246,9 @@ function closeFolder() {
         return;
     }
 
-    currentOpenFolderId = null;
-    currentOpenFolderName = '';
-    folderNavigationStack = [];
+    setCurrentOpenFolderId(null);
+    setCurrentOpenFolderName('');
+    setFolderNavigationStack([]);
 
     const titleGroup = document.querySelector('.left-panel-header-title-group');
     const folderNavBar = document.getElementById('folder-nav-bar');

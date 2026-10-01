@@ -28,8 +28,8 @@ function resetLibraryAfterRebuild(songs) {
         activeSlotHighlights[key] = null;
     }
 
-    currentQueueIndex = -1;
-    playbackQueue = [];
+    setCurrentQueueIndex(-1);
+    setPlaybackQueue([]);
 
     emit('library:rebuilt', { songs });
 }
@@ -255,8 +255,8 @@ function changeMusicFolder() {
                 activeSlotHighlights[key] = null;
             }
 
-            currentQueueIndex = -1;
-            playbackQueue = [];
+            setCurrentQueueIndex(-1);
+            setPlaybackQueue([]);
             audioElement.pause();
             audioElement.src = '';
             playButton.innerHTML = '<i class="fas fa-play"></i>';

@@ -80,8 +80,8 @@ function saveCurrentPlaybackState() {
             }, 1000);
         }
 
-        lastPlayedSong = null;
-        lastPlayedSongStartTime = 0;
+        setLastPlayedSong(null);
+        setLastPlayedSongStartTime(0);
     }
 }
 
@@ -90,9 +90,9 @@ function togglePlaylistsFilter() {
     const playlistsTag = document.getElementById('playlists-filter-tag');
 
     if (leftPanelFilterMode === 'playlists') {
-        leftPanelFilterMode = 'all';
+        setLeftPanelFilterMode('all');
     } else {
-        leftPanelFilterMode = 'playlists';
+        setLeftPanelFilterMode('playlists');
         playlistsTag.classList.add('active');
     }
 
@@ -110,9 +110,9 @@ function toggleAlbumsFilter() {
     const albumsTag = document.getElementById('albums-filter-tag');
 
     if (leftPanelFilterMode === 'albums') {
-        leftPanelFilterMode = 'all';
+        setLeftPanelFilterMode('all');
     } else {
-        leftPanelFilterMode = 'albums';
+        setLeftPanelFilterMode('albums');
         albumsTag.classList.add('active');
     }
 
@@ -125,9 +125,9 @@ function toggleArtistsFilter() {
     const artistsTag = document.getElementById('artists-filter-tag');
 
     if (leftPanelFilterMode === 'artists') {
-        leftPanelFilterMode = 'all';
+        setLeftPanelFilterMode('all');
     } else {
-        leftPanelFilterMode = 'artists';
+        setLeftPanelFilterMode('artists');
         artistsTag.classList.add('active');
     }
 
@@ -162,7 +162,7 @@ function isBelowCollapseThreshold() {
 }
 
 function collapseLeftPanel() {
-    leftPanelCollapsed = true;
+    setLeftPanelCollapsed(true);
     const leftPanel = leftPanelElement;
     const collapseBtn = document.getElementById('collapse-panel-btn');
     const titleGroup = document.querySelector('.left-panel-header-title-group');
@@ -182,7 +182,7 @@ function collapseLeftPanel() {
 
 function expandLeftPanel() {
     if (isBelowCollapseThreshold()) return;
-    leftPanelCollapsed = false;
+    setLeftPanelCollapsed(false);
     const leftPanel = leftPanelElement;
     const collapseBtn = document.getElementById('collapse-panel-btn');
     const titleGroup = document.querySelector('.left-panel-header-title-group');
@@ -487,7 +487,7 @@ document.addEventListener('DOMContentLoaded', function () {
         timestamp: Date.now(),
         queueIndex: -1
     });
-    historyNavigationIndex = 0;
+    setHistoryNavigationIndex(0);
     updateNavigationButtons();
 
     initExternalScrollbar('main-content', 'external-scrollbar', 'external-scrollbar-thumb');
@@ -509,8 +509,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Initialize repeat visual state and functionality
-    repeatVisualState = repeatMode;
-    repeatFunctionalityActive = (repeatMode > 0 && !isShuffled) || repeatMode === 2;
+    setRepeatVisualState(repeatMode);
+    setRepeatFunctionalityActive((repeatMode > 0 && !isShuffled) || repeatMode === 2);
 
     // Set initial volume
     window.lastVolume = 0.5;
@@ -563,7 +563,7 @@ document.addEventListener('DOMContentLoaded', function () {
         allSongsMainItem.classList.add('active');
     }
 
-    leftPanelFilterMode = 'all';
+    setLeftPanelFilterMode('all');
     renderLeftPanelMainList();
     renderPlaylistsView();
     renderFoldersView();
@@ -575,7 +575,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initSongDragToLeftPanel();
 
     // Ensure we're showing all songs on launch
-    currentView = VIEWS.ALL_SONGS;
+    setCurrentView(VIEWS.ALL_SONGS);
     document.body.classList.add('view-all-songs');
     document.body.classList.remove('view-favorites');
 

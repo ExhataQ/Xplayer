@@ -19,7 +19,7 @@ async function renderLibraryLocations() {
                 <small>Click "Add Folder" to include music locations</small>
             </div>
         `;
-        selectedLibraryFolders = [];
+        setSelectedLibraryFolders([]);
         return;
     }
 
@@ -52,7 +52,7 @@ async function renderLibraryLocations() {
         )
         .join('');
 
-    selectedLibraryFolders = selectedLibraryFolders.filter((folder) => folders.includes(folder));
+    setSelectedLibraryFolders(selectedLibraryFolders.filter((folder) => folders.includes(folder)));
 
     if (!document.body.dataset.librarySelectionOutsideHook) {
         document.addEventListener('pointerdown', (event) => {
@@ -69,7 +69,7 @@ async function renderLibraryLocations() {
     container.onkeydown = (event) => {
         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
             event.preventDefault();
-            selectedLibraryFolders = folders.slice();
+            setSelectedLibraryFolders(folders.slice());
             container.querySelectorAll('.library-location-item').forEach((item) => item.classList.add('selected'));
         }
     };
@@ -145,7 +145,7 @@ async function removeSelectedLibraryFolder() {
           );
 
     if (result && result.success) {
-        selectedLibraryFolders = [];
+        setSelectedLibraryFolders([]);
         await renderLibraryLocations();
         showNotification(
             `Removed ${folderNames.length} folder${folderNames.length !== 1 ? 's' : ''}. Click "Save and Apply Changes" to update songs.`,

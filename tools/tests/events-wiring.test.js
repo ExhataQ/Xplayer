@@ -1,4 +1,4 @@
-// Browser tests for the event-bus conversion (00b-events.js and the 04h-04k *-events.js
+// Browser tests for the event-bus conversion (00b-events.js and the 04h-04o *-events.js
 // subscriber files). Unit tests can't catch "core emits an event but the UI subscriber
 // never registered / throws" - that only shows up in the running app, so these call the
 // real converted core functions in the real page and assert the DOM actually changed.
@@ -134,6 +134,47 @@ const EXPECTED_CALL_SEQUENCES = {
         "renderLeftPanelMainList",
         "renderSongsList",
         "setupHeroSection"
+    ],
+    "folders: create then delete an empty folder": [
+        "renderFoldersView",
+        "renderLeftPanelMainList",
+        "renderLeftPanelVisibleItems",
+        "updateScrollbarById",
+        "renderLeftPanelMainList",
+        "renderLeftPanelVisibleItems",
+        "renderLeftPanelVisibleItems",
+        "updateScrollbarById",
+        "renderFoldersView",
+        "renderLeftPanelMainList",
+        "renderLeftPanelVisibleItems",
+        "renderLeftPanelVisibleItems",
+        "updateScrollbarById"
+    ],
+    "folders: delete a folder together with its contents": [
+        "renderFoldersView",
+        "renderLeftPanelMainList",
+        "renderLeftPanelVisibleItems",
+        "updateScrollbarById",
+        "renderLeftPanelMainList",
+        "renderLeftPanelVisibleItems",
+        "renderLeftPanelVisibleItems",
+        "updateScrollbarById",
+        "renderFoldersView",
+        "renderLeftPanelMainList",
+        "renderLeftPanelVisibleItems",
+        "updateScrollbarById",
+        "renderLeftPanelMainList",
+        "renderLeftPanelVisibleItems",
+        "renderLeftPanelVisibleItems",
+        "updateScrollbarById"
+    ],
+    "folders: delete the folder that is currently open": [
+        "switchView",
+        "renderFoldersView",
+        "renderLeftPanelMainList",
+        "renderLeftPanelVisibleItems",
+        "renderLeftPanelVisibleItems",
+        "updateScrollbarById"
     ]
 };
 
@@ -462,7 +503,9 @@ describe('event bus: core emits, UI subscribers react', { concurrency: false }, 
         await page.close();
     });
 
-    test('every converted UI reaction makes the same calls, in the same order, as the code it replaced', TEST_OPTIONS, async (t) => {
+    // One page load per scenario (~1.5s each), so this test needs far more than the 30s default
+    // as scenarios are added.
+    test('every converted UI reaction makes the same calls, in the same order, as the code it replaced', { timeout: 120000 }, async (t) => {
         if (!guard(t)) return;
         assert.deepEqual(Object.keys(SCENARIOS), Object.keys(EXPECTED_CALL_SEQUENCES), 'scenario list and expected list must match');
         for (const [name, scenario] of Object.entries(SCENARIOS)) {

@@ -110,8 +110,8 @@ async function clearPlayHistory() {
 
     if (confirmed) {
         localStorage.removeItem(STORAGE_KEYS.PLAY_HISTORY);
-        historyGhostSlots = [];
-        nextHistorySlotId = 1;
+        setHistoryGhostSlots([]);
+        setNextHistorySlotId(1);
         emit('history:cleared');
     }
 }

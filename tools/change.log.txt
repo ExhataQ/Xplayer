@@ -1,0 +1,6 @@
+2026-10-02
+- Applied the folders event slice and A-setters core.
+- Added folder event subscribers, 52 state setters, setter tests, event documentation, agent report, and smoke checklist.
+- Added acorn and acorn-walk as development dependencies for dependency analysis.
+- Converted A-owned state writes to setter calls and expanded event wiring tests.
+- Verification: node --test tools/tests/*.test.js — 131 tests, 129 passed, 0 failed, 2 skipped.

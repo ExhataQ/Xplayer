@@ -84,6 +84,23 @@ const SCENARIOS = {
         spy: ['updateQueueDisplay', 'updateAlbumArt', 'updateAllCounts', 'updateLeftPanelCounts', 'renderPlaylistsView', 'renderAlbumLeftPanelItems', 'renderArtistLeftPanelItems', 'renderLeftPanelMainList', 'renderSongsList', 'setupHeroSection'],
         setup: 'currentView = VIEWS.ALL_SONGS;',
         run: "emit('library:rebuilt', { songs: [] });"
+    },
+    // Folder scenarios. 'switchView' is spied too, so the position of the navigation call
+    // relative to the refresh is pinned (deleteFolder navigates away BEFORE it refreshes).
+    'folders: create then delete an empty folder': {
+        spy: ['switchView', 'renderFoldersView', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'updateScrollbarById'],
+        setup: '',
+        run: "const f = createFolder('F'); deleteFolder(f.id, false);"
+    },
+    'folders: delete a folder together with its contents': {
+        spy: ['switchView', 'renderFoldersView', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'updateScrollbarById'],
+        setup: "const o = createFolder('Outer'); const i = createFolder('Inner'); const p = createPlaylist('P'); addToFolder(o.id, i.id, 'folder'); addToFolder(o.id, p.id, 'playlist'); window.__fid = o.id;",
+        run: 'deleteFolder(window.__fid, true);'
+    },
+    'folders: delete the folder that is currently open': {
+        spy: ['switchView', 'renderFoldersView', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'updateScrollbarById'],
+        setup: "const f = createFolder('Open'); window.__fid = f.id; currentView = 'folder-' + f.id;",
+        run: 'deleteFolder(window.__fid, false);'
     }
 };
 

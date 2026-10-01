@@ -47,7 +47,8 @@ function load({ stored = {}, library = [], deleted = [], failWrites = false } = 
     // both the raw storage layer (saveToRecentlyPlayed/getRecentCount) and the
     // library-resolution layer (addToRecentList/resolveRecentSongs/getRecentlyPlayedSongs).
     // 00b-events.js provides emit()/on(), used by 03e since the event-bus conversion.
-    for (const file of ['00b-events.js', '03-storage.js', '03e-recents-history.js', '03a-recents.js']) {
+    // core/state-ghost-list.js provides the setters 03e uses for the ghost-list counters.
+    for (const file of ['00b-events.js', 'core/state-ghost-list.js', '03-storage.js', '03e-recents-history.js', '03a-recents.js']) {
         vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/js', file), 'utf8'), context);
     }
     context.__stored = stored;
