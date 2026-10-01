@@ -1,0 +1,104 @@
+{
+    "_about": "Names that are NOT event-bus work. Edit only with a reason. 'groups' maps a file number to its agent.",
+    "groups": {
+        "A": [
+            0,
+            1,
+            2,
+            3,
+            9,
+            99
+        ],
+        "B": [
+            10,
+            13,
+            14,
+            15,
+            16,
+            17
+        ],
+        "C": [
+            8,
+            11,
+            12,
+            18,
+            19,
+            20,
+            21
+        ],
+        "D": [
+            4,
+            5,
+            6,
+            7
+        ]
+    },
+    "services": {
+        "why": "UI services any file may call directly: they are a sink, not a reaction to a data change.",
+        "names": [
+            "showNotification",
+            "showConfirmDialog",
+            "createModal",
+            "showContextMenu",
+            "showSpecialItemContextMenu",
+            "showPlaylistContextMenu",
+            "showAlbumContextMenu",
+            "showArtistContextMenu",
+            "updateScrollbarById",
+            "initExternalScrollbar",
+            "updateExternalScrollbar",
+            "initMarqueeOnHover",
+            "temporarilySuppressTooltip",
+            "preloadCover",
+            "showCoverProgressNotification",
+            "completeCoverProgressNotification",
+            "openImageViewer"
+        ]
+    },
+    "queries": {
+        "why": "Read-only helpers that return data or markup; calling them is not a refresh.",
+        "names": [
+            "getSongsForList",
+            "getLeftPanelItemsArray",
+            "isViewCurrentlyPlaying",
+            "buildPlayerArtistHTML",
+            "buildSongArtistHTML",
+            "buildSongAlbumHTML",
+            "canGoBack",
+            "renderVisibleItems"
+        ]
+    },
+    "navigation": {
+        "why": "Commands that move the user between views. Not a reaction to data; revisit with a router in Plan 2.",
+        "names": [
+            "switchView",
+            "openDetailView",
+            "pushViewToHistory",
+            "pushToHistoryStack",
+            "activateLeftPanelItem",
+            "resetLeftPanelActiveState",
+            "goBack",
+            "showHeroSection",
+            "showTracklistHeader",
+            "teardownLyricsView",
+            "teardownLazyLoading",
+            "teardownSmartLyricsVirtualScroll",
+            "renderPlaylistDetailView",
+            "renderFolderContents",
+            "renderAlbumDetailView",
+            "renderArtistDetailView",
+            "resetViewScroll",
+            "updateNavigationButtons"
+        ]
+    },
+    "setup": {
+        "why": "One-time wiring at app start, not a reaction.",
+        "names": [
+            "initThemeButtons",
+            "initLeftPanelDragAndDrop",
+            "initSongDragToLeftPanel",
+            "setVirtualScrollThreshold",
+            "snapVirtualScrollThreshold"
+        ]
+    }
+}

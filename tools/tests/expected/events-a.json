@@ -1,0 +1,28 @@
+{
+    "folders: confirm-delete an empty folder from the folders list": [
+        "renderFoldersView",
+        "renderLeftPanelMainList",
+        "renderLeftPanelVisibleItems",
+        "renderLeftPanelVisibleItems",
+        "updateScrollbarById",
+        "showNotification"
+    ],
+    "folders: confirm-delete the folder that is currently open": [
+        "renderFoldersView",
+        "renderLeftPanelMainList",
+        "updateScrollbarById",
+        "updateScrollbarById",
+        "showNotification",
+        "closeFolder",
+        "renderLeftPanelMainList",
+        "renderLeftPanelVisibleItems",
+        "renderFoldersView",
+        "renderLeftPanelMainList",
+        "renderLeftPanelVisibleItems",
+        "updateScrollbarById",
+        "renderLeftPanelMainList",
+        "renderLeftPanelVisibleItems",
+        "updateScrollbarById",
+        "updateScrollbarById"
+    ]
+}

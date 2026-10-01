@@ -58,6 +58,25 @@ State events (emitted by the setters in `core/`, no subscribers yet; for B, C an
 | `queue:indexChanged` | `{ index }` | `setCurrentQueueIndex` | the position in the queue changed |
 | `view:changed` | `{ view }` | `setCurrentView` | the current view name changed |
 
+### New events from Plan 1 (EVENTBUS-COMPLETION-PLAN.md): add rows only in your own section
+
+Agent A events: (added above)
+
+Agent B events (playback, selection):
+
+| Event | Payload | Emitted from | Subscribed in |
+|---|---|---|---|
+
+Agent C events (lyrics, panels):
+
+| Event | Payload | Emitted from | Subscribed in |
+|---|---|---|---|
+
+Agent D events (UI shell):
+
+| Event | Payload | Emitted from | Subscribed in |
+|---|---|---|---|
+
 Known inconsistency: `recents:count-changed` is kebab-case; every other name is camelCase. It stays until a patch renames it together with `04h` and the pinned call-order tests.
 
 ## Not events yet (planned, owned by the agent that emits them)

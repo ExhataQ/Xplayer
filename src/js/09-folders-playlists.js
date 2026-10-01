@@ -379,9 +379,9 @@ async function confirmDeleteFolder(folderId, folderName) {
         }
     }
 
-    renderFoldersView();
-    renderLeftPanelMainList();
-    updateScrollbarById('left-panel-main-content');
+    // No refresh here: deleteFolder() emits 'folder:listChanged' (see 04o-folders-events.js),
+    // which already redraws the folders view, the left panel and the scrollbar. This used to
+    // repeat a smaller copy of that refresh, including when nothing was deleted (Cancel).
 
     if (currentOpenFolderId === folderId) {
         closeFolder();
