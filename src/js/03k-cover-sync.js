@@ -96,9 +96,7 @@ function setupCoverStreamListeners() {
         if (typeof completeCoverProgressNotification === 'function') {
             completeCoverProgressNotification();
         }
-        if (typeof renderLeftPanelMainList === 'function') {
-            renderLeftPanelMainList();
-        }
+        emit('covers:scanCompleted');
     });
 }
 

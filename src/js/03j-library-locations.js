@@ -244,44 +244,13 @@ function changeMusicFolder() {
                 return;
             }
 
-            SONGS_DATA.length = 0;
-            Array.prototype.push.apply(SONGS_DATA, result.songs);
-
-            clearGhostList(VIEWS.ALL_SONGS);
-            clearGhostList(VIEWS.FAVORITES);
-            clearGhostList(VIEWS.HISTORY);
-
-            for (const key in activeSlotHighlights) {
-                activeSlotHighlights[key] = null;
-            }
-
-            setCurrentQueueIndex(-1);
-            setPlaybackQueue([]);
-            audioElement.pause();
-            audioElement.src = '';
-            playButton.innerHTML = '<i class="fas fa-play"></i>';
+            // Same work as rebuildLibraryFromFolders() (03m): replace SONGS_DATA, reset the
+            // ghost lists, highlights, queue and now-playing display, then redraw. This used to
+            // be an inline copy of the 'library:rebuilt' subscriber's body (04i).
+            resetLibraryAfterRebuild(result.songs);
+            // The inline copy also reset the play button tooltip, which rebuildLibraryFromFolders()
+            // never did. Kept here so this path behaves exactly as before.
             playButton.setAttribute('title', 'Play');
-            document.querySelector('.player-song-info').classList.remove('has-song');
-            document.getElementById('player-title').textContent = 'No song selected';
-            document.getElementById('player-artist').textContent = '—';
-            document.getElementById('player-cover').src = PLACEHOLDER_IMAGE;
-
-            updateQueueDisplay();
-            updateAlbumArt();
-
-            updateAllCounts();
-            updateLeftPanelCounts();
-            renderPlaylistsView();
-            renderAlbumLeftPanelItems();
-            renderArtistLeftPanelItems();
-            renderLeftPanelMainList();
-
-            updateAllCounts();
-            if (currentView === VIEWS.ALL_SONGS) {
-                const songs = getSongsForList(VIEWS.ALL_SONGS);
-                renderSongsList(songs, VIEWS.ALL_SONGS);
-                setupHeroSection(true, 'All Songs', songs.length, 'Playlist');
-            }
 
             showNotification(`Loaded ${result.songs.length} songs from new folder`, 'success', 3000);
         })

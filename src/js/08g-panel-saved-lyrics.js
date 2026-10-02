@@ -164,7 +164,7 @@ function deleteSavedLyricsEntry(key) {
         const queueItem = playbackQueue[currentQueueIndex];
         const song = queueItem.song || queueItem;
         if (song.url === key || String(song.id) === key) {
-            if (currentView === VIEWS.LYRICS) renderLyricsView();
+            if (currentView === VIEWS.LYRICS) emit('lyrics:changed', { songId: song.id });
             if (typeof renderTrackLyricsBox === 'function') renderTrackLyricsBox();
         }
     }
@@ -191,6 +191,6 @@ async function removeAllSavedLyrics() {
     showNotification(`Removed ${entries.length} saved lyrics`, 'success', 2000);
 
     if (currentView === VIEWS.LYRICS) {
-        renderLyricsView();
+        emit('lyrics:changed', { songId: null });
     }
 }

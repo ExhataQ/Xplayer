@@ -33,7 +33,15 @@ const agentOf = (file) => {
     const n = Number(m[1]);
     return Object.keys(allow.groups).find((g) => allow.groups[g].includes(n)) || '?';
 };
-const allowed = new Set(['services', 'queries', 'navigation', 'setup'].flatMap((k) => allow[k].names));
+// Every category in the allowlist that has a names array counts. An entry 'file.js:name' allows
+// that name only in that file; a bare name allows it everywhere.
+const allowed = new Set(Object.keys(allow).filter((k) => allow[k] && Array.isArray(allow[k].names)).flatMap((k) => allow[k].names));
+// (file, name) pairs that may stay direct: view handlers and start-up code inside a file.
+const fileException = new Set();
+for (const entry of (allow.fileExceptions && allow.fileExceptions.entries) || []) {
+    for (const name of entry.names) fileException.add(`${entry.file}|${name}`);
+}
+let excepted = 0;
 
 const remaining = {}; // agent -> file -> fn -> count
 for (const [file, uses] of Object.entries(map.uses)) {
@@ -41,7 +49,11 @@ for (const [file, uses] of Object.entries(map.uses)) {
     if (agent === 'D' || agent === '?') continue;
     for (const [name, count] of Object.entries(uses)) {
         const def = map.defs[name];
-        if (!def || def.kind !== 'fn' || agentOf(def.file) !== 'D' || allowed.has(name)) continue;
+        if (!def || def.kind !== 'fn' || agentOf(def.file) !== 'D' || allowed.has(name) || allowed.has(`${file}:${name}`)) continue;
+        if (fileException.has(`${file}|${name}`)) {
+            excepted += count;
+            continue;
+        }
         remaining[agent] = remaining[agent] || {};
         remaining[agent][file] = remaining[agent][file] || {};
         remaining[agent][file][name] = count;
@@ -61,5 +73,5 @@ for (const agent of ['A', 'B', 'C']) {
         console.log(`  ${file} (${n}): ${Object.entries(fns).sort((a, b) => b[1] - a[1]).map(([f, c]) => `${f}x${c}`).join(', ')}`);
     }
 }
-console.log(`Total: ${grand}`);
+console.log(`Total: ${grand}` + (excepted ? `  (plus ${excepted} allowed by fileExceptions in tools/event-allowlist.json, for D to review)` : ''));
 if (process.argv.includes('--strict') && grand > 0) process.exit(1);

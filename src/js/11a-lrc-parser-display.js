@@ -92,7 +92,7 @@ function setLyricsDisplayMode(mode) {
     lyricsDisplayMode.mode = mode;
 
     if (currentView === VIEWS.LYRICS) {
-        renderLyricsView();
+        emit('lyrics:changed', { songId: song.id });
     }
 
     if (typeof renderTrackLyricsBox === 'function') {

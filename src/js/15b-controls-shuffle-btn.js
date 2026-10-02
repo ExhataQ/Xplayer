@@ -5,7 +5,7 @@ function toggleNormalShuffle() {
     temporarilySuppressTooltip(shuffleButton);
     isShuffled = !isShuffled;
     shuffleButton.classList.toggle('active', isShuffled);
-    updateSubheroShuffleButton();
+    emit('shuffle:changed', { isShuffled });
     shuffleButton.setAttribute('aria-label', isShuffled ? 'Disable shuffle' : 'Enable shuffle');
 
     if (isShuffled) {
@@ -18,12 +18,7 @@ function toggleNormalShuffle() {
 
             updateQueueDisplay();
 
-            if (currentView === VIEWS.ALL_SONGS) {
-                renderSongsList(SONGS_DATA, VIEWS.ALL_SONGS);
-            } else if ((currentView === VIEWS.SEARCH || currentView === VIEWS.SEARCH_ITEMS) && searchQuery) {
-                const filteredSongs = getSearchResults(searchQuery);
-                renderSongsList(filteredSongs, VIEWS.SEARCH_ITEMS);
-            }
+            emit('shuffle:listChanged', { isShuffled });
             return;
         }
 
@@ -96,14 +91,7 @@ function toggleNormalShuffle() {
 
             updateQueueDisplay();
 
-            if (currentView === VIEWS.RECENT) {
-                renderRecentlyPlayed();
-            } else if (currentView === VIEWS.ALL_SONGS) {
-                renderSongsList(SONGS_DATA, VIEWS.ALL_SONGS);
-            } else if ((currentView === VIEWS.SEARCH || currentView === VIEWS.SEARCH_ITEMS) && searchQuery) {
-                const filteredSongs = getSearchResults(searchQuery);
-                renderSongsList(filteredSongs, VIEWS.SEARCH_ITEMS);
-            }
+            emit('shuffle:listChanged', { isShuffled });
             return;
         }
 

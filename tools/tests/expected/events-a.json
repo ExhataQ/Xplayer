@@ -24,5 +24,62 @@
         "renderLeftPanelVisibleItems",
         "updateScrollbarById",
         "updateScrollbarById"
+    ],
+    "library: change music folder while All Songs is open": [
+        "showNotification",
+        "clearGhostList",
+        "clearGhostList",
+        "clearGhostList",
+        "updateQueueDisplay",
+        "updateAlbumArt",
+        "updateAllCounts",
+        "updateLeftPanelCounts",
+        "renderPlaylistsView",
+        "renderAlbumLeftPanelItems",
+        "renderLeftPanelMainList",
+        "renderArtistLeftPanelItems",
+        "renderLeftPanelMainList",
+        "renderLeftPanelMainList",
+        "renderSongsList",
+        "setupHeroSection",
+        "showNotification"
+    ],
+    "library: change music folder while another view is open": [
+        "showNotification",
+        "clearGhostList",
+        "clearGhostList",
+        "clearGhostList",
+        "updateQueueDisplay",
+        "updateAlbumArt",
+        "updateAllCounts",
+        "updateLeftPanelCounts",
+        "renderPlaylistsView",
+        "renderAlbumLeftPanelItems",
+        "renderLeftPanelMainList",
+        "renderArtistLeftPanelItems",
+        "renderLeftPanelMainList",
+        "renderLeftPanelMainList",
+        "showNotification"
+    ],
+    "covers: background cover scan completes": [
+        "completeCoverProgressNotification",
+        "renderLeftPanelMainList",
+        "renderLeftPanelVisibleItems"
+    ],
+    "playlists: remove a song while that playlist is open": [
+        "refreshCurrentViewAfterMutation",
+        "renderPlaylistDetailView",
+        "updateLeftPanelCounts",
+        "updateScrollbarById",
+        "updateScrollbarById",
+        "renderLeftPanelMainList",
+        "updateScrollbarById",
+        "updateLeftPanelCounts"
+    ],
+    "playlists: remove a song while another view is open": [
+        "renderPlaylistDetailView",
+        "renderLeftPanelMainList",
+        "updateScrollbarById",
+        "updateLeftPanelCounts"
     ]
 }

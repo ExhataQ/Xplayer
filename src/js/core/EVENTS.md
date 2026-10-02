@@ -28,7 +28,7 @@ There is no separate `off()` function: `on()` returns the unsubscribe function. 
 
 ## Catalog
 
-Data events (emitted by Agent A files, subscribed in D's `04h`-`04o`):
+Data events (emitted by Agent A files, subscribed in `04h`-`04o`):
 
 | Event | Payload | Emitted from | Subscribed in |
 |---|---|---|---|
@@ -47,7 +47,9 @@ Data events (emitted by Agent A files, subscribed in D's `04h`-`04o`):
 | `searchHistory:cleared` | none | `03i` | `04l` |
 | `searchHistory:entryDeleted` | `{ sessionId }` | `03i` | `04l` |
 | `playbackSetting:changed` | `{ key, value, settings }` | `03f` | `04m` |
-| `library:rebuilt` | `{ songs }` | `03j` | `04i` |
+| `library:rebuilt` | `{ songs }` | `03j` (`resetLibraryAfterRebuild`, also called by `changeMusicFolder`) | `04i` |
+| `covers:scanCompleted` | none | `03k` | `04i` |
+| `playlist:songRemovedFromView` | `{ songId, playlistId }` | `09` | `04k` |
 | `data:imported` | none | `03l` | `04n` |
 
 State events (emitted by the setters in `core/`, no subscribers yet; for B, C and D to use in Phase 2):
@@ -60,17 +62,39 @@ State events (emitted by the setters in `core/`, no subscribers yet; for B, C an
 
 ### New events from Plan 1 (EVENTBUS-COMPLETION-PLAN.md): add rows only in your own section
 
-Agent A events: (added above)
+Agent A events: all in the first table above. A has no direct reaction calls left (`node tools/event-audit.js A`).
 
 Agent B events (playback, selection):
 
 | Event | Payload | Emitted from | Subscribed in |
 |---|---|---|---|
+| `playback:stateChanged` | `{ playing }` | `15e`, `10d` | `04p` |
+| `playback:recentViewChanged` | none | `15d`, `15e` | `04p` |
+| `playback:recentPanelChanged` | none | `15e`, `16` | `04p` |
+| `shuffle:changed` | `{ isShuffled }` | `15b`, `10b`, `10d` | `04p` |
+| `shuffle:listChanged` | `{ isShuffled }` | `15b` | `04p` |
+| `repeat:listChanged` | none | `15c` | `04p` |
+| `queue:songsChanged` | none | `10c` | `04p` |
+| `favorites:changed` | none | `17` | `04p` |
+| `songs:changed` | none | `17` | `04p` |
+| `viewSongs:changed` | `{ count }` | `17` | `04p` |
+| `leftPanelCounts:changed` | none | `17` | `04p` |
 
 Agent C events (lyrics, panels):
 
 | Event | Payload | Emitted from | Subscribed in |
 |---|---|---|---|
+| `lyrics:changed` | `{ songId }` (`null` when the change is not about one song: remove-all in `08g`, or no current song in `08b`) | `08b`, `08g`, `11a`, `11b`, `11f`, `18`, `19` | `04t` |
+| `search:resultsChanged` | `{ view, songs }` | `08h` (main search box, subhero filter) | `04u` |
+| `search:summaryChanged` | `{ query, count, sessionId }` | `08h` (main search box) | `04u` |
+| `leftPanelSearch:cleared` | none | `08h` (left panel search box) | `04u` |
+| `rightPanel:tabChanged` | `{ tab }` | `08d` `switchRightPanelTab` | `04v` |
+
+`lyrics:changed` means "this song's lyrics, synced variants or display mode changed and the Lyrics view must show it". 14 emitters send it only while the Lyrics view is open (the condition stayed at the call site); the two editor buttons in `18` (`saveLyricsFromEditor`, `clearLyricsForCurrentSong`) send it unconditionally, exactly as they called `renderLyricsView()` before.
+
+`search:resultsChanged` means "the visible song list for `view` is now `songs`" (the list was already filtered; subscribers redraw, then re-apply highlight and selection). `search:summaryChanged` is emitted just before it by the main search box so the hero shows the new query and count first. Emitters keep their navigation calls (`pushViewToHistory`, `showTracklistHeader`, `updateHeroCover`, `resetLeftPanelActiveState`) as direct calls.
+
+`rightPanel:tabChanged` is emitted for every tab (`queue`, `tags`, `metadata`, `recently-played`) after the header and buttons were updated; the subscriber draws the Recently played list only for that tab. It sits where the old direct call sat, so the order inside `switchRightPanelTab` is unchanged.
 
 Agent D events (UI shell):
 

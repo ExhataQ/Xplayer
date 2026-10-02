@@ -1,1 +1,189 @@
-{}
+{
+    "lyrics: save plain lyrics from the editor (saveLyricsForSong), Lyrics view open": [
+        "renderTrackLyricsBox",
+        "renderLyricsView",
+        "showNotification"
+    ],
+    "lyrics: save plain lyrics from the editor (saveLyricsForSong), another view open": [
+        "renderTrackLyricsBox",
+        "showNotification"
+    ],
+    "lyrics: clear lyrics from the editor (clearLyricsForSong), Lyrics view open": [
+        "renderTrackLyricsBox",
+        "renderLyricsView",
+        "showNotification"
+    ],
+    "lyrics: clear lyrics from the editor (clearLyricsForSong), another view open": [
+        "renderTrackLyricsBox",
+        "showNotification"
+    ],
+    "lyrics: save lyrics with the editor Save button (saveLyricsFromEditor), Lyrics view open": [
+        "renderTrackLyricsBox",
+        "renderLyricsView",
+        "showNotification"
+    ],
+    "lyrics: save lyrics with the editor Save button (saveLyricsFromEditor), another view open": [
+        "renderTrackLyricsBox",
+        "renderLyricsView",
+        "showNotification"
+    ],
+    "lyrics: clear lyrics with the editor Clear button (clearLyricsForCurrentSong), Lyrics view open": [
+        "renderTrackLyricsBox",
+        "renderLyricsView",
+        "showNotification"
+    ],
+    "lyrics: clear lyrics with the editor Clear button (clearLyricsForCurrentSong), another view open": [
+        "renderTrackLyricsBox",
+        "renderLyricsView",
+        "showNotification"
+    ],
+    "lyrics: pick a synced variant (selectSyncedVariant), Lyrics view open": [
+        "renderLyricsView"
+    ],
+    "lyrics: pick a synced variant (selectSyncedVariant), another view open": [],
+    "lyrics: rename a synced variant (renameSyncedVariant), Lyrics view open": [
+        "renderLyricsView"
+    ],
+    "lyrics: rename a synced variant (renameSyncedVariant), another view open": [],
+    "lyrics: delete a synced variant (deleteSyncedVariant), Lyrics view open": [
+        "renderLyricsView",
+        "showNotification"
+    ],
+    "lyrics: delete a synced variant (deleteSyncedVariant), another view open": [
+        "showNotification"
+    ],
+    "lyrics: switch plain/synced display mode (setLyricsDisplayMode), Lyrics view open": [
+        "renderLyricsView",
+        "renderTrackLyricsBox"
+    ],
+    "lyrics: switch plain/synced display mode (setLyricsDisplayMode), another view open": [
+        "renderTrackLyricsBox"
+    ],
+    "lyrics: clear synced lyrics (clearSyncedLyricsForCurrentSong), Lyrics view open": [
+        "renderTrackLyricsBox",
+        "showNotification",
+        "renderLyricsView"
+    ],
+    "lyrics: clear synced lyrics (clearSyncedLyricsForCurrentSong), another view open": [
+        "renderTrackLyricsBox",
+        "showNotification"
+    ],
+    "lyrics: save pasted LRC text (saveLrcPaste), Lyrics view open": [
+        "renderTrackLyricsBox",
+        "showNotification",
+        "renderLyricsView"
+    ],
+    "lyrics: save pasted LRC text (saveLrcPaste), another view open": [
+        "renderTrackLyricsBox",
+        "showNotification"
+    ],
+    "lyrics: import an LRC file (importLrcFile), Lyrics view open": [
+        "renderTrackLyricsBox",
+        "showNotification",
+        "renderLyricsView"
+    ],
+    "lyrics: import an LRC file (importLrcFile), another view open": [
+        "renderTrackLyricsBox",
+        "showNotification"
+    ],
+    "lyrics: save the sync editor as a new variant (saveSyncEditor), Lyrics view open": [
+        "showNotification",
+        "renderLyricsView"
+    ],
+    "lyrics: save the sync editor as a new variant (saveSyncEditor), another view open": [
+        "showNotification"
+    ],
+    "lyrics: delete the saved lyrics of the playing song (deleteSavedLyricsEntry), Lyrics view open": [
+        "renderLyricsView",
+        "renderTrackLyricsBox"
+    ],
+    "lyrics: delete the saved lyrics of the playing song (deleteSavedLyricsEntry), another view open": [
+        "renderTrackLyricsBox"
+    ],
+    "lyrics: remove all saved lyrics (removeAllSavedLyrics), Lyrics view open": [
+        "showNotification",
+        "renderLyricsView"
+    ],
+    "lyrics: remove all saved lyrics (removeAllSavedLyrics), another view open": [
+        "showNotification"
+    ],
+    "lyrics: load the playing song into the right panel (updateAlbumArt), Lyrics view open": [
+        "renderTrackLyricsBox",
+        "renderLyricsView"
+    ],
+    "lyrics: load the playing song into the right panel (updateAlbumArt), another view open": [
+        "renderTrackLyricsBox"
+    ],
+    "lyrics: apply online lyrics to a song (applyOnlineLyricsToSong), Lyrics view open": [
+        "renderTrackLyricsBox",
+        "showNotification",
+        "renderLyricsView"
+    ],
+    "lyrics: apply online lyrics to a song (applyOnlineLyricsToSong), another view open": [
+        "renderTrackLyricsBox",
+        "showNotification"
+    ],
+    "search: main search box: a query is typed": [
+        "pushViewToHistory",
+        "showTracklistHeader",
+        "setupHeroSection",
+        "updateHeroCover",
+        "renderSongsList",
+        "reapplyHighlightAfterFilter",
+        "reapplySelectionAfterFilter",
+        "resetLeftPanelActiveState",
+        "updateExternalScrollbar",
+        "updateExternalScrollbar"
+    ],
+    "search: main search box: the same query is edited again (continuing session)": [
+        "pushViewToHistory",
+        "showTracklistHeader",
+        "setupHeroSection",
+        "updateHeroCover",
+        "renderSongsList",
+        "reapplyHighlightAfterFilter",
+        "reapplySelectionAfterFilter",
+        "resetLeftPanelActiveState",
+        "updateExternalScrollbar",
+        "updateExternalScrollbar"
+    ],
+    "search: main search box: the query is cleared": [
+        "pushViewToHistory",
+        "renderSongsList",
+        "reapplyHighlightAfterFilter",
+        "reapplySelectionAfterFilter",
+        "updateExternalScrollbar"
+    ],
+    "search: subhero search: text is typed in a song list": [
+        "renderSongsList",
+        "reapplyHighlightAfterFilter",
+        "reapplySelectionAfterFilter"
+    ],
+    "search: subhero search: the box is emptied": [
+        "renderSongsList",
+        "reapplyHighlightAfterFilter",
+        "reapplySelectionAfterFilter"
+    ],
+    "search: left panel search: the box is emptied": [
+        "renderLeftPanelMainList"
+    ],
+    "search: left panel search: text is typed": [
+        "updateScrollbarById"
+    ],
+    "right panel: switch to the recently-played tab": [
+        "updateRightPanelHeader",
+        "renderPortableRecentlyPlayed",
+        "updateInfoButtonVisibility",
+        "updateScrollbarById"
+    ],
+    "right panel: switch to the queue tab": [
+        "updateRightPanelHeader",
+        "updateInfoButtonVisibility",
+        "updateScrollbarById"
+    ],
+    "right panel: switch to the tags tab": [
+        "updateRightPanelHeader",
+        "updateInfoButtonVisibility",
+        "updateScrollbarById"
+    ]
+}

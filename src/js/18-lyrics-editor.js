@@ -367,7 +367,7 @@ function saveLyricsForSong(songId) {
     closeLyricsEditor();
 
     if (currentView === VIEWS.LYRICS) {
-        renderLyricsView();
+        emit('lyrics:changed', { songId });
     }
 
     if (currentQueueIndex >= 0 && playbackQueue[currentQueueIndex]) {
@@ -390,7 +390,7 @@ function clearLyricsForSong(songId) {
     closeLyricsEditor();
 
     if (currentView === VIEWS.LYRICS) {
-        renderLyricsView();
+        emit('lyrics:changed', { songId });
     }
 
     if (currentQueueIndex >= 0 && playbackQueue[currentQueueIndex]) {
@@ -432,7 +432,7 @@ function saveLyricsFromEditor() {
     const normalized = textarea.value.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     setLyricsForSong(song.id, normalized);
     closeLyricsEditor();
-    renderLyricsView();
+    emit('lyrics:changed', { songId: song.id });
     showNotification('Lyrics saved', 'success', 2000);
 }
 
@@ -442,7 +442,7 @@ function clearLyricsForCurrentSong() {
     const song = queueItem.song || queueItem;
     setLyricsForSong(song.id, '');
     closeLyricsEditor();
-    renderLyricsView();
+    emit('lyrics:changed', { songId: song.id });
     showNotification('Lyrics cleared', 'info', 2000);
 }
 
@@ -454,7 +454,7 @@ function selectSyncedVariant(variantId) {
     const queueItem = playbackQueue[currentQueueIndex];
     const song = queueItem.song || queueItem;
     if (setActiveSyncedLyricsVariant(song.id, variantId)) {
-        if (currentView === VIEWS.LYRICS) renderLyricsView();
+        if (currentView === VIEWS.LYRICS) emit('lyrics:changed', { songId: song.id });
     }
 }
 
@@ -469,7 +469,7 @@ function renameSyncedVariant(variantId) {
     const newName = prompt('Rename variant:', variant.name);
     if (!newName || newName.trim() === '') return;
     if (renameSyncedLyricsVariant(song.id, variantId, newName.trim())) {
-        if (currentView === VIEWS.LYRICS) renderLyricsView();
+        if (currentView === VIEWS.LYRICS) emit('lyrics:changed', { songId: song.id });
     }
 }
 
@@ -485,7 +485,7 @@ function deleteSyncedVariant(variantId) {
     }).then((confirmed) => {
         if (!confirmed) return;
         if (deleteSyncedLyricsVariant(song.id, variantId)) {
-            if (currentView === VIEWS.LYRICS) renderLyricsView();
+            if (currentView === VIEWS.LYRICS) emit('lyrics:changed', { songId: song.id });
             showNotification('Variant deleted', 'info', 2000);
         }
     });

@@ -6,7 +6,7 @@ Plan 2 is `PLAN.md` (setters, modules, storage, final flip). It starts only when
 
 `node tools/event-audit.js --strict` exits 0: no file owned by A, B or C calls a **reaction** function defined in D's files (`04*`-`07`) directly. Every such call goes through `emit()` (owner side) and `on()` (a subscriber file).
 
-Today (measured on the current zip): **164** such calls. A 41, B 81, C 42. Run `node tools/event-audit.js B` for the file-by-file list.
+Measured at the start: **164** such calls (A 41, B 81, C 42). After Agent A's work: **A 0, B 81, C 42** (123 left), plus **30** calls in A's files that stay direct by `fileExceptions` (view handlers and start-up) and that D reviews. Run `node tools/event-audit.js B` for the file-by-file list.
 
 ## 2. What is and is not event-bus work
 
@@ -47,16 +47,16 @@ Rules from `src/js/core/EVENTS.md` apply: payload is one object, names are `subj
 
 Agent A (data and 09/99) already did the harness (`EB-A1`) and the first 09 slice (`EB-A2`). B, C and D can start now.
 
-### Agent A: 41 calls
+### Agent A: 41 calls, all handled (A is finished with Plan 1)
 
 | ID | Step | Calls |
 |---|---|---|
 | EB-A1 | Shared harness, per-agent suites, audit tool, allowlist | done |
 | EB-A2 | `09` `confirmDeleteFolder`: remove the duplicate refresh that `folder:listChanged` already does | done |
-| EB-A3 | `03j` `changeMusicFolder()`: inline copy of the `library:rebuilt` refresh (differs: calls `updateAllCounts()` twice, writes queue state). Measure on the original block, then convert | 8 |
-| EB-A4 | `03k` cover sync: confirm it stays a UI file, add its two `renderLeftPanelMainList` to the allowlist with a reason, or convert | 2 |
-| EB-A5 | `09`: split commands (`openPlaylist`, `openFolder`: stay) from reactions (`playViewFromLeftPanel`, the `confirmDeleteFolder`-style refresh, `removeSongFromPlaylistAndRefresh`) | ~14 |
-| EB-A6 | `99-player.js`: the 17 calls are mostly the start-up sequence. Decide per call: start-up (allowlist as one "boot" entry) or reaction (convert) | 17 |
+| EB-A3 | `03j` `changeMusicFolder()` now calls `resetLibraryAfterRebuild()` instead of an inline copy. Only difference from before: one duplicate `updateAllCounts()` is gone; the page DOM after the call is identical | done (8) |
+| EB-A4 | `03k` cover scan finished -> `covers:scanCompleted` (subscriber in `04i`) | done (2) |
+| EB-A5 | `09`: `removeSongFromPlaylistAndRefresh` -> `playlist:songRemovedFromView` (subscriber in `04k`). `openPlaylist`, `toggleFolderExpandedFromUI`, `closeFolder` are view handlers: kept by `fileExceptions` | done (14) |
+| EB-A6 | `99-player.js`: 17 calls are `toggle*Filter` click handlers and the first paint at start-up: kept by `fileExceptions`, none converted | done (17) |
 
 ### Agent B: 81 calls
 

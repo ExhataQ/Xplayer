@@ -102,9 +102,13 @@
     "15g-controls-volume-fade.js",
     "16-context-menu-actions.js",
     "17-song-selection.js",
+    "04p-playback-events.js",
     "18-lyrics-editor.js",
     "19-online-lyrics.js",
     "20-metadata-editor.js",
-    "21-language-detect.js"
+    "21-language-detect.js",
+    "04t-lyrics-events.js",
+    "04u-search-events.js",
+    "04v-right-panel-events.js"
   ]
 }

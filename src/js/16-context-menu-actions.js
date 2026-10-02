@@ -17,10 +17,7 @@ function deleteHistoryEntry() {
             refreshCurrentViewAfterMutation();
         }
 
-        const recentPanel = document.getElementById('recently-played-content');
-        if (recentPanel && recentPanel.classList.contains('active')) {
-            renderPortableRecentlyPlayed();
-        }
+        emit('playback:recentPanelChanged');
 
         showNotification('Entry deleted from history', 'error', 2000);
     }

@@ -1,1 +1,301 @@
-{}
+{
+    "audio: play/pause state sync": [
+        "updateSubheroPlayButton"
+    ],
+    "audio ended, repeat one: Recent view and portable panel open": [
+        "renderPortableRecentlyPlayed",
+        "renderRecentlyPlayed",
+        "renderPortableRecentlyPlayed"
+    ],
+    "audio ended, repeat one: All Songs view, portable panel closed": [],
+    "audio ended: last song of the queue, portable panel open": [
+        "renderPortableRecentlyPlayed",
+        "updateSubheroPlayButton"
+    ],
+    "audio ended: shuffled queue exhausted, portable panel open": [
+        "renderPortableRecentlyPlayed",
+        "updateSubheroPlayButton"
+    ],
+    "shuffle: toggle on then off, repeat off, All Songs view": [
+        "updateSubheroShuffleButton",
+        "updateSubheroShuffleButton"
+    ],
+    "shuffle: toggle on then off, repeat one, All Songs view": [
+        "updateSubheroShuffleButton",
+        "renderSongsList",
+        "updateSubheroShuffleButton",
+        "renderSongsList"
+    ],
+    "shuffle: toggle on then off, repeat one, Recent view": [
+        "updateSubheroShuffleButton",
+        "updateSubheroShuffleButton",
+        "renderRecentlyPlayed"
+    ],
+    "shuffle: toggle on then off, repeat one, Search view with a query": [
+        "updateSubheroShuffleButton",
+        "renderSongsList",
+        "updateSubheroShuffleButton",
+        "renderSongsList"
+    ],
+    "shuffle: smart shuffle starts (stubbed to a 60-song list)": [
+        "updateSubheroShuffleButton"
+    ],
+    "repeat button: click while not shuffled": [],
+    "repeat button: click while shuffled, All Songs view": [
+        "renderSongsList"
+    ],
+    "repeat button: click while shuffled, Recent view": [
+        "renderRecentlyPlayed"
+    ],
+    "repeat button: click while shuffled, Search view with a query": [
+        "renderSongsList"
+    ],
+    "next button, repeat one: Recent view": [
+        "renderPortableRecentlyPlayed",
+        "renderRecentlyPlayed"
+    ],
+    "next button, repeat one: All Songs view": [
+        "renderPortableRecentlyPlayed"
+    ],
+    "queue: remove an upcoming song, Recent view": [
+        "renderRecentlyPlayed"
+    ],
+    "queue: remove an upcoming song, All Songs view": [
+        "renderSongsList"
+    ],
+    "queue: remove an upcoming song, Search view": [
+        "renderSongsList"
+    ],
+    "queue: remove an upcoming song, Favorites view": [],
+    "queue: remove the playing song, All Songs view": [
+        "updateSubheroPlayButton",
+        "renderSongsList"
+    ],
+    "queue: ignore an out-of-range index": [],
+    "song start: playSongFromQueue": [
+        "updateSubheroPlayButton"
+    ],
+    "song start: smart shuffle refused on a short list": [
+        "showNotification",
+        "updateSubheroShuffleButton"
+    ],
+    "history: delete an entry from the context menu, History view, portable panel open": [
+        "refreshCurrentViewAfterMutation",
+        "renderPortableRecentlyPlayed",
+        "showNotification"
+    ],
+    "history: delete an entry from the context menu, portable panel closed": [
+        "showNotification"
+    ],
+    "favorites: sync after a change, Favorites view": [
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems",
+        "updateAllCounts",
+        "renderFavoritesView",
+        "updateActiveHighlight",
+        "updateHeroSongCount",
+        "updateHeroSongCount",
+        "updateScrollbarById"
+    ],
+    "favorites: sync after a change, All Songs view": [
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems",
+        "updateAllCounts",
+        "updateHeroSongCount",
+        "updateScrollbarById"
+    ],
+    "favorites: sync after a change, playlist view": [
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems",
+        "updateAllCounts",
+        "updateHeroSongCount",
+        "updateScrollbarById"
+    ],
+    "favorites: sync after a change, album view": [
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems",
+        "updateAllCounts",
+        "updateHeroSongCount",
+        "updateScrollbarById"
+    ],
+    "favorites: sync after a change, artist view": [
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems",
+        "updateAllCounts",
+        "updateHeroSongCount",
+        "updateScrollbarById"
+    ],
+    "favorites: sync after a change, History view (no branch)": [
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems",
+        "updateAllCounts",
+        "updateScrollbarById"
+    ],
+    "favorites: toggle on then off from the song row, Favorites view": [
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems",
+        "updateAllCounts",
+        "renderFavoritesView",
+        "updateActiveHighlight",
+        "updateHeroSongCount",
+        "updateHeroSongCount",
+        "updateScrollbarById",
+        "showNotification",
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems",
+        "updateAllCounts",
+        "renderFavoritesView",
+        "updateHeroSongCount",
+        "updateScrollbarById",
+        "refreshCurrentViewAfterMutation",
+        "renderFavoritesView",
+        "updateHeroSongCount",
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems",
+        "updateAllCounts",
+        "updateScrollbarById",
+        "updateScrollbarById",
+        "showNotification",
+        "updateScrollbarById",
+        "updateSelectionHighlight",
+        "updateActiveHighlight"
+    ],
+    "songs: library songs changed, All Songs view": [
+        "updateAllCounts",
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems",
+        "renderPlaylistsView",
+        "renderFoldersView",
+        "renderAlbumLeftPanelItems",
+        "renderLeftPanelVisibleItems",
+        "updateScrollbarById",
+        "renderArtistLeftPanelItems",
+        "renderLeftPanelVisibleItems",
+        "updateScrollbarById",
+        "refreshCurrentView",
+        "updateActiveHighlight",
+        "updateHeroSongCount",
+        "updateScrollbarById"
+    ],
+    "songs: library songs changed, playlist view": [
+        "updateAllCounts",
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems",
+        "renderPlaylistsView",
+        "renderLeftPanelVisibleItems",
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems",
+        "updateScrollbarById",
+        "renderFoldersView",
+        "renderAlbumLeftPanelItems",
+        "renderLeftPanelVisibleItems",
+        "updateScrollbarById",
+        "renderArtistLeftPanelItems",
+        "renderLeftPanelVisibleItems",
+        "updateScrollbarById",
+        "refreshCurrentView",
+        "updateActiveHighlight",
+        "updateScrollbarById"
+    ],
+    "mutation refresh: Favorites view": [
+        "renderFavoritesView",
+        "updateActiveHighlight",
+        "updateHeroSongCount",
+        "updateHeroSongCount",
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems",
+        "updateAllCounts",
+        "updateScrollbarById",
+        "updateScrollbarById",
+        "updateScrollbarById",
+        "updateSelectionHighlight",
+        "updateActiveHighlight"
+    ],
+    "mutation refresh: All Songs view": [
+        "updateHeroSongCount",
+        "reapplySelectionState",
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems",
+        "updateAllCounts",
+        "updateScrollbarById",
+        "updateScrollbarById",
+        "updateScrollbarById",
+        "updateSelectionHighlight",
+        "updateActiveHighlight"
+    ],
+    "mutation refresh: History view": [
+        "renderHistoryView",
+        "updateActiveHighlight",
+        "updateHeroSongCount",
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems",
+        "updateAllCounts",
+        "updateScrollbarById",
+        "updateScrollbarById",
+        "updateScrollbarById",
+        "updateSelectionHighlight",
+        "updateActiveHighlight"
+    ],
+    "mutation refresh: playlist view": [
+        "renderPlaylistDetailView",
+        "updateActiveHighlight",
+        "updateHeroSongCount",
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems",
+        "updateAllCounts",
+        "updateScrollbarById",
+        "updateScrollbarById",
+        "updateScrollbarById",
+        "updateSelectionHighlight",
+        "updateActiveHighlight",
+        "updateActiveHighlight"
+    ],
+    "mutation refresh: album view": [
+        "renderAlbumDetailView",
+        "updateActiveHighlight",
+        "updateHeroSongCount",
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems",
+        "updateAllCounts",
+        "updateScrollbarById",
+        "updateScrollbarById",
+        "updateScrollbarById",
+        "updateSelectionHighlight",
+        "updateActiveHighlight",
+        "updateActiveHighlight"
+    ],
+    "mutation refresh: artist view": [
+        "renderArtistDetailView",
+        "updateActiveHighlight",
+        "updateHeroSongCount",
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems",
+        "updateAllCounts",
+        "updateScrollbarById",
+        "updateScrollbarById",
+        "updateScrollbarById",
+        "updateSelectionHighlight",
+        "updateActiveHighlight",
+        "updateActiveHighlight"
+    ],
+    "mutation refresh: view without a branch (Search)": [
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems",
+        "updateAllCounts",
+        "updateScrollbarById",
+        "updateScrollbarById",
+        "updateScrollbarById",
+        "updateSelectionHighlight",
+        "updateActiveHighlight"
+    ],
+    "left panel counts: virtual list enabled": [
+        "updateLeftPanelCounts",
+        "renderLeftPanelVisibleItems"
+    ],
+    "left panel counts: virtual list disabled": [
+        "updateLeftPanelCounts"
+    ],
+    "left panel counts: virtual list enabled but a folder is open": [
+        "updateLeftPanelCounts"
+    ]
+}

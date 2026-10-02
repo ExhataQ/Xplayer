@@ -59,7 +59,7 @@ function syncPlayPauseButtons() {
         playButton.setAttribute('title', isPaused ? 'Play' : 'Pause');
     }
 
-    updateSubheroPlayButton(!isPaused);
+    emit('playback:stateChanged', { playing: !isPaused });
 
     document.querySelectorAll('.left-panel-cover-play-btn').forEach((btn) => {
         const btnViewId = btn.getAttribute('data-view');
@@ -144,14 +144,8 @@ function bindPlaybackAudioEvents(audio) {
                 saveToRecentlyPlayed(playbackQueue[currentQueueIndex]);
             }
 
-            if (currentView === VIEWS.RECENT) {
-                renderRecentlyPlayed();
-            }
-
-            const recentPanel = document.getElementById('recently-played-content');
-            if (recentPanel && recentPanel.classList.contains('active')) {
-                renderPortableRecentlyPlayed();
-            }
+            emit('playback:recentViewChanged');
+            emit('playback:recentPanelChanged');
 
             audioElement.currentTime = 0;
             audioElement.play();
@@ -172,10 +166,7 @@ function bindPlaybackAudioEvents(audio) {
             return;
         }
 
-        const recentPanel = document.getElementById('recently-played-content');
-        if (recentPanel && recentPanel.classList.contains('active')) {
-            renderPortableRecentlyPlayed();
-        }
+        emit('playback:recentPanelChanged');
 
         if (playbackQueue.length === 0) return;
 
@@ -196,7 +187,7 @@ function bindPlaybackAudioEvents(audio) {
                     currentQueueIndex = -1;
                     resetProgressUI();
                     playButton.innerHTML = '<i class="fas fa-play"></i>';
-                    updateSubheroPlayButton(isCurrentViewPlaying());
+                    emit('playback:stateChanged', { playing: isCurrentViewPlaying() });
                     playButton.setAttribute('title', 'Play');
                 }
             }
@@ -213,7 +204,7 @@ function bindPlaybackAudioEvents(audio) {
                 currentQueueIndex = -1;
                 resetProgressUI();
                 playButton.innerHTML = '<i class="fas fa-play"></i>';
-                updateSubheroPlayButton(isCurrentViewPlaying());
+                emit('playback:stateChanged', { playing: isCurrentViewPlaying() });
 
                 document.querySelector('.player-song-info').classList.remove('has-song');
                 document.getElementById('player-title').textContent = 'No song selected';

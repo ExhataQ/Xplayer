@@ -137,9 +137,7 @@ function switchRightPanelTab(tab) {
         if (closeBtn) closeBtn.style.display = 'flex';
     }
 
-    if (tab === 'recently-played') {
-        renderPortableRecentlyPlayed();
-    }
+    emit('rightPanel:tabChanged', { tab });
 
     updateInfoButtonVisibility();
 

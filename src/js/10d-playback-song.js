@@ -66,7 +66,7 @@ function playSongFromQueue(queueIndex) {
     playButton.innerHTML = '<i class="fas fa-pause"></i>';
     playButton.setAttribute('aria-label', 'Pause');
     playButton.setAttribute('title', 'Pause');
-    updateSubheroPlayButton(isCurrentViewPlaying());
+    emit('playback:stateChanged', { playing: isCurrentViewPlaying() });
 
     const lyricsToggleBtnEl = document.getElementById('lyrics-toggle-btn');
     if (lyricsToggleBtnEl) {
@@ -365,7 +365,7 @@ function playCurrentViewFromStart(targetListId = currentView) {
                 isShuffled = false;
                 shuffleMode = 'normal';
                 shuffleButton.classList.remove('active');
-                updateSubheroShuffleButton();
+                emit('shuffle:changed', { isShuffled });
                 return;
             }
             const firstItem = getNextSmartShuffledSong();

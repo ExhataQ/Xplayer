@@ -32,3 +32,12 @@ on('library:rebuilt', () => {
         setupHeroSection(true, 'All Songs', songs.length, 'Playlist');
     }
 });
+
+// 'covers:scanCompleted' is emitted by setupCoverStreamListeners() (03k-cover-sync.js) when the
+// background cover scan finishes. The left panel is redrawn so rows pick up the new covers.
+// The typeof guard moved here with the call, unchanged.
+on('covers:scanCompleted', () => {
+    if (typeof renderLeftPanelMainList === 'function') {
+        renderLeftPanelMainList();
+    }
+});

@@ -202,13 +202,7 @@ function removeFromQueue(queueIndex) {
         }
 
         updateQueueDisplay();
-        if (currentView === VIEWS.RECENT) {
-            renderRecentlyPlayed();
-        } else if (currentView === VIEWS.ALL_SONGS) {
-            renderSongsList(getSongsForList(VIEWS.ALL_SONGS), VIEWS.ALL_SONGS);
-        } else if (currentView === VIEWS.SEARCH || currentView === VIEWS.SEARCH_ITEMS) {
-            renderSongsList(getSongsForList(VIEWS.SEARCH_ITEMS), VIEWS.SEARCH_ITEMS);
-        }
+        emit('queue:songsChanged');
     }
 }
 

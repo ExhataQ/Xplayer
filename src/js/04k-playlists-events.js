@@ -43,3 +43,19 @@ on('playlist:songCountChanged', (e) => {
         }
     }
 });
+
+// 'playlist:songRemovedFromView' is emitted by removeSongFromPlaylistAndRefresh() (09), the
+// context-menu "remove from playlist" action. The redraw below was inline there, moved verbatim.
+on('playlist:songRemovedFromView', (e) => {
+    const { playlistId } = e.detail;
+
+    if (currentView === `playlist-${playlistId}`) {
+        refreshCurrentViewAfterMutation();
+    } else {
+        renderPlaylistDetailView(playlistId);
+    }
+
+    renderLeftPanelMainList();
+    updateScrollbarById('left-panel-main-content');
+    updateLeftPanelCounts();
+});

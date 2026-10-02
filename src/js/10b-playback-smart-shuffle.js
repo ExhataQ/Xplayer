@@ -576,7 +576,7 @@ function startSmartShuffleFromCurrentView() {
     shuffleMode = 'smart';
     isShuffled = true;
     shuffleButton.classList.add('active');
-    updateSubheroShuffleButton();
+    emit('shuffle:changed', { isShuffled });
     shuffleButton.setAttribute('aria-label', 'Smart Shuffle on');
     clearShuffle();
     playCurrentViewFromStart();

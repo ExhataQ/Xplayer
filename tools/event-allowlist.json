@@ -1,5 +1,5 @@
 {
-    "_about": "Names that are NOT event-bus work. Edit only with a reason. 'groups' maps a file number to its agent.",
+    "_about": "Names that are NOT event-bus work. Edit only with a reason. 'groups' maps a file number to its agent. An entry written 'file.js:name' allows that name only in that file (use it when a function is called both as a command and as a reaction and the reactions are already converted).",
     "groups": {
         "A": [
             0,
@@ -52,7 +52,8 @@
             "preloadCover",
             "showCoverProgressNotification",
             "completeCoverProgressNotification",
-            "openImageViewer"
+            "openImageViewer",
+            "refreshSmartLyricsVirtualScroll"
         ]
     },
     "queries": {
@@ -64,8 +65,8 @@
             "buildPlayerArtistHTML",
             "buildSongArtistHTML",
             "buildSongAlbumHTML",
-            "canGoBack",
-            "renderVisibleItems"
+            "renderRightPanelItem",
+            "canGoBack"
         ]
     },
     "navigation": {
@@ -83,12 +84,15 @@
             "teardownLyricsView",
             "teardownLazyLoading",
             "teardownSmartLyricsVirtualScroll",
-            "renderPlaylistDetailView",
-            "renderFolderContents",
-            "renderAlbumDetailView",
-            "renderArtistDetailView",
-            "resetViewScroll",
-            "updateNavigationButtons"
+            "resetViewScroll"
+        ]
+    },
+    "virtualScroll": {
+        "why": "Virtual-scroll hot path: re-render or retune the visible window after a scroll jump or a threshold change. One subsystem split over two files; runs on scroll and hover, so no events (EVENTS.md rule 4).",
+        "names": [
+            "renderVisibleItems",
+            "setVirtualScrollThreshold",
+            "snapVirtualScrollThreshold"
         ]
     },
     "setup": {
@@ -97,8 +101,82 @@
             "initThemeButtons",
             "initLeftPanelDragAndDrop",
             "initSongDragToLeftPanel",
-            "setVirtualScrollThreshold",
-            "snapVirtualScrollThreshold"
+            "updateNavigationButtons"
+        ]
+    },
+    "fileExceptions": {
+        "why": "Narrow exceptions: this file may call these names directly because the CALLS are view handlers or start-up, not reactions to data. Anything else in the file still counts. D reviews every entry (EB-D2). An exception is for a (file, name) pair, so it also hides a future real reaction of that name in that file: re-check the file when you edit it.",
+        "entries": [
+            {
+                "file": "09-folders-playlists.js",
+                "names": [
+                    "updateHeroCover",
+                    "updateSubheroPlayButton",
+                    "setSubheroVisibility",
+                    "setupHeroSection",
+                    "clearAllSelections"
+                ],
+                "why": "openPlaylist() sets up the playlist view when the user opens it: view entry, same kind as switchView. No data changed."
+            },
+            {
+                "file": "09-folders-playlists.js",
+                "names": [
+                    "renderLeftPanelVisibleItems",
+                    "renderLeftPanelMainList",
+                    "renderPlaylistsView",
+                    "renderFoldersView",
+                    "renderAlbumLeftPanelItems",
+                    "renderArtistLeftPanelItems"
+                ],
+                "why": "toggleFolderExpandedFromUI() and closeFolder() are click handlers that redraw the same left panel after the user expands or leaves a folder row. UI state only; no data changed."
+            },
+            {
+                "file": "99-player.js",
+                "names": [
+                    "renderLeftPanelMainList",
+                    "renderPlaylistsView",
+                    "renderFoldersView",
+                    "renderAlbumLeftPanelItems",
+                    "renderArtistLeftPanelItems"
+                ],
+                "why": "toggle*Filter() click handlers (filter buttons) and the DOMContentLoaded start-up redraw the left panel from UI state. Not a response to a data change."
+            },
+            {
+                "file": "99-player.js",
+                "names": [
+                    "renderSongsList",
+                    "updateHeroSongCount",
+                    "setupHeroSection",
+                    "updateHeroCover",
+                    "updateSubheroShuffleButton"
+                ],
+                "why": "First paint in the DOMContentLoaded handler at app start. Runs once; setup, not a reaction."
+            },
+            {
+                "file": "09-folders-playlists.js",
+                "names": [
+                    "renderFolderContents",
+                    "renderPlaylistDetailView"
+                ],
+                "why": "openPlaylist(), openFolder() and the go-up-one-folder handler open a view (navigation). toggleFolderExpandedFromUI() also calls renderFolderContents after the user clicks a chevron; it saves the expanded state and redraws the open folder, the same kind of click handler as closeFolder(). D's report 0001 called that one call a reaction: D to decide. The reaction at 09:88 was converted in EB-A5 (playlist:songRemovedFromView)."
+            },
+            {
+                "file": "99-player.js",
+                "names": [
+                    "renderFolderContents"
+                ],
+                "why": "Start-up: first paint when a folder is open at launch. Runs once."
+            },
+            {
+                "file": "08e-panel-settings.js",
+                "names": [
+                    "setSubheroVisibility",
+                    "updateHeroCover",
+                    "clearAllSelections",
+                    "updateActiveHighlight"
+                ],
+                "why": "EB-C2 (Agent C report 0002): openSettingsPanel, enterSettingsFromHistory, enterAdvancedSettingsFromHistory and toggleSettingsPanel set up the settings view the user just opened. Scoped to this file instead of the global navigation list so it does not hide the same names in A's and B's files. updateActiveHighlight here is C's judgment; B's EB-B5 decision about the same name in 13 and 17 is separate and still waits for D."
+            }
         ]
     }
 }

@@ -41,9 +41,7 @@ function performSearchNow() {
         currentView = VIEWS.ALL_SONGS;
         currentSearchSessionId = null;
         const allSongs = getSongsForList(VIEWS.ALL_SONGS);
-        renderSongsList(allSongs, VIEWS.ALL_SONGS);
-        reapplyHighlightAfterFilter(VIEWS.ALL_SONGS, allSongs);
-        reapplySelectionAfterFilter(VIEWS.ALL_SONGS, allSongs);
+        emit('search:resultsChanged', { view: VIEWS.ALL_SONGS, songs: allSongs });
         getCachedEl('all-songs-count').textContent = allSongs.length;
         resetLeftPanelActiveState();
         activateLeftPanelItem(VIEWS.ALL_SONGS);
@@ -70,23 +68,18 @@ function performSearchNow() {
         saveSearchToHistory(searchQuery, currentSearchSessionId, filteredSongs.length);
 
         showTracklistHeader(true);
-        setupHeroSection(
-            true,
-            `"${escapeHtml(searchQuery)}"`,
-            filteredSongs.length,
-            'Search Results',
-            currentSearchSessionId,
-            false
-        );
+        emit('search:summaryChanged', {
+            query: searchQuery,
+            count: filteredSongs.length,
+            sessionId: currentSearchSessionId
+        });
         updateHeroCover(VIEWS.SEARCH_ITEMS);
 
         const countElement = getCachedEl('all-songs-count');
         if (countElement) {
             countElement.textContent = filteredSongs.length;
         }
-        renderSongsList(filteredSongs, VIEWS.SEARCH_ITEMS);
-        reapplyHighlightAfterFilter(VIEWS.SEARCH_ITEMS, filteredSongs);
-        reapplySelectionAfterFilter(VIEWS.SEARCH_ITEMS, filteredSongs);
+        emit('search:resultsChanged', { view: VIEWS.SEARCH_ITEMS, songs: filteredSongs });
 
         resetLeftPanelActiveState();
     }
@@ -155,18 +148,14 @@ function performSubheroSearch() {
     }
 
     if (query === '') {
-        renderSongsList(songs, currentView);
-        reapplyHighlightAfterFilter(currentView, songs);
-        reapplySelectionAfterFilter(currentView, songs);
+        emit('search:resultsChanged', { view: currentView, songs });
         return;
     }
 
     // rank: false - filtering an album/playlist must keep that list's own order
     const filtered = searchSongs(songs, query, { rank: false });
 
-    renderSongsList(filtered, currentView);
-    reapplyHighlightAfterFilter(currentView, filtered);
-    reapplySelectionAfterFilter(currentView, filtered);
+    emit('search:resultsChanged', { view: currentView, songs: filtered });
 }
 
 function focusLeftPanelSearch() {
@@ -234,7 +223,7 @@ function performLeftPanelSearch() {
         allItems.forEach((item) => {
             item.style.display = '';
         });
-        renderLeftPanelMainList();
+        emit('leftPanelSearch:cleared');
         return;
     }
 

@@ -82,15 +82,10 @@ function playViewFromLeftPanel(viewId) {
 function removeSongFromPlaylistAndRefresh(songId, playlistId) {
     removeSongFromPlaylist(songId, playlistId);
 
-    if (currentView === `playlist-${playlistId}`) {
-        refreshCurrentViewAfterMutation();
-    } else {
-        renderPlaylistDetailView(playlistId);
-    }
-
-    renderLeftPanelMainList();
-    updateScrollbarById('left-panel-main-content');
-    updateLeftPanelCounts();
+    // The redraw moved to 04k-playlists-events.js. It is a separate event from
+    // 'playlist:songCountChanged' because removeSongFromPlaylist() has other callers that
+    // have never redrawn the playlist view.
+    emit('playlist:songRemovedFromView', { songId, playlistId });
 }
 
 function openPlaylist(playlistId, callback = null) {

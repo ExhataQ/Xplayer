@@ -16,9 +16,7 @@ function updateLeftPanelCounts() {
     }
 
     if (typeof leftPanelVirtualState !== 'undefined' && leftPanelVirtualState.enabled && !currentOpenFolderId) {
-        const items = getLeftPanelItemsArray();
-        leftPanelVirtualState.currentItems = items;
-        renderLeftPanelVisibleItems(false);
+        emit('leftPanelCounts:changed');
     } else {
         const allSongsItem = document.querySelector('.left-panel-main-item[data-view="all-songs"] .main-item-count');
         if (allSongsItem) {
@@ -34,36 +32,11 @@ function updateLeftPanelCounts() {
 }
 
 function syncAllUIState() {
-    updateLeftPanelCounts();
-    updateAllCounts();
-
-    if (currentView === VIEWS.FAVORITES) {
-        renderFavoritesView();
-        const favorites = getFavorites();
-        updateHeroSongCount(favorites.length);
-    } else if (currentView === VIEWS.ALL_SONGS) {
-        updateHeroSongCount(getActiveSongs().length);
-    } else if (currentView && currentView.startsWith('playlist-')) {
-        const playlistId = currentView.replace('playlist-', '');
-        updateHeroSongCount(getPlaylistSongs(playlistId).length);
-    } else if (currentView && currentView.startsWith('a') && currentView.length === 13) {
-        updateHeroSongCount(getAlbumSongs(currentView).length);
-    } else if (currentView && currentView.startsWith('r') && currentView.length === 13) {
-        updateHeroSongCount(getArtistSongs(currentView).length);
-    }
-
-    updateScrollbarById('left-panel-main-content');
+    emit('favorites:changed');
 }
 
 function onSongsChanged() {
-    updateAllCounts();
-    updateLeftPanelCounts();
-    renderPlaylistsView();
-    renderFoldersView();
-    renderAlbumLeftPanelItems();
-    renderArtistLeftPanelItems();
-    refreshCurrentView();
-    updateScrollbarById('left-panel-main-content');
+    emit('songs:changed');
 }
 
 function refreshCurrentViewAfterMutation() {
@@ -77,6 +50,8 @@ function refreshCurrentViewAfterMutation() {
     selectionHighlights.forEach((el) => el.remove());
     selectionHighlights = [];
 
+    let count = null;
+
     if (currentView === VIEWS.FAVORITES) {
         const validIds = new Set(
             getActiveFavoritesCount() > 0
@@ -84,43 +59,35 @@ function refreshCurrentViewAfterMutation() {
                 : []
         );
         pruneSelectionSet(validIds);
-        renderFavoritesView();
-        updateHeroSongCount(validIds.size);
+        count = validIds.size;
     } else if (currentView === VIEWS.ALL_SONGS) {
         const validIds = new Set(getActiveSongs().map((s) => s.id));
         pruneSelectionSet(validIds);
-        if (virtualScrollState.enabled) {
-            virtualScrollState.currentSongs = getActiveSongs();
-        }
-        updateHeroSongCount(validIds.size);
-        reapplySelectionState();
+        count = validIds.size;
     } else if (currentView === VIEWS.HISTORY) {
         const validIds = new Set(
             filterDeletedSongs(getPlayHistory().map((e) => SONGS_DATA.find((s) => s.id === e.id))).map((s) => s.id)
         );
         pruneSelectionSet(validIds);
-        renderHistoryView();
-        updateHeroSongCount(validIds.size);
+        count = validIds.size;
     } else if (currentView && currentView.startsWith('playlist-')) {
-        const playlistId = currentView.replace('playlist-', '');
-        const songs = getPlaylistSongs(playlistId);
+        const songs = getPlaylistSongs(currentView.replace('playlist-', ''));
         const validIds = new Set(songs.map((s) => s.id));
         pruneSelectionSet(validIds);
-        renderPlaylistDetailView(playlistId);
-        updateHeroSongCount(songs.length);
+        count = songs.length;
     } else if (currentView && currentView.startsWith('a') && currentView.length === 13) {
         const songs = getAlbumSongs(currentView);
         const validIds = new Set(songs.map((s) => s.id));
         pruneSelectionSet(validIds);
-        renderAlbumDetailView(currentView);
-        updateHeroSongCount(songs.length);
+        count = songs.length;
     } else if (currentView && currentView.startsWith('r') && currentView.length === 13) {
         const songs = getArtistSongs(currentView);
         const validIds = new Set(songs.map((s) => s.id));
         pruneSelectionSet(validIds);
-        renderArtistDetailView(currentView);
-        updateHeroSongCount(songs.length);
+        count = songs.length;
     }
+
+    emit('viewSongs:changed', { count });
 
     setTimeout(() => {
         updateSelectionHighlight();
@@ -129,11 +96,6 @@ function refreshCurrentViewAfterMutation() {
             updateActiveHighlight(slot !== null && slot !== undefined ? slot : null);
         }
     }, 30);
-
-    updateLeftPanelCounts();
-    updateAllCounts();
-    updateScrollbarById('main-content');
-    updateScrollbarById('left-panel-main-content');
 }
 
 function pruneSelectionSet(validIds) {

@@ -107,7 +107,9 @@ function updateAlbumArt() {
     updateInfoButtonVisibility();
 
     if (currentView === VIEWS.LYRICS) {
-        renderLyricsView();
+        const lyricsQueueItem = playbackQueue[currentQueueIndex];
+        const lyricsSong = lyricsQueueItem && (lyricsQueueItem.song || lyricsQueueItem);
+        emit('lyrics:changed', { songId: lyricsSong ? lyricsSong.id : null });
     }
 }
 

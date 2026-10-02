@@ -622,7 +622,7 @@ function applyOnlineLyricsToSong(songId, text, type, isInstrumental = false) {
         updateOnlineLyricsResultsSection();
     }
     if (currentView === VIEWS.LYRICS) {
-        renderLyricsView();
+        emit('lyrics:changed', { songId });
     }
     return true;
 }
