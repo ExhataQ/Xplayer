@@ -1,3 +1,10 @@
+2026-10-03
+- Moved AGENTS.md, BOARD.md and PLAN.md into .agent/, agent-reports/ into .agent/reports/ (with a new TEMPLATE.md, which PLAN.md already referred to), and archived the three event bus plan documents in .agent/archive/. Paths updated in PLAN.md (session brief), tools/prompt.txt, claude.md and AGENTS.md. claude.md stays at the project root.
+- PLAN.md: the finished event bus steps are ticked and their Needs entries removed, start order rewritten (B, C and D can start Phase 1 in parallel), leftovers from the event bus work listed under Optional, rule added that code comments never name agents, steps or plans.
+- BOARD.md: finished steps marked patch received; next actions rewritten.
+- Removed plan, step and agent references from code comments (src/js, tools/tests); comment-only change, the code tokens are identical.
+- event-audit.js header comment and EVENTS.md heading reworded; no behavior change.
+
 2026-10-02
 - Applied the folders event slice and A-setters core.
 - Added folder event subscribers, 52 state setters, setter tests, event documentation, agent report, and smoke checklist.

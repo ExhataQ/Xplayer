@@ -1,6 +1,6 @@
 // ==============================================================================
 // LIBRARY LOCATIONS (MULTI-FOLDER SUPPORT) -- selection, add, path validation
-// (split out of 03-storage.js, Phase 2 Checkpoint 5)
+// (split out of 03-storage.js)
 // ==============================================================================
 
 

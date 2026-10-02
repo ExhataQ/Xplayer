@@ -1,6 +1,6 @@
 // ==============================================================================
 // FOLDERS (CRUD, tree building, expand state)
-// (split out of 03-storage.js, Phase 2 Checkpoint 5)
+// (split out of 03-storage.js)
 // Event-bus conversion: createFolder() and deleteFolder() each ended with the same
 // byte-identical "refresh folders view + left panel + virtual scroll + scrollbar" tail.
 // Both now emit 'folder:listChanged'; the DOM work moved to 04o-folders-events.js.

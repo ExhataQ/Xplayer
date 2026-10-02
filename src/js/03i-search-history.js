@@ -1,6 +1,6 @@
 // ==============================================================================
 // SEARCH HISTORY
-// (split out of 03-storage.js, Phase 2 Checkpoint 5)
+// (split out of 03-storage.js)
 // ==============================================================================
 // Event-bus conversion: clearSearchHistory()/deleteSearchHistoryEntry() used to call
 // renderSearchHistoryView() and showNotification() directly; that moved to

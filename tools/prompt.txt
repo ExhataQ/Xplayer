@@ -2,7 +2,7 @@ ExhataQ Music Player — Project Reference
 
 This file is a standing reference to the codebase: what's where, what stage the
 code is at, and what each file does (down to its exported functions). It is
-not a set of job instructions — that's what Source/claude.md and AGENTS.md are
+not a set of job instructions — that's what Source/claude.md and Source/.agent/AGENTS.md are
 for. Read this to get oriented; read those to know how to work in this repo.
 
 Public repository: https://github.com/ExhataQ/ExhataQ (keep it public when sharing)
@@ -30,6 +30,7 @@ DEBUG_SCAN flag anywhere in the source yet.
 FOLDER STRUCTURE
 
 Source/
+├── .agent/            (agent workflow: AGENTS.md, PLAN.md, BOARD.md, reports/, archive/)
 ├── build/
 │   ├── music_player.py
 │   ├── music_player.html
@@ -1005,6 +1006,6 @@ ABOUT THIS DOCUMENT
 
 Keep this file in sync with the code: when a file's responsibility or
 exported functions materially change, update its entry here (and note the
-change in tools/change.log.txt, as claude.md/AGENTS.md describe). This is a
+change in tools/change.log.txt, as claude.md and .agent/AGENTS.md describe). This is a
 reference for orienting in the project, not a full API doc — for exact
 signatures and edge cases, read the file itself.

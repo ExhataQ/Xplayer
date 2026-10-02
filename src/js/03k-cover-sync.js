@@ -1,6 +1,6 @@
 // ==============================================================================
 // COVER / THUMBNAIL UI SYNC
-// (split out of 03-storage.js, Phase 2 Checkpoint 5)
+// (split out of 03-storage.js)
 // ==============================================================================
 
 
@@ -100,7 +100,7 @@ function setupCoverStreamListeners() {
     });
 }
 
-// Phase 2 Checkpoint 5: this call was originally sitting between setupCoverStreamListeners()
+// This call was originally sitting between setupCoverStreamListeners()
 // and changeMusicFolder() in the pre-split 03-storage.js -- moved here (right after the
 // function it invokes) rather than staying attached to changeMusicFolder in
 // 03j-library-locations.js, which would have called it before it was even defined.

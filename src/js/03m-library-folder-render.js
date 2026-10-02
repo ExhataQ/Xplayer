@@ -1,6 +1,6 @@
 // ==============================================================================
 // LIBRARY LOCATIONS -- render + remove/add/rebuild
-// (split out of 03-storage.js, Phase 2 Checkpoint 5; shares selectedLibraryFolders
+// (split out of 03-storage.js; shares selectedLibraryFolders
 // with 03j-library-locations.js, which must load first)
 // ==============================================================================
 

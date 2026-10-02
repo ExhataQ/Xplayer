@@ -17,6 +17,7 @@ Main source structure:
 * `Source/src/assets/` — fonts, icons, and other static assets bundled into the app.
 * `Source/electron/` — Electron main process, IPC, scanner, metadata, downloads, lyrics, and other backend functionality.
 * `Source/tools/` — tests, development utilities, and change log.
+* `Source/.agent/` — agent workflow documents (`AGENTS.md`, the refactor `PLAN.md`, `BOARD.md`, `reports/`). Read `Source/.agent/AGENTS.md` before changing anything.
 
 The application is built by running:
 

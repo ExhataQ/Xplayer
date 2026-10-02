@@ -166,7 +166,7 @@ function scheduleCrossfadeTransition(song) {
     return true;
 }
 
-// Phase 2 Checkpoint 2: this one doesn't fit the shared debounce() helper — the delay is
+// This one doesn't fit the shared debounce() helper — the delay is
 // computed per-call from the user's crossfade-duration setting (Math.max(120, fadeMs * 0.6)),
 // not a fixed constant, and debounce() only supports a fixed delay set once at creation.
 // Forcing it in would have meant baking in a wrong delay. Instead, just gave the cross-file

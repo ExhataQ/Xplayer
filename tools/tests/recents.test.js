@@ -33,8 +33,8 @@ function load({ stored = {}, library = [], deleted = [], failWrites = false } = 
         CustomEvent
     };
     vm.createContext(context);
-    // 03-storage.js references STORAGE_KEYS, defined in 00-state.js (code-cleanup-plan.md
-    // Agent 5, Checkpoint 1). Pull just that constant out rather than vm-loading the whole
+    // 03-storage.js references STORAGE_KEYS, defined in 00-state.js (the single
+    // source of truth for localStorage keys). Pull just that constant out rather than vm-loading the whole
     // of 00-state.js, which pulls in unrelated player-state globals this test has no need for.
     const stateSource = fs.readFileSync(path.join(__dirname, '../../src/js/00-state.js'), 'utf8');
     const storageKeysMatch = stateSource.match(/const STORAGE_KEYS = \{[\s\S]*?\n\};/);
@@ -42,8 +42,8 @@ function load({ stored = {}, library = [], deleted = [], failWrites = false } = 
         throw new Error('recents.test.js: could not find STORAGE_KEYS in 00-state.js - did it move or get renamed?');
     }
     vm.runInContext(storageKeysMatch[0], context);
-    // Phase 2 Checkpoint 5 moved saveToRecentlyPlayed/getRecentCount out of 03-storage.js
-    // into 03e-recents-history.js; loaded alongside 03a-recents.js since this test exercises
+    // saveToRecentlyPlayed/getRecentCount live in 03e-recents-history.js, not 03-storage.js,
+    // so it is loaded alongside 03a-recents.js since this test exercises
     // both the raw storage layer (saveToRecentlyPlayed/getRecentCount) and the
     // library-resolution layer (addToRecentList/resolveRecentSongs/getRecentlyPlayedSongs).
     // 00b-events.js provides emit()/on(), used by 03e since the event-bus conversion.

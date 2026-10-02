@@ -1,6 +1,6 @@
 // ==============================================================================
 // FAVORITES & APP SETTINGS (smart shuffle, audio playback, window)
-// (split out of 03-storage.js, Phase 2 Checkpoint 5)
+// (split out of 03-storage.js)
 // ==============================================================================
 
 

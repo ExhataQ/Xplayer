@@ -1,6 +1,6 @@
 'use strict';
 
-// Event-bus completion audit (Plan 1).
+// Event-bus audit. Keep it at 0.
 //
 // Lists every place where a file owned by agent A, B or C calls a function defined in
 // agent D's files (04*-07) that is a REACTION - "something changed, redraw" - and so should
@@ -11,7 +11,8 @@
 //   node tools/event-audit.js B          detail for one agent: file, function, count
 //   node tools/event-audit.js --strict   exit code 1 while any reaction call remains
 //
-// Plan 1 is finished when this reports 0 for A, B and C. It reads call counts from
+// The event bus is complete while this reports 0 for A, B and C; run it after every phase.
+// It reads call counts from
 // tools/dep-map.js, so it is a static count of references, not of runtime calls.
 
 const fs = require('fs');

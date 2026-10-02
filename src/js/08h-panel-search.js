@@ -29,7 +29,7 @@ function resetSubheroSearch() {
 let searchTypingSessionId = null;
 const SEARCH_DEBOUNCE_MS = 300;
 
-// Phase 2 Checkpoint 2: performSearch is the debounced entry point every keystroke
+// performSearch is the debounced entry point every keystroke
 // calls; performSearchNow is the actual search logic, unchanged, just renamed and
 // no longer responsible for its own timer bookkeeping.
 function performSearchNow() {

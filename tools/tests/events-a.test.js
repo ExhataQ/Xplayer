@@ -1,6 +1,6 @@
 'use strict';
 
-// Agent A's "same calls, same order" suite. Add scenarios in helpers/scenarios-a.js;
+// The "same calls, same order" suite for the data files (03*, 09, 99). Add scenarios in helpers/scenarios-a.js;
 // the recorded sequences live in expected/events-a.json. See helpers/sequence-suite.js.
 
 const path = require('path');

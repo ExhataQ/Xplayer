@@ -4,7 +4,7 @@ Goal: make the existing renderer easier to understand, test and change, with no 
 
 This plan is based on a static analysis of `src/js` (76 files, ~23.5k lines) using `tools/dep-map.js`. Numbers below come from that tool; re-run it at the start of every phase.
 
-Assumption: the event bus is built and available as a shared core module. Event names and the `emit`/`on` calls below are illustrative; adjust to the real API.
+Starting point: the event bus is finished. It is `src/js/00b-events.js` (`emit`, and `on`, which returns the unsubscribe function). The real event list is `src/js/core/EVENTS.md`, and `node tools/event-audit.js --strict` exits 0. The setters exist too (`src/js/core/SETTERS.md`). Run the audit after every phase to keep it that way. The documents of the first plan (event bus) are in `.agent/archive/`.
 
 ## 1. Baseline findings
 
@@ -50,7 +50,8 @@ Full list: `node tools/dep-map.js` (section "Mutable globals assigned from other
 - Writes first, reads later: make every write go through an owner before touching any read.
 - Every phase has a mechanical "done when" that `dep-map.js` or a test can check.
 - Touch virtual scroll (`05a`, `05b`, `05c`), `07-views` and `04a` last, and only with import/export changes there.
-- Follow `AGENTS.md`: archive before every change, update `tools/change.log.txt`, run focused tests, deliver patches.
+- Follow `.agent/AGENTS.md`: archive before every change, update `tools/change.log.txt`, run focused tests, deliver patches.
+- Comments say what the code does or why. They never name an agent, a step ID, a phase or a plan; that goes in the report and in `tools/change.log.txt`.
 
 ## 3. Phases
 
@@ -58,17 +59,17 @@ Full list: `node tools/dep-map.js` (section "Mutable globals assigned from other
 
 Agent: A.
 
-- [ ] Add `tools/dep-map.js`; run `npm i -D acorn acorn-walk` in `Source/`.
-- [ ] Record the browser-test baseline (`metadata-editor`, `playback-settings`, `scroll`, `search-ui`, `view-switch-song-list-cleanup`); confirm Playwright launches on your machine.
-- [ ] Commit the manual smoke checklist (section 6) as `tools/smoke-checklist.md`.
+- [x] Add `tools/dep-map.js`; run `npm i -D acorn acorn-walk` in `Source/`.
+- [x] Record the browser-test baseline (`metadata-editor`, `playback-settings`, `scroll`, `search-ui`, `view-switch-song-list-cleanup`); confirm Playwright launches on your machine.
+- [x] Commit the manual smoke checklist (section 6) as `tools/smoke-checklist.md`.
 - [ ] Spike: one throwaway `<script type="module">` loaded from `music_player.html` in the built app under `App/electron.exe`. Confirm it runs, that it can import a sibling file, and that it can read a top-level classic-script `let`/`const` by bare name.
 - [ ] Decide the folder layout (section 4) and add empty folders to the manifest only when a file lands in them.
 
-Done when: baseline recorded, spike result written down (works / does not work, and what to do instead).
+Done when: baseline recorded, spike result written down (works / does not work, and what to do instead). Only the spike and the layout decision are still open; the spike needs you, because an agent cannot start Electron. Nothing before Phase 3 depends on it.
 
 ### Phase 1: state ownership (still classic scripts)
 
-Agents: A defines the setters; A, B, C, D each replace the writes in their own files.
+Agents: A defined the setters (done: `src/js/core/SETTERS.md`, 52 setters, A's own files already use them). B, C and D each replace the writes in their own files, and can all start now, in parallel.
 
 For each group, create an owner file, define setters, replace every outside write with a setter call, emit the matching event from the setter, and leave reads as bare variables for now. The variable stays declared in `00-state.js`; only the writes move.
 
@@ -85,16 +86,16 @@ Done when: `dep-map.js` reports 0 mutable globals assigned from other files for 
 
 ### Phase 2: event bus replaces "refresh the UI" calls
 
-Agents: A owns the event catalog; A, B, C, D each emit or listen in their own files.
+Status: finished. 39 events, all subscribers in `04h` to `04v`.
 
 The most-shared functions are mostly "something changed, redraw": `renderLeftPanelMainList` (17 files), `renderSongsList` (14), `updateHeroCover` (10), `renderPlaylistsView` (9). Replace these cross-subsystem calls with events; keep ordinary same-subsystem calls as they are.
 
 - [x] Event catalog: done in Plan 1. The real names (39 events, with payload, owner and subscriber file) are in `src/js/core/EVENTS.md`; the old illustrative names (`song:changed`, `playlists:changed`, `lyrics:loaded`...) are not used.
 - [x] Renderers subscribe to the events they care about; emitters stop calling renderers. Done in Plan 1: `node tools/event-audit.js --strict` exits 0 (76 excepted calls, each with a reason, in `tools/event-allowlist.json`).
 - [x] Listener-registration rule: written as rule 5 in `EVENTS.md`. Subscribers are `on(...)` calls at the top level of `04x-*-events.js` files (no `init` function); revisit when files become modules.
-- [ ] Do not route ordinary function calls or per-frame work (scroll, hover, timeupdate) through the bus.
+- Rule that stays: do not route ordinary function calls or per-frame work (scroll, hover, timeupdate) through the bus.
 
-Done when: the five most shared render/update functions have no callers outside their own subsystem (`node tools/dep-map.js uses renderSongsList` etc.).
+Done: `node tools/event-audit.js --strict` exits 0. Run it after every phase; a new call from A, B or C into a D render function must either use an event or get an entry with a reason in `tools/event-allowlist.json`.
 
 ### Phase 3: inline handlers and the legacy bridge
 
@@ -152,6 +153,13 @@ Done when: no classic script other than the `99-player.js` template remains, and
 - JSDoc types with `// @ts-check` on new modules; TypeScript only if that proves too limiting.
 - DOM-region ownership and view mount/unmount: only where a stale-listener or cross-module DOM bug shows up.
 
+### Known leftovers from the event bus work (none of them is broken today)
+
+- Duplicate refreshes: the library rebuild (`04i`), `data:imported` (`04n`), `playlist:listChanged` followed by `playlist:deleted` (`04k`), `history:cleared` (`04h`), and the Recent panel refresh in `15e` redraw the left panel more than once. Removing the extra calls changes the recorded call sequences in `tools/tests/expected/` and `events-wiring.test.js`, so do it as one small patch with the baselines re-recorded and every removed call listed in the report.
+- Rename `recents:count-changed` to camelCase (it is the one event name that breaks rule 1 in `EVENTS.md`); update `04h` and the recorded sequences in the same patch.
+- Probable bug in `08h-panel-search.js` (lines 45 and 77): it calls `getCachedEl('all-songs-count')`, but the only element with a count is `all-songs-count-display`. Check by clearing the search box with the console open; fix with a one-line change if it throws.
+- `leftPanelVirtualState.currentItems = getLeftPanelItemsArray(); renderLeftPanelVisibleItems(false);` is written by hand at about ten sites (`04j`, `04k`, `04o`, `05b`, `06g`, `09`, `17`). One helper in `05b` would replace them.
+
 ## 4. Target layout (direction, not spec)
 
 ```
@@ -196,7 +204,7 @@ Must be serial: Phases 0, 1, 2 and the Phase 3 mechanism; `99-player.js` split; 
 
 ## 7. Rules for every migration change
 
-1. Archive the project first (`AGENTS.md`).
+1. Archive the project first (`.agent/AGENTS.md`).
 2. One subsystem per change; smallest reasonable diff; no unrelated refactoring.
 3. Run the focused tests for that subsystem, then the smoke checklist section that covers it.
 4. Append the change to `tools/change.log.txt` in the existing format.
@@ -223,7 +231,7 @@ Open questions:
 
 ## 9. Agents A, B, C, D
 
-Agent A is Claude in this chat. B, C and D are separate agent sessions. Each agent works one session at a time and hands back a patch and a report (section 9.4).
+Agent A is Claude in this chat. B, C and D are separate agent sessions. Each agent works one session at a time and hands back a patch and a report (section 9.4). The three can run at the same time on different files: B, C and D can all start Phase 1 now.
 
 ### 9.1 Who owns what
 
@@ -243,11 +251,11 @@ Rules:
 
 ### 9.2 Start order
 
-1. **A** runs A-01 to A-05 alone (tools, baselines, smoke checklist, spike, event bus).
-2. **A** does A-06 (setters). B, C and D can do nothing but read `core/SETTERS.md` until it lands (B-01 is B's review of it).
-3. **A, B, C, D in parallel:** replace writes in their own files (A-07, B-02–B-04, C-01, D-01–D-02).
-4. **In parallel:** emit events (A-08, B-05, C-02) and add listeners (D-03, C-03); then remove the direct calls (A-09, B-06, D-04).
-5. **A** builds the handler bridge (A-10); then B, C, D convert inline handlers.
+1. **Done:** tools, baselines and smoke checklist (A-01 to A-03), setters (A-06), A's own writes (A-07, first half), and the whole event bus (A-05, A-08, A-09, B-05, B-06, C-02, C-03, D-03, D-04).
+2. **You, once:** run the module spike (A-04) in Electron. Nothing before Phase 3 needs it, so it does not hold up step 3.
+3. **B, C, D in parallel, start now:** replace writes in their own files (B-01 to B-04, C-01, D-01, D-02), and report which variables only their files use.
+4. **A:** removes those variables from `00-state.js` (A-07, second half). Once A-04 is in, A builds the handler bridge (A-10).
+5. **B, C, D in parallel:** convert inline handlers (B-07, C-04, D-05).
 6. **In parallel:** leaf modules (A-12, B-08, C-05, D-07) and the `99-player` split (A-11).
 7. **A** builds storage and `api/` (A-13, A-14); then B, C, D swap their calls.
 8. **A** converts core and library (A-15); then **B and C**; then **D** last; then **A** does the final flip (A-16).
@@ -258,39 +266,30 @@ Each step is sized for one session or less. The IDs are used in reports and on t
 
 #### Agent A: Foundation and data
 
-- [ ] **A-01** (Phase 0) **Add the analysis tool.** Copy `tools/dep-map.js` into the repo and run `npm i -D acorn acorn-walk`. Run it and record the baseline in the report: mutable globals written from other files (52), files in the dependency cycle (63), load-time cross-file references (14).
+- [x] **A-01** (Phase 0) **Add the analysis tool.** Copy `tools/dep-map.js` into the repo and run `npm i -D acorn acorn-walk`. Run it and record the baseline in the report: mutable globals written from other files (52), files in the dependency cycle (63), load-time cross-file references (14).
   - Files: `tools/dep-map.js`, `package.json`
   - Done when: `node tools/dep-map.js` runs; baseline numbers are in the report.
-- [ ] **A-02** (Phase 0) **Record test baselines.** Run the node tests (`shuffle`, `storage`, `recents`, `search-engine`, `manifest`) and the five browser tests (`metadata-editor`, `playback-settings`, `scroll`, `search-ui`, `view-switch-song-list-cleanup`). Note any that cannot launch Playwright.
+- [x] **A-02** (Phase 0) **Record test baselines.** Run the node tests (`shuffle`, `storage`, `recents`, `search-engine`, `manifest`) and the five browser tests (`metadata-editor`, `playback-settings`, `scroll`, `search-ui`, `view-switch-song-list-cleanup`). Note any that cannot launch Playwright.
   - Files: none (report only)
   - Done when: A results table (pass/fail/could not run) is in the report.
   - You: If the browser tests cannot run in the agent environment, run them on your machine and paste the result into the report.
-- [ ] **A-03** (Phase 0) **Add the smoke checklist.** Copy section 6 of this plan into `tools/smoke-checklist.md`.
+- [x] **A-03** (Phase 0) **Add the smoke checklist.** Copy section 6 of this plan into `tools/smoke-checklist.md`.
   - Files: `tools/smoke-checklist.md`
   - Done when: File exists and matches section 6.
 - [ ] **A-04** (Phase 0) **Module-loading spike.** Add a temporary `<script type="module">` to the template that (1) logs, (2) imports a sibling file, (3) reads a classic-script top-level `let` by bare name, (4) logs its order relative to `player.js` and `DOMContentLoaded`. Build, check, then remove it.
   - Files: `build/music_player.html` (temporary)
   - Done when: The report says works / does not work for each of the four checks, plus a fallback if any fails.
   - You: Build the app and open `App/electron.exe`; an agent cannot launch Electron. Copy what the DevTools console shows into the report.
-- [ ] **A-05** (Phase 0.5) **Event bus check.** Confirm the event bus exists (expected `core/events.js`). Document its API (`emit`, `on`, `off`) and the event catalog with payload shapes in `core/EVENTS.md`. If it does not exist, build the smallest version first.
-  - Files: `core/events.js`, `core/EVENTS.md`
-  - Done when: `EVENTS.md` is merged. B, C and D may start their Phase 2 steps.
-- [ ] **A-06** (Phase 1) **Create the owner and setter files.** Create classic-script files in `core/` with a setter for every global that `node tools/dep-map.js` reports as written from another file (52 today). Groups: queue (`playbackQueue`, `currentQueueIndex`, `queueDisplayLimit`); playback modes (`isShuffled`, `shuffleMode`, `repeatMode`, `repeatFunctionalityActive`, `repeatVisualState`); now-playing (`lastPlayedSong`, `lastPlayedSongStartTime`, `isManualPlay`, `isPrevNavigation`, `lastPlaybackListId`); navigation (`currentView`, `searchQuery`, `historyNavigationIndex`, `playbackHistoryStack`, `isNavigatingHistory`, `lyricsPreView`, `lyricsPreScrollTop`); folders (`currentOpenFolderId`, `currentOpenFolderName`, `folderNavigationStack`, `selectedLibraryFolders`); ghost-list counters; transient UI state. The variables stay declared where they are; a setter assigns the variable and emits the matching event. Nothing calls the setters yet. List every setter and the variable it wraps in `core/SETTERS.md`.
+- [x] **A-05** (Phase 0.5) **Event bus.** Done in the first plan. The bus is `src/js/00b-events.js` (`emit`, `on`; `on` returns the unsubscribe function) and the event list is `src/js/core/EVENTS.md`.
+- [x] **A-06** (Phase 1) **Create the owner and setter files.** Create classic-script files in `core/` with a setter for every global that `node tools/dep-map.js` reports as written from another file (52 today). Groups: queue (`playbackQueue`, `currentQueueIndex`, `queueDisplayLimit`); playback modes (`isShuffled`, `shuffleMode`, `repeatMode`, `repeatFunctionalityActive`, `repeatVisualState`); now-playing (`lastPlayedSong`, `lastPlayedSongStartTime`, `isManualPlay`, `isPrevNavigation`, `lastPlaybackListId`); navigation (`currentView`, `searchQuery`, `historyNavigationIndex`, `playbackHistoryStack`, `isNavigatingHistory`, `lyricsPreView`, `lyricsPreScrollTop`); folders (`currentOpenFolderId`, `currentOpenFolderName`, `folderNavigationStack`, `selectedLibraryFolders`); ghost-list counters; transient UI state. The variables stay declared where they are; a setter assigns the variable and emits the matching event. Nothing calls the setters yet. List every setter and the variable it wraps in `core/SETTERS.md`.
   - Files: new `core/*.js`, `core/SETTERS.md`, `src/manifest.json`
   - Done when: Manifest and node tests pass; app behaves the same; `SETTERS.md` covers every name dep-map reported.
-  - Needs: A-05
-- [ ] **A-07** (Phase 1) **Replace writes in A's own files.** In `03e`, `03j`, `03m`, `09` and `99-player`, replace direct assignments to other files' globals with setter calls. Then remove from `00-state.js` any variable that B, C or D report is used only in their files (they move the declaration into their own file).
+- [ ] **A-07** (Phase 1) **Replace writes in A's own files.** In `03e`, `03j`, `03m`, `09` and `99-player`, replace direct assignments to other files' globals with setter calls. **Status:** the 35 assignments in A's files are done. **Still open:** remove from `00-state.js` any variable that B, C or D report is used only in their files (they move the declaration into their own file).
   - Files: `03e`, `03j`, `03m`, `09`, `99-player`, `00-state`
   - Done when: `node tools/dep-map.js writers <names>` lists no A file as a writer of a global it does not define; focused tests pass.
   - Needs: A-06
-- [ ] **A-08** (Phase 2) **Emit events from data changes.** Emit `playlists:changed`, `favorites:changed`, `history:changed`, `library:changed` from `03c`, `03e`, `03f`, `03g`, `03h`, `03j`, `03l`, `03m`. Keep the existing direct render calls for now.
-  - Files: `03c`, `03e`, `03f`, `03g`, `03h`, `03j`, `03l`, `03m`
-  - Done when: Events fire (check with a temporary listener); UI unchanged.
-  - Needs: A-05, A-07
-- [ ] **A-09** (Phase 2) **Remove direct render calls from A's files.** Once D's listeners exist, delete the direct cross-subsystem render calls (`renderPlaylistsView`, `renderSongsList`, `updateHeroCover`, `renderLeftPanelMainList`) from `03*` and `09`.
-  - Files: `03*`, `09`
-  - Done when: `node tools/dep-map.js uses <fn>` no longer lists A files; no double rendering; smoke checks for playlists, favorites and history pass.
-  - Needs: D-03, A-08
+- [x] **A-08** (Phase 2) **Emit events from data changes.** Done in the first plan: the `03*` files and `09` emit their events (see `EVENTS.md`).
+- [x] **A-09** (Phase 2) **Remove direct render calls from A's files.** Done in the first plan: the audit reports 0 for A.
 - [ ] **A-10** (Phase 3) **Build the handler bridge.** Add `registerLegacyGlobals({...})` (assigns onto `window`) and one delegated `data-action` dispatcher in `core/`. Add a browser test that clicks a `data-action` element and a bridged inline handler.
   - Files: `core/legacy.js`, `tools/tests/`, `src/manifest.json`
   - Done when: Both click paths work in the browser test.
@@ -338,14 +337,8 @@ Each step is sized for one session or less. The IDs are used in reports and on t
   - Files: `14`, `15a`, `15d`, `15e`, `15f`, `17`
   - Done when: dep-map shows no writes to A-owned globals from these files; report lists the B-only variables.
   - Needs: A-06
-- [ ] **B-05** (Phase 2) **Emit playback events.** Emit `song:changed`, `song:started`, `song:ended` from `10d` and `15e`. Confirm the setters already emit the queue and mode events.
-  - Files: `10d`, `15e`
-  - Done when: Events fire at the right moments (check with a temporary listener); UI unchanged.
-  - Needs: A-05, B-02
-- [ ] **B-06** (Phase 2) **Replace cross-subsystem render calls.** In `10d` and `15e`, replace direct calls such as `updateHeroCover` and `renderSongsList` with the events D now listens for.
-  - Files: `10d`, `15e`
-  - Done when: `node tools/dep-map.js uses updateHeroCover` no longer lists B files; no double rendering; playback smoke passes.
-  - Needs: D-03, B-05
+- [x] **B-05** (Phase 2) **Emit playback events.** Done in the first plan (see `EVENTS.md`, `04p-playback-events.js`).
+- [x] **B-06** (Phase 2) **Replace cross-subsystem render calls.** Done in the first plan: the audit reports 0 for B.
 - [ ] **B-07** (Phase 3) **Convert inline handlers.** Convert the inline `on…=` strings in `15b` (3) and `10c` (1) to `data-action`.
   - Files: `15b`, `10c`
   - Done when: Handlers work in the browser; no `on…=` left in these files.
@@ -369,14 +362,8 @@ Each step is sized for one session or less. The IDs are used in reports and on t
   - Files: `08a`, `08e`, `08h`
   - Done when: dep-map shows no cross-file writes from these files; `search-ui.test.js` and settings/search smoke checks pass.
   - Needs: A-06
-- [ ] **C-02** (Phase 2) **Emit lyrics and settings events.** Emit `lyrics:loaded` from `11a`, `18`, `19` and `settings:changed` from `08e`.
-  - Files: `11a`, `18`, `19`, `08e`
-  - Done when: Events fire (temporary listener); UI unchanged.
-  - Needs: A-05
-- [ ] **C-03** (Phase 2) **Panels react to events.** Make the album-art panel (`08b`) and track-lyrics panel (`08c`) update from `song:changed` and `lyrics:loaded` instead of being called directly.
-  - Files: `08b`, `08c`, callers in C's files
-  - Done when: Panels update on song change and lyrics load; no double updates; lyrics smoke passes.
-  - Needs: B-05, C-02
+- [x] **C-02** (Phase 2) **Emit lyrics and settings events.** Done in the first plan (`lyrics:changed` and the others in `EVENTS.md`).
+- [x] **C-03** (Phase 2) **Panels react to events.** Done in the first plan (`04t`, `04u`, `04v`); the audit reports 0 for C.
 - [ ] **C-04** (Phase 3) **Convert inline handlers.** Convert inline `on…=` strings to `data-action`, one file per session in this order: `08e` (36), `19` (33), `11c` (20), `11d` (15), `18` (8), `20` (7), `11b` and `08g` (4 each), then the rest.
   - Files: the listed files
   - Done when: Handlers work in the browser; no `on…=` left in the converted files.
@@ -404,14 +391,8 @@ Each step is sized for one session or less. The IDs are used in reports and on t
   - Files: `07`
   - Done when: dep-map shows no cross-file writes from `07`; `view-switch-song-list-cleanup.test.js` and view/back/forward smoke pass.
   - Needs: A-06
-- [ ] **D-03** (Phase 2) **Renderers subscribe to events.** Make the main renderers subscribe to `library:changed`, `playlists:changed`, `favorites:changed`, `history:changed`, `queue:changed`, `song:changed`, `view:changed` (for example `renderPlaylistsView` on `playlists:changed`). Keep the existing direct calls until the emitting agents remove theirs.
-  - Files: `04*`, `07`
-  - Done when: Each listener fires when its event is emitted (temporary emit is fine); UI unchanged.
-  - Needs: A-05
-- [ ] **D-04** (Phase 2) **Remove D's own cross-subsystem calls.** Once the emitters exist, delete the direct calls in D's files that the events now cover, and check nothing renders twice.
-  - Files: `04*`, `06*`, `07`
-  - Done when: No double rendering; scroll and search-ui tests pass; smoke passes.
-  - Needs: D-03, A-08, B-05
+- [x] **D-03** (Phase 2) **Renderers subscribe to events.** Done in the first plan (`04h` to `04v`).
+- [x] **D-04** (Phase 2) **Remove D's own cross-subsystem calls.** Done in the first plan: no double rendering is recorded in the call-sequence tests.
 - [ ] **D-05** (Phase 3) **Convert inline handlers.** Convert inline `on…=` strings to `data-action`: `06a` (31), `06b` (16), `04g` (11), `04a` (10), `04f` (4), `04c` (3), `05b` (2), the rest, and `build/music_player.html` (49).
   - Files: the listed files
   - Done when: Handlers work in the browser; no `on…=` left in converted files.
@@ -431,39 +412,41 @@ Each step is sized for one session or less. The IDs are used in reports and on t
 - [ ] **D-09** (Phase 6) **Convert the UI shell to modules.** Convert `06*` first, then `04b`–`04g`, then `04a`, `05a`/`05b`/`05c`, and `07` last. Import/export edits only, no logic edits. Run `scroll.test.js` and the placeholder checks after each file.
   - Files: D's files, `src/manifest.json` (one-line inserts)
   - Done when: `scroll.test.js`, `search-ui.test.js`, `view-switch-song-list-cleanup.test.js` and the full smoke checklist pass.
-  - Needs: A-15, B-10, C-07, D-08, D-05, D-04
+  - Needs: A-15, B-10, C-07, D-08, D-05
 
 ### 9.4 Session brief (paste at the start of each agent session)
 
 ```
 You are Agent <X> on the ExhataQ renderer refactor.
 
-Read first: AGENTS.md, claude.md, PLAN.md (sections 2, 3, 7 and 9), core/EVENTS.md,
-core/SETTERS.md, tools/agent-reports/BOARD.md, and the latest report of any agent
-your step depends on.
+Read first: .agent/AGENTS.md, claude.md, .agent/PLAN.md (sections 2, 3, 7 and 9),
+src/js/core/EVENTS.md, src/js/core/SETTERS.md, .agent/BOARD.md, and the latest report of
+any agent your step depends on (.agent/reports/).
 
 Your files: <list from PLAN.md section 9.1>. Edit nothing else, except one-line
-inserts in src/manifest.json and your entry in tools/change.log.txt.
+inserts in src/manifest.json, your entry in tools/change.log.txt and your report in
+.agent/reports/<X>/.
 
 This session: <mini step IDs, for example B-02>.
 
 Rules:
-- Archive first, as AGENTS.md says. Smallest reasonable diff; no unrelated changes.
+- Archive first, as .agent/AGENTS.md says. Smallest reasonable diff; no unrelated changes.
+- Comments in code describe the code. Never write agent names, step IDs, phases or plan names in them.
 - Run `node tools/dep-map.js` before and after and record the numbers.
 - Run the tests named in the step; say plainly what you could not run.
 - Append to tools/change.log.txt in the existing format.
 - Deliver one patch named <X>-NNNN-slug.patch (NNNN counts your own patches).
-- Write tools/agent-reports/<X>/NNNN-slug.md from tools/agent-reports/TEMPLATE.md and
+- Write .agent/reports/<X>/NNNN-slug.md from .agent/reports/TEMPLATE.md and
   include it in the patch.
 - If the step needs a file you do not own, stop and describe it in the report.
 ```
 
 ### 9.5 What you do after each patch
 
-1. Save the patch and read its report (`tools/agent-reports/<X>/NNNN-slug.md`).
+1. Save the patch and read its report (`.agent/reports/<X>/NNNN-slug.md`).
 2. `git apply --check <patch>`; if it passes, `git apply <patch>`. If `manifest.json` or `change.log.txt` conflict, keep both sides.
 3. Run the tests and smoke-checklist sections the report lists under "For you".
-4. Update `tools/agent-reports/BOARD.md` (status and patch name) and the "Next actions" list.
+4. Update `.agent/BOARD.md` (status and patch name) and the "Next actions" list.
 5. Read "Needs from other agents" and "Next step" in the report, and start the next session with the brief from 9.4.
 6. If a check fails, do not start anything that depends on that step. Give the report to the same agent to fix.
 

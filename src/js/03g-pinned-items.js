@@ -1,6 +1,6 @@
 // ==============================================================================
 // PINNED ITEMS & ITEM ORDER (global + per-folder)
-// (split out of 03-storage.js, Phase 2 Checkpoint 5)
+// (split out of 03-storage.js)
 // ==============================================================================
 // Event-bus conversion: togglePinItem/movePlayedItemToTop/togglePinItemInFolder
 // used to call renderLeftPanelMainList()/renderPlaylistsView()/showNotification()/
@@ -65,7 +65,7 @@ function savePlayedItemOrder(order) {
 }
 
 
-// Phase 2 Checkpoint 3: the exact same "pinned items first (tied by pin order), then
+// The exact same "pinned items first (tied by pin order), then
 // most-recently-played order, else stable" comparator was duplicated byte-for-byte in
 // 04b-render-playlists-folders.js (x2), 04c-render-albums.js (x2), 04d-render-artists.js,
 // 06a-context-menus.js, and 03c-playlists.js (x2) — 8 call sites total, only differing in

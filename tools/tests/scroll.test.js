@@ -345,7 +345,7 @@ describe('song list virtual scrolling', { concurrency: false }, () => {
     });
 
     // Skipped: fails consistently in this sandboxed/headless environment (placeholders
-    // render during the nudge here regardless of the Agent 2 file split - same result
+    // render during the nudge here regardless of the file split - same result
     // before and after). Timing-sensitive to real browser/GPU responsiveness. Left
     // skipped per explicit instruction rather than investigated further in this pass.
     test('a tiny thumb nudge shows real rows only, no placeholders', { skip: 'timing-sensitive in this sandboxed environment' }, async (t) => {

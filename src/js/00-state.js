@@ -2,7 +2,7 @@
 // PLAYER STATE VARIABLES
 // ==============================================================================
 
-// code-cleanup-plan.md Agent 5, Checkpoint 1: single source of truth for every
+// Single source of truth for every
 // localStorage key the app uses. Values are unchanged from what each key already
 // was, so existing saved data in users' localStorage keeps working as-is.
 const STORAGE_KEYS = {
@@ -33,7 +33,7 @@ function getSongById(id) {
     return typeof SONGS_DATA !== 'undefined' ? SONGS_DATA.find((s) => s.id === id) : null;
 }
 
-// Phase 2 Checkpoint 2: shared debounce helper. Replaces the many hand-rolled
+// Shared debounce helper. Replaces the many hand-rolled
 // "clearTimeout(x); x = setTimeout(fn, ms)" pairs scattered across src/js/.
 // debounced(...args) resets the pending call on every invocation (last-call-wins
 // args), firing fn after `delay` ms of silence. debounced.cancel() cancels any
@@ -65,7 +65,7 @@ function debounce(fn, delay) {
     return debounced;
 }
 
-// Phase 2 Checkpoint 4: shared cached DOM lookup. Plain getElementById(id) was called
+// Shared cached DOM lookup. Plain getElementById(id) was called
 // repeatedly for the same id within a single file/module in several places (e.g.
 // 'subhero-search-input' 5x in 08h-panel-search.js, 'notification-badge' 5x in
 // 06j-notification-system.js). Caches by id, but verifies the cached element is still

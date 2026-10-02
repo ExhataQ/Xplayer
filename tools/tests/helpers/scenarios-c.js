@@ -1,10 +1,10 @@
 'use strict';
 
-// Event-bus call-sequence scenarios owned by Agent C: lyrics, metadata and panels (08*, 11, 12, 18-21).
+// Event-bus call-sequence scenarios for lyrics, metadata and panels (08*, 11, 12, 18-21).
 // Format and workflow: see helpers/sequence-suite.js.
 // Spy only on UI functions that live in D's files; keep scenarios small (one reaction each).
 
-// EB-C1: every place that redraws the lyrics view after a song's lyrics changed.
+// Every place that redraws the lyrics view after a song's lyrics changed.
 // Each case runs twice: with the Lyrics view open (the redraw must happen) and with another
 // view open (it must not, except at the two call sites that never had that guard).
 const LYRICS_SPY = ['renderLyricsView', 'renderTrackLyricsBox', 'showNotification'];
@@ -58,7 +58,7 @@ for (const [name, c] of Object.entries(CASES)) {
     }
 }
 
-// EB-C3: the search panel (08h). Spies include navigation calls so the position of the
+// The search panel (08h). Spies include navigation calls so the position of the
 // converted calls relative to them is pinned (the hero, the count and the list order matter).
 const SEARCH_SPY = [
     'pushViewToHistory', 'showTracklistHeader', 'setupHeroSection', 'updateHeroCover',
@@ -103,7 +103,7 @@ for (const [name, c] of Object.entries(SEARCH_CASES)) {
     SCENARIOS[`search: ${name}`] = { spy: SEARCH_SPY, setup: c.setup, run: c.run };
 }
 
-// EB-C4: the right panel tabs (08d). updateRightPanelHeader and updateInfoButtonVisibility are Agent C's
+// The right panel tabs (08d). updateRightPanelHeader and updateInfoButtonVisibility are the panel's
 // own functions; they are spied only to pin where the converted call sits relative to them.
 const TAB_SPY = ['updateRightPanelHeader', 'renderPortableRecentlyPlayed', 'updateInfoButtonVisibility', 'updateScrollbarById'];
 for (const tab of ['recently-played', 'queue', 'tags']) {

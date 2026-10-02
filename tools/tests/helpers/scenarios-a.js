@@ -1,6 +1,6 @@
 'use strict';
 
-// Event-bus call-sequence scenarios owned by Agent A: data (03*), 09, 99.
+// Event-bus call-sequence scenarios for the data files (03*, 09, 99).
 // Format and workflow: see helpers/sequence-suite.js.
 // Spy only on UI functions that live in D's files; keep scenarios small (one reaction each).
 

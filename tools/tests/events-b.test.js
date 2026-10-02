@@ -1,6 +1,6 @@
 'use strict';
 
-// Agent B's "same calls, same order" suite. Add scenarios in helpers/scenarios-b.js;
+// The "same calls, same order" suite for playback and selection (10*, 13-17). Add scenarios in helpers/scenarios-b.js;
 // the recorded sequences live in expected/events-b.json. See helpers/sequence-suite.js.
 
 const path = require('path');

@@ -78,6 +78,7 @@ Important source locations:
 * `Source/build/music_player.html` — build template.
 * `Source/tools/tests/` — the canonical automated test suite.
 * `Source/tools/change.log.txt` — project change log.
+* `Source/.agent/` — agent workflow documents: this file, `PLAN.md` (the refactor plan), `BOARD.md` (status), `reports/` (one report per patch, plus `TEMPLATE.md`), `archive/` (finished plans).
 * `Source/tools/` — development tools, test pages, playgrounds, and supporting files.
 * `App/` — generated/deployed application output.
 

@@ -1,6 +1,6 @@
 // ==============================================================================
 // RECENTLY PLAYED & PLAY HISTORY
-// (split out of 03-storage.js, Phase 2 Checkpoint 5)
+// (split out of 03-storage.js)
 // ==============================================================================
 // Event-bus conversion: this file used to call renderPortableRecentlyPlayed(),
 // renderHistoryView(), renderRecentlyPlayed(), updateExternalScrollbar() and

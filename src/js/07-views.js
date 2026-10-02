@@ -2,7 +2,7 @@
 // VIEW HELPERS
 // ==============================================================================
 
-// code-cleanup-plan.md Agent 5, Checkpoint 2: single source of truth for the app's
+// Single source of truth for the app's
 // fixed, named view names - the ones ever assigned to or compared against currentView
 // as a literal string, or passed to switchView(...). Values are unchanged from what
 // they already were.

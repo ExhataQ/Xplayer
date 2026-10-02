@@ -1,6 +1,6 @@
 'use strict';
 
-// Event-bus call-sequence scenarios owned by Agent B: playback and selection (10*, 13-17).
+// Event-bus call-sequence scenarios for playback and selection (10*, 13-17).
 // Format and workflow: see helpers/sequence-suite.js.
 // Spy only on UI functions that live in D's files; keep scenarios small (one reaction each).
 //
@@ -23,7 +23,7 @@ const ARTIST_VIEW = 'currentView = getArtists()[0].id;';
 const AFTER_TIMERS = ' await new Promise((r) => setTimeout(r, 120));';
 
 const SCENARIOS = {
-    // ---- EB-B1: 15e audio events -------------------------------------------------------------
+    // ---- 15e audio events -------------------------------------------------------------
     'audio: play/pause state sync': {
         spy: ['updateSubheroPlayButton'],
         setup: '',
@@ -50,7 +50,7 @@ const SCENARIOS = {
         run: 'audioElement.onended();'
     },
 
-    // ---- EB-B2: shuffle button (15b), repeat button (15c), next button (15d), smart shuffle (10b) ---
+    // ---- shuffle button (15b), repeat button (15c), next button (15d), smart shuffle (10b) ---
     'shuffle: toggle on then off, repeat off, All Songs view': {
         spy: MODE_SPY,
         setup: 'currentView = VIEWS.ALL_SONGS;',
@@ -107,7 +107,7 @@ const SCENARIOS = {
         run: "document.getElementById('next-btn').onclick();"
     },
 
-    // ---- EB-B3: 10c queue, 10d song start, 16 context actions ---------------------------------
+    // ---- 10c queue, 10d song start, 16 context actions ---------------------------------
     'queue: remove an upcoming song, Recent view': {
         spy: ['renderSongsList', 'renderRecentlyPlayed'],
         setup: `${TWO_SONG_QUEUE} currentView = VIEWS.RECENT;`,
@@ -159,7 +159,7 @@ const SCENARIOS = {
         run: 'deleteHistoryEntry();'
     },
 
-    // ---- EB-B4: 17 selection, favorites and counts ---------------------------------------------
+    // ---- 17 selection, favorites and counts ---------------------------------------------
     'favorites: sync after a change, Favorites view': {
         spy: SYNC_SPY,
         setup: 'saveFavorite(1); currentView = VIEWS.FAVORITES;',
@@ -255,7 +255,7 @@ const SCENARIOS = {
         setup: "leftPanelVirtualState.enabled = true; currentOpenFolderId = 'folder-x';",
         run: 'updateLeftPanelCounts();'
     },
-    // ---- EB-B3 follow-up: 16 add to playlist from the context menu -----------------------------
+    // ---- 16 add to playlist from the context menu -----------------------------
     'playlist menu: add a song while that playlist is open': {
         spy: ['renderPlaylistDetailView', 'showNotification'],
         setup: "const p = createPlaylist('P'); window.__pid = p.id; currentView = 'playlist-' + p.id;",

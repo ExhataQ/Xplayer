@@ -2,7 +2,7 @@
 // PLAYBACK AND SELECTION - UI REACTIONS
 // ==============================================================================
 // Subscribes to the events 10b, 10c, 10d, 15b, 15c, 15d, 15e, 16 and 17 emit and does the actual DOM
-// work, moved here verbatim from those files (EB-B1 to EB-B4). Emit sites keep the
+// work, moved here verbatim from those files. Emit sites keep the
 // position the old call had, and handlers run synchronously, so the order of calls
 // is unchanged.
 
@@ -62,7 +62,7 @@ on('queue:songsChanged', () => {
     }
 });
 
-// EB-B4: 17-song-selection.js. Bodies moved verbatim from syncAllUIState(), onSongsChanged(),
+// From 17-song-selection.js. Bodies moved verbatim from syncAllUIState(), onSongsChanged(),
 // refreshCurrentViewAfterMutation() and updateLeftPanelCounts().
 
 // A favorite was added or removed.

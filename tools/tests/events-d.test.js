@@ -1,6 +1,6 @@
 'use strict';
 
-// Agent D's "same calls, same order" suite. Add scenarios in helpers/scenarios-d.js;
+// The "same calls, same order" suite for the UI shell (04*-07). Add scenarios in helpers/scenarios-d.js;
 // the recorded sequences live in expected/events-d.json. See helpers/sequence-suite.js.
 
 const path = require('path');
