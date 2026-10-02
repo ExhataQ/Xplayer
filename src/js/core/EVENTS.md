@@ -26,6 +26,8 @@ There is no separate `off()` function: `on()` returns the unsubscribe function. 
 7. **Order matters.** If the old code navigated or computed something before refreshing, that step stays before the `emit`.
 8. Every converted reaction gets a call-order scenario in `tools/tests/helpers/call-sequence-scenarios.js`, with the expected sequence measured on the unconverted code first.
 
+Known exception to rule 1: `recents:count-changed` is kebab-case. It was named before the rule was written and is kept so recorded sequences and subscribers stay unchanged; rename it in Plan 2. Setter events `queue:changed`, `queue:indexChanged` and `view:changed` (core) have no subscriber yet on purpose.
+
 ## Catalog
 
 Data events (emitted by Agent A files, subscribed in `04h`-`04o`):
@@ -79,6 +81,7 @@ Agent B events (playback, selection):
 | `songs:changed` | none | `17` | `04p` |
 | `viewSongs:changed` | `{ count }` | `17` | `04p` |
 | `leftPanelCounts:changed` | none | `17` | `04p` |
+| `playlist:songAddedFromMenu` | `{ playlistId }` | `16` | `04p` |
 
 Agent C events (lyrics, panels):
 
@@ -92,7 +95,7 @@ Agent C events (lyrics, panels):
 
 `lyrics:changed` means "this song's lyrics, synced variants or display mode changed and the Lyrics view must show it". 14 emitters send it only while the Lyrics view is open (the condition stayed at the call site); the two editor buttons in `18` (`saveLyricsFromEditor`, `clearLyricsForCurrentSong`) send it unconditionally, exactly as they called `renderLyricsView()` before.
 
-`search:resultsChanged` means "the visible song list for `view` is now `songs`" (the list was already filtered; subscribers redraw, then re-apply highlight and selection). `search:summaryChanged` is emitted just before it by the main search box so the hero shows the new query and count first. Emitters keep their navigation calls (`pushViewToHistory`, `showTracklistHeader`, `updateHeroCover`, `resetLeftPanelActiveState`) as direct calls.
+`search:resultsChanged` means "the visible song list for `view` is now `songs`" (the list was already filtered; subscribers redraw, then re-apply highlight and selection). `search:summaryChanged` is emitted just before it by the main search box so the hero shows the new query and count first. The `search:summaryChanged` subscriber also calls `updateHeroCover(VIEWS.SEARCH_ITEMS)` right after `setupHeroSection`, as the emitter did. Emitters keep their navigation calls (`pushViewToHistory`, `showTracklistHeader`, `resetLeftPanelActiveState`) as direct calls.
 
 `rightPanel:tabChanged` is emitted for every tab (`queue`, `tags`, `metadata`, `recently-played`) after the header and buttons were updated; the subscriber draws the Recently played list only for that tab. It sits where the old direct call sat, so the order inside `switchRightPanelTab` is unchanged.
 

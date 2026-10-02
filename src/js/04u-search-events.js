@@ -18,6 +18,7 @@ on('search:resultsChanged', (e) => {
 on('search:summaryChanged', (e) => {
     const { query, count, sessionId } = e.detail;
     setupHeroSection(true, `"${escapeHtml(query)}"`, count, 'Search Results', sessionId, false);
+    updateHeroCover(VIEWS.SEARCH_ITEMS);
 });
 
 // The left panel search box was emptied: restore the full list.

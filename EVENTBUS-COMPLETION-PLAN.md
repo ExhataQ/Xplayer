@@ -6,7 +6,7 @@ Plan 2 is `PLAN.md` (setters, modules, storage, final flip). It starts only when
 
 `node tools/event-audit.js --strict` exits 0: no file owned by A, B or C calls a **reaction** function defined in D's files (`04*`-`07`) directly. Every such call goes through `emit()` (owner side) and `on()` (a subscriber file).
 
-Measured at the start: **164** such calls (A 41, B 81, C 42). After Agent A's work: **A 0, B 81, C 42** (123 left), plus **30** calls in A's files that stay direct by `fileExceptions` (view handlers and start-up) and that D reviews. Run `node tools/event-audit.js B` for the file-by-file list.
+Measured at the start: **164** such calls (A 41, B 81, C 42). **Final state: A 0, B 0, C 0** (`--strict` exits 0). 76 calls stay direct by `fileExceptions` in `tools/event-allowlist.json` (view handlers, start-up, the highlight subsystem), each with a reason that D reviewed (D report 0004). Status: all A, B, C and D steps done in code; **EB-D4 (full smoke checklist in the app) is still to be run by the human**. 39 events are documented in `EVENTS.md`.
 
 ## 2. What is and is not event-bus work
 

@@ -38,9 +38,7 @@ function addToPlaylistFromMenu(songId, playlistId) {
         showNotification(`Song already in ${playlist.name}`, 'warning', 2000);
     }
 
-    if (currentView === `playlist-${playlistId}`) {
-        renderPlaylistDetailView(playlistId);
-    }
+    emit('playlist:songAddedFromMenu', { playlistId });
 }
 
 function showFileLocation() {

@@ -254,6 +254,22 @@ const SCENARIOS = {
         spy: SYNC_SPY,
         setup: "leftPanelVirtualState.enabled = true; currentOpenFolderId = 'folder-x';",
         run: 'updateLeftPanelCounts();'
+    },
+    // ---- EB-B3 follow-up: 16 add to playlist from the context menu -----------------------------
+    'playlist menu: add a song while that playlist is open': {
+        spy: ['renderPlaylistDetailView', 'showNotification'],
+        setup: "const p = createPlaylist('P'); window.__pid = p.id; currentView = 'playlist-' + p.id;",
+        run: 'addToPlaylistFromMenu(1, window.__pid);'
+    },
+    'playlist menu: add a song that is already in the open playlist': {
+        spy: ['renderPlaylistDetailView', 'showNotification'],
+        setup: "const p = createPlaylist('P'); window.__pid = p.id; addSongToPlaylist(1, p.id); currentView = 'playlist-' + p.id;",
+        run: 'addToPlaylistFromMenu(1, window.__pid);'
+    },
+    'playlist menu: add a song while another view is open': {
+        spy: ['renderPlaylistDetailView', 'showNotification'],
+        setup: "const p = createPlaylist('P'); window.__pid = p.id; currentView = VIEWS.ALL_SONGS;",
+        run: 'addToPlaylistFromMenu(1, window.__pid);'
     }
 };
 

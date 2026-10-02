@@ -72,10 +72,10 @@ Agents: A defines the setters; A, B, C, D each replace the writes in their own f
 
 For each group, create an owner file, define setters, replace every outside write with a setter call, emit the matching event from the setter, and leave reads as bare variables for now. The variable stays declared in `00-state.js`; only the writes move.
 
-- [ ] 1a. Queue: `playbackQueue`, `currentQueueIndex`, `queueDisplayLimit`. Events: `queue:changed`, `queue:index-changed`.
+- [ ] 1a. Queue: `playbackQueue`, `currentQueueIndex`, `queueDisplayLimit`. Events: `queue:changed`, `queue:indexChanged` (already emitted by the setters).
 - [ ] 1b. Playback modes: `isShuffled`, `shuffleMode`, `repeatMode`, `repeatFunctionalityActive`, `repeatVisualState`. Events: `playback:mode-changed`.
 - [ ] 1c. Now-playing bookkeeping: `lastPlayedSong`, `lastPlayedSongStartTime`, `isManualPlay`, `isPrevNavigation`.
-- [ ] 1d. Navigation: `currentView`, `searchQuery`, `historyNavigationIndex`, `playbackHistoryStack`, `isNavigatingHistory`, `lyricsPre*`. Event: `view:changed`.
+- [ ] 1d. Navigation: `currentView`, `searchQuery`, `historyNavigationIndex`, `playbackHistoryStack`, `isNavigatingHistory`, `lyricsPre*`. Event: `view:changed` (already emitted by the setter).
 - [ ] 1e. Folders and library: `currentOpenFolder*`, `selectedLibraryFolders`.
 - [ ] 1f. Ghost-list counters and transient UI globals: move each into its own file (`02`, `04a`, `06c`, `06j`, `06b`) or into a small owner. These are low risk.
 
@@ -89,9 +89,9 @@ Agents: A owns the event catalog; A, B, C, D each emit or listen in their own fi
 
 The most-shared functions are mostly "something changed, redraw": `renderLeftPanelMainList` (17 files), `renderSongsList` (14), `updateHeroCover` (10), `renderPlaylistsView` (9). Replace these cross-subsystem calls with events; keep ordinary same-subsystem calls as they are.
 
-- [ ] Event catalog (start here, extend only when a caller needs it): `song:changed`, `song:started`, `song:ended`, `queue:changed`, `library:changed`, `playlists:changed`, `favorites:changed`, `history:changed`, `view:changed`, `settings:changed`, `lyrics:loaded`.
-- [ ] Renderers subscribe to the events they care about; emitters stop calling renderers.
-- [ ] Write a short listener-registration rule: who subscribes, where, and how (one `init` per subsystem, called from the `DOMContentLoaded` handler).
+- [x] Event catalog: done in Plan 1. The real names (39 events, with payload, owner and subscriber file) are in `src/js/core/EVENTS.md`; the old illustrative names (`song:changed`, `playlists:changed`, `lyrics:loaded`...) are not used.
+- [x] Renderers subscribe to the events they care about; emitters stop calling renderers. Done in Plan 1: `node tools/event-audit.js --strict` exits 0 (76 excepted calls, each with a reason, in `tools/event-allowlist.json`).
+- [x] Listener-registration rule: written as rule 5 in `EVENTS.md`. Subscribers are `on(...)` calls at the top level of `04x-*-events.js` files (no `init` function); revisit when files become modules.
 - [ ] Do not route ordinary function calls or per-frame work (scroll, hover, timeupdate) through the bus.
 
 Done when: the five most shared render/update functions have no callers outside their own subsystem (`node tools/dep-map.js uses renderSongsList` etc.).

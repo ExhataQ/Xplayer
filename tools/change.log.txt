@@ -3,4 +3,15 @@
 - Added folder event subscribers, 52 state setters, setter tests, event documentation, agent report, and smoke checklist.
 - Added acorn and acorn-walk as development dependencies for dependency analysis.
 - Converted A-owned state writes to setter calls and expanded event wiring tests.
-- Verification: node --test tools/tests/*.test.js — 131 tests, 129 passed, 0 failed, 2 skipped.
+- Verification: node --test tools/tests/*.test.js ï¿½ 131 tests, 129 passed, 0 failed, 2 skipped.
+
+2026-10-02
+- Agent B, Plan 1 (EB-B1 to EB-B4, restored after merge): audio-ended and play/pause, shuffle, repeat, next button, smart shuffle, queue removal, song start, history delete, favorites sync, songs changed, mutation refresh and left-panel counts now emit events. Subscribers in src/js/04p-playback-events.js (11 events), rows in EVENTS.md, 45 call-order scenarios in scenarios-b.js.
+- Agent B, EB-B3 follow-up: addToPlaylistFromMenu() in 16-context-menu-actions.js emits playlist:songAddedFromMenu instead of calling renderPlaylistDetailView(). This call was hidden by the old name-based allowlist and found after D's per-call allowlist (D report 0002). 3 new scenarios. Event audit for B: 31 -> 30; the 30 left are the highlight calls waiting for D's decision on EB-B5.
+
+2026-10-03
+- Agent D, Plan 1 close-out (reports 0001 to 0004): per-call allowlist support in event-audit.js; allowlist categories corrected (virtualScroll added, updateNavigationButtons to setup); fileExceptions reviewed and accepted, plus entries for the EB-B5 highlight calls (13, 17). Audit: A 0, B 0, C 0; --strict exits 0.
+- EVENTS.md: note on the one kebab-case name. EVENTBUS-COMPLETION-PLAN.md and PLAN.md updated to the real event names and status.
+
+2026-10-02
+- EB-C5 (Agent C): moved the last direct updateHeroCover(VIEWS.SEARCH_ITEMS) call in 08h-panel-search.js into the search:summaryChanged subscriber (04u), right after setupHeroSection, same order. Agent C audit: 1 -> 0. No allowlist entry needed. Verification (C): events-c, manifest, events-wiring, search-ui, search-engine, 41 passed, 0 failed.

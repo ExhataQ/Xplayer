@@ -297,5 +297,16 @@
     ],
     "left panel counts: virtual list enabled but a folder is open": [
         "updateLeftPanelCounts"
+    ],
+    "playlist menu: add a song while that playlist is open": [
+        "showNotification",
+        "renderPlaylistDetailView"
+    ],
+    "playlist menu: add a song that is already in the open playlist": [
+        "showNotification",
+        "renderPlaylistDetailView"
+    ],
+    "playlist menu: add a song while another view is open": [
+        "showNotification"
     ]
 }

@@ -139,3 +139,12 @@ on('leftPanelCounts:changed', () => {
     leftPanelVirtualState.currentItems = items;
     renderLeftPanelVisibleItems(false);
 });
+
+// 16-context-menu-actions.js: the user added a song to a playlist from the context menu.
+// The open playlist view is redrawn so the new song shows up (check moved from addToPlaylistFromMenu()).
+on('playlist:songAddedFromMenu', (e) => {
+    const { playlistId } = e.detail;
+    if (currentView === `playlist-${playlistId}`) {
+        renderPlaylistDetailView(playlistId);
+    }
+});

@@ -73,7 +73,6 @@ function performSearchNow() {
             count: filteredSongs.length,
             sessionId: currentSearchSessionId
         });
-        updateHeroCover(VIEWS.SEARCH_ITEMS);
 
         const countElement = getCachedEl('all-songs-count');
         if (countElement) {

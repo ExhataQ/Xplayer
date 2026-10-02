@@ -158,14 +158,14 @@
                     "renderFolderContents",
                     "renderPlaylistDetailView"
                 ],
-                "why": "openPlaylist(), openFolder() and the go-up-one-folder handler open a view (navigation). toggleFolderExpandedFromUI() also calls renderFolderContents after the user clicks a chevron; it saves the expanded state and redraws the open folder, the same kind of click handler as closeFolder(). D's report 0001 called that one call a reaction: D to decide. The reaction at 09:88 was converted in EB-A5 (playlist:songRemovedFromView)."
+                "why": "openPlaylist(), openFolder() and the go-up-one-folder handler open a view (navigation). toggleFolderExpandedFromUI() also calls renderFolderContents after the user clicks a chevron; it saves the expanded state and redraws the open folder, the same kind of click handler as closeFolder(). D decided (report 0004): accepted. It is a click handler that saves UI state and redraws the folder the user is looking at; nothing else in the app needs to react. The reaction at 09:88 was converted in EB-A5 (playlist:songRemovedFromView)."
             },
             {
                 "file": "99-player.js",
                 "names": [
                     "renderFolderContents"
                 ],
-                "why": "Start-up: first paint when a folder is open at launch. Runs once."
+                "why": "togglePlaylistsFilter() (filter button click) redraws the open folder. View handler, not a reaction to data. Not start-up as first written; D corrected the reason in report 0004."
             },
             {
                 "file": "08e-panel-settings.js",
@@ -176,6 +176,23 @@
                     "updateActiveHighlight"
                 ],
                 "why": "EB-C2 (Agent C report 0002): openSettingsPanel, enterSettingsFromHistory, enterAdvancedSettingsFromHistory and toggleSettingsPanel set up the settings view the user just opened. Scoped to this file instead of the global navigation list so it does not hide the same names in A's and B's files. updateActiveHighlight here is C's judgment; B's EB-B5 decision about the same name in 13 and 17 is separate and still waits for D."
+            },
+            {
+                "file": "13-song-highlight.js",
+                "names": [
+                    "updateActiveHighlight",
+                    "updateSelectionHighlight",
+                    "updateHoverHighlightAfterScroll"
+                ],
+                "why": "EB-B5 (Agent B report 0005, approved by D report 0004): these paint the active-song and selection highlight layers. 13 and 04a are one subsystem split over two files. applyStoredHighlight() runs from renderVisibleItems() on virtual-scroll frames, so no events (EVENTS.md rule 4). Revisit in Plan 2 by moving ownership."
+            },
+            {
+                "file": "17-song-selection.js",
+                "names": [
+                    "updateActiveHighlight",
+                    "updateSelectionHighlight"
+                ],
+                "why": "EB-B5 (Agent B report 0005, approved by D report 0004): the 30 ms timer in refreshCurrentViewAfterMutation() repaints the same highlight layers as 13 after a mutation. Same subsystem, same decision."
             }
         ]
     }
