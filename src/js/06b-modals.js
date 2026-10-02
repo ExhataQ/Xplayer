@@ -763,7 +763,7 @@ function showDownloadNotification(percent, status) {
 
     if (notificationHistory.length > 50) {
         if (downloadNotifyIndex >= 50) downloadNotifyIndex = -1;
-        notificationHistory = notificationHistory.slice(0, 50);
+        setNotificationHistory(notificationHistory.slice(0, 50));
     }
 
     renderNotificationPanel();
@@ -915,7 +915,7 @@ function addSongToQueueAndPlay(song) {
     };
 
     playbackQueue.splice(currentQueueIndex + 1, 0, queueItem);
-    currentQueueIndex = currentQueueIndex + 1;
+    setCurrentQueueIndex(currentQueueIndex + 1);
 
     playSongFromQueue(currentQueueIndex);
     updateQueueDisplay();

@@ -6,8 +6,8 @@ function resetSearchState() {
     if (searchInput) {
         searchInput.value = '';
     }
-    searchQuery = '';
-    currentSearchSessionId = null;
+    setSearchQuery('');
+    setCurrentSearchSessionId(null);
 }
 
 function resetSubheroSearch() {
@@ -33,13 +33,13 @@ const SEARCH_DEBOUNCE_MS = 300;
 // calls; performSearchNow is the actual search logic, unchanged, just renamed and
 // no longer responsible for its own timer bookkeeping.
 function performSearchNow() {
-    searchQuery = getCachedEl('search-input').value.toLowerCase().trim();
+    setSearchQuery(getCachedEl('search-input').value.toLowerCase().trim());
 
     if (searchQuery === '') {
         searchTypingSessionId = null;
         pushViewToHistory(VIEWS.ALL_SONGS);
-        currentView = VIEWS.ALL_SONGS;
-        currentSearchSessionId = null;
+        setCurrentView(VIEWS.ALL_SONGS);
+        setCurrentSearchSessionId(null);
         const allSongs = getSongsForList(VIEWS.ALL_SONGS);
         emit('search:resultsChanged', { view: VIEWS.ALL_SONGS, songs: allSongs });
         getCachedEl('all-songs-count').textContent = allSongs.length;
@@ -49,12 +49,12 @@ function performSearchNow() {
         const filteredSongs = getSongsForList(VIEWS.SEARCH);
 
         pushViewToHistory(VIEWS.SEARCH_ITEMS);
-        currentView = VIEWS.SEARCH_ITEMS;
+        setCurrentView(VIEWS.SEARCH_ITEMS);
 
         const continuingSearch =
             currentSearchSessionId !== null && currentSearchSessionId === searchTypingSessionId;
         if (!continuingSearch) {
-            currentSearchSessionId = 'Search' + Date.now();
+            setCurrentSearchSessionId('Search' + Date.now());
             searchTypingSessionId = currentSearchSessionId;
         }
         ghostLists[VIEWS.SEARCH] = [currentSearchSessionId];
@@ -63,7 +63,7 @@ function performSearchNow() {
         for (let i = 0; i < filteredSongs.length; i++) {
             ghostLists[VIEWS.SEARCH_ITEMS].push(`SearchItem${String(i + 1).padStart(5, '0')}`);
         }
-        nextSearchItemSlotId = filteredSongs.length + 1;
+        setNextSearchItemSlotId(filteredSongs.length + 1);
 
         saveSearchToHistory(searchQuery, currentSearchSessionId, filteredSongs.length);
 

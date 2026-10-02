@@ -350,7 +350,7 @@ const viewHandlers = {
     },
     [VIEWS.ONLINE_LYRICS]: {
         enter: () => {
-            currentView = VIEWS.ONLINE_LYRICS;
+            setCurrentView(VIEWS.ONLINE_LYRICS);
             resetLeftPanelActiveState();
             resetViewScroll();
             setSubheroVisibility(VIEWS.ONLINE_LYRICS);
@@ -362,7 +362,7 @@ const viewHandlers = {
     },
     [VIEWS.SMART_LYRICS]: {
         enter: () => {
-            currentView = VIEWS.SMART_LYRICS;
+            setCurrentView(VIEWS.SMART_LYRICS);
             resetLeftPanelActiveState();
             resetViewScroll();
             setSubheroVisibility(VIEWS.SMART_LYRICS);
@@ -374,7 +374,7 @@ const viewHandlers = {
     },
     [VIEWS.LYRICS]: {
         enter: () => {
-            currentView = VIEWS.LYRICS;
+            setCurrentView(VIEWS.LYRICS);
             resetLeftPanelActiveState();
             resetViewScroll();
             setSubheroVisibility(VIEWS.LYRICS);
@@ -392,10 +392,10 @@ const viewHandlers = {
             if (searchHistory.length > 0) {
                 const lastSearch = searchHistory[0];
                 searchInput.value = lastSearch.query;
-                searchQuery = lastSearch.query.toLowerCase().trim();
-                currentSearchSessionId = lastSearch.sessionId;
+                setSearchQuery(lastSearch.query.toLowerCase().trim());
+                setCurrentSearchSessionId(lastSearch.sessionId);
             }
-            currentView = VIEWS.SEARCH_ITEMS;
+            setCurrentView(VIEWS.SEARCH_ITEMS);
             resetLeftPanelActiveState();
             closeSettingsPanel();
             resetViewScroll();
@@ -434,7 +434,7 @@ const viewHandlers = {
             if (lyricsRoot) lyricsRoot.style.display = 'none';
             document.body.classList.remove('in-lyrics-view');
 
-            currentView = view;
+            setCurrentView(view);
             resetLeftPanelActiveState();
             activateLeftPanelItem(view);
             updateHeroCover(view);
@@ -556,7 +556,7 @@ function pushToHistoryStack(song) {
     const actualSong = song.song || song;
 
     if (historyNavigationIndex < playbackHistoryStack.length - 1) {
-        playbackHistoryStack = playbackHistoryStack.slice(0, historyNavigationIndex + 1);
+        setPlaybackHistoryStack(playbackHistoryStack.slice(0, historyNavigationIndex + 1));
     }
 
     const historyEntry = {
@@ -573,15 +573,15 @@ function pushToHistoryStack(song) {
 
     playbackHistoryStack.push(historyEntry);
 
-    historyNavigationIndex = playbackHistoryStack.length - 1;
+    setHistoryNavigationIndex(playbackHistoryStack.length - 1);
 
     if (playbackHistoryStack.length > 100) {
         playbackHistoryStack.shift();
-        historyNavigationIndex--;
+        setHistoryNavigationIndex(historyNavigationIndex - 1);
     }
 
-    isManualPlay = false;
-    isPrevNavigation = false;
+    setIsManualPlay(false);
+    setIsPrevNavigation(false);
 }
 
 function pushViewToHistory(view) {
@@ -594,13 +594,13 @@ function pushViewToHistory(view) {
     }
 
     if (historyNavigationIndex > 0 && playbackHistoryStack[historyNavigationIndex - 1]?.listId === view) {
-        historyNavigationIndex--;
+        setHistoryNavigationIndex(historyNavigationIndex - 1);
         updateNavigationButtons();
         return;
     }
 
     if (historyNavigationIndex < playbackHistoryStack.length - 1) {
-        playbackHistoryStack = playbackHistoryStack.slice(0, historyNavigationIndex + 1);
+        setPlaybackHistoryStack(playbackHistoryStack.slice(0, historyNavigationIndex + 1));
     }
 
     playbackHistoryStack.push({
@@ -609,11 +609,11 @@ function pushViewToHistory(view) {
         queueIndex: currentQueueIndex
     });
 
-    historyNavigationIndex = playbackHistoryStack.length - 1;
+    setHistoryNavigationIndex(playbackHistoryStack.length - 1);
 
     if (playbackHistoryStack.length > 100) {
         playbackHistoryStack.shift();
-        historyNavigationIndex--;
+        setHistoryNavigationIndex(historyNavigationIndex - 1);
     }
 
     updateNavigationButtons();
@@ -632,14 +632,14 @@ function goBack() {
         return;
     }
 
-    isNavigatingHistory = true;
-    historyNavigationIndex--;
+    setIsNavigatingHistory(true);
+    setHistoryNavigationIndex(historyNavigationIndex - 1);
 
     const historyEntry = playbackHistoryStack[historyNavigationIndex];
     let targetView = historyEntry.listId;
 
     if (targetView === '__navigate__' && canGoBack()) {
-        historyNavigationIndex--;
+        setHistoryNavigationIndex(historyNavigationIndex - 1);
         targetView = playbackHistoryStack[historyNavigationIndex].listId;
     }
 
@@ -662,7 +662,7 @@ function goBack() {
         switchView(targetView);
     }
 
-    isNavigatingHistory = false;
+    setIsNavigatingHistory(false);
     updateNavigationButtons();
 }
 
@@ -671,14 +671,14 @@ function goForward() {
         return;
     }
 
-    isNavigatingHistory = true;
-    historyNavigationIndex++;
+    setIsNavigatingHistory(true);
+    setHistoryNavigationIndex(historyNavigationIndex + 1);
 
     const historyEntry = playbackHistoryStack[historyNavigationIndex];
     let targetView = historyEntry.listId;
 
     if (targetView === '__navigate__' && canGoForward()) {
-        historyNavigationIndex++;
+        setHistoryNavigationIndex(historyNavigationIndex + 1);
         targetView = playbackHistoryStack[historyNavigationIndex].listId;
     }
 
@@ -701,7 +701,7 @@ function goForward() {
         switchView(targetView);
     }
 
-    isNavigatingHistory = false;
+    setIsNavigatingHistory(false);
     updateNavigationButtons();
 }
 
@@ -765,7 +765,7 @@ function openDetailView(id, type) {
 
     pushViewToHistory(viewName);
 
-    currentView = viewName;
+    setCurrentView(viewName);
     updateHeroCover(viewName);
     updateSubheroPlayButton(isCurrentViewPlaying());
     setSubheroVisibility(viewName);
@@ -873,21 +873,21 @@ function switchToLyrics() {
                 restoreScrollPosition();
                 requestAnimationFrame(() => {
                     restoreScrollPosition();
-                    lyricsPreView = null;
-                    lyricsPreScrollTop = 0;
+                    setLyricsPreView(null);
+                    setLyricsPreScrollTop(0);
                 });
             });
         } else {
-            lyricsPreView = null;
-            lyricsPreScrollTop = 0;
+            setLyricsPreView(null);
+            setLyricsPreScrollTop(0);
         }
         return;
     }
 
     if (lyricsPreView === null) {
         const content = document.querySelector('.content');
-        lyricsPreScrollTop = content ? content.scrollTop : 0;
-        lyricsPreView = currentView;
+        setLyricsPreScrollTop(content ? content.scrollTop : 0);
+        setLyricsPreView(currentView);
     }
 
     document.body.classList.add('in-lyrics-view');
@@ -976,7 +976,7 @@ function switchView(view) {
     resetSearchState();
     resetSubheroSearch();
 
-    currentView = view;
+    setCurrentView(view);
     document.body.classList.toggle('view-all-songs', view === VIEWS.ALL_SONGS);
     document.body.classList.toggle('view-favorites', view === VIEWS.FAVORITES);
     updateHeroCover(view);
@@ -1107,14 +1107,14 @@ function handleHeroClear() {
 
 function openSearchHistoryChild(sessionId, query) {
     searchInput.value = query;
-    searchQuery = query.toLowerCase().trim();
+    setSearchQuery(query.toLowerCase().trim());
 
     const filteredSongs = getSearchResults(searchQuery);
 
     pushViewToHistory(VIEWS.SEARCH_ITEMS);
 
-    currentView = VIEWS.SEARCH_ITEMS;
-    currentSearchSessionId = sessionId;
+    setCurrentView(VIEWS.SEARCH_ITEMS);
+    setCurrentSearchSessionId(sessionId);
 
     resetViewScroll();
 
@@ -1122,7 +1122,7 @@ function openSearchHistoryChild(sessionId, query) {
     for (let i = 0; i < filteredSongs.length; i++) {
         ghostLists[VIEWS.SEARCH_ITEMS].push(`SearchItem${String(i + 1).padStart(5, '0')}`);
     }
-    nextSearchItemSlotId = filteredSongs.length + 1;
+    setNextSearchItemSlotId(filteredSongs.length + 1);
 
     setupHeroSection(true, escapeHtml(query), filteredSongs.length, 'Search', sessionId, true);
 

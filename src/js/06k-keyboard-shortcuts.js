@@ -103,8 +103,8 @@ document.addEventListener('keydown', function (e) {
                         if (!nextSong) break;
                         newQueue.push(nextSong);
                     }
-                    playbackQueue = newQueue;
-                    currentQueueIndex = 0;
+                    setPlaybackQueue(newQueue);
+                    setCurrentQueueIndex(0);
                     playSongFromQueue(0);
                 } else {
                     createQueueFromSongList(SONGS_DATA, 0);

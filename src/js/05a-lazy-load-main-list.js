@@ -286,7 +286,7 @@ function renderVisibleItems(content, showPlaceholders) {
 
     if (typeof hideHoverHighlight === 'function') {
         hideHoverHighlight();
-        hoveredSongIndex = -1;
+        setHoveredSongIndex(-1);
     }
 
     state.placeholderMode = !!showPlaceholders;

@@ -271,13 +271,13 @@ function setSmartShuffleSetting(key, value) {
 
 function openAdvancedSettings() {
     pushViewToHistory(VIEWS.SETTINGS_ADVANCED);
-    advancedSettingsOpen = true;
+    setAdvancedSettingsOpen(true);
     renderAdvancedSettingsPanel();
 }
 
 function closeAdvancedSettings() {
     pushViewToHistory(VIEWS.SETTINGS);
-    advancedSettingsOpen = false;
+    setAdvancedSettingsOpen(false);
     openSettingsPanel();
 }
 
@@ -409,8 +409,8 @@ function updateThresholdSliderFill(value) {
 }
 
 function enterSettingsFromHistory() {
-    advancedSettingsOpen = false;
-    currentView = VIEWS.SETTINGS;
+    setAdvancedSettingsOpen(false);
+    setCurrentView(VIEWS.SETTINGS);
     resetLeftPanelActiveState();
     resetViewScroll();
     setSubheroVisibility(VIEWS.SETTINGS);
@@ -425,8 +425,8 @@ function enterSettingsFromHistory() {
 }
 
 function enterAdvancedSettingsFromHistory() {
-    advancedSettingsOpen = true;
-    currentView = VIEWS.SETTINGS;
+    setAdvancedSettingsOpen(true);
+    setCurrentView(VIEWS.SETTINGS);
     resetLeftPanelActiveState();
     resetViewScroll();
     setSubheroVisibility(VIEWS.SETTINGS);
@@ -441,7 +441,7 @@ function enterAdvancedSettingsFromHistory() {
 }
 
 function closeSettingsPanelOnly() {
-    advancedSettingsOpen = false;
+    setAdvancedSettingsOpen(false);
     if (currentView === VIEWS.ALL_SONGS) {
         teardownLazyLoading();
     }
@@ -489,9 +489,9 @@ function toggleSettingsPanel() {
             lyricsSavedView = null;
         }
 
-        advancedSettingsOpen = false;
+        setAdvancedSettingsOpen(false);
         pushViewToHistory(VIEWS.SETTINGS);
-        currentView = VIEWS.SETTINGS;
+        setCurrentView(VIEWS.SETTINGS);
         resetLeftPanelActiveState();
         resetViewScroll();
 

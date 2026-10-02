@@ -33,10 +33,10 @@ function toggleRightPanel() {
     }
 
     if (isInTags) {
-        lastRightPanelStateBeforeQueue = {
+        setLastRightPanelStateBeforeQueue({
             wasCollapsed: rightPanelCollapsed,
             wasTab: 'tags'
-        };
+        });
 
         if (rightPanelCollapsed) {
             expandRightPanel();
@@ -53,10 +53,10 @@ function toggleRightPanel() {
     }
 
     if (rightPanelCollapsed || !rightPanel.classList.contains('active')) {
-        lastRightPanelStateBeforeQueue = {
+        setLastRightPanelStateBeforeQueue({
             wasCollapsed: true,
             wasTab: 'queue'
-        };
+        });
 
         expandRightPanel();
         rightPanel.classList.add('active');
@@ -117,7 +117,7 @@ function openTagsTab() {
 }
 
 function collapseRightPanel() {
-    rightPanelCollapsed = true;
+    setRightPanelCollapsed(true);
     const rightPanel = rightPanelElement;
     const collapseBtn = document.getElementById('right-panel-collapse-btn');
     const collapseIcon = document.getElementById('right-panel-collapse-icon');
@@ -164,7 +164,7 @@ function collapseRightPanel() {
 }
 
 function expandRightPanel() {
-    rightPanelCollapsed = false;
+    setRightPanelCollapsed(false);
     const rightPanel = rightPanelElement;
     const collapseBtn = document.getElementById('right-panel-collapse-btn');
     const collapseIcon = document.getElementById('right-panel-collapse-icon');

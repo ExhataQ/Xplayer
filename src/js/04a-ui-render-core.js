@@ -464,13 +464,13 @@ function renderSongsList(songs, listId = VIEWS.ALL_SONGS) {
         for (let i = 0; i < songs.length; i++) {
             ghostLists[VIEWS.SEARCH_ITEMS].push(`SearchItem${String(i + 1).padStart(5, '0')}`);
         }
-        nextSearchItemSlotId = songs.length + 1;
+        setNextSearchItemSlotId(songs.length + 1);
     } else if (listId === VIEWS.FAVORITES) {
         ghostLists[VIEWS.FAVORITES] = [];
         for (let i = 0; i < songs.length; i++) {
             ghostLists[VIEWS.FAVORITES].push(`Favorites${String(i + 1).padStart(5, '0')}`);
         }
-        nextFavoriteSlotId = songs.length + 1;
+        setNextFavoriteSlotId(songs.length + 1);
     } else if (listId && listId.startsWith('playlist-')) {
         ghostLists[listId] = [];
         for (let i = 0; i < songs.length; i++) {
@@ -651,8 +651,8 @@ function initHoverLayer() {
 function handleHoverMouseMove(e) {
     if (document.body.classList.contains('dragging-scrollbar')) return;
 
-    lastMouseX = e.clientX;
-    lastMouseY = e.clientY;
+    setLastMouseX(e.clientX);
+    setLastMouseY(e.clientY);
 
     const songList = document.getElementById('song-list');
     const songItems = songList ? songList.querySelectorAll('.song-item') : [];

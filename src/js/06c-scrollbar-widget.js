@@ -218,7 +218,7 @@ function initExternalScrollbar(contentId, scrollbarId, thumbId) {
 
             if (typeof hideHoverHighlight === 'function') {
                 hideHoverHighlight();
-                hoveredSongIndex = -1;
+                setHoveredSongIndex(-1);
             }
 
             if (typeof settleVirtualScrollAfterThumbRelease === 'function') {

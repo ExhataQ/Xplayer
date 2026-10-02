@@ -153,7 +153,7 @@ function closeNotificationPanel() {
 
 function clearAllNotifications() {
     notificationHistory = [];
-    downloadNotifyIndex = -1;
+    setDownloadNotifyIndex(-1);
     renderNotificationPanel();
     const badge = getCachedEl('notification-badge');
     if (badge) {
@@ -167,9 +167,9 @@ function clearAllNotifications() {
 
 function removeNotificationItem(index) {
     if (notificationHistory[index] && notificationHistory[index].isDownloadProgress) {
-        downloadNotifyIndex = -1;
+        setDownloadNotifyIndex(-1);
     } else if (downloadNotifyIndex > index) {
-        downloadNotifyIndex--;
+        setDownloadNotifyIndex(downloadNotifyIndex - 1);
     }
     notificationHistory.splice(index, 1);
     renderNotificationPanel();
