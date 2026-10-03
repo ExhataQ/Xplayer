@@ -48,7 +48,7 @@ function refreshCurrentViewAfterMutation() {
     });
 
     selectionHighlights.forEach((el) => el.remove());
-    selectionHighlights = [];
+    setSelectionHighlights([]);
 
     let count = null;
 
@@ -106,11 +106,11 @@ function pruneSelectionSet(validIds) {
     });
 
     if (selectedSongId !== null && !validIds.has(selectedSongId)) {
-        selectedSongId = selectedSongIds.size > 0 ? selectedSongIds.values().next().value : null;
+        setSelectedSongId(selectedSongIds.size > 0 ? selectedSongIds.values().next().value : null);
     }
 
     if (selectedSongId === null) {
-        lastSelectedIndex = null;
+        setLastSelectedIndex(null);
     }
 
     if (selectedSongIds.size === 0) {

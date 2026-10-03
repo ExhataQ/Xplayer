@@ -17,6 +17,7 @@
   "js": [
     "00-state.js",
     "00b-events.js",
+    "core/legacy.js",
     "01-sizes.js",
     "02-ghost-list.js",
     "core/state-queue.js",

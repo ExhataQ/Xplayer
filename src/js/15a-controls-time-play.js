@@ -1,3 +1,5 @@
+let showRemainingTime = false;
+
 // ==============================================================================
 // TIME FORMATTING
 // ==============================================================================
@@ -8,7 +10,7 @@ function formatTime(seconds) {
 }
 
 function toggleTimeDisplay() {
-    showRemainingTime = !showRemainingTime;
+    setShowRemainingTime(!showRemainingTime);
     updateTimeDisplay();
 }
 

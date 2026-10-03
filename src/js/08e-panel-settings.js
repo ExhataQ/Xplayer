@@ -1,6 +1,8 @@
 // ==============================================================================
 // SETTINGS PANEL
 // ==============================================================================
+let advancedSettingsOpen = false;
+
 function openSettingsPanel() {
     if (advancedSettingsOpen) {
         renderAdvancedSettingsPanel();

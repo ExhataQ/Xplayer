@@ -2,6 +2,7 @@
 // PROGRESS BAR SEEKING
 // ==============================================================================
 let isSeeking = false;
+let wasPlaying = false;
 
 const progressContainer = document.querySelector('.progress-container');
 if (progressContainer) {
@@ -14,7 +15,7 @@ function startSeek(e) {
     if (!audioElement.duration) return;
 
     isSeeking = true;
-    wasPlaying = !audioElement.paused;
+    setWasPlaying(!audioElement.paused);
 
     if (wasPlaying) {
         audioElement.pause();
@@ -78,7 +79,7 @@ function stopSeekGlobal() {
     if (wasPlaying) {
         audioElement.play().catch((e) => {});
     }
-    wasPlaying = false;
+    setWasPlaying(false);
 }
 
 function updateSeekPosition(clientX) {

@@ -38,7 +38,7 @@ function navigateToCurrentSongInList() {
         songIndex = songList.findIndex((s) => s.id === currentSong.id);
         targetView = VIEWS.SEARCH;
         searchInput.value = currentItem.searchQuery;
-        searchQuery = currentItem.searchQuery;
+        setSearchQuery(currentItem.searchQuery);
     } else if (sourceListId === VIEWS.HISTORY) {
         const history = getPlayHistory();
         songIndex = history.findIndex((e) => e.id === currentSong.id);

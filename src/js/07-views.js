@@ -2,6 +2,8 @@
 // VIEW HELPERS
 // ==============================================================================
 
+let isNavigatingHistory = false;
+
 // Single source of truth for the app's
 // fixed, named view names - the ones ever assigned to or compared against currentView
 // as a literal string, or passed to switchView(...). Values are unchanged from what

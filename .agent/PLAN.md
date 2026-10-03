@@ -101,12 +101,12 @@ Done: `node tools/event-audit.js --strict` exits 0. Run it after every phase; a 
 
 Agents: A builds the mechanism; B, C, D convert handlers in their own files.
 
-- [ ] Add `registerLegacyGlobals({ name: fn, … })` (assigns onto `window`) so each converted module lists its own names; no central file owns all 198.
-- [ ] Add one delegated dispatcher for `data-action="name"` (+ `data-*` args) on `document`.
+- [x] Add `registerLegacyGlobals({ name: fn, … })` (assigns onto `window`) so each converted module lists its own names; no central file owns all 198.
+- [x] Add one delegated dispatcher for `data-action="name"` (+ `data-*` args) on `document`.
 - [ ] Convert inline `onclick=` strings to `data-action` as each view is touched. Heaviest first: `08e-panel-settings` (36), `19-online-lyrics` (33), `06a-context-menus` (31), `11c` (20), `06b-modals` (16), `11d` (15).
 - [ ] Also check `build/music_player.html` (49 inline handlers).
 
-Done when: the bridge and dispatcher exist and are covered by a browser test. Full removal of `on…=` strings is tracked, not required, before Phase 6.
+Status: the bridge and dispatcher exist and are covered by a browser test (`core/legacy.js`, guide in `core/LEGACY.md`). Converting the strings is the remaining work. Full removal of `on…=` strings is tracked, not required, before Phase 6.
 
 ### Phase 4: extract pure logic into real modules
 
@@ -251,10 +251,10 @@ Rules:
 
 ### 9.2 Start order
 
-1. **Done:** tools, baselines and smoke checklist (A-01 to A-03), setters (A-06), A's own writes (A-07, first half), and the whole event bus (A-05, A-08, A-09, B-05, B-06, C-02, C-03, D-03, D-04).
+1. **Done:** tools, baselines and smoke checklist (A-01 to A-03), the module spike (A-04), setters (A-06), A's own writes (A-07), the handler bridge (A-10), and the whole event bus (A-05, A-08, A-09, B-05, B-06, C-02, C-03, D-03, D-04).
 2. **Done:** the module spike (A-04) passed in Electron 44.5.1 on Linux. Optional, one command: run it with your own `App\electron.exe` (`tools/spike-modules/README.md`).
 3. **B, C, D in parallel, start now:** replace writes in their own files (B-01 to B-04, C-01, D-01, D-02), and report which variables only their files use.
-4. **A:** removes those variables from `00-state.js` (A-07b). A can already build the handler bridge (A-10): A-04 passed.
+4. **A:** removes those variables from `00-state.js` (A-07b), as each owner's patch arrives. The handler bridge exists, so B-07, C-04 and D-05 (inline handlers) and the leaf modules (A-12, B-08, C-05, D-07) can start in parallel with step 3 and do not wait for A-07b.
 5. **B, C, D in parallel:** convert inline handlers (B-07, C-04, D-05).
 6. **In parallel:** leaf modules (A-12, B-08, C-05, D-07) and the `99-player` split (A-11).
 7. **A** builds storage and `api/` (A-13, A-14); then B, C, D swap their calls.
@@ -294,9 +294,9 @@ Each step is sized for one session or less. The IDs are used in reports and on t
   - Needs: B-02, B-03, B-04, C-01, D-01, D-02
 - [x] **A-08** (Phase 2) **Emit events from data changes.** Done in the first plan: the `03*` files and `09` emit their events (see `EVENTS.md`).
 - [x] **A-09** (Phase 2) **Remove direct render calls from A's files.** Done in the first plan: the audit reports 0 for A.
-- [ ] **A-10** (Phase 3) **Build the handler bridge.** Add `registerLegacyGlobals({...})` (assigns onto `window`) and one delegated `data-action` dispatcher in `core/`. Add a browser test that clicks a `data-action` element and a bridged inline handler.
-  - Files: `core/legacy.js`, `tools/tests/`, `src/manifest.json`
-  - Done when: Both click paths work in the browser test.
+- [x] **A-10** (Phase 3) **Build the handler bridge.** Done. `src/js/core/legacy.js` (loaded right after `00b-events.js`) has `registerLegacyGlobals`, `registerActions`, `actionAttrs` and one delegated listener per event type (`click`, `dblclick`, `contextmenu`, `mousedown`, `change`, `input`, `keydown`, `blur`, `error`). `data-action` handlers get `this`, JSON `data-args`, the tokens `$this`, `$event`, `$value`, `$checked`, `data-stop`, and `return false` cancels the default. Guide and conversion recipes: `src/js/core/LEGACY.md`. 14 tests in `tools/tests/legacy-bridge.test.js` (click and bridged inline handler, as asked, plus event types, bubbling, errors, escaping and a static check that every `data-action` name is registered); also run once in Electron 44.5.1. No inline handler is converted yet.
+  - Files: `core/legacy.js`, `core/LEGACY.md`, `tools/tests/legacy-bridge.test.js`, `src/manifest.json`
+  - Done when: Both click paths work in the browser test (done).
 - [ ] **A-11** (Phase 4) **Split `99-player.js`.** Move the seven load-time references (lines 770–819) into the `DOMContentLoaded` handler; move utilities (`escapeHtml`, `escapeHtmlAttr`, `generateLongId`, `generateConsistentId`, `debounce`) to `core/utils.js` and library helpers (`SONGS_DATA`, `deletedSongIds`, `getActiveSongs`, `filterDeletedSongs`, `getSongById`) to `library/songs.js`. Keep the `{{SONGS_DATA}}` and `{{PLACEHOLDER_IMAGE}}` placeholders and the bootstrap in `99-player.js`.
   - Files: `99-player`, `00-state`, new `core/utils.js`, `library/songs.js`
   - Done when: Manifest test passes; built `player.js` still contains song data; smoke checklist passes.
@@ -304,7 +304,6 @@ Each step is sized for one session or less. The IDs are used in reports and on t
 - [ ] **A-12** (Phase 4) **Convert storage, recents and search engine.** Turn `03-storage`, `03a-recents`, `03b-search-engine` into modules exposed through `registerLegacyGlobals`. Rewrite `storage.test.js`, `recents.test.js` and `search-engine.test.js` to import them instead of using `vm` and fake globals.
   - Files: `03-storage`, `03a`, `03b`, three tests
   - Done when: The three tests pass with imports and no fake-global contexts.
-  - Needs: A-10
 - [ ] **A-13** (Phase 5) **Storage module.** Build the storage module (`get`/`set`, keys unchanged from `STORAGE_KEYS`, stored values unchanged). Validate and normalize saved playlists, folders, settings and history on read. Swap the `localStorage` calls in `00`, `01`, `03*`, `99-player`. Publish the contract in the report.
   - Files: `core/storage.js`, `00`, `01`, `03*`, `99-player`
   - Done when: `grep localStorage` finds these files only inside the storage module; saved data from before still loads.
@@ -312,7 +311,6 @@ Each step is sized for one session or less. The IDs are used in reports and on t
 - [ ] **A-14** (Phase 5) **`api/` wrapper and preload.** Add the renderer `api/` wrapper and group the preload into namespaces (`library`, `metadata`, `files`, `lyrics`, `window`), keeping the flat names as aliases. Swap the `electronAPI` calls in `03f`, `03j`, `03k`, `03m`, `99-player`. Remove the generic `invoke` only after D reports its one use is replaced.
   - Files: `api/`, `electron/preload.js`, `03f`, `03j`, `03k`, `03m`, `99-player`
   - Done when: App works; `app-fixture.js` stub still works; aliases cover every old name.
-  - Needs: A-10
 - [ ] **A-15** (Phase 6) **Convert core and library to modules.** Convert `00`, `01`, `02`, `03*`, `09` and the split pieces of `99-player` to modules, in dependency order, keeping `registerLegacyGlobals` entries for anything legacy code still calls.
   - Files: A's files, `src/manifest.json`
   - Done when: Smoke checklist and all node tests pass.
@@ -345,11 +343,10 @@ Each step is sized for one session or less. The IDs are used in reports and on t
 - [ ] **B-07** (Phase 3) **Convert inline handlers.** Convert the inline `on…=` strings in `15b` (3) and `10c` (1) to `data-action`.
   - Files: `15b`, `10c`
   - Done when: Handlers work in the browser; no `on…=` left in these files.
-  - Needs: A-10
 - [ ] **B-08** (Phase 4) **Shuffle modules.** Turn `10a` and `10b` into modules exposed through `registerLegacyGlobals`, and rewrite `shuffle.test.js` to import them instead of using `vm` and fake globals.
   - Files: `10a`, `10b`, `shuffle.test.js`
   - Done when: Shuffle test passes with imports; shuffle and smart-shuffle smoke checks pass.
-  - Needs: A-10, B-03
+  - Needs: B-03
 - [ ] **B-09** (Phase 5) **Swap storage and API calls.** Replace direct `localStorage` and `electronAPI` calls in B's files (`15e` has 10 `electronAPI` references, `16` has 4 plus 2 `localStorage`) with the storage module and `api/` wrapper.
   - Files: `15e`, `16` and any others dep-map/grep finds
   - Done when: `grep` finds no direct `localStorage` or `electronAPI` in B's files.
@@ -370,11 +367,9 @@ Each step is sized for one session or less. The IDs are used in reports and on t
 - [ ] **C-04** (Phase 3) **Convert inline handlers.** Convert inline `on…=` strings to `data-action`, one file per session in this order: `08e` (36), `19` (33), `11c` (20), `11d` (15), `18` (8), `20` (7), `11b` and `08g` (4 each), then the rest.
   - Files: the listed files
   - Done when: Handlers work in the browser; no `on…=` left in the converted files.
-  - Needs: A-10
 - [ ] **C-05** (Phase 4) **Lyrics leaf modules.** Turn the LRC parsing part of `11a`, plus `12` and `21`, into modules exposed through `registerLegacyGlobals`. Add new import-based tests for the parser and language detection.
   - Files: `11a` (parser part), `12`, `21`, new tests
   - Done when: New tests pass; synced lyrics and language detection behave the same.
-  - Needs: A-10
 - [ ] **C-06** (Phase 5) **Swap storage and API calls.** Replace direct `electronAPI` calls in `19` (3), `20` (13), `11d` (2), `11f` (2), `08e` (6) and `localStorage` in `08a`, `08f`, `18`, `21` with the storage module and `api/` wrapper.
   - Files: the listed files
   - Done when: `grep` finds no direct `localStorage` or `electronAPI` in C's files; metadata editor test passes.
@@ -399,7 +394,6 @@ Each step is sized for one session or less. The IDs are used in reports and on t
 - [ ] **D-05** (Phase 3) **Convert inline handlers.** Convert inline `on…=` strings to `data-action`: `06a` (31), `06b` (16), `04g` (11), `04a` (10), `04f` (4), `04c` (3), `05b` (2), the rest, and `build/music_player.html` (49).
   - Files: the listed files
   - Done when: Handlers work in the browser; no `on…=` left in converted files.
-  - Needs: A-10
 - [ ] **D-06** (Phase 5) **Replace the one generic `invoke`.** In `06b`, replace `window.electronAPI.invoke('welcome-select-folder')` with a named `api/` call, so A can remove the generic `invoke`.
   - Files: `06b`
   - Done when: The welcome dialog folder picker still works.
@@ -407,7 +401,6 @@ Each step is sized for one session or less. The IDs are used in reports and on t
 - [ ] **D-07** (Phase 4) **Theme switcher module.** Turn `06i-theme-switcher` into a module exposed through `registerLegacyGlobals`.
   - Files: `06i`
   - Done when: Theme switching works.
-  - Needs: A-10
 - [ ] **D-08** (Phase 5) **Swap storage and API calls.** Replace direct `localStorage` in `05a` and `electronAPI` in `06b` (4) and `06k` (2) with the storage module and `api/` wrapper.
   - Files: `05a`, `06b`, `06k`
   - Done when: `grep` finds no direct `localStorage` or `electronAPI` in D's files.

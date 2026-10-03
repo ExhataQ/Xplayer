@@ -7,8 +7,8 @@ repeatButton.onclick = () => {
 
     if (isShuffled) {
         const newVisualState = (repeatVisualState + 1) % 3;
-        repeatVisualState = newVisualState;
-        repeatMode = newVisualState;
+        setRepeatVisualState(newVisualState);
+        setRepeatMode(newVisualState);
 
         repeatButton.classList.toggle('active', repeatVisualState > 0);
         repeatOneIndicator.style.display = repeatVisualState === 2 ? 'block' : 'none';
@@ -19,7 +19,7 @@ repeatButton.onclick = () => {
             labels[repeatVisualState] + (repeatVisualState === 2 ? ' (shuffle disabled)' : ' (visual only)')
         );
 
-        repeatFunctionalityActive = repeatVisualState === 2;
+        setRepeatFunctionalityActive(repeatVisualState === 2);
         audioElement.loop = repeatFunctionalityActive;
 
         if (repeatVisualState !== 2) {
@@ -31,14 +31,14 @@ repeatButton.onclick = () => {
                     const currentSong = currentItem.song || currentItem;
                     const songList = getSongsForList(currentView);
 
-                    playbackQueue = [
+                    setPlaybackQueue([
                         {
                             song: currentSong,
                             listId: currentView,
                             ghostSlot: null
                         }
-                    ];
-                    currentQueueIndex = 0;
+                    ]);
+                    setCurrentQueueIndex(0);
                     resetShuffle(songList, currentSong.id, currentView);
 
                     while (playbackQueue.length < 20) {
@@ -56,8 +56,8 @@ repeatButton.onclick = () => {
         return;
     }
 
-    repeatMode = (repeatMode + 1) % 3;
-    repeatVisualState = repeatMode;
+    setRepeatMode((repeatMode + 1) % 3);
+    setRepeatVisualState(repeatMode);
 
     repeatButton.classList.toggle('active', repeatMode > 0);
     repeatOneIndicator.style.display = repeatMode === 2 ? 'block' : 'none';
@@ -65,7 +65,7 @@ repeatButton.onclick = () => {
     const labels = ['Repeat off', 'Repeat all', 'Repeat one'];
     repeatButton.setAttribute('aria-label', labels[repeatMode]);
 
-    repeatFunctionalityActive = repeatMode > 0;
+    setRepeatFunctionalityActive(repeatMode > 0);
     audioElement.loop = repeatMode === 2;
 
     if (repeatMode !== 2 && !isShuffled) {
@@ -76,8 +76,8 @@ repeatButton.onclick = () => {
 
             const newIndex = songList.findIndex((s) => s.id === currentSong.id);
             if (newIndex !== -1) {
-                playbackQueue = [...songList];
-                currentQueueIndex = newIndex;
+                setPlaybackQueue([...songList]);
+                setCurrentQueueIndex(newIndex);
             }
         }
         clearShuffle();

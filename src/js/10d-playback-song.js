@@ -7,7 +7,7 @@ function playSongFromQueue(queueIndex) {
     saveCurrentPlaybackState();
 
     const previousQueueIndex = currentQueueIndex;
-    currentQueueIndex = queueIndex;
+    setCurrentQueueIndex(queueIndex);
     const queueItem = playbackQueue[queueIndex];
     const song = queueItem.song || queueItem;
     const listId = queueItem.listId || currentView;
@@ -117,13 +117,13 @@ function playSongFromQueue(queueIndex) {
 }
 
 function createQueueFromSongList(songList, startIndex = 0, listId = VIEWS.ALL_SONGS) {
-    queueDisplayLimit = 50;
-    playbackQueue = songList.map((song, idx) => ({
+    setQueueDisplayLimit(50);
+    setPlaybackQueue(songList.map((song, idx) => ({
         song: song,
         listId: listId,
         ghostSlot: idx
-    }));
-    currentQueueIndex = startIndex;
+    })));
+    setCurrentQueueIndex(startIndex);
 
     updateQueueDisplay();
 
@@ -134,7 +134,7 @@ function createQueueFromSongList(songList, startIndex = 0, listId = VIEWS.ALL_SO
 
 function playSongFromList(songId, listId = null, clickedIndex = null) {
     const activeListId = listId || currentView;
-    lastPlaybackListId = activeListId;
+    setLastPlaybackListId(activeListId);
 
     const existingItem =
         currentQueueIndex >= 0 && playbackQueue[currentQueueIndex] ? playbackQueue[currentQueueIndex] : null;
@@ -148,8 +148,8 @@ function playSongFromList(songId, listId = null, clickedIndex = null) {
 
     saveCurrentPlaybackState();
 
-    isPrevNavigation = false;
-    isManualPlay = true;
+    setIsPrevNavigation(false);
+    setIsManualPlay(true);
     const song = getSongById(songId);
     if (!song) return;
 
@@ -160,13 +160,13 @@ function playSongFromList(songId, listId = null, clickedIndex = null) {
         for (let i = 0; i < songList.length; i++) {
             ghostLists[VIEWS.SEARCH_ITEMS].push(`SearchItem${String(i + 1).padStart(5, '0')}`);
         }
-        nextSearchItemSlotId = songList.length + 1;
+        setNextSearchItemSlotId(songList.length + 1);
     } else if (activeListId === VIEWS.FAVORITES) {
         ghostLists[VIEWS.FAVORITES] = [];
         for (let i = 0; i < songList.length; i++) {
             ghostLists[VIEWS.FAVORITES].push(`Favorites${String(i + 1).padStart(5, '0')}`);
         }
-        nextFavoriteSlotId = songList.length + 1;
+        setNextFavoriteSlotId(songList.length + 1);
     } else if (activeListId && activeListId.startsWith('playlist-')) {
         const playlistId = activeListId.replace('playlist-', '');
         initGhostSlots(activeListId, songList, `Playlist${playlistId}`);
@@ -184,15 +184,15 @@ function playSongFromList(songId, listId = null, clickedIndex = null) {
     if (isShuffled) {
         const currentListSongs = getSongsForList(activeListId);
 
-        playbackQueue = [
+        setPlaybackQueue([
             {
                 song: song,
                 listId: activeListId,
                 ghostSlot: ghostSlotIndex
             }
-        ];
+        ]);
 
-        currentQueueIndex = 0;
+        setCurrentQueueIndex(0);
         if (shuffleMode === 'smart') {
             resetSmartShuffle(currentListSongs, song.id, activeListId);
         } else {
@@ -212,8 +212,8 @@ function playSongFromList(songId, listId = null, clickedIndex = null) {
             listId: activeListId,
             ghostSlot: idx
         }));
-        playbackQueue = queueItems;
-        currentQueueIndex = startIndex;
+        setPlaybackQueue(queueItems);
+        setCurrentQueueIndex(startIndex);
 
         updateQueueDisplay();
 
@@ -233,15 +233,15 @@ function playSongFromHistory(songId) {
     if (isShuffled) {
         const currentListSongs = getActiveSongs();
 
-        playbackQueue = [
+        setPlaybackQueue([
             {
                 song: song,
                 listId: VIEWS.ALL_SONGS,
                 ghostSlot: null
             }
-        ];
+        ]);
 
-        currentQueueIndex = 0;
+        setCurrentQueueIndex(0);
         if (shuffleMode === 'smart') {
             resetSmartShuffle(currentListSongs, songId, VIEWS.ALL_SONGS);
         } else {
@@ -249,12 +249,12 @@ function playSongFromHistory(songId) {
         }
         playSongFromQueue(0);
     } else {
-        playbackQueue = SONGS_DATA.map((s, idx) => ({
+        setPlaybackQueue(SONGS_DATA.map((s, idx) => ({
             song: s,
             listId: VIEWS.ALL_SONGS,
             ghostSlot: idx
-        }));
-        currentQueueIndex = SONGS_DATA.findIndex((s) => s.id === songId);
+        })));
+        setCurrentQueueIndex(SONGS_DATA.findIndex((s) => s.id === songId));
 
         updateQueueDisplay();
 
@@ -303,15 +303,15 @@ function playOrResumeCurrentView() {
 
 function playCurrentViewFromStart(targetListId = currentView) {
     saveCurrentPlaybackState();
-    queueDisplayLimit = 50;
+    setQueueDisplayLimit(50);
 
-    isPrevNavigation = false;
-    isManualPlay = true;
+    setIsPrevNavigation(false);
+    setIsManualPlay(true);
 
     let songsToPlay = [];
     let listId = targetListId || currentView;
     const previousListId = lastPlaybackListId;
-    lastPlaybackListId = listId;
+    setLastPlaybackListId(listId);
 
     if (currentView === VIEWS.ALL_SONGS) {
         songsToPlay = [...SONGS_DATA];
@@ -332,7 +332,7 @@ function playCurrentViewFromStart(targetListId = currentView) {
         songsToPlay = getArtistSongs(currentView);
     } else if (lastPlaybackListId && lastPlaybackListId !== VIEWS.ALL_SONGS && lastPlaybackListId !== VIEWS.LYRICS) {
         listId = lastPlaybackListId;
-        lastPlaybackListId = listId;
+        setLastPlaybackListId(listId);
         songsToPlay = getSongsForList(listId);
     } else {
         songsToPlay = getActiveSongs();
@@ -344,16 +344,16 @@ function playCurrentViewFromStart(targetListId = currentView) {
     }
 
     if (repeatFunctionalityActive && repeatMode === 2) {
-        isShuffled = false;
+        setIsShuffled(false);
         shuffleButton.classList.remove('active');
-        playbackQueue = [
+        setPlaybackQueue([
             {
                 song: songsToPlay[0],
                 listId: listId,
                 ghostSlot: 0
             }
-        ];
-        currentQueueIndex = 0;
+        ]);
+        setCurrentQueueIndex(0);
         audioElement.loop = true;
     } else if (isShuffled) {
         let firstSong;
@@ -362,8 +362,8 @@ function playCurrentViewFromStart(targetListId = currentView) {
         if (shuffleMode === 'smart') {
             if (!resetSmartShuffle(songsToPlay, null, listId)) {
                 showNotification('Smart Shuffle needs more than 50 songs in this list', 'warning', 3000);
-                isShuffled = false;
-                shuffleMode = 'normal';
+                setIsShuffled(false);
+                setShuffleMode('normal');
                 shuffleButton.classList.remove('active');
                 emit('shuffle:changed', { isShuffled });
                 return;
@@ -378,21 +378,21 @@ function playCurrentViewFromStart(targetListId = currentView) {
             resetShuffle(songsToPlay, firstSong.id, listId);
         }
 
-        playbackQueue = [
+        setPlaybackQueue([
             {
                 song: firstSong,
                 listId: listId,
                 ghostSlot: randomIndex
             }
-        ];
-        currentQueueIndex = 0;
+        ]);
+        setCurrentQueueIndex(0);
     } else {
-        playbackQueue = songsToPlay.map((s, idx) => ({
+        setPlaybackQueue(songsToPlay.map((s, idx) => ({
             song: s,
             listId: listId,
             ghostSlot: idx
-        }));
-        currentQueueIndex = 0;
+        })));
+        setCurrentQueueIndex(0);
     }
 
     movePlayedItemToTop(listId);

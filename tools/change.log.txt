@@ -1,4 +1,8 @@
 2026-10-03
+- Added src/js/core/legacy.js (handler bridge, A-10): registerLegacyGlobals, registerActions, actionAttrs and one delegated listener per event type for data-action elements; registered in src/manifest.json after 00b-events.js. Guide: src/js/core/LEGACY.md. Tests: tools/tests/legacy-bridge.test.js (14). No existing code changed and no inline handler converted yet.
+- PLAN.md and BOARD.md: A-10 marked done; B-07, C-04, D-05, A-12, C-05, D-07 no longer wait for it.
+
+2026-10-03
 - Added tools/spike-modules/ (A-04 module-loading spike): runs a temporary <script type="module"> next to the classic scripts in a real Electron and prints PASS or FAIL per check. All checks pass (Electron 44.5.1, file://). Nothing in src/ changed.
 - PLAN.md and BOARD.md: A-04 and A-07 marked done; A-07b added (remove the 11 single-owner variables from 00-state.js once B, C and D have moved them); A-10 and A-11 Needs updated.
 
@@ -32,3 +36,9 @@
 
 2026-10-03
 - D-01/D-02 (Agent D): replaced 47 cross-file state writes in 04a-ui-render-core.js, 05a-lazy-load-main-list.js, 06b-modals.js, 06c-scrollbar-widget.js, 06j-notification-system.js, 06k-keyboard-shortcuts.js and 07-views.js with setter calls. D dep-map writers: 22 before, 0 after. No event subscribers exist yet for the three emitting setters. Verification (D): setters, manifest, events-a/b/c/d, events-wiring, event-bus, search-ui, search-engine, shuffle, recents, storage, playback-settings, view-switch-song-list-cleanup; 49 passed, 0 failed, 29 skipped. Browser/Playwright checks remain to be run.
+
+2026-10-03
+- C-01b (Agent C): moved the declaration of lastRightPanelStateBeforeQueue into 08a-panel-layout.js and advancedSettingsOpen into 08e-panel-settings.js (same initial values; only those files and their setters use them). Must be applied together with the removal of both declarations from 00-state.js, otherwise the page stops with 'already been declared'. Verification (C), with that removal applied in a scratch copy: setters, manifest, events-c, search-ui, metadata-editor, view-switch-song-list-cleanup, 35 passed, 0 failed.
+
+2026-10-03
+- A-07b (Agent D): isNavigatingHistory now declared in 07-views.js (the only file that uses it); the declaration was removed from 00-state.js in the same patch. Same initial value (false); setIsNavigatingHistory unchanged.

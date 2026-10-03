@@ -381,8 +381,8 @@ function generateSmartShuffleJourney(songs, excludeSongId = null, sourceId = cur
         previousTailArtist = orderedSongs.length ? orderedSongs[orderedSongs.length - 1].artist : null;
     }
 
-    smartShuffleSourceId = sourceId;
-    smartShufflePreviousSong = null;
+    setSmartShuffleSourceId(sourceId);
+    setSmartShufflePreviousSong(null);
 
     // Dev diagnostic — comment out to silence the console dump.
     try {
@@ -503,9 +503,9 @@ function resetSmartShuffle(songs = null, excludeSongId = null, sourceId = curren
 
     const journey = generateSmartShuffleJourney(sourceSongs, excludeSongId, sourceId);
     if (journey === null) return false;
-    smartShuffleJourney = journey;
-    smartShuffleJourneyIndex = 0;
-    smartShuffleSourceId = sourceId;
+    setSmartShuffleJourney(journey);
+    setSmartShuffleJourneyIndex(0);
+    setSmartShuffleSourceId(sourceId);
     return smartShuffleJourney.length > 0;
 }
 
@@ -516,7 +516,8 @@ function getNextSmartShuffledSong() {
     const sourceSongs = getSongsForList(sourceId);
     if (smartShuffleJourneyIndex >= smartShuffleJourney.length && !resetSmartShuffle(sourceSongs, null, sourceId)) return null;
 
-    const songId = smartShuffleJourney[smartShuffleJourneyIndex++];
+    const songId = smartShuffleJourney[smartShuffleJourneyIndex];
+    setSmartShuffleJourneyIndex(smartShuffleJourneyIndex + 1);
     const song = getSongById(songId);
     if (!song || deletedSongIds.has(song.id)) return getNextSmartShuffledSong();
 
@@ -533,7 +534,8 @@ function getNextShuffledSong() {
     }
 
     while (shuffleIndex < shuffleOrder.length) {
-        const songId = shuffleOrder[shuffleIndex++];
+        const songId = shuffleOrder[shuffleIndex];
+        setShuffleIndex(shuffleIndex + 1);
         const song = getSongById(songId);
 
         if (song && !deletedSongIds.has(song.id)) {
@@ -555,7 +557,8 @@ function getNextShuffledSong() {
 
     if (shuffleOrder.length === 0) return null;
 
-    const songId = shuffleOrder[shuffleIndex++];
+    const songId = shuffleOrder[shuffleIndex];
+    setShuffleIndex(shuffleIndex + 1);
     const song = getSongById(songId);
     if (!song || deletedSongIds.has(song.id)) return getNextShuffledSong();
 
@@ -573,8 +576,8 @@ function startSmartShuffleFromCurrentView() {
         return false;
     }
 
-    shuffleMode = 'smart';
-    isShuffled = true;
+    setShuffleMode('smart');
+    setIsShuffled(true);
     shuffleButton.classList.add('active');
     emit('shuffle:changed', { isShuffled });
     shuffleButton.setAttribute('aria-label', 'Smart Shuffle on');

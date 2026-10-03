@@ -8,7 +8,7 @@ Status values: `todo`, `in progress`, `patch received`, `applied + verified`, `b
 
 - [ ] Run `node --test tools/tests/*.test.js` with Playwright and the smoke checklist (`tools/smoke-checklist.md`). If both pass, change the rows marked `patch received` to `applied + verified`.
 - [ ] Run the module spike (A-04) in Electron; paste the DevTools output into a new A report. Only Phase 3 and later need it.
-- [ ] Give B, C and D their briefs (`.agent/PLAN.md` section 9.4) at the same time: B-01 to B-04, C-01, D-01 and D-02 do not depend on each other.
+- [ ] Give B, C and D their briefs (`.agent/PLAN.md` section 9.4) at the same time: B-01 to B-04, C-01, D-01 and D-02 do not depend on each other. The handler bridge exists, so B-07, C-04 and D-05 can also start; tell them to read `src/js/core/LEGACY.md` first.
 
 ## Steps
 

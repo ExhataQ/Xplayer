@@ -119,8 +119,8 @@ function bindPlaybackAudioEvents(audio) {
         if (audio !== audioElement) return;
 
         if (currentQueueIndex >= 0 && playbackQueue[currentQueueIndex]) {
-            lastPlayedSong = playbackQueue[currentQueueIndex];
-            lastPlayedSongStartTime = Date.now();
+            setLastPlayedSong(playbackQueue[currentQueueIndex]);
+            setLastPlayedSongStartTime(Date.now());
         }
 
         syncPlayPauseButtons();
@@ -151,8 +151,8 @@ function bindPlaybackAudioEvents(audio) {
             audioElement.play();
 
             if (currentQueueIndex >= 0 && playbackQueue[currentQueueIndex]) {
-                lastPlayedSong = playbackQueue[currentQueueIndex];
-                lastPlayedSongStartTime = Date.now();
+                setLastPlayedSong(playbackQueue[currentQueueIndex]);
+                setLastPlayedSongStartTime(Date.now());
             }
 
             if (currentQueueIndex >= 0 && playbackQueue[currentQueueIndex]) {
@@ -184,7 +184,7 @@ function bindPlaybackAudioEvents(audio) {
                     audioElement.src = '';
                     clearGaplessPreload();
 
-                    currentQueueIndex = -1;
+                    setCurrentQueueIndex(-1);
                     resetProgressUI();
                     playButton.innerHTML = '<i class="fas fa-play"></i>';
                     emit('playback:stateChanged', { playing: isCurrentViewPlaying() });
@@ -201,7 +201,7 @@ function bindPlaybackAudioEvents(audio) {
                 audioElement.src = '';
                 clearGaplessPreload();
 
-                currentQueueIndex = -1;
+                setCurrentQueueIndex(-1);
                 resetProgressUI();
                 playButton.innerHTML = '<i class="fas fa-play"></i>';
                 emit('playback:stateChanged', { playing: isCurrentViewPlaying() });
@@ -219,8 +219,8 @@ function bindPlaybackAudioEvents(audio) {
                     unpaintEqOnNumberCell(stoppingRow);
                 }
 
-                playbackHistoryStack = [];
-                historyNavigationIndex = -1;
+                setPlaybackHistoryStack([]);
+                setHistoryNavigationIndex(-1);
 
                 const lyricsToggleBtnEl =
                     document.getElementById('lyrics-toggle-btn');
@@ -248,8 +248,8 @@ function bindPlaybackAudioEvents(audio) {
                     }
 
                     document.body.classList.remove('in-lyrics-view');
-                    lyricsPreView = null;
-                    lyricsPreScrollTop = 0;
+                    setLyricsPreView(null);
+                    setLyricsPreScrollTop(0);
 
                     if (endedSong && restoreView && restoreView !== VIEWS.LYRICS && restoreView !== VIEWS.ALL_SONGS && endedSongIndex >= 0) {
                         switchToViewAndScroll(restoreView, endedSongIndex, endedSong.id, endedListId);

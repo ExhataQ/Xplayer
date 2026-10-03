@@ -144,7 +144,7 @@ function updateQueueDisplay() {
 }
 
 function loadMoreQueueItems() {
-    queueDisplayLimit += queueDisplayPageSize;
+    setQueueDisplayLimit(queueDisplayLimit + queueDisplayPageSize);
 
     if (isShuffled) {
         const desiredUpcoming = queueDisplayLimit;
@@ -187,7 +187,7 @@ function removeFromQueue(queueIndex) {
             } else {
                 audioElement.pause();
                 audioElement.src = '';
-                currentQueueIndex = -1;
+                setCurrentQueueIndex(-1);
                 playButton.innerHTML = '<i class="fas fa-play"></i>';
                 playButton.setAttribute('title', 'Play');
                 document.querySelector('.player-song-info').classList.remove('has-song');
@@ -196,7 +196,7 @@ function removeFromQueue(queueIndex) {
             }
         } else {
             if (queueIndex < currentQueueIndex) {
-                currentQueueIndex--;
+                setCurrentQueueIndex(currentQueueIndex - 1);
             }
             playbackQueue.splice(queueIndex, 1);
         }
@@ -209,8 +209,8 @@ function removeFromQueue(queueIndex) {
 function cleanupPlaybackQueue() {
     if (playbackQueue.length > 50) {
         const keepFrom = Math.max(0, currentQueueIndex);
-        playbackQueue = playbackQueue.slice(keepFrom);
-        currentQueueIndex = 0;
+        setPlaybackQueue(playbackQueue.slice(keepFrom));
+        setCurrentQueueIndex(0);
     }
 }
 
@@ -330,7 +330,7 @@ function addSongToQueueAt(songId, insertIndex) {
     playbackQueue.splice(insertIndex, 0, queueItem);
 
     if (insertIndex <= currentQueueIndex) {
-        currentQueueIndex++;
+        setCurrentQueueIndex(currentQueueIndex + 1);
     }
 
     updateQueueDisplay();
@@ -430,13 +430,13 @@ function usePreloadedGaplessTrack(song) {
     const oldActiveAudio = audioElement;
     const nextAudio = gaplessAudioElement;
 
-    gaplessActiveElement = nextAudio;
-    audioElement = nextAudio;
+    setGaplessActiveElement(nextAudio);
+    setAudioElement(nextAudio);
 
     audioElement.volume = getTargetTrackVolume(song);
     audioElement.currentTime = 0;
 
-    gaplessAudioElement = oldActiveAudio;
+    setGaplessAudioElement(oldActiveAudio);
 
     gaplessAudioElement.pause();
     gaplessAudioElement.removeAttribute('src');

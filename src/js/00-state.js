@@ -89,8 +89,6 @@ let isShuffled = false;
 let shuffleMode = 'normal';
 let repeatMode = 0;
 let repeatVisualState = 0;
-let wasPlaying = false;
-let showRemainingTime = false;
 let currentView = 'all-songs';
 let lastPlaybackListId = 'all-songs';
 let searchQuery = '';
@@ -100,7 +98,6 @@ let lastPlayedSongStartTime = 0;
 let updateExternalScrollbarFn = function () {};
 let playbackHistoryStack = [];
 let historyNavigationIndex = -1;
-let isNavigatingHistory = false;
 let isManualPlay = false;
 let isPrevNavigation = false;
 let leftPanelFilterMode = 'all';
@@ -116,8 +113,6 @@ let previousRightPanelState = {
     wasTab: 'tags'
 };
 
-let advancedSettingsOpen = false;
-
 let lyricsPreScrollTop = 0;
 let lyricsPreView = null;
 
@@ -129,10 +124,6 @@ if (localStorage.getItem(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED) === null) {
     localStorage.setItem(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED, 'false');
 }
 
-let lastRightPanelStateBeforeQueue = {
-    wasCollapsed: false,
-    wasTab: 'tags'
-};
 // ==============================================================================
 // EXTENDED METADATA FIELDS
 // ==============================================================================

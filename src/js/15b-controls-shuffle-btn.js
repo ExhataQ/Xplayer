@@ -3,7 +3,7 @@
 // ==============================================================================
 function toggleNormalShuffle() {
     temporarilySuppressTooltip(shuffleButton);
-    isShuffled = !isShuffled;
+    setIsShuffled(!isShuffled);
     shuffleButton.classList.toggle('active', isShuffled);
     emit('shuffle:changed', { isShuffled });
     shuffleButton.setAttribute('aria-label', isShuffled ? 'Disable shuffle' : 'Enable shuffle');
@@ -13,7 +13,7 @@ function toggleNormalShuffle() {
             shuffleButton.classList.add('active');
             shuffleButton.setAttribute('aria-label', 'Shuffle on (disabled in repeat one mode)');
 
-            repeatFunctionalityActive = true;
+            setRepeatFunctionalityActive(true);
             audioElement.loop = true;
 
             updateQueueDisplay();
@@ -22,7 +22,7 @@ function toggleNormalShuffle() {
             return;
         }
 
-        repeatVisualState = repeatMode;
+        setRepeatVisualState(repeatMode);
 
         repeatButton.classList.toggle('active', repeatVisualState > 0);
         repeatOneIndicator.style.display = repeatVisualState === 2 ? 'block' : 'none';
@@ -53,14 +53,14 @@ function toggleNormalShuffle() {
         }
 
         if (currentSongData) {
-            playbackQueue = [
+            setPlaybackQueue([
                 {
                     song: currentSongData,
                     listId: currentView,
                     ghostSlot: null
                 }
-            ];
-            currentQueueIndex = 0;
+            ]);
+            setCurrentQueueIndex(0);
             resetShuffle(currentListSongs, currentSongData.id, currentView);
 
             while (playbackQueue.length < 20) {
@@ -70,8 +70,8 @@ function toggleNormalShuffle() {
             }
         } else {
             resetShuffle(currentListSongs, null, currentView);
-            playbackQueue = [];
-            currentQueueIndex = -1;
+            setPlaybackQueue([]);
+            setCurrentQueueIndex(-1);
 
             while (playbackQueue.length < 20) {
                 const nextSong = getNextShuffledSong();
@@ -86,7 +86,7 @@ function toggleNormalShuffle() {
             shuffleButton.classList.remove('active');
             shuffleButton.setAttribute('aria-label', 'Shuffle off');
 
-            repeatFunctionalityActive = true;
+            setRepeatFunctionalityActive(true);
             audioElement.loop = true;
 
             updateQueueDisplay();
@@ -96,7 +96,7 @@ function toggleNormalShuffle() {
         }
 
         if (repeatVisualState > 0) {
-            repeatMode = repeatVisualState;
+            setRepeatMode(repeatVisualState);
             repeatButton.classList.toggle('active', repeatMode > 0);
             repeatOneIndicator.style.display = repeatMode === 2 ? 'block' : 'none';
 
@@ -108,11 +108,11 @@ function toggleNormalShuffle() {
 
         const currentListSongs = getSongsForList(currentView);
 
-        playbackQueue = currentListSongs.map((s, idx) => ({
+        setPlaybackQueue(currentListSongs.map((s, idx) => ({
             song: s,
             listId: currentView,
             ghostSlot: idx
-        }));
+        })));
 
         if (currentQueueIndex >= 0 && playbackQueue.length > 0) {
             const currentSong = document.getElementById('player-title').textContent;
@@ -123,9 +123,9 @@ function toggleNormalShuffle() {
                 return s.title === currentSong && s.artist === currentArtist;
             });
 
-            currentQueueIndex = newIndex !== -1 ? newIndex : 0;
+            setCurrentQueueIndex(newIndex !== -1 ? newIndex : 0);
         } else {
-            currentQueueIndex = -1;
+            setCurrentQueueIndex(-1);
         }
 
         clearShuffle();
@@ -143,7 +143,7 @@ function selectShuffleMode(mode) {
 
     if (mode === 'off') {
         if (isShuffled) {
-            shuffleMode = 'normal';
+            setShuffleMode('normal');
             toggleNormalShuffle();
         }
         return;
@@ -155,16 +155,16 @@ function selectShuffleMode(mode) {
             return;
         }
         if (isShuffled) {
-            isShuffled = false;
+            setIsShuffled(false);
             clearShuffle();
         }
-        shuffleMode = 'normal';
+        setShuffleMode('normal');
         toggleNormalShuffle();
         return;
     }
 
     if (isShuffled) {
-        isShuffled = false;
+        setIsShuffled(false);
         clearShuffle();
     }
     startSmartShuffleFromCurrentView();

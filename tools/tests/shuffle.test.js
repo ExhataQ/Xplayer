@@ -5,6 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const playbackSource = [
+    path.join(__dirname, '../../src/js/core/state-playback-modes.js'),
     path.join(__dirname, '../../src/js/10a-playback-shuffle.js'),
     path.join(__dirname, '../../src/js/10b-playback-smart-shuffle.js')
 ]

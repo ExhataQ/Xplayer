@@ -1,6 +1,11 @@
 // ==============================================================================
 // RIGHT PANEL - TOGGLE / COLLAPSE / EXPAND
 // ==============================================================================
+let lastRightPanelStateBeforeQueue = {
+    wasCollapsed: false,
+    wasTab: 'tags'
+};
+
 function toggleRightPanel() {
     const rightPanel = rightPanelElement;
     const playerToggleButton = document.querySelector('.queue-toggle-btn');

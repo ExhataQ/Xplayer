@@ -18,8 +18,8 @@ document.getElementById('next-btn').onclick = () => {
         audioElement.play();
 
         if (currentQueueIndex >= 0 && playbackQueue[currentQueueIndex]) {
-            lastPlayedSong = playbackQueue[currentQueueIndex];
-            lastPlayedSongStartTime = Date.now();
+            setLastPlayedSong(playbackQueue[currentQueueIndex]);
+            setLastPlayedSongStartTime(Date.now());
         }
         return;
     }
@@ -27,13 +27,13 @@ document.getElementById('next-btn').onclick = () => {
     if (isShuffled) {
         if (!(repeatFunctionalityActive && repeatMode === 2)) {
             if (currentQueueIndex < playbackQueue.length - 1) {
-                isManualPlay = false;
+                setIsManualPlay(false);
                 playSongFromQueue(currentQueueIndex + 1);
             } else {
                 const nextSong = getNextShuffledSong();
                 if (nextSong) {
                     playbackQueue.push(nextSong);
-                    isManualPlay = false;
+                    setIsManualPlay(false);
                     playSongFromQueue(currentQueueIndex + 1);
                 }
             }
@@ -41,13 +41,13 @@ document.getElementById('next-btn').onclick = () => {
         return;
     } else {
         if (currentQueueIndex === -1) {
-            isManualPlay = false;
+            setIsManualPlay(false);
             playSongFromQueue(0);
         } else if (currentQueueIndex < playbackQueue.length - 1) {
-            isManualPlay = false;
+            setIsManualPlay(false);
             playSongFromQueue(currentQueueIndex + 1);
         } else if (currentQueueIndex === playbackQueue.length - 1 && repeatMode === 1) {
-            isManualPlay = false;
+            setIsManualPlay(false);
             playSongFromQueue(0);
         }
     }
@@ -57,7 +57,7 @@ const restartThenPlay = debounce(() => {
     audioElement.play();
 
     if (lastPlayedSong) {
-        lastPlayedSongStartTime = Date.now();
+        setLastPlayedSongStartTime(Date.now());
     }
 }, 500);
 
