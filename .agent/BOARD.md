@@ -26,7 +26,7 @@ Status values: `todo`, `in progress`, `patch received`, `applied + verified`, `b
 | A-08 | 2     | Emit events from data changes              | A-07             | applied + verified | first plan (A reports 2, 3)                                           |
 | A-09 | 2     | Remove direct render calls from A's files  | -                | applied + verified | first plan (A reports 2, 3)                                           |
 | A-10 | 3     | Build the handler bridge                   | A-04             | todo               |                                                                       |
-| A-11 | 4     | Split `99-player.js`                       | A-04, A-07       | todo               |                                                                       |
+| A-11 | 4     | Split `99-player.js`                       | A-04, A-07       | patch received               |                                                                       |
 | A-12 | 4     | Convert storage, recents and search engine | A-10             | todo               |                                                                       |
 | A-13 | 5     | Storage module                             | A-12             | todo               |                                                                       |
 | A-14 | 5     | `api/` wrapper and preload                 | A-10             | todo               |                                                                       |

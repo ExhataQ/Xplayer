@@ -42,3 +42,6 @@
 
 2026-10-03
 - A-07b (Agent D): isNavigatingHistory now declared in 07-views.js (the only file that uses it); the declaration was removed from 00-state.js in the same patch. Same initial value (false); setIsNavigatingHistory unchanged.
+
+2026-10-04
+- A-11 (Agent A): 99-player.js split into core/utils.js, library/songs.js, playback/session.js, ui/filters.js, ui/layout.js, library/import-dropped.js, ui/window-controls.js and ui/player-bar.js; all registered in src/manifest.json. Function bodies moved verbatim. Behavior and listener order unchanged. 149 tests, 147 passed, 0 failed, 2 skipped; event-audit --strict exit 0.

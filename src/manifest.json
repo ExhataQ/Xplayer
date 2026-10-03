@@ -27,6 +27,8 @@
     "core/state-ghost-list.js",
     "core/state-folders.js",
     "core/state-ui.js",
+    "core/utils.js",
+    "library/songs.js",
     "03-storage.js",
     "03a-recents.js",
     "03b-search-engine.js",
@@ -110,6 +112,12 @@
     "21-language-detect.js",
     "04t-lyrics-events.js",
     "04u-search-events.js",
-    "04v-right-panel-events.js"
+    "04v-right-panel-events.js",
+    "playback/session.js",
+    "ui/filters.js",
+    "ui/layout.js",
+    "library/import-dropped.js",
+    "ui/window-controls.js",
+    "ui/player-bar.js"
   ]
 }
