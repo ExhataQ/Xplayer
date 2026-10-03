@@ -33,7 +33,8 @@ function filesOnDisk(kind, ext, sub = '') {
 
 describe('src/manifest.json', () => {
     for (const [kind, ext] of [['js', '.js'], ['css', '.css']]) {
-        const entries = manifest[kind];
+        // ES modules (manifest "modules") live in src/js too, so for js they count as listed.
+        const entries = kind === 'js' ? [...manifest.js, ...(manifest.modules || [])] : manifest[kind];
 
         test(`${kind}: is a non-empty list without duplicates`, () => {
             assert.ok(Array.isArray(entries) && entries.length > 0, `"${kind}" must be a non-empty list`);
@@ -59,6 +60,14 @@ describe('src/manifest.json', () => {
             assert.deepEqual(unlisted, [], `in src/${kind}/ but not in src/manifest.json (the page would never load them)`);
         });
     }
+
+    test('modules: every entry is a file with an export, and none is also a classic script', () => {
+        for (const name of manifest.modules || []) {
+            assert.ok(!manifest.js.includes(name), `${name} is listed as both a classic script and a module`);
+            const source = fs.readFileSync(path.join(ROOT, 'src', 'js', ...name.split('/')), 'utf8');
+            assert.ok(/^export\s/m.test(source), `${name} is listed under "modules" but has no export`);
+        }
+    });
 
     test('99-player.js (the player.js template) is not listed as a script', () => {
         assert.ok(!manifest.js.includes('99-player.js'));

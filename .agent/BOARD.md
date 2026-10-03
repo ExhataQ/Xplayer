@@ -25,9 +25,9 @@ Status values: `todo`, `in progress`, `patch received`, `applied + verified`, `b
 | A-07 | 1     | Replace writes in A's own files            | A-06             | applied + verified        | writes done (A report 1); removing variables from 00-state.js is open |
 | A-08 | 2     | Emit events from data changes              | A-07             | applied + verified | first plan (A reports 2, 3)                                           |
 | A-09 | 2     | Remove direct render calls from A's files  | -                | applied + verified | first plan (A reports 2, 3)                                           |
-| A-10 | 3     | Build the handler bridge                   | A-04             | todo               |                                                                       |
-| A-11 | 4     | Split `99-player.js`                       | A-04, A-07       | patch received               |                                                                       |
-| A-12 | 4     | Convert storage, recents and search engine | A-10             | todo               |                                                                       |
+| A-10 | 3     | Build the handler bridge                   | A-04             | applied + verified               |                                                                       |
+| A-11 | 4     | Split `99-player.js`                       | A-04, A-07       | applied + verified               |                                                                       |
+| A-12 | 4     | Convert storage, recents and search engine | A-10             | patch received               |                                                                       |
 | A-13 | 5     | Storage module                             | A-12             | todo               |                                                                       |
 | A-14 | 5     | `api/` wrapper and preload                 | A-10             | todo               |                                                                       |
 | A-15 | 6     | Convert core and library to modules        | A-13, A-14, A-11 | todo               |                                                                       |
@@ -37,10 +37,10 @@ Status values: `todo`, `in progress`, `patch received`, `applied + verified`, `b
 
 | ID   | Phase | Step                                    | Needs                  | Status             | Patch                       |
 | ---- | ----- | --------------------------------------- | ---------------------- | ------------------ | --------------------------- |
-| B-01 | 1     | Review A's playback setters             | A-06                   | todo               |                             |
-| B-02 | 1     | Replace writes in `10c` and `10d`       | A-06, B-01             | todo               |                             |
-| B-03 | 1     | Replace writes in `10b`, `15b`, `15c`   | A-06                   | todo               |                             |
-| B-04 | 1     | Replace writes in the remaining B files | A-06                   | todo               |                             |
+| B-01 | 1     | Review A's playback setters             | A-06                   | applied + verified               |                             |
+| B-02 | 1     | Replace writes in `10c` and `10d`       | A-06, B-01             | applied + verified               |                             |
+| B-03 | 1     | Replace writes in `10b`, `15b`, `15c`   | A-06                   | applied + verified               |                             |
+| B-04 | 1     | Replace writes in the remaining B files | A-06                   | applied + verified               |                             |
 | B-05 | 2     | Emit playback events                    | B-02                   | applied + verified | first plan (B 0001 to 0005) |
 | B-06 | 2     | Replace cross-subsystem render calls    | -                      | applied + verified | first plan (B 0001 to 0005) |
 | B-07 | 3     | Convert inline handlers                 | A-10                   | todo               |                             |

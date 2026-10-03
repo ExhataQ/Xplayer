@@ -3,11 +3,12 @@
 // One matcher / ranker / filter used by every song search in the app (main search box, the
 // in-list search, search history, and next/previous while playing from search results).
 // Pure functions: no DOM, no globals - they can be tested on their own.
+// This file is an ES module (see "modules" in src/manifest.json).
 // ==============================================================================
 
 // "Beyoncé", "BEYONCE" and "beyonce" are the same; apostrophes are ignored ("Don't" = "Dont",
 // which also matches titles the scanner stored without quotes); extra spaces collapse.
-function normalizeSearchText(value) {
+export function normalizeSearchText(value) {
     return String(value === undefined || value === null ? '' : value)
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
@@ -17,12 +18,12 @@ function normalizeSearchText(value) {
         .trim();
 }
 
-const SEARCH_FIELD_WEIGHTS = { title: 100, artist: 70, album: 50, albumArtist: 40 };
-const SEARCH_MATCH_FACTORS = { exact: 1, prefix: 0.8, wordPrefix: 0.6, substring: 0.35 };
+export const SEARCH_FIELD_WEIGHTS = { title: 100, artist: 70, album: 50, albumArtist: 40 };
+export const SEARCH_MATCH_FACTORS = { exact: 1, prefix: 0.8, wordPrefix: 0.6, substring: 0.35 };
 
 // Normalized fields per song, cached by the raw values so a metadata edit is picked up.
 const searchFieldCache = new WeakMap();
-function getSearchFields(song) {
+export function getSearchFields(song) {
     const raw = [song.title, song.artist, song.album, song.albumArtist];
     const cached = searchFieldCache.get(song);
     if (cached && cached.raw.every((value, i) => value === raw[i])) return cached.fields;
@@ -37,7 +38,7 @@ function getSearchFields(song) {
 }
 
 // How well `token` matches `text`: exact > starts with > starts a word > appears somewhere.
-function matchFactor(text, token) {
+export function matchFactor(text, token) {
     if (!text) return 0;
     if (text === token) return SEARCH_MATCH_FACTORS.exact;
     if (text.startsWith(token)) return SEARCH_MATCH_FACTORS.prefix;
@@ -49,7 +50,7 @@ function matchFactor(text, token) {
 
 // Score of one song for a query, or 0 when it does not match. EVERY word of the query must be
 // found (in any field), so "queen jazz" finds Queen's album Jazz.
-function scoreSong(song, normalizedQuery, tokens) {
+export function scoreSong(song, normalizedQuery, tokens) {
     const fields = getSearchFields(song);
     let total = 0;
     for (const token of tokens) {
@@ -66,7 +67,7 @@ function scoreSong(song, normalizedQuery, tokens) {
     return total;
 }
 
-function toFilterList(value) {
+export function toFilterList(value) {
     if (value === undefined || value === null || value === '') return [];
     return (Array.isArray(value) ? value : [value]).map(normalizeSearchText).filter(Boolean);
 }
@@ -75,7 +76,7 @@ function toFilterList(value) {
 //   artist, album, genre : one value or a list; a song matches if it has ANY of them
 //   yearFrom, yearTo     : inclusive
 //   minDuration, maxDuration : seconds, inclusive
-function applySongFilters(songs, filters) {
+export function applySongFilters(songs, filters) {
     if (!filters) return songs.slice();
     const artists = toFilterList(filters.artist);
     const albums = toFilterList(filters.album);
@@ -113,7 +114,7 @@ function applySongFilters(songs, filters) {
 //                   false: keep the list's own order (use when filtering a playlist/album).
 //   options.filters see applySongFilters. Works with an empty query too.
 // Returns a new array; never throws on songs with missing fields.
-function searchSongs(songs, query, options) {
+export function searchSongs(songs, query, options) {
     const list = Array.isArray(songs) ? songs : [];
     const opts = options || {};
     const candidates = opts.filters ? applySongFilters(list, opts.filters) : list.slice();
@@ -131,6 +132,11 @@ function searchSongs(songs, query, options) {
 }
 
 // Search results for a query over the songs that are currently in the library (not deleted).
-function getSearchResults(query, options) {
-    return searchSongs(getActiveSongs(), query, options);
+// Tests pass `songs`; the app leaves it out and gets getActiveSongs() (a classic global).
+export function getSearchResults(query, options, songs) {
+    return searchSongs(songs || getActiveSongs(), query, options);
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({ normalizeSearchText, searchSongs, getSearchResults });
 }

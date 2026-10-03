@@ -45,3 +45,4 @@
 
 2026-10-04
 - A-11 (Agent A): 99-player.js split into core/utils.js, library/songs.js, playback/session.js, ui/filters.js, ui/layout.js, library/import-dropped.js, ui/window-controls.js and ui/player-bar.js; all registered in src/manifest.json. Function bodies moved verbatim. Behavior and listener order unchanged. 149 tests, 147 passed, 0 failed, 2 skipped; event-audit --strict exit 0.
+- A-12 (Agent A): 03-storage.js, 03a-recents.js and 03b-search-engine.js are now ES modules (new "modules" list in src/manifest.json; build, render-template and music_player.py render/copy them). Same function bodies; getStoredJson, getSearchResults and getRecentlyPlayedSongs gained an optional trailing dependency argument that the app never passes. The three tests import the modules; new converted-modules.test.js checks the real page. 155 tests, 153 passed, 0 failed, 2 skipped.

@@ -31,7 +31,7 @@ describe('data-action names written in the source are all registered', () => {
     for (const file of files) {
         const source = fs.readFileSync(file, 'utf8');
         // 99-player.js is a template with {{placeholders}}; make it parseable.
-        const ast = acorn.parse(source.replace(/\{\{[A-Z_]+\}\}/g, 'null'), { ecmaVersion: 'latest', sourceType: 'script' });
+        const ast = acorn.parse(require('../lib/strip-exports').stripExports(source).replace(/\{\{[A-Z_]+\}\}/g, 'null'), { ecmaVersion: 'latest', sourceType: 'script' });
         walk.simple(ast, {
             CallExpression(node) {
                 if (node.callee.type !== 'Identifier') return;

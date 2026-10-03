@@ -1,7 +1,8 @@
 """Renderer load order: the single source of truth is Source/src/manifest.json.
 
 The manifest lists every renderer stylesheet (relative to src/css/) and script
-(relative to src/js/) in the exact order they must load. Everything that needs that
+(relative to src/js/) in the exact order they must load. "modules" lists the scripts that
+are ES modules (type="module"); they are rendered after the classic ones. Everything that needs that
 order reads it from here instead of keeping its own copy:
 
   * build/music_player.py            copies the files and renders the HTML template
@@ -27,13 +28,19 @@ def load_manifest(source_root):
     with open(path, "r", encoding="utf-8") as f:
         manifest = json.load(f)
 
-    for key in ("css", "js"):
+    manifest.setdefault("modules", [])
+    for key in ("css", "js", "modules"):
         entries = manifest.get(key)
+        if key == "modules" and entries == []:
+            continue
         if not isinstance(entries, list) or not entries:
             raise ValueError(f"{path}: '{key}' must be a non-empty list")
         duplicates = sorted({name for name in entries if entries.count(name) > 1})
         if duplicates:
             raise ValueError(f"{path}: duplicate entries in '{key}': {', '.join(duplicates)}")
+    both = sorted(set(manifest["js"]) & set(manifest["modules"]))
+    if both:
+        raise ValueError(f"{path}: listed in both 'js' and 'modules': {', '.join(both)}")
     return manifest
 
 
@@ -47,7 +54,11 @@ def render_css_links(manifest):
 
 
 def render_js_scripts(manifest):
-    return "\n".join(f'        <script src="js/{name}"></script>' for name in manifest["js"])
+    # Classic scripts first, then ES modules (type="module" scripts are deferred, so they run
+    # after every classic script and before DOMContentLoaded whatever their position).
+    tags = [f'        <script src="js/{name}"></script>' for name in manifest["js"]]
+    tags += [f'        <script type="module" src="js/{name}"></script>' for name in manifest.get("modules", [])]
+    return "\n".join(tags)
 
 
 def render_template(template, manifest):

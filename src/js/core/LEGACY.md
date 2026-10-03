@@ -68,6 +68,14 @@ Two jobs, both so that files can become modules without breaking the HTML that c
 
 So a typo, or a forgotten `registerActions`, fails the test instead of being a button that does nothing.
 
+## Converting a file to an ES module
+
+1. Add `export` to what tests or other modules import, and end the file with a guarded registration of the names classic scripts still call:
+   `if (typeof registerLegacyGlobals === 'function') { registerLegacyGlobals({ name }); }`
+2. Move the file from `"js"` to `"modules"` in `src/manifest.json`. Modules run after every classic script (including `player.js`) and before `DOMContentLoaded`, so no classic file may use the file's names while it loads. `node tools/dep-map.js` lists load-time references; none may point at a module.
+3. Do not read classic globals at the top level of the module; read them inside functions. For anything a test needs, take the dependency as an optional last parameter (`storage`, `songs`) and fall back to the global inside the function body.
+4. Tests import it with `await import(pathToFileURL(file).href)` (`src/js/package.json` makes Node read these files as modules). Add the new names to `converted-modules.test.js`.
+
 ## Status
 
 No inline handler has been converted yet; the bridge exists and is tested. About 300 inline handlers remain (`onclick` 247, `onchange` 20, `onmousedown` 13, `oninput` 10, `oncontextmenu` 9, `onerror` 7 plus 5 in the template, `ondblclick` 7, `onkeydown` 3, `onblur` 2). The conversion order and owners are in `.agent/PLAN.md` (B-07, C-04, D-05).

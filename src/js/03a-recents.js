@@ -1,7 +1,8 @@
 // ==============================================================================
 // RECENTLY PLAYED - list logic
 // Pure functions (no DOM, no localStorage) so they can be tested on their own.
-// Persistence and the UI hooks stay in 03-storage.js (saveToRecentlyPlayed etc.).
+// Persistence and the UI hooks stay in 03e-recents-history.js (saveToRecentlyPlayed etc.).
+// This file is an ES module (see "modules" in src/manifest.json).
 //
 // Stored shape per entry: { id, url, title, artist, album, duration, playedAt }.
 // The stored copy is only a fallback: what the views show is resolved against the live
@@ -9,13 +10,13 @@
 // ==============================================================================
 
 // A song's identity: its id, or its file url if it has no id.
-function recentKey(entry) {
+export function recentKey(entry) {
     if (!entry) return '';
     if (entry.id !== undefined && entry.id !== null) return 'id:' + entry.id;
     return entry.url ? 'url:' + entry.url : '';
 }
 
-function recentEntryFromSong(song, playedAt) {
+export function recentEntryFromSong(song, playedAt) {
     const s = (song && song.song) || song || {};
     return {
         id: s.id,
@@ -30,7 +31,7 @@ function recentEntryFromSong(song, playedAt) {
 
 // Cleans a stored list: drops junk, removes duplicates (the first = most recent occurrence wins),
 // strips fields the entry no longer needs (older versions also stored the cover), caps the length.
-function normalizeRecentList(list, max) {
+export function normalizeRecentList(list, max) {
     const seen = new Set();
     const out = [];
     for (const entry of Array.isArray(list) ? list : []) {
@@ -45,7 +46,7 @@ function normalizeRecentList(list, max) {
 
 // Playing a song moves it to the top instead of adding another copy: replaying one song
 // 50 times used to push every other song out of the list.
-function addToRecentList(list, song, now, max) {
+export function addToRecentList(list, song, now, max) {
     const entry = recentEntryFromSong(song, now);
     if (!recentKey(entry)) return normalizeRecentList(list, max);
     return normalizeRecentList([entry, ...(Array.isArray(list) ? list : [])], max);
@@ -54,7 +55,7 @@ function addToRecentList(list, song, now, max) {
 // Turns stored entries into the songs currently in the library (same order): fresh title/artist/
 // cover after a metadata edit, matched by id first and by url after a rescan changed the ids.
 // Songs that no longer exist, or were deleted, are left out.
-function resolveRecentSongs(list, library, isDeleted) {
+export function resolveRecentSongs(list, library, isDeleted) {
     const byId = new Map();
     const byUrl = new Map();
     for (const s of library || []) {
@@ -70,10 +71,20 @@ function resolveRecentSongs(list, library, isDeleted) {
     return out;
 }
 
-function getRecentlyPlayedSongs() {
-    return resolveRecentSongs(getRecentlyPlayed(), SONGS_DATA, (id) => deletedSongIds.has(id));
+// Called with no arguments by the app: the defaults read the live stored list, library and
+// deleted set (classic globals, looked up at call time). Tests pass all three.
+export function getRecentlyPlayedSongs(
+    recent = getRecentlyPlayed(),
+    library = SONGS_DATA,
+    isDeleted = (id) => deletedSongIds.has(id)
+) {
+    return resolveRecentSongs(recent, library, isDeleted);
 }
 
-function getRecentCount() {
-    return getRecentlyPlayedSongs().length;
+export function getRecentCount(...args) {
+    return getRecentlyPlayedSongs(...args).length;
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({ addToRecentList, getRecentlyPlayedSongs, getRecentCount });
 }

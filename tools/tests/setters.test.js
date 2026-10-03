@@ -29,7 +29,7 @@ function topLevelLetNames() {
     const names = new Map();
     // 99-player.js is the player.js template (it has {{placeholders}}), so it cannot be parsed as is.
     for (const file of fs.readdirSync(JS_DIR).filter((f) => f.endsWith('.js') && f !== '99-player.js')) {
-        const ast = acorn.parse(fs.readFileSync(path.join(JS_DIR, file), 'utf8'), { ecmaVersion: 'latest', sourceType: 'script' });
+        const ast = acorn.parse(require('../lib/strip-exports').stripExports(fs.readFileSync(path.join(JS_DIR, file), 'utf8')), { ecmaVersion: 'latest', sourceType: 'script' });
         for (const node of ast.body) {
             if (node.type !== 'VariableDeclaration' || node.kind !== 'let') continue;
             for (const d of node.declarations) if (d.id.type === 'Identifier') names.set(d.id.name, file);

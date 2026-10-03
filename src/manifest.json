@@ -29,9 +29,6 @@
     "core/state-ui.js",
     "core/utils.js",
     "library/songs.js",
-    "03-storage.js",
-    "03a-recents.js",
-    "03b-search-engine.js",
     "03c-playlists.js",
     "03d-albums-artists.js",
     "03e-recents-history.js",
@@ -119,5 +116,10 @@
     "library/import-dropped.js",
     "ui/window-controls.js",
     "ui/player-bar.js"
+  ],
+  "modules": [
+    "03-storage.js",
+    "03a-recents.js",
+    "03b-search-engine.js"
   ]
 }

@@ -13,11 +13,14 @@ const fs = require('fs');
 const path = require('path');
 const acorn = require('acorn');
 const walk = require('acorn-walk');
+const { stripExports } = require('./lib/strip-exports');
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..');
 const JS_DIR = path.join(ROOT, 'src', 'js');
 const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'manifest.json'), 'utf8'));
-const files = [...manifest.js, '99-player.js'];
+// Modules run after every classic script (including player.js), so they come last.
+const MODULES = new Set(manifest.modules || []);
+const files = [...manifest.js, '99-player.js', ...MODULES];
 const order = Object.fromEntries(files.map((f, i) => [f, i]));
 
 function patternNames(p, out = []) {
@@ -43,7 +46,8 @@ function ownDeclarations(block, set) {
 }
 
 function parse(file) {
-    const src = fs.readFileSync(path.join(JS_DIR, file), 'utf8').replace(/\{\{[A-Z_]+\}\}/g, 'null');
+    let src = fs.readFileSync(path.join(JS_DIR, file), 'utf8').replace(/\{\{[A-Z_]+\}\}/g, 'null');
+    if (MODULES.has(file)) src = stripExports(src);
     return acorn.parse(src, { ecmaVersion: 'latest', sourceType: 'script', allowReturnOutsideFunction: true });
 }
 

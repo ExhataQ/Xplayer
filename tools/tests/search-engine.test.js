@@ -2,35 +2,31 @@
 // Pure logic: runs in Node, no browser needed.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('fs');
 const path = require('path');
-const vm = require('vm');
+const { pathToFileURL } = require('url');
 
-function loadEngine(activeSongs = []) {
-    const source = fs.readFileSync(path.join(__dirname, '../../src/js/03b-search-engine.js'), 'utf8');
-    const context = { console, WeakMap, Number, Array, String, Math, parseInt, getActiveSongs: () => activeSongs };
-    vm.createContext(context);
-    vm.runInContext(source, context);
-    return context;
-}
+// 03b-search-engine.js is an ES module: imported directly, no fake globals.
+const engineModule = import(pathToFileURL(path.join(__dirname, '../../src/js/03b-search-engine.js')).href);
 const titles = (list) => Array.from(list, (s) => s.title);
-const { searchSongs, normalizeSearchText, getSearchResults } = loadEngine();
 
-test('normalization ignores case, accents, apostrophes and extra spaces', () => {
+test('normalization ignores case, accents, apostrophes and extra spaces', async () => {
+    const { searchSongs, normalizeSearchText, getSearchResults } = await engineModule;
     assert.equal(normalizeSearchText('  Beyoncé   KNOWLES '), 'beyonce knowles');
     assert.equal(normalizeSearchText("Don’t Stop"), 'dont stop');
     assert.equal(normalizeSearchText(undefined), '');
     assert.equal(normalizeSearchText(null), '');
 });
 
-test('accents and apostrophes never hide a match (also titles the scanner stored without quotes)', () => {
+test('accents and apostrophes never hide a match (also titles the scanner stored without quotes)', async () => {
+    const { searchSongs, normalizeSearchText, getSearchResults } = await engineModule;
     const songs = [{ title: 'Halo', artist: 'Beyoncé' }, { title: "Don't Stop Me Now" }, { title: 'Dont Stop Believin' }];
     assert.deepEqual(titles(searchSongs(songs, 'beyonce')), ['Halo']);
     assert.deepEqual(titles(searchSongs(songs, "don't")).sort(), ["Don't Stop Me Now", 'Dont Stop Believin'].sort());
     assert.deepEqual(titles(searchSongs(songs, 'dont stop')).length, 2);
 });
 
-test('every word of the query must match, in any field ("queen jazz" finds the album Jazz by Queen)', () => {
+test('every word of the query must match, in any field ("queen jazz" finds the album Jazz by Queen)', async () => {
+    const { searchSongs, normalizeSearchText, getSearchResults } = await engineModule;
     const songs = [
         { title: 'Fat Bottomed Girls', artist: 'Queen', album: 'Jazz' },
         { title: 'Song', artist: 'Queen', album: 'Innuendo' },
@@ -39,7 +35,8 @@ test('every word of the query must match, in any field ("queen jazz" finds the a
     assert.deepEqual(titles(searchSongs(songs, 'queen jazz')), ['Fat Bottomed Girls']);
 });
 
-test('best matches come first: exact title, then prefix, then word start, then anywhere', () => {
+test('best matches come first: exact title, then prefix, then word start, then anywhere', async () => {
+    const { searchSongs, normalizeSearchText, getSearchResults } = await engineModule;
     const songs = [
         { title: 'X', artist: 'Y', album: 'Best of Love' },
         { title: 'Glove' },
@@ -50,27 +47,32 @@ test('best matches come first: exact title, then prefix, then word start, then a
     assert.deepEqual(titles(searchSongs(songs, 'love')), ['Love', 'Loveless', 'A Love Story', 'Glove', 'X']);
 });
 
-test('a title match beats an artist match for the same word', () => {
+test('a title match beats an artist match for the same word', async () => {
+    const { searchSongs, normalizeSearchText, getSearchResults } = await engineModule;
     const songs = [{ title: 'Other', artist: 'Queen' }, { title: 'Queen of Hearts', artist: 'Someone' }];
     assert.deepEqual(titles(searchSongs(songs, 'queen')), ['Queen of Hearts', 'Other']);
 });
 
-test('equal scores keep the original order (stable)', () => {
+test('equal scores keep the original order (stable)', async () => {
+    const { searchSongs, normalizeSearchText, getSearchResults } = await engineModule;
     const songs = ['b', 'a', 'c'].map((t, i) => ({ title: `${t} song`, id: i }));
     assert.deepEqual(titles(searchSongs(songs, 'song')), ['b song', 'a song', 'c song']);
 });
 
-test('rank:false keeps the list order (used when filtering an album or playlist)', () => {
+test('rank:false keeps the list order (used when filtering an album or playlist)', async () => {
+    const { searchSongs, normalizeSearchText, getSearchResults } = await engineModule;
     const songs = [{ title: 'zz love' }, { title: 'Love' }];
     assert.deepEqual(titles(searchSongs(songs, 'love', { rank: false })), ['zz love', 'Love']);
 });
 
-test('songs with missing fields never throw', () => {
+test('songs with missing fields never throw', async () => {
+    const { searchSongs, normalizeSearchText, getSearchResults } = await engineModule;
     assert.deepEqual(Array.from(searchSongs([{}, { title: null, artist: undefined }, { title: 'ok' }], 'ok')).length, 1);
     assert.deepEqual(Array.from(searchSongs(undefined, 'x')), []);
 });
 
-test('an empty or blank query returns every song as a new array', () => {
+test('an empty or blank query returns every song as a new array', async () => {
+    const { searchSongs, normalizeSearchText, getSearchResults } = await engineModule;
     const songs = [{ title: 'a' }, { title: 'b' }];
     for (const q of ['', '   ', undefined]) {
         const out = searchSongs(songs, q);
@@ -79,7 +81,8 @@ test('an empty or blank query returns every song as a new array', () => {
     }
 });
 
-test('edited metadata is picked up (the per-song cache does not go stale)', () => {
+test('edited metadata is picked up (the per-song cache does not go stale)', async () => {
+    const { searchSongs, normalizeSearchText, getSearchResults } = await engineModule;
     const song = { title: 'Old name' };
     assert.equal(searchSongs([song], 'old').length, 1);
     song.title = 'New name';
@@ -87,7 +90,8 @@ test('edited metadata is picked up (the per-song cache does not go stale)', () =
     assert.equal(searchSongs([song], 'new').length, 1);
 });
 
-test('filters: artist, album, genre, year range and duration range', () => {
+test('filters: artist, album, genre, year range and duration range', async () => {
+    const { searchSongs, normalizeSearchText, getSearchResults } = await engineModule;
     const songs = [
         { title: 'a', artist: 'Queen', album: 'Jazz', genre: 'Rock, Pop', year: '1978', duration: 200 },
         { title: 'b', artist: 'queen', album: 'Innuendo', genre: 'Rock', year: '1991-02-05', duration: 400 },
@@ -104,12 +108,17 @@ test('filters: artist, album, genre, year range and duration range', () => {
     assert.deepEqual(titles(searchSongs(songs, 'queen', { filters: { yearFrom: 1990 } })), ['b'], 'query and filters combine');
 });
 
-test('getSearchResults only searches songs that are still in the library', () => {
-    const engine = loadEngine([{ title: 'kept song' }]);
-    assert.deepEqual(titles(engine.getSearchResults('song')), ['kept song']);
+// In the app getSearchResults(query) leaves `songs` out and gets getActiveSongs() (songs not
+// deleted from the library); that default is exercised in the browser test converted-modules.test.js.
+test('getSearchResults searches exactly the songs it is given', async () => {
+    const { getSearchResults } = await engineModule;
+    const kept = [{ title: 'kept song' }];
+    assert.deepEqual(titles(getSearchResults('song', undefined, kept)), ['kept song']);
+    assert.deepEqual(titles(getSearchResults('other', undefined, kept)), []);
 });
 
-test('searching a large library stays fast', () => {
+test('searching a large library stays fast', async () => {
+    const { searchSongs, normalizeSearchText, getSearchResults } = await engineModule;
     const songs = Array.from({ length: 5000 }, (_, i) => ({ title: `Track ${i}`, artist: `Artist ${i % 200}`, album: `Album ${i % 300}` }));
     searchSongs(songs, 'track 4'); // warm the per-song cache
     const start = process.hrtime.bigint();
