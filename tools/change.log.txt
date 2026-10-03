@@ -1,4 +1,8 @@
 2026-10-03
+- Added tools/spike-modules/ (A-04 module-loading spike): runs a temporary <script type="module"> next to the classic scripts in a real Electron and prints PASS or FAIL per check. All checks pass (Electron 44.5.1, file://). Nothing in src/ changed.
+- PLAN.md and BOARD.md: A-04 and A-07 marked done; A-07b added (remove the 11 single-owner variables from 00-state.js once B, C and D have moved them); A-10 and A-11 Needs updated.
+
+2026-10-03
 - Moved AGENTS.md, BOARD.md and PLAN.md into .agent/, agent-reports/ into .agent/reports/ (with a new TEMPLATE.md, which PLAN.md already referred to), and archived the three event bus plan documents in .agent/archive/. Paths updated in PLAN.md (session brief), tools/prompt.txt, claude.md and AGENTS.md. claude.md stays at the project root.
 - PLAN.md: the finished event bus steps are ticked and their Needs entries removed, start order rewritten (B, C and D can start Phase 1 in parallel), leftovers from the event bus work listed under Optional, rule added that code comments never name agents, steps or plans.
 - BOARD.md: finished steps marked patch received; next actions rewritten.

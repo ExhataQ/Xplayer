@@ -19,10 +19,10 @@ Status values: `todo`, `in progress`, `patch received`, `applied + verified`, `b
 | A-01 | 0     | Add the analysis tool                      | -                | applied + verified | A report 1                                                            |
 | A-02 | 0     | Record test baselines                      | -                | applied + verified | A report 1                                                            |
 | A-03 | 0     | Add the smoke checklist                    | -                | applied + verified | A report 1                                                            |
-| A-04 | 0     | Module-loading spike                       | -                | todo               |                                                                       |
+| A-04 | 0     | Module-loading spike                       | -                | applied + verified               |                                                                       |
 | A-05 | 0.5   | Event bus check                            | -                | applied + verified | first plan (A report 1)                                               |
 | A-06 | 1     | Create the owner and setter files          | -                | applied + verified | A report 1                                                            |
-| A-07 | 1     | Replace writes in A's own files            | A-06             | in progress        | writes done (A report 1); removing variables from 00-state.js is open |
+| A-07 | 1     | Replace writes in A's own files            | A-06             | applied + verified        | writes done (A report 1); removing variables from 00-state.js is open |
 | A-08 | 2     | Emit events from data changes              | A-07             | applied + verified | first plan (A reports 2, 3)                                           |
 | A-09 | 2     | Remove direct render calls from A's files  | -                | applied + verified | first plan (A reports 2, 3)                                           |
 | A-10 | 3     | Build the handler bridge                   | A-04             | todo               |                                                                       |

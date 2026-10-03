@@ -65,7 +65,7 @@ Agent: A.
 - [ ] Spike: one throwaway `<script type="module">` loaded from `music_player.html` in the built app under `App/electron.exe`. Confirm it runs, that it can import a sibling file, and that it can read a top-level classic-script `let`/`const` by bare name.
 - [ ] Decide the folder layout (section 4) and add empty folders to the manifest only when a file lands in them.
 
-Done when: baseline recorded, spike result written down (works / does not work, and what to do instead). Only the spike and the layout decision are still open; the spike needs you, because an agent cannot start Electron. Nothing before Phase 3 depends on it.
+Done when: baseline recorded, spike result written down (works / does not work, and what to do instead). The spike is done (A-04: every check passes). Only the layout decision is still open.
 
 ### Phase 1: state ownership (still classic scripts)
 
@@ -252,9 +252,9 @@ Rules:
 ### 9.2 Start order
 
 1. **Done:** tools, baselines and smoke checklist (A-01 to A-03), setters (A-06), A's own writes (A-07, first half), and the whole event bus (A-05, A-08, A-09, B-05, B-06, C-02, C-03, D-03, D-04).
-2. **You, once:** run the module spike (A-04) in Electron. Nothing before Phase 3 needs it, so it does not hold up step 3.
+2. **Done:** the module spike (A-04) passed in Electron 44.5.1 on Linux. Optional, one command: run it with your own `App\electron.exe` (`tools/spike-modules/README.md`).
 3. **B, C, D in parallel, start now:** replace writes in their own files (B-01 to B-04, C-01, D-01, D-02), and report which variables only their files use.
-4. **A:** removes those variables from `00-state.js` (A-07, second half). Once A-04 is in, A builds the handler bridge (A-10).
+4. **A:** removes those variables from `00-state.js` (A-07b). A can already build the handler bridge (A-10): A-04 passed.
 5. **B, C, D in parallel:** convert inline handlers (B-07, C-04, D-05).
 6. **In parallel:** leaf modules (A-12, B-08, C-05, D-07) and the `99-player` split (A-11).
 7. **A** builds storage and `api/` (A-13, A-14); then B, C, D swap their calls.
@@ -276,28 +276,31 @@ Each step is sized for one session or less. The IDs are used in reports and on t
 - [x] **A-03** (Phase 0) **Add the smoke checklist.** Copy section 6 of this plan into `tools/smoke-checklist.md`.
   - Files: `tools/smoke-checklist.md`
   - Done when: File exists and matches section 6.
-- [ ] **A-04** (Phase 0) **Module-loading spike.** Add a temporary `<script type="module">` to the template that (1) logs, (2) imports a sibling file, (3) reads a classic-script top-level `let` by bare name, (4) logs its order relative to `player.js` and `DOMContentLoaded`. Build, check, then remove it.
-  - Files: `build/music_player.html` (temporary)
-  - Done when: The report says works / does not work for each of the four checks, plus a fallback if any fails.
-  - You: Build the app and open `App/electron.exe`; an agent cannot launch Electron. Copy what the DevTools console shows into the report.
+- [x] **A-04** (Phase 0) **Module-loading spike.** Done: `tools/spike-modules/` runs the four checks (and a few extra) in a real Electron and prints PASS or FAIL for each. Result in Electron 44.5.1 (Chromium 152) under file://: all PASS. A module runs after `player.js` and before `DOMContentLoaded`; it can import a sibling file; it reads and assigns classic top-level `let` variables and calls classic functions by bare name; its own top-level names stay private; an inline `onclick` can call a function the module put on `window`. No fallback is needed. See `.agent/reports/A/0004-module-spike-and-variable-owners.md`.
+  - Files: `tools/spike-modules/` (can be deleted once Phase 3 has started)
+  - Done when: report says works / does not work for each check (done).
+  - You (optional, 1 minute): `App\electron.exe tools\spike-modules\run-spike.js electron\MusicPlayerOutput` should print PASS on every line. It confirms that your own Electron version behaves like the one I used.
 - [x] **A-05** (Phase 0.5) **Event bus.** Done in the first plan. The bus is `src/js/00b-events.js` (`emit`, `on`; `on` returns the unsubscribe function) and the event list is `src/js/core/EVENTS.md`.
 - [x] **A-06** (Phase 1) **Create the owner and setter files.** Create classic-script files in `core/` with a setter for every global that `node tools/dep-map.js` reports as written from another file (52 today). Groups: queue (`playbackQueue`, `currentQueueIndex`, `queueDisplayLimit`); playback modes (`isShuffled`, `shuffleMode`, `repeatMode`, `repeatFunctionalityActive`, `repeatVisualState`); now-playing (`lastPlayedSong`, `lastPlayedSongStartTime`, `isManualPlay`, `isPrevNavigation`, `lastPlaybackListId`); navigation (`currentView`, `searchQuery`, `historyNavigationIndex`, `playbackHistoryStack`, `isNavigatingHistory`, `lyricsPreView`, `lyricsPreScrollTop`); folders (`currentOpenFolderId`, `currentOpenFolderName`, `folderNavigationStack`, `selectedLibraryFolders`); ghost-list counters; transient UI state. The variables stay declared where they are; a setter assigns the variable and emits the matching event. Nothing calls the setters yet. List every setter and the variable it wraps in `core/SETTERS.md`.
   - Files: new `core/*.js`, `core/SETTERS.md`, `src/manifest.json`
   - Done when: Manifest and node tests pass; app behaves the same; `SETTERS.md` covers every name dep-map reported.
-- [ ] **A-07** (Phase 1) **Replace writes in A's own files.** In `03e`, `03j`, `03m`, `09` and `99-player`, replace direct assignments to other files' globals with setter calls. **Status:** the 35 assignments in A's files are done. **Still open:** remove from `00-state.js` any variable that B, C or D report is used only in their files (they move the declaration into their own file).
-  - Files: `03e`, `03j`, `03m`, `09`, `99-player`, `00-state`
-  - Done when: `node tools/dep-map.js writers <names>` lists no A file as a writer of a global it does not define; focused tests pass.
+- [x] **A-07** (Phase 1) **Replace writes in A's own files.** Done. In `03e`, `03j`, `03m`, `09` and `99-player` the 35 direct assignments to other files' globals are setter calls, and `node tools/dep-map.js json` shows no A file writing a global it does not define.
+  - Files: `03e`, `03j`, `03m`, `09`, `99-player`
+  - Done when: `node tools/dep-map.js writers <names>` lists no A file as a writer of a global it does not define; focused tests pass (done).
   - Needs: A-06
+- [ ] **A-07b** (Phase 1) **Remove moved variables from `00-state.js`.** Eleven variables are used by only one other agent (B: 8, C: 2, D: 1); the list with the files that use them is in `.agent/reports/A/0004-module-spike-and-variable-owners.md`. Each owner moves the declaration into its own file; A deletes the line from `00-state.js`. The two changes must be applied together: a variable declared in both files stops the app at load (`Identifier has already been declared`), and one declared in neither fails at the first use. So each owner sends a patch with the new declaration, A sends the matching `00-state.js` patch the same day, and you apply both before opening the app.
+  - Files: `00-state`
+  - Done when: each moved variable is declared once, in its owner's file; `node tools/dep-map.js` shows no new cross-file writes; focused tests and the smoke checklist pass.
+  - Needs: B-02, B-03, B-04, C-01, D-01, D-02
 - [x] **A-08** (Phase 2) **Emit events from data changes.** Done in the first plan: the `03*` files and `09` emit their events (see `EVENTS.md`).
 - [x] **A-09** (Phase 2) **Remove direct render calls from A's files.** Done in the first plan: the audit reports 0 for A.
 - [ ] **A-10** (Phase 3) **Build the handler bridge.** Add `registerLegacyGlobals({...})` (assigns onto `window`) and one delegated `data-action` dispatcher in `core/`. Add a browser test that clicks a `data-action` element and a bridged inline handler.
   - Files: `core/legacy.js`, `tools/tests/`, `src/manifest.json`
   - Done when: Both click paths work in the browser test.
-  - Needs: A-04
 - [ ] **A-11** (Phase 4) **Split `99-player.js`.** Move the seven load-time references (lines 770–819) into the `DOMContentLoaded` handler; move utilities (`escapeHtml`, `escapeHtmlAttr`, `generateLongId`, `generateConsistentId`, `debounce`) to `core/utils.js` and library helpers (`SONGS_DATA`, `deletedSongIds`, `getActiveSongs`, `filterDeletedSongs`, `getSongById`) to `library/songs.js`. Keep the `{{SONGS_DATA}}` and `{{PLACEHOLDER_IMAGE}}` placeholders and the bootstrap in `99-player.js`.
   - Files: `99-player`, `00-state`, new `core/utils.js`, `library/songs.js`
   - Done when: Manifest test passes; built `player.js` still contains song data; smoke checklist passes.
-  - Needs: A-04, A-07
+  - Needs: A-07b
 - [ ] **A-12** (Phase 4) **Convert storage, recents and search engine.** Turn `03-storage`, `03a-recents`, `03b-search-engine` into modules exposed through `registerLegacyGlobals`. Rewrite `storage.test.js`, `recents.test.js` and `search-engine.test.js` to import them instead of using `vm` and fake globals.
   - Files: `03-storage`, `03a`, `03b`, three tests
   - Done when: The three tests pass with imports and no fake-global contexts.
