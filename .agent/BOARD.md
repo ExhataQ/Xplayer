@@ -43,7 +43,7 @@ Status values: `todo`, `in progress`, `patch received`, `applied + verified`, `b
 | B-04 | 1     | Replace writes in the remaining B files | A-06                   | applied + verified               |                             |
 | B-05 | 2     | Emit playback events                    | B-02                   | applied + verified | first plan (B 0001 to 0005) |
 | B-06 | 2     | Replace cross-subsystem render calls    | -                      | applied + verified | first plan (B 0001 to 0005) |
-| B-07 | 3     | Convert inline handlers                 | A-10                   | todo               |                             |
+| B-07 | 3     | Convert inline handlers                 | A-10                   | applied + verified               |                             |
 | B-08 | 4     | Shuffle modules                         | A-10, B-03             | todo               |                             |
 | B-09 | 5     | Swap storage and API calls              | A-13, A-14             | todo               |                             |
 | B-10 | 6     | Convert playback to modules             | A-15, A-11, B-09, B-08 | todo               |                             |

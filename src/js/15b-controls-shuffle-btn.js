@@ -170,19 +170,25 @@ function selectShuffleMode(mode) {
     startSmartShuffleFromCurrentView();
 }
 
+registerActions({ selectShuffleMode });
+
 function openShuffleModeDialog() {
     temporarilySuppressTooltip(shuffleButton);
     const { modal, overlay } = createModal('playlist-modal shuffle-mode-modal', 'playlist-modal-overlay shuffle-mode-overlay', closeShuffleModeDialog);
-    modal.onclick = (event) => event.stopPropagation();
+    // Clicks stay inside the dialog, except on an action button: that click must reach document,
+    // where data-action runs it.
+    modal.onclick = (event) => {
+        if (!event.target.closest('[data-action]')) event.stopPropagation();
+    };
     const smartAvailable = getSongsForList(currentView).length > 50;
 
     modal.innerHTML = `
         <h3 class="playlist-modal-title">Shuffle mode</h3>
         <p style="color: var(--text-secondary); font-size: 13px; margin: 0 0 18px; line-height: 1.5;">Choose how this view should play.</p>
         <div style="display: grid; gap: 10px;">
-            <button class="playlist-modal-create-btn" onclick="selectShuffleMode('normal')">Normal Shuffle</button>
-            <button class="playlist-modal-create-btn" ${smartAvailable ? '' : 'disabled'} onclick="selectShuffleMode('smart')">Smart Shuffle v1${smartAvailable ? '' : ' — needs more than 50 songs'}</button>
-            ${isShuffled ? '<button class="playlist-modal-cancel-btn" onclick="selectShuffleMode(\'off\')">Turn Shuffle Off</button>' : ''}
+            <button class="playlist-modal-create-btn" ${actionAttrs('selectShuffleMode', ['normal'])}>Normal Shuffle</button>
+            <button class="playlist-modal-create-btn" ${smartAvailable ? actionAttrs('selectShuffleMode', ['smart']) : 'disabled'}>Smart Shuffle v1${smartAvailable ? '' : ' — needs more than 50 songs'}</button>
+            ${isShuffled ? `<button class="playlist-modal-cancel-btn" ${actionAttrs('selectShuffleMode', ['off'])}>Turn Shuffle Off</button>` : ''}
         </div>
     `;
 

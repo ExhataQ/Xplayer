@@ -134,7 +134,7 @@ function updateQueueDisplay() {
 
     if (hasMoreQueueItems) {
         queueHTML += `
-                                <button class="queue-load-more-btn" type="button" onclick="loadMoreQueueItems()">
+                                <button class="queue-load-more-btn" type="button" ${actionAttrs('loadMoreQueueItems')}>
                                         Load more
                                 </button>`;
     }
@@ -167,6 +167,8 @@ function loadMoreQueueItems() {
 
     updateQueueDisplay();
 }
+
+registerActions({ loadMoreQueueItems });
 
 function playFromQueue(queueIndex) {
     if (queueIndex >= 0 && queueIndex < playbackQueue.length) {
