@@ -21,7 +21,7 @@ function renderSearchHistoryView() {
                                                 <i class="fas fa-search"></i>
                                                 <span>Search History</span>
                                         </div>
-                                        <button onclick="clearSearchHistory()" class="clear-history-btn">
+                                        <button data-action="clearSearchHistory" class="clear-history-btn">
                                                 <i class="fas fa-trash-alt"></i>
                                                 Clear List
                                         </button>
@@ -74,7 +74,7 @@ function renderSearchHistoryView() {
 
             return `
         <div class="song-item search-history-item" 
-             onclick="openSearchHistoryChild('${entry.sessionId}', '${entry.query.replace(/'/g, "\\'")}')">
+             ${actionAttrs('openSearchHistoryChild', [String(entry.sessionId), entry.query])}>
                 <div class="left-song-item">
                         <div class="song-number">${index + 1}</div>
                         <div class="song-info">
@@ -109,7 +109,7 @@ function renderSearchHistoryView() {
                                             <i class="fas fa-history"></i>
                                             <span>Search History</span>
                                     </div>
-                                    <button onclick="clearSearchHistory()" class="clear-history-btn">
+                                    <button data-action="clearSearchHistory" class="clear-history-btn">
                                             <i class="fas fa-trash-alt"></i>
                                             Clear List
                                     </button>

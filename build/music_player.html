@@ -20,10 +20,10 @@
         <div id="startup-loading-screen" aria-label="Loading"></div>
         <div class="headerR">
             <div class="header-left" style="flex: 1; display: flex; align-items: center; padding-left: 0">
-                <button id="back-btn" class="nav-btn" onclick="goBack()" disabled style="opacity: 0.5">
+                <button id="back-btn" class="nav-btn" data-action="goBack" disabled style="opacity: 0.5">
                     <i class="fas fa-chevron-left"></i>
                 </button>
-                <button id="forward-btn" class="nav-btn" onclick="goForward()" disabled style="opacity: 0.5">
+                <button id="forward-btn" class="nav-btn" data-action="goForward" disabled style="opacity: 0.5">
                     <i class="fas fa-chevron-right"></i>
                 </button>
             </div>
@@ -34,7 +34,7 @@
                             type="text"
                             id="search-input"
                             placeholder="Search songs..."
-                            oninput="performSearch()"
+                            data-action-input="performSearch"
                             aria-label="Search songs"
                         />
                         <button class="search-btn" id="search-btn" aria-label="Search">
@@ -49,7 +49,7 @@
             >
                 <button
                     class="add-link-btn"
-                    onclick="showAddLinkDialog()"
+                    data-action="showAddLinkDialog"
                     aria-label="Play from URL"
                     title="Play from URL"
                 >
@@ -58,7 +58,7 @@
                 <button
                     class="add-link-btn"
                     id="online-lyrics-search-btn"
-                    onclick="toggleOnlineLyricsSearchView()"
+                    data-action="toggleOnlineLyricsSearchView"
                     aria-label="Lyrics / LRC Search"
                     title="Lyrics / LRC Search"
                 >
@@ -67,19 +67,19 @@
                 <button
                     class="notification-panel-btn"
                     id="notification-panel-btn"
-                    onclick="toggleNotificationPanel()"
+                    data-action="toggleNotificationPanel"
                     aria-label="Notifications"
                     title="Notifications"
                 >
                     <i class="fas fa-bell"></i>
                     <span class="notification-badge" id="notification-badge" style="display: none">0</span>
                 </button>
-                <button class="settings-toggle-btn" onclick="toggleSettingsPanel()" aria-label="Settings">
+                <button class="settings-toggle-btn" data-action="toggleSettingsPanel" aria-label="Settings">
                     <i class="fas fa-cog"></i>
                 </button>
                 <button
                     class="window-control-btn"
-                    onclick="minimizeApp()"
+                    data-action="minimizeApp"
                     aria-label="Minimize"
                     style="margin-left: 12px"
                 >
@@ -87,7 +87,7 @@
                         <path d="M0 5 L10 5" stroke="currentColor" stroke-width="1" shape-rendering="crispEdges" />
                     </svg>
                 </button>
-                <button class="window-control-btn" id="maximize-btn" onclick="maximizeApp()" aria-label="Maximize">
+                <button class="window-control-btn" id="maximize-btn" data-action="maximizeApp" aria-label="Maximize">
                     <svg
                         id="maximize-icon"
                         xmlns="http://www.w3.org/2000/svg"
@@ -107,7 +107,7 @@
                         />
                     </svg>
                 </button>
-                <button class="close-app-btn" onclick="closeApp()" aria-label="Close app">
+                <button class="close-app-btn" data-action="closeApp" aria-label="Close app">
                     <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 10 10">
                         <path
                             d="M0 0 L10 10 M10 0 L0 10"
@@ -123,7 +123,7 @@
         <div class="notification-panel" id="notification-panel">
             <div class="notification-panel-header">
                 <span>Notifications</span>
-                <button class="notification-panel-clear" onclick="clearAllNotifications()" title="Clear all">
+                <button class="notification-panel-clear" data-action="clearAllNotifications" title="Clear all">
                     <i class="fas fa-trash-alt"></i>
                 </button>
             </div>
@@ -143,7 +143,7 @@
                         <div style="display: flex; align-items: center; gap: 2px; flex: 1; min-width: 0">
                             <div
                                 class="left-panel-header-title-group"
-                                onclick="toggleLeftPanelCollapse()"
+                                data-action="toggleLeftPanelCollapse"
                                 style="cursor: pointer; display: flex; align-items: center; gap: 2px"
                                 data-original-title="Collapse your library"
                             >
@@ -162,7 +162,7 @@
                                 <button
                                     class="folder-back-btn"
                                     id="folder-back-btn"
-                                    onclick="closeFolder()"
+                                    data-action="closeFolder"
                                     aria-label="Go back"
                                     data-original-title="Go back"
                                 >
@@ -174,7 +174,7 @@
                         <button
                             class="collapsed-folder-back-btn"
                             id="collapsed-folder-back-btn"
-                            onclick="closeFolder()"
+                            data-action="closeFolder"
                             aria-label="Go back"
                             data-original-title="Go back"
                         >
@@ -183,7 +183,7 @@
                         <button
                             class="create-playlist-header-btn"
                             id="create-playlist-header-btn"
-                            onclick="showCreateItemDialog()"
+                            data-action="showCreateItemDialog"
                             aria-label="Create"
                         >
                             <i class="fas fa-plus"></i>
@@ -213,7 +213,7 @@
                                 <i
                                     class="fas fa-search left-panel-search-icon"
                                     id="left-panel-search-icon"
-                                    onclick="focusLeftPanelSearch()"
+                                    data-action="focusLeftPanelSearch"
                                     title="Search in Library"
                                 ></i>
                                 <input
@@ -221,14 +221,14 @@
                                     class="left-panel-search-input"
                                     id="left-panel-search-input"
                                     placeholder="Search in library"
-                                    oninput="performLeftPanelSearch()"
-                                    onblur="handleLeftPanelSearchBlur()"
+                                    data-action-input="performLeftPanelSearch"
+                                    data-action-blur="handleLeftPanelSearchBlur"
                                     autocomplete="off"
                                 />
                                 <i
                                     class="fas fa-times left-panel-search-clear"
                                     id="left-panel-search-clear"
-                                    onclick="clearLeftPanelSearch()"
+                                    data-action="clearLeftPanelSearch"
                                     title="Clear"
                                 ></i>
                             </div>
@@ -406,7 +406,7 @@
                                         <button
                                             class="hero-clear-btn"
                                             id="hero-clear-btn"
-                                            onclick="handleHeroClear()"
+                                            data-action="handleHeroClear"
                                             style="display: none"
                                         >
                                             <i class="fas fa-trash-alt"></i>
@@ -421,7 +421,7 @@
                                         <button
                                             class="subhero-play-btn"
                                             id="subhero-play-btn"
-                                            onclick="togglePlayAllFromCurrentView()"
+                                            data-action="togglePlayAllFromCurrentView"
                                             title="Play"
                                         >
                                             <i class="fas fa-play"></i>
@@ -429,7 +429,7 @@
                                         <button
                                             class="subhero-shuffle-btn"
                                             id="subhero-shuffle-btn"
-                                            onclick="toggleShuffleFromSubhero()"
+                                            data-action="toggleShuffleFromSubhero"
                                             title="Shuffle"
                                         >
                                             <span class="material-symbols-outlined">shuffle</span>
@@ -448,7 +448,7 @@
                                             <i
                                                 class="fas fa-search subhero-search-icon"
                                                 id="subhero-search-icon"
-                                                onclick="focusSubheroSearch()"
+                                                data-action="focusSubheroSearch"
                                                 title="Search"
                                             ></i>
                                             <input
@@ -456,14 +456,14 @@
                                                 class="subhero-search-input"
                                                 id="subhero-search-input"
                                                 placeholder="Search in playlist"
-                                                oninput="performSubheroSearch()"
-                                                onblur="handleSubheroSearchBlur()"
+                                                data-action-input="performSubheroSearch"
+                                                data-action-blur="handleSubheroSearchBlur"
                                                 autocomplete="off"
                                             />
                                             <i
                                                 class="fas fa-times subhero-search-clear"
                                                 id="subhero-search-clear"
-                                                onclick="clearSubheroSearch()"
+                                                data-action="clearSubheroSearch"
                                                 title="Clear"
                                             ></i>
                                         </div>
@@ -500,7 +500,7 @@
                         <button
                             class="right-panel-collapse-btn"
                             id="right-panel-collapse-btn"
-                            onclick="toggleRightPanelCollapse()"
+                            data-action="toggleRightPanelCollapse"
                             aria-label="Hide now playing view"
                             title="Hide now playing view"
                         >
@@ -514,7 +514,7 @@
                         <span
                             id="recently-played-text"
                             class="recently-played-text"
-                            onclick="switchToRecentlyPlayedPanel()"
+                            data-action="switchToRecentlyPlayedPanel"
                             style="cursor: pointer"
                             >recently played</span
                         >
@@ -523,7 +523,7 @@
                         <div
                             class="right-panel-close-btn"
                             id="right-panel-close-btn"
-                            onclick="toggleRightPanel()"
+                            data-action="toggleRightPanel"
                             style="
                                 display: none;
                                 cursor: pointer;
@@ -578,9 +578,9 @@
                                 <div class="tag-details" id="tag-details">
                                     <div class="track-info-header">
                                         <div class="track-info-title-row">
-                                            <div class="track-info-title" id="tag-title" onclick="navigateToCurrentSourceView()">—</div>
+                                            <div class="track-info-title" id="tag-title" data-action="navigateToCurrentSourceView">—</div>
                                         </div>
-                                        <div class="track-info-artist" id="tag-artist" onclick="navigateToCurrentArtist()">—</div>
+                                        <div class="track-info-artist" id="tag-artist" data-action="navigateToCurrentArtist">—</div>
                                     </div>
                                     <div class="track-info-box" id="track-info-box">
                                         <div class="track-info-box-title"><span>Info</span><button class="track-info-edit-btn" id="track-info-btn" onclick="event.stopPropagation(); openMetadataEditor()" style="display: none" title="Edit metadata" aria-label="Edit metadata"><span class="material-symbols-outlined">edit</span></button></div>
@@ -614,7 +614,7 @@
                                     <div class="track-lyrics-box" id="track-lyrics-box" style="display: none">
                                         <div class="track-lyrics-header">
                                             <span class="track-lyrics-title">Lyrics</span>
-                                            <button class="track-lyrics-open" onclick="switchToLyrics()">Open</button>
+                                            <button class="track-lyrics-open" data-action="switchToLyrics">Open</button>
                                         </div>
                                         <div class="custom-scrollbar-container track-lyrics-body-container">
                                             <div class="custom-scrollbar-content" id="track-lyrics-body">
@@ -625,8 +625,8 @@
                                             </div>
                                         </div>
                                         <div class="track-lyrics-footer">
-                                            <button class="track-lyrics-sync" id="track-lyrics-sync" onclick="scrollTrackLyricsToActive()" style="display: none">Sync</button>
-                                            <button class="track-lyrics-expand" id="track-lyrics-expand" onclick="toggleTrackLyricsExpand()" aria-label="Expand lyrics">
+                                            <button class="track-lyrics-sync" id="track-lyrics-sync" data-action="scrollTrackLyricsToActive" style="display: none">Sync</button>
+                                            <button class="track-lyrics-expand" id="track-lyrics-expand" data-action="toggleTrackLyricsExpand" aria-label="Expand lyrics">
                                                 <span class="material-symbols-outlined" id="track-lyrics-expand-icon">expand_more</span>
                                             </button>
                                         </div>
@@ -634,7 +634,7 @@
                                     <div class="track-next-box" id="track-next-box">
                                         <div class="track-next-header">
                                             <span class="track-next-title">Next in queue</span>
-                                            <button class="track-next-open" onclick="switchToQueuePanel()">Open queue</button>
+                                            <button class="track-next-open" data-action="switchToQueuePanel">Open queue</button>
                                         </div>
                                         <div class="track-next-body" id="track-next-body"></div>
                                     </div>
@@ -670,7 +670,7 @@
                             id="player-cover"
                             src="{{PLACEHOLDER_IMAGE}}"
                             alt="Album cover"
-                            onclick="openTagsTab()"
+                            data-action="openTagsTab"
                             onerror="this.onerror=null; this.src='{{PLACEHOLDER_IMAGE}}'"
                             style="cursor: pointer"
                         />
@@ -707,7 +707,7 @@
                         </button>
                     </div>
                     <div class="progress-section">
-                        <div class="time-display" id="current-time" onclick="toggleTimeDisplay()">0:00</div>
+                        <div class="time-display" id="current-time" data-action="toggleTimeDisplay">0:00</div>
                         <div class="progress-container" onmousedown="startSeek(event)">
                             <div id="progress-bar"></div>
                             <div id="progress-knob"></div>
@@ -721,18 +721,18 @@
                         <button
                             class="lyrics-toggle-btn"
                             id="lyrics-toggle-btn"
-                            onclick="switchToLyrics()"
+                            data-action="switchToLyrics"
                             aria-label="Show lyrics"
                             title="Lyrics"
                             disabled
                         >
                             <span class="lyrics-svg-icon"></span>
                         </button>
-                        <button class="queue-toggle-btn" onclick="toggleRightPanel()" aria-label="Toggle right panel">
+                        <button class="queue-toggle-btn" data-action="toggleRightPanel" aria-label="Toggle right panel">
                             <span class="material-symbols-outlined">queue_music</span>
                         </button>
                         <div class="volume-container">
-                            <div class="volume-icon" id="volume-icon" onclick="toggleMute()" aria-label="Volume">
+                            <div class="volume-icon" id="volume-icon" data-action="toggleMute" aria-label="Volume">
                                 <i class="fas fa-volume-up"></i>
                             </div>
                             <div id="volume-slider" onmousedown="setVolume(event)" aria-label="Volume slider">

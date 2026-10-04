@@ -176,7 +176,7 @@ function buildContextMenu(songId, options = {}) {
 
     if (showRemoveFromCurrentPlaylist && currentPlaylistName) {
         menuHTML += `
-        <div class="context-menu-item" onclick="removeSongFromPlaylistAndRefresh(${songId}, '${currentPlaylistId}'); closeContextMenu();">
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['removeSongFromPlaylistAndRefresh', songId, String(currentPlaylistId)])}>
                 <i class="fas fa-trash-alt"></i>
                 <span>Remove from "${escapeHtml(currentPlaylistName)}"</span>
         </div>
@@ -185,7 +185,7 @@ function buildContextMenu(songId, options = {}) {
 
     if (showFavorite) {
         menuHTML += `
-        <div class="context-menu-item" onclick="toggleFavoriteFromMenu(); closeContextMenu();">
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['toggleFavoriteFromMenu'])}>
                 <i class="${favoriteIcon}"></i>
                 <span>${favoriteText}</span>
         </div>
@@ -194,7 +194,7 @@ function buildContextMenu(songId, options = {}) {
 
     if (showAddToQueue) {
         menuHTML += `
-        <div class="context-menu-item" onclick="addToQueueNextFromMenu(); closeContextMenu();">
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['addToQueueNextFromMenu'])}>
                 <i class="fas fa-list"></i>
                 <span>Add to queue</span>
         </div>
@@ -206,11 +206,11 @@ function buildContextMenu(songId, options = {}) {
         const hasLyrics =
             ctxSong && typeof getLyricsForSong === 'function' && String(getLyricsForSong(ctxSong) || '').trim() !== '';
         menuHTML += `
-        <div class="context-menu-item" onclick="openLyricsEditorForSong(${songId}); closeContextMenu();">
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['openLyricsEditorForSong', songId])}>
                 <i class="fas fa-align-left"></i>
                 <span>${hasLyrics ? 'Edit lyrics' : 'Add lyrics'}</span>
         </div>
-        <div class="context-menu-item" onclick="showSongMetadataModal(${songId}); closeContextMenu();">
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['showSongMetadataModal', songId])}>
                 <i class="fas fa-info-circle"></i>
                 <span>Show metadata</span>
         </div>
@@ -219,7 +219,7 @@ function buildContextMenu(songId, options = {}) {
 
     if (options.queueIndex !== undefined) {
         menuHTML += `
-        <div class="context-menu-item" onclick="removeFromQueue(${options.queueIndex}); closeContextMenu();">
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['removeFromQueue', options.queueIndex])}>
                 <i class="fas fa-times"></i>
                 <span>Remove from queue</span>
         </div>
@@ -228,11 +228,11 @@ function buildContextMenu(songId, options = {}) {
 
     if (showFileActions) {
         menuHTML += `
-        <div class="context-menu-item context-menu-separator" onclick="showFileLocation(); closeContextMenu();">
+        <div class="context-menu-item context-menu-separator" ${actionAttrs('contextMenuAction', ['showFileLocation'])}>
                 <i class="fas fa-folder-open"></i>
                 <span>Show file location</span>
         </div>
-        <div class="context-menu-item" onclick="deleteSongFile(); closeContextMenu();">
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['deleteSongFile'])}>
                 <i class="fas fa-trash-alt"></i>
                 <span>Delete from computer</span>
         </div>
@@ -242,7 +242,7 @@ function buildContextMenu(songId, options = {}) {
     if (options.showPlayedData && songId) {
         menuHTML += `
         <div class="context-menu-separator" style="border-top: 1px solid var(--border); margin: 4px 0; padding-top: 0;"></div>
-        <div class="context-menu-item" onclick="showPlayedDataModal(${songId}); closeContextMenu();">
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['showPlayedDataModal', songId])}>
                 <i class="fas fa-chart-bar"></i>
                 <span>View play history</span>
         </div>
@@ -251,7 +251,7 @@ function buildContextMenu(songId, options = {}) {
 
     if (showDeleteFromHistory) {
         menuHTML += `
-        <div class="context-menu-item" onclick="deleteHistoryEntry(); closeContextMenu();">
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['deleteHistoryEntry'])}>
                 <i class="fas fa-trash-alt"></i>
                 <span>Delete from history</span>
         </div>
@@ -260,6 +260,78 @@ function buildContextMenu(songId, options = {}) {
 
     return menuHTML;
 }
+
+// ==============================================================================
+// CONTEXT MENU - ITEM ACTIONS (data-action handlers, see core/LEGACY.md)
+// ==============================================================================
+// Each menu item used to be an inline handler that ran one function and then closeContextMenu(). The functions
+// live in files that load later, so they are looked up when the item is clicked.
+const CONTEXT_MENU_ACTIONS = {
+    removeSongFromPlaylistAndRefresh: (...a) => removeSongFromPlaylistAndRefresh(...a),
+    toggleFavoriteFromMenu: (...a) => toggleFavoriteFromMenu(...a),
+    addToQueueNextFromMenu: (...a) => addToQueueNextFromMenu(...a),
+    openLyricsEditorForSong: (...a) => openLyricsEditorForSong(...a),
+    showSongMetadataModal: (...a) => showSongMetadataModal(...a),
+    removeFromQueue: (...a) => removeFromQueue(...a),
+    showFileLocation: (...a) => showFileLocation(...a),
+    deleteSongFile: (...a) => deleteSongFile(...a),
+    showPlayedDataModal: (...a) => showPlayedDataModal(...a),
+    deleteHistoryEntry: (...a) => deleteHistoryEntry(...a),
+    removeFromFolderFromMenu: (...a) => removeFromFolderFromMenu(...a),
+    addArtistToQueue: (...a) => addArtistToQueue(...a),
+    addAlbumToQueue: (...a) => addAlbumToQueue(...a),
+    addPlaylistToQueue: (...a) => addPlaylistToQueue(...a),
+    showEditPlaylistDialog: (...a) => showEditPlaylistDialog(...a),
+    deletePlaylistAndClose: (...a) => deletePlaylistAndClose(...a),
+    openFolder: (...a) => openFolder(...a),
+    showEditFolderDialog: (...a) => showEditFolderDialog(...a),
+    confirmDeleteFolder: (...a) => confirmDeleteFolder(...a),
+    clearPlayHistory: (...a) => clearPlayHistory(...a),
+    togglePinItem: (...a) => togglePinItem(...a)
+};
+
+function contextMenuAction(name, ...args) {
+    CONTEXT_MENU_ACTIONS[name](...args);
+    closeContextMenu();
+}
+
+function contextMenuPinItem(containingFolderId, itemId, itemName) {
+    if (containingFolderId) togglePinItemInFolder(containingFolderId, itemId, itemName);
+    else togglePinItem(itemId, itemName);
+    closeContextMenu();
+}
+
+function contextMenuPlayArtist(artistId) {
+    closeContextMenu();
+    openArtist(artistId);
+    setTimeout(() => playCurrentViewFromStart(), 100);
+}
+
+function contextMenuPlayAlbum(albumId) {
+    closeContextMenu();
+    openAlbum(albumId);
+    setTimeout(() => playCurrentViewFromStart(), 100);
+}
+
+function contextMenuPlayPlaylist(playlistId) {
+    closeContextMenu();
+    openPlaylist(playlistId, () => playCurrentViewFromStart());
+}
+
+function contextMenuPlayView(viewId) {
+    closeContextMenu();
+    switchView(viewId);
+    setTimeout(() => playCurrentViewFromStart(), 100);
+}
+
+registerActions({
+    contextMenuAction,
+    contextMenuPinItem,
+    contextMenuPlayArtist,
+    contextMenuPlayAlbum,
+    contextMenuPlayPlaylist,
+    contextMenuPlayView
+});
 
 // ==============================================================================
 // CONTEXT MENU - SHOW / CLOSE
@@ -443,9 +515,11 @@ function showLeftPanelItemContextMenu(event, itemId, itemName, itemType) {
         : isPinned
         ? 'Unpin from top'
         : 'Pin to top';
-    const pinAction = insideFolder
-        ? `togglePinItemInFolder('${containingFolderId}', '${itemId}', '${itemName.replace(/'/g, "\\'")}')`
-        : `togglePinItem('${itemId}', '${itemName.replace(/'/g, "\\'")}')`;
+    const pinActionAttrs = actionAttrs('contextMenuPinItem', [
+        insideFolder ? String(containingFolderId) : null,
+        String(itemId),
+        String(itemName)
+    ]);
 
     let menuHTML = '';
 
@@ -488,7 +562,7 @@ function showLeftPanelItemContextMenu(event, itemId, itemName, itemType) {
         if (state) {
             const removeLabel = state.shortcut ? 'Remove shortcut from folder' : 'Remove from folder';
             menuHTML += `
-                <div class="context-menu-item" onclick="removeFromFolderFromMenu('${currentOpenFolderId}', '${rawId}', '${itemType}'); closeContextMenu();">
+                <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['removeFromFolderFromMenu', String(currentOpenFolderId), String(rawId), itemType])}>
                         <i class="fas fa-times"></i>
                         <span>${removeLabel}</span>
                 </div>
@@ -497,7 +571,7 @@ function showLeftPanelItemContextMenu(event, itemId, itemName, itemType) {
     }
 
     menuHTML += `
-        <div class="context-menu-item" onclick="${pinAction}; closeContextMenu();">
+        <div class="context-menu-item" ${pinActionAttrs}>
                 <i class="fas fa-thumbtack"></i>
                 <span>${pinLabel}</span>
         </div>
@@ -507,11 +581,11 @@ function showLeftPanelItemContextMenu(event, itemId, itemName, itemType) {
         const artistId = itemId;
         menuHTML =
             `
-                <div class="context-menu-item" onclick="closeContextMenu(); openArtist('${artistId}'); setTimeout(() => playCurrentViewFromStart(), 100);">
+                <div class="context-menu-item" ${actionAttrs('contextMenuPlayArtist', [String(artistId)])}>
                         <i class="fas fa-play"></i>
                         <span>Play</span>
                 </div>
-                <div class="context-menu-item" onclick="addArtistToQueue('${artistId}'); closeContextMenu();">
+                <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['addArtistToQueue', String(artistId)])}>
                         <i class="fas fa-list"></i>
                         <span>Add to queue</span>
                 </div>
@@ -522,11 +596,11 @@ function showLeftPanelItemContextMenu(event, itemId, itemName, itemType) {
         const albumId = itemId;
         menuHTML =
             `
-                <div class="context-menu-item" onclick="closeContextMenu(); openAlbum('${albumId}'); setTimeout(() => playCurrentViewFromStart(), 100);">
+                <div class="context-menu-item" ${actionAttrs('contextMenuPlayAlbum', [String(albumId)])}>
                         <i class="fas fa-play"></i>
                         <span>Play</span>
                 </div>
-                <div class="context-menu-item" onclick="addAlbumToQueue('${albumId}'); closeContextMenu();">
+                <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['addAlbumToQueue', String(albumId)])}>
                         <i class="fas fa-list"></i>
                         <span>Add to queue</span>
                 </div>
@@ -537,21 +611,21 @@ function showLeftPanelItemContextMenu(event, itemId, itemName, itemType) {
         const playlistId = itemId.replace('playlist-', '');
         menuHTML =
             `
-                <div class="context-menu-item" onclick="closeContextMenu(); openPlaylist('${playlistId}', () => playCurrentViewFromStart());">
+                <div class="context-menu-item" ${actionAttrs('contextMenuPlayPlaylist', [String(playlistId)])}>
                         <i class="fas fa-play"></i>
                         <span>Play</span>
                 </div>
-                <div class="context-menu-item" onclick="addPlaylistToQueue('${playlistId}'); closeContextMenu();">
+                <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['addPlaylistToQueue', String(playlistId)])}>
                         <i class="fas fa-list"></i>
                         <span>Add to queue</span>
                 </div>
         ` + menuHTML;
         menuHTML += `
-                <div class="context-menu-item" onclick="showEditPlaylistDialog('${playlistId}'); closeContextMenu();">
+                <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['showEditPlaylistDialog', String(playlistId)])}>
                         <i class="fas fa-pen"></i>
                         <span>Edit details</span>
                 </div>
-                <div class="context-menu-item context-menu-separator" onclick="deletePlaylistAndClose('${playlistId}'); closeContextMenu();">
+                <div class="context-menu-item context-menu-separator" ${actionAttrs('contextMenuAction', ['deletePlaylistAndClose', String(playlistId)])}>
                         <i class="fas fa-trash-alt"></i>
                         <span>Delete playlist</span>
                 </div>
@@ -561,7 +635,7 @@ function showLeftPanelItemContextMenu(event, itemId, itemName, itemType) {
     if (itemType === 'special') {
         menuHTML =
             `
-                <div class="context-menu-item" onclick="closeContextMenu(); switchView('${itemId}'); setTimeout(() => playCurrentViewFromStart(), 100);">
+                <div class="context-menu-item" ${actionAttrs('contextMenuPlayView', [String(itemId)])}>
                         <i class="fas fa-play"></i>
                         <span>Play</span>
                 </div>
@@ -650,12 +724,14 @@ function showFolderContextMenu(event, folderId) {
         : isPinned
         ? 'Unpin from top'
         : 'Pin to top';
-    const pinAction = insideFolder
-        ? `togglePinItemInFolder('${containingFolderId}', 'folder-${folderId}', '${name.replace(/'/g, "\\'")}')`
-        : `togglePinItem('folder-${folderId}', '${name.replace(/'/g, "\\'")}')`;
+    const pinActionAttrs = actionAttrs('contextMenuPinItem', [
+        insideFolder ? String(containingFolderId) : null,
+        `folder-${folderId}`,
+        String(name)
+    ]);
 
     let menuHTML = `
-        <div class="context-menu-item" onclick="openFolder('${folderId}'); closeContextMenu();">
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['openFolder', String(folderId)])}>
                 <i class="fas fa-folder-open"></i>
                 <span>Open</span>
         </div>
@@ -682,7 +758,7 @@ function showFolderContextMenu(event, folderId) {
         if (state) {
             const removeLabel = state.shortcut ? 'Remove shortcut from folder' : 'Remove from folder';
             menuHTML += `
-                <div class="context-menu-item" onclick="removeFromFolderFromMenu('${currentOpenFolderId}', '${folderId}', 'folder'); closeContextMenu();">
+                <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['removeFromFolderFromMenu', String(currentOpenFolderId), String(folderId), 'folder'])}>
                         <i class="fas fa-times"></i>
                         <span>${removeLabel}</span>
                 </div>
@@ -691,18 +767,15 @@ function showFolderContextMenu(event, folderId) {
     }
 
     menuHTML += `
-        <div class="context-menu-item" onclick="${pinAction}; closeContextMenu();">
+        <div class="context-menu-item" ${pinActionAttrs}>
                 <i class="fas fa-thumbtack"></i>
                 <span>${pinLabel}</span>
         </div>
-        <div class="context-menu-item" onclick="showEditFolderDialog('${folderId}'); closeContextMenu();">
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['showEditFolderDialog', String(folderId)])}>
                 <i class="fas fa-pen"></i>
                 <span>Rename</span>
         </div>
-        <div class="context-menu-item context-menu-separator" onclick="confirmDeleteFolder('${folderId}', '${name.replace(
-        /'/g,
-        "\\'"
-    )}'); closeContextMenu();">
+        <div class="context-menu-item context-menu-separator" ${actionAttrs('contextMenuAction', ['confirmDeleteFolder', String(folderId), String(name)])}>
                 <i class="fas fa-trash-alt"></i>
                 <span>Delete folder</span>
         </div>
@@ -798,14 +871,11 @@ function showSubheroContextMenu(event) {
         const isPinned = isItemPinned(itemId);
 
         let menuHTML = `
-                <div class="context-menu-item" onclick="togglePinItem('${itemId}', '${itemName.replace(
-            /'/g,
-            "\\'"
-        )}'); closeContextMenu();">
+                <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['togglePinItem', String(itemId), String(itemName)])}>
                         <i class="fas fa-thumbtack"></i>
                         <span>${isPinned ? 'Unpin from top' : 'Pin to top'}</span>
                 </div>
-                <div class="context-menu-item context-menu-separator" onclick="clearPlayHistory(); closeContextMenu();">
+                <div class="context-menu-item context-menu-separator" ${actionAttrs('contextMenuAction', ['clearPlayHistory'])}>
                         <i class="fas fa-trash-alt"></i>
                         <span>Clear history</span>
                 </div>

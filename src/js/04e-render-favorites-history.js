@@ -135,7 +135,7 @@ function renderRecentlyPlayed() {
                     <i class="fas fa-history"></i>
                     <span>Recently Played</span>
                 </div>
-                <button onclick="clearRecentlyPlayed()" class="clear-recent-btn" aria-label="Clear recently played list">
+                <button data-action="clearRecentlyPlayed" class="clear-recent-btn" aria-label="Clear recently played list">
                     <i class="fas fa-trash-alt"></i>
                     Clear List
                 </button>

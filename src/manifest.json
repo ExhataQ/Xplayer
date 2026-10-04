@@ -67,10 +67,10 @@
     "06f-drag-drop-songs.js",
     "06g-drag-drop-left-panel.js",
     "06h-fullscreen-viewer.js",
-    "06i-theme-switcher.js",
     "06j-notification-system.js",
     "06k-keyboard-shortcuts.js",
     "07-views.js",
+    "07a-ui-actions.js",
     "08a-panel-layout.js",
     "08b-panel-album-art.js",
     "08c-panel-track-lyrics.js",
@@ -122,6 +122,7 @@
     "core/storage-schema.js",
     "03-storage.js",
     "03a-recents.js",
-    "03b-search-engine.js"
+    "03b-search-engine.js",
+    "06i-theme-switcher.js"
   ]
 }

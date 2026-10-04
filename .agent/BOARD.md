@@ -27,8 +27,8 @@ Status values: `todo`, `in progress`, `patch received`, `applied + verified`, `b
 | A-09 | 2     | Remove direct render calls from A's files  | -                | applied + verified | first plan (A reports 2, 3)                                           |
 | A-10 | 3     | Build the handler bridge                   | A-04             | applied + verified               |                                                                       |
 | A-11 | 4     | Split `99-player.js`                       | A-04, A-07       | applied + verified               |                                                                       |
-| A-12 | 4     | Convert storage, recents and search engine | A-10             | patch received               |                                                                       |
-| A-13 | 5     | Storage module                             | A-12             | patch received               |                                                                       |
+| A-12 | 4     | Convert storage, recents and search engine | A-10             | applied + verified               |                                                                       |
+| A-13 | 5     | Storage module                             | A-12             | applied + verified               |                                                                       |
 | A-14 | 5     | `api/` wrapper and preload                 | A-10             | todo               |                                                                       |
 | A-15 | 6     | Convert core and library to modules        | A-13, A-14, A-11 | todo               |                                                                       |
 | A-16 | 6     | Final flip                                 | B-10, C-07, D-09 | todo               |                                                                       |
@@ -68,8 +68,8 @@ Status values: `todo`, `in progress`, `patch received`, `applied + verified`, `b
 | D-02 | 1     | Replace writes in `07-views`           | A-06                         | applied + verified               |                             |
 | D-03 | 2     | Renderers subscribe to events          | -                            | applied + verified | first plan (D 0001 to 0004) |
 | D-04 | 2     | Remove D's own cross-subsystem calls   | -                            | applied + verified | first plan (D 0001 to 0004) |
-| D-05 | 3     | Convert inline handlers                | A-10                         | todo               |                             |
+| D-05 | 3     | Convert inline handlers                | A-10                         | in progress               |                             |
 | D-06 | 5     | Replace the one generic `invoke`       | A-14                         | todo               |                             |
-| D-07 | 4     | Theme switcher module                  | A-10                         | todo               |                             |
+| D-07 | 4     | Theme switcher module                  | A-10                         | applied + verified               |                             |
 | D-08 | 5     | Swap storage and API calls             | A-13, A-14                   | todo               |                             |
 | D-09 | 6     | Convert the UI shell to modules        | A-15, B-10, C-07, D-08, D-05 | todo               |                             |

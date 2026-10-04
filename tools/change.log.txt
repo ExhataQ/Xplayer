@@ -53,3 +53,6 @@
 
 2026-10-04
 - B-08 (Agent B): not applied. Added .agent/reports/B/0011-shuffle-modules-readiness.md and a validated but not-yet-applicable conversion of 10a and 10b as 0011-proposal-shuffle-modules.diff. It needs A's decisions on how modules are marked, loaded and tested. No project code changed.
+
+2026-10-04
+- D-05 (Agent D), first slice: 84 inline on...= handlers converted to data-action through the bridge: 41 in build/music_player.html (60 -> 20 left), 1 in 04e, 3 in 04f, 11 in 04g, 28 in 06a (31 -> 3 left). New: src/js/07a-ui-actions.js (49 registered actions, one manifest line after 07-views.js), action table and 6 helper actions in 06a, tools/tests/ui-handlers.test.js (static ceiling per file + 4 browser tests). Handlers that call event.stopPropagation(), are found by their onclick text, or are rewritten at runtime were left inline on purpose (.agent/reports/D/0007-D05-inline-handlers.md).

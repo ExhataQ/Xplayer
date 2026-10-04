@@ -18,7 +18,7 @@ const pw = loadPlaywright();
 
 // Every name that classic scripts use from a converted file (see `node tools/dep-map.js uses <name>`).
 const REGISTERED = {
-    functions: ['normalizeIdList', 'normalizeStringList', 'normalizeObjectList', 'normalizePlaylists', 'normalizeFolders', 'normalizePinnedMap', 'normalizeSettings', 'normalizePanelWidths', 'storageRead', 'storageWrite', 'storageRemove', 'storageReadBool', 'storageWriteBool', 'storageReadJson', 'storageWriteJson', 'addToRecentList', 'getRecentlyPlayedSongs', 'getRecentCount', 'normalizeSearchText', 'searchSongs', 'getSearchResults'],
+    functions: ['normalizeIdList', 'normalizeStringList', 'normalizeObjectList', 'normalizePlaylists', 'normalizeFolders', 'normalizePinnedMap', 'normalizeSettings', 'normalizePanelWidths', 'storageRead', 'storageWrite', 'storageRemove', 'storageReadBool', 'storageWriteBool', 'storageReadJson', 'storageWriteJson', 'addToRecentList', 'getRecentlyPlayedSongs', 'getRecentCount', 'normalizeSearchText', 'searchSongs', 'getSearchResults', 'initThemeButtons'],
     constants: { MAX_RECENT_SONGS: 50, MAX_HISTORY_ENTRIES: 500, MAX_SEARCH_HISTORY: 20 }
 };
 

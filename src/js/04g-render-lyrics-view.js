@@ -119,33 +119,33 @@ function renderLyricsView() {
                     const syncedDisabled = !hasSynced || showSynced ? ' disabled' : '';
                     const plainDisabled = !hasLyrics || showPlain ? ' disabled' : '';
                     return `
-                        <button class="lyrics-view-edit-btn lyrics-view-mode-btn${syncedActive}${syncedDisabled}" ${syncedDisabled ? 'disabled aria-disabled="true"' : ''} onclick="${syncedDisabled ? '' : `setLyricsDisplayMode('synced')`}" aria-label="Show synced LRC lyrics">
+                        <button class="lyrics-view-edit-btn lyrics-view-mode-btn${syncedActive}${syncedDisabled}" ${syncedDisabled ? 'disabled aria-disabled="true"' : ''} ${syncedDisabled ? '' : actionAttrs('setLyricsDisplayMode', ['synced'])} aria-label="Show synced LRC lyrics">
                             <span class="material-symbols-outlined">graphic_eq</span>
                             <span>Synced (LRC)</span>
                         </button>
-                        <button class="lyrics-view-edit-btn lyrics-view-mode-btn${plainActive}${plainDisabled}" ${plainDisabled ? 'disabled aria-disabled="true"' : ''} onclick="${plainDisabled ? '' : `setLyricsDisplayMode('plain')`}" aria-label="Show plain lyrics">
+                        <button class="lyrics-view-edit-btn lyrics-view-mode-btn${plainActive}${plainDisabled}" ${plainDisabled ? 'disabled aria-disabled="true"' : ''} ${plainDisabled ? '' : actionAttrs('setLyricsDisplayMode', ['plain'])} aria-label="Show plain lyrics">
                             <span class="material-symbols-outlined">notes</span>
                             <span>Plain Lyrics</span>
                         </button>
                     `;
                 })()}
-                <button class="lyrics-view-edit-btn" onclick="openLyricsEditor()" aria-label="Insert or edit lyrics">
+                <button class="lyrics-view-edit-btn" data-action="openLyricsEditor" aria-label="Insert or edit lyrics">
                     <span class="material-symbols-outlined">edit</span>
                     <span>${hasLyrics ? 'Edit Lyrics' : 'Add Lyrics'}</span>
                 </button>
-                <button class="lyrics-view-edit-btn" onclick="openSyncEditor()" aria-label="Open sync editor">
+                <button class="lyrics-view-edit-btn" data-action="openSyncEditor" aria-label="Open sync editor">
                     <span class="material-symbols-outlined">graphic_eq</span>
                     <span>Sync</span>
                 </button>
-                <button class="lyrics-view-edit-btn" onclick="importLrcFile()" aria-label="Import LRC file">
+                <button class="lyrics-view-edit-btn" data-action="importLrcFile" aria-label="Import LRC file">
                     <span class="material-symbols-outlined">upload_file</span>
                     <span>Import .lrc</span>
                 </button>
-                <button class="lyrics-view-edit-btn" onclick="openLrcPasteDialog()" aria-label="Paste LRC text">
+                <button class="lyrics-view-edit-btn" data-action="openLrcPasteDialog" aria-label="Paste LRC text">
                     <span class="material-symbols-outlined">content_paste</span>
                     <span>Paste LRC</span>
                 </button>
-                <button class="lyrics-view-edit-btn lyrics-online-btn" onclick="openOnlineLyricsView()" aria-label="Find lyrics or LRC online">
+                <button class="lyrics-view-edit-btn lyrics-online-btn" data-action="openOnlineLyricsView" aria-label="Find lyrics or LRC online">
                     <span class="material-symbols-outlined">language</span>
                     <span>Find lyrics / LRC online</span>
                 </button>
@@ -163,19 +163,15 @@ function renderLyricsView() {
                         const created = new Date(v.createdAt || Date.now()).toLocaleDateString();
                         return `
                         <div class="synced-variant-row ${isActive ? 'active' : ''}" data-variant-id="${v.id}">
-                            <span class="synced-variant-radio" onclick="selectSyncedVariant('${v.id}')">${
+                            <span class="synced-variant-radio" ${actionAttrs('selectSyncedVariant', [String(v.id)])}>${
                             isActive ? '●' : '○'
                         }</span>
-                            <span class="synced-variant-name" onclick="selectSyncedVariant('${v.id}')">${escapeHtml(
+                            <span class="synced-variant-name" ${actionAttrs('selectSyncedVariant', [String(v.id)])}>${escapeHtml(
                             v.name
                         )}</span>
                             <span class="synced-variant-meta">${created}</span>
-                            <button class="synced-variant-icon-btn" onclick="renameSyncedVariant('${
-                                v.id
-                            }')" title="Rename"><span class="material-symbols-outlined">edit</span></button>
-                            <button class="synced-variant-icon-btn" onclick="deleteSyncedVariant('${
-                                v.id
-                            }')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
+                            <button class="synced-variant-icon-btn" ${actionAttrs('renameSyncedVariant', [String(v.id)])} title="Rename"><span class="material-symbols-outlined">edit</span></button>
+                            <button class="synced-variant-icon-btn" ${actionAttrs('deleteSyncedVariant', [String(v.id)])} title="Delete"><span class="material-symbols-outlined">delete</span></button>
                         </div>
                     `;
                     })
