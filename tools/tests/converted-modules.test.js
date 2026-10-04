@@ -2,7 +2,8 @@
 // 03b-search-engine.js). The unit tests import them directly; this one checks the part only
 // the real page shows: that the modules load as <script type="module">, that every name the
 // remaining classic scripts call by bare name is registered, and that the app's own call paths
-// (no arguments, reading the live library) work.
+// (no arguments, reading the live library) work. Names from core/storage.js (a classic script)
+// are listed too, because 00-state.js reads them while it loads.
 //
 // Needs playwright + a browser; skips itself if missing (see scroll.test.js for setup).
 const { test, describe, before, after } = require('node:test');
@@ -17,7 +18,7 @@ const pw = loadPlaywright();
 
 // Every name that classic scripts use from a converted file (see `node tools/dep-map.js uses <name>`).
 const REGISTERED = {
-    functions: ['getStoredJson', 'addToRecentList', 'getRecentlyPlayedSongs', 'getRecentCount', 'normalizeSearchText', 'searchSongs', 'getSearchResults'],
+    functions: ['normalizeIdList', 'normalizeStringList', 'normalizeObjectList', 'normalizePlaylists', 'normalizeFolders', 'normalizePinnedMap', 'normalizeSettings', 'normalizePanelWidths', 'storageRead', 'storageWrite', 'storageRemove', 'storageReadBool', 'storageWriteBool', 'storageReadJson', 'storageWriteJson', 'addToRecentList', 'getRecentlyPlayedSongs', 'getRecentCount', 'normalizeSearchText', 'searchSongs', 'getSearchResults'],
     constants: { MAX_RECENT_SONGS: 50, MAX_HISTORY_ENTRIES: 500, MAX_SEARCH_HISTORY: 20 }
 };
 
@@ -73,8 +74,8 @@ describe('converted ES modules in the real page', { concurrency: false }, () => 
             const first = SONGS_DATA[0];
             const second = SONGS_DATA[1];
             localStorage.setItem('__probe', '{"a":1}');
-            const stored = getStoredJson('__probe', null);
-            const missing = getStoredJson('__nope', 'fallback');
+            const stored = storageReadJson('__probe', null);
+            const missing = storageReadJson('__nope', 'fallback');
             localStorage.removeItem('__probe');
             saveToRecentlyPlayed(first);
             saveToRecentlyPlayed(second);
@@ -93,6 +94,45 @@ describe('converted ES modules in the real page', { concurrency: false }, () => 
         assert.equal(out.countAfter, 1, 'a deleted song is not counted');
         assert.ok(!out.results.includes(out.secondId), 'a deleted song is not searchable');
         assert.ok(out.firstIncluded);
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('data saved by an older build still loads, and bad data is repaired instead of breaking the page', { timeout: 30000 }, async (t) => {
+        if (!guard(t)) return;
+        const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+        const errors = [];
+        page.on('pageerror', (e) => errors.push(String(e)));
+        // Written before any app script runs, exactly as an older build left it.
+        await page.addInitScript(() => {
+            localStorage.setItem('favorites', '[3,5]');
+            localStorage.setItem('playlists', '[{"id":"p1","name":"Old mix","songs":[1,2],"createdAt":"1/1/2024"},{"name":"broken, no id"},null]');
+            localStorage.setItem('folders', '{"not":"a list"}');
+            localStorage.setItem('leftPanelCollapsed', 'true');
+            localStorage.setItem('panelWidths', '{"left":321,"right":433}'); // start-up re-measures and rewrites it, so only "no errors" is checked
+            localStorage.setItem('minimizeOnClose', 'true');
+            localStorage.setItem('smartShuffleSettings', '{"journeySize":"lots","replayGainLimiter":false}');
+        });
+        await page.goto('file://' + path.join(dir, 'index.html').replace(/\\/g, '/'));
+        await page.waitForTimeout(900);
+        const out = await page.evaluate(() => ({
+            favorites: getFavorites(),
+            playlists: getPlaylists(),
+            folders: getFolders(),
+            leftCollapsed: leftPanelCollapsed,
+            minimizeOnClose: getWindowSettings().minimizeOnClose,
+            journeySize: getSmartShuffleSettings().journeySize,
+            limiter: getSmartShuffleSettings().replayGainLimiter,
+            rawFolders: localStorage.getItem('folders')
+        }));
+        assert.deepEqual(out.favorites, [3, 5]);
+        assert.deepEqual(out.playlists, [{ id: 'p1', name: 'Old mix', songs: [1, 2], createdAt: '1/1/2024' }]);
+        assert.deepEqual(out.folders, []);
+        assert.equal(out.rawFolders, '{"not":"a list"}', 'reading must not rewrite what is stored');
+        assert.equal(out.leftCollapsed, true);
+        assert.equal(out.minimizeOnClose, true);
+        assert.equal(out.journeySize, 50);
+        assert.equal(out.limiter, false);
         assert.deepEqual(errors, []);
         await page.close();
     });

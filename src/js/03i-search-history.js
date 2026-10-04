@@ -11,12 +11,12 @@
 // SEARCH HISTORY
 // ==============================================================================
 function getSearchHistory() {
-    return getStoredJson(STORAGE_KEYS.SEARCH_HISTORY, []);
+    return storageReadJson(STORAGE_KEYS.SEARCH_HISTORY, [], normalizeObjectList);
 }
 
 
 function saveSearchToHistory(searchQuery, searchSessionId, resultCount) {
-    let searchHistory = getStoredJson(STORAGE_KEYS.SEARCH_HISTORY, []);
+    let searchHistory = storageReadJson(STORAGE_KEYS.SEARCH_HISTORY, [], normalizeObjectList);
 
     const searchEntry = {
         sessionId: searchSessionId,
@@ -33,7 +33,7 @@ function saveSearchToHistory(searchQuery, searchSessionId, resultCount) {
         searchHistory = searchHistory.slice(0, MAX_SEARCH_HISTORY);
     }
 
-    localStorage.setItem(STORAGE_KEYS.SEARCH_HISTORY, JSON.stringify(searchHistory));
+    storageWriteJson(STORAGE_KEYS.SEARCH_HISTORY, searchHistory);
 }
 
 
@@ -46,15 +46,15 @@ async function clearSearchHistory() {
     });
 
     if (confirmed) {
-        localStorage.removeItem(STORAGE_KEYS.SEARCH_HISTORY);
+        storageRemove(STORAGE_KEYS.SEARCH_HISTORY);
         emit('searchHistory:cleared');
     }
 }
 
 
 function deleteSearchHistoryEntry(sessionId) {
-    let searchHistory = getStoredJson(STORAGE_KEYS.SEARCH_HISTORY, []);
+    let searchHistory = storageReadJson(STORAGE_KEYS.SEARCH_HISTORY, [], normalizeObjectList);
     searchHistory = searchHistory.filter((entry) => entry.sessionId !== sessionId);
-    localStorage.setItem(STORAGE_KEYS.SEARCH_HISTORY, JSON.stringify(searchHistory));
+    storageWriteJson(STORAGE_KEYS.SEARCH_HISTORY, searchHistory);
     emit('searchHistory:entryDeleted', { sessionId });
 }

@@ -8,7 +8,7 @@
 // FAVORITES
 // ==============================================================================
 function getFavorites() {
-    return getStoredJson(STORAGE_KEYS.FAVORITES, []);
+    return storageReadJson(STORAGE_KEYS.FAVORITES, [], normalizeIdList);
 }
 
 
@@ -40,7 +40,7 @@ const DEFAULT_AUDIO_PLAYBACK_SETTINGS = {
 function getSmartShuffleSettings() {
     return {
         ...DEFAULT_SMART_SHUFFLE_SETTINGS,
-        ...getStoredJson(STORAGE_KEYS.SMART_SHUFFLE_SETTINGS, {})
+        ...storageReadJson(STORAGE_KEYS.SMART_SHUFFLE_SETTINGS, {}, (v) => normalizeSettings(v, DEFAULT_SMART_SHUFFLE_SETTINGS))
     };
 }
 
@@ -48,7 +48,7 @@ function getSmartShuffleSettings() {
 function getAudioPlaybackSettings() {
     const settings = {
         ...DEFAULT_AUDIO_PLAYBACK_SETTINGS,
-        ...getStoredJson(STORAGE_KEYS.AUDIO_PLAYBACK_SETTINGS, {})
+        ...storageReadJson(STORAGE_KEYS.AUDIO_PLAYBACK_SETTINGS, {}, (v) => normalizeSettings(v, DEFAULT_AUDIO_PLAYBACK_SETTINGS))
     };
     // Both modes control the same transition and cannot run together. Preserve
     // the gapless preference for settings saved by older builds with both on.
@@ -60,7 +60,7 @@ function getAudioPlaybackSettings() {
 
 
 function saveAudioPlaybackSettings(settings) {
-    localStorage.setItem(STORAGE_KEYS.AUDIO_PLAYBACK_SETTINGS, JSON.stringify(settings));
+    storageWriteJson(STORAGE_KEYS.AUDIO_PLAYBACK_SETTINGS, settings);
 }
 
 
@@ -101,14 +101,14 @@ function setAudioPlaybackSetting(key, value) {
 
 function getWindowSettings() {
     return {
-        minimizeOnClose: localStorage.getItem(STORAGE_KEYS.MINIMIZE_ON_CLOSE) === 'true'
+        minimizeOnClose: storageReadBool(STORAGE_KEYS.MINIMIZE_ON_CLOSE)
     };
 }
 
 
 function setMinimizeOnClose(enabled) {
     const value = Boolean(enabled);
-    localStorage.setItem(STORAGE_KEYS.MINIMIZE_ON_CLOSE, String(value));
+    storageWriteBool(STORAGE_KEYS.MINIMIZE_ON_CLOSE, value);
     if (typeof window !== 'undefined' && window.electronAPI && window.electronAPI.setMinimizeOnClose) {
         window.electronAPI.setMinimizeOnClose(value);
     }
@@ -118,7 +118,7 @@ function setMinimizeOnClose(enabled) {
 function saveSmartShuffleSetting(key, value) {
     const settings = getSmartShuffleSettings();
     settings[key] = value;
-    localStorage.setItem(STORAGE_KEYS.SMART_SHUFFLE_SETTINGS, JSON.stringify(settings));
+    storageWriteJson(STORAGE_KEYS.SMART_SHUFFLE_SETTINGS, settings);
 }
 
 
@@ -126,7 +126,7 @@ function saveFavorite(songId) {
     let favorites = getFavorites();
     if (!favorites.includes(songId)) {
         favorites.unshift(songId);
-        localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(favorites));
+        storageWriteJson(STORAGE_KEYS.FAVORITES, favorites);
     }
 }
 
@@ -134,7 +134,7 @@ function saveFavorite(songId) {
 function removeFavorite(songId) {
     let favorites = getFavorites();
     favorites = favorites.filter((id) => id !== songId);
-    localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(favorites));
+    storageWriteJson(STORAGE_KEYS.FAVORITES, favorites);
 }
 
 

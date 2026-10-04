@@ -15,6 +15,7 @@
     "placeholders.css"
   ],
   "js": [
+    "core/storage.js",
     "00-state.js",
     "00b-events.js",
     "core/legacy.js",
@@ -118,6 +119,7 @@
     "ui/player-bar.js"
   ],
   "modules": [
+    "core/storage-schema.js",
     "03-storage.js",
     "03a-recents.js",
     "03b-search-engine.js"

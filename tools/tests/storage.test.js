@@ -10,9 +10,11 @@ const { pathToFileURL } = require('url');
 // getter tests below load them into a small vm and hand it the module's names, the same
 // thing registerLegacyGlobals does in the app.
 const storageModule = import(pathToFileURL(path.join(__dirname, '../../src/js/03-storage.js')).href);
+const schemaModule = import(pathToFileURL(path.join(__dirname, '../../src/js/core/storage-schema.js')).href);
 
 async function loadStorageWith(values) {
     const mod = await storageModule;
+    const schema = await schemaModule;
     // 03-storage.js's remaining getters were split out into topic files
     // (03e recents/history, 03f favorites/settings, 03g pinned items, 03h folders,
     // 03i search history). None of these have top-level DOM/window references (verified
@@ -45,10 +47,11 @@ async function loadStorageWith(values) {
         MAX_RECENT_SONGS: mod.MAX_RECENT_SONGS,
         MAX_HISTORY_ENTRIES: mod.MAX_HISTORY_ENTRIES,
         MAX_SEARCH_HISTORY: mod.MAX_SEARCH_HISTORY,
-        getStoredJson: (key, fallback) => mod.getStoredJson(key, fallback, storage)
+        ...schema // the normalizers, as registerLegacyGlobals provides them
     };
     vm.createContext(context);
     vm.runInContext(storageKeysMatch[0], context);
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/js/core/storage.js'), 'utf8'), context);
     for (const s of splitSources) {
         vm.runInContext(s, context);
     }
@@ -81,17 +84,8 @@ test('storage getters fall back to empty arrays when JSON is malformed', { skip:
 test('storage getters still return valid stored arrays', async () => {
     const context = await loadStorageWith({ favorites: '[1,2]', folders: '[{"id":"f1"}]' });
     assert.deepStrictEqual(context.getFavorites(), [1, 2]);
-    assert.deepStrictEqual(context.getFolders(), [{ id: 'f1' }]);
-});
-
-test('getStoredJson returns the parsed value, or the fallback when missing, malformed or unreadable', async () => {
-    const { getStoredJson } = await storageModule;
-    const store = (values) => ({ getItem: (k) => (k in values ? values[k] : null) });
-    assert.deepStrictEqual(getStoredJson('a', [], store({ a: '[1,2]' })), [1, 2]);
-    assert.deepStrictEqual(getStoredJson('a', ['x'], store({})), ['x'], 'missing key');
-    assert.deepStrictEqual(getStoredJson('a', ['x'], store({ a: '{broken' })), ['x'], 'malformed JSON');
-    assert.deepStrictEqual(getStoredJson('a', ['x'], { getItem() { throw new Error('SecurityError'); } }), ['x'], 'storage throws');
-    assert.deepStrictEqual(getStoredJson('a', ['x'], undefined), ['x'], 'no storage available in this realm');
+    // a saved folder that lacks a name or children gets defaults when read
+    assert.deepStrictEqual(context.getFolders(), [{ id: 'f1', name: 'Untitled folder', children: [] }]);
 });
 
 test('the history and recents limits keep their values', async () => {
@@ -99,4 +93,21 @@ test('the history and recents limits keep their values', async () => {
     assert.equal(m.MAX_RECENT_SONGS, 50);
     assert.equal(m.MAX_HISTORY_ENTRIES, 500);
     assert.equal(m.MAX_SEARCH_HISTORY, 20);
+});
+
+test('wrong-shaped saved data is repaired on read, and what is stored is left alone', async () => {
+    const values = {
+        favorites: '{"not":"a list"}',
+        playlists: '[{"id":"p1","name":7,"songs":"x"},null,{"name":"no id"}]',
+        smartShuffleSettings: '{"journeySize":"lots","replayGainLimiter":false}'
+    };
+    const context = await loadStorageWith(values);
+    assert.deepStrictEqual(Array.from(context.getFavorites()), []);
+    assert.equal(values.favorites, '{"not":"a list"}', 'reading must not rewrite storage');
+    if (typeof context.getPlaylists === 'function') {
+        assert.deepStrictEqual(JSON.parse(JSON.stringify(context.getPlaylists())), [{ id: 'p1', name: '7', songs: [] }]);
+    }
+    const shuffle = context.getSmartShuffleSettings();
+    assert.equal(shuffle.journeySize, 50, 'a value of the wrong type falls back to the default');
+    assert.equal(shuffle.replayGainLimiter, false, 'a valid saved value is kept');
 });

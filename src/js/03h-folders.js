@@ -16,12 +16,12 @@
 // FOLDERS
 // ==============================================================================
 function getFolders() {
-    return getStoredJson(STORAGE_KEYS.FOLDERS, []);
+    return storageReadJson(STORAGE_KEYS.FOLDERS, [], normalizeFolders);
 }
 
 
 function saveFolders(folders) {
-    localStorage.setItem(STORAGE_KEYS.FOLDERS, JSON.stringify(folders));
+    storageWriteJson(STORAGE_KEYS.FOLDERS, folders);
 }
 
 
@@ -260,12 +260,12 @@ function getItemFolderState(folderId, itemId, itemType) {
 
 
 function getExpandedFolderKeys() {
-    return getStoredJson(STORAGE_KEYS.EXPANDED_FOLDERS, []);
+    return storageReadJson(STORAGE_KEYS.EXPANDED_FOLDERS, [], normalizeStringList);
 }
 
 
 function saveExpandedFolderKeys(keys) {
-    localStorage.setItem(STORAGE_KEYS.EXPANDED_FOLDERS, JSON.stringify(keys));
+    storageWriteJson(STORAGE_KEYS.EXPANDED_FOLDERS, keys);
 }
 
 

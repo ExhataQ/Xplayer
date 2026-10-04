@@ -14,11 +14,13 @@ const { pathToFileURL } = require('url');
 const JS = path.join(__dirname, '../../src/js');
 const recentsModule = import(pathToFileURL(path.join(JS, '03a-recents.js')).href);
 const storageModule = import(pathToFileURL(path.join(JS, '03-storage.js')).href);
+const schemaModule = import(pathToFileURL(path.join(JS, 'core/storage-schema.js')).href);
 
 // 03e-recents-history.js (classic) in a context with a fake localStorage.
 async function loadRecentsHistory({ stored = {}, failWrites = false, library = [], deleted = [] } = {}) {
     const recents = await recentsModule;
     const storage = await storageModule;
+    const schema = await schemaModule;
     const fakeStorage = {
         getItem: (k) => (Object.prototype.hasOwnProperty.call(stored, k) ? stored[k] : null),
         setItem: (k, v) => { if (failWrites) throw new Error('QuotaExceededError'); stored[k] = v; },
@@ -32,7 +34,7 @@ async function loadRecentsHistory({ stored = {}, failWrites = false, library = [
         addToRecentList: recents.addToRecentList,
         // in the app the defaults of getRecentCount read these globals; here they are passed in
         getRecentCount: () => recents.getRecentCount(context.getRecentlyPlayed(), library, (id) => deleted.includes(id)),
-        getStoredJson: (key, fallback) => storage.getStoredJson(key, fallback, fakeStorage),
+        ...schema, // the normalizers, as registerLegacyGlobals provides them
         MAX_RECENT_SONGS: storage.MAX_RECENT_SONGS,
         MAX_HISTORY_ENTRIES: storage.MAX_HISTORY_ENTRIES
     };
@@ -42,7 +44,7 @@ async function loadRecentsHistory({ stored = {}, failWrites = false, library = [
     const keys = stateSource.match(/const STORAGE_KEYS = \{[\s\S]*?\n\};/);
     if (!keys) throw new Error('recents.test.js: could not find STORAGE_KEYS in 00-state.js - did it move or get renamed?');
     vm.runInContext(keys[0], context);
-    for (const file of ['00b-events.js', 'core/state-ghost-list.js', '03e-recents-history.js']) {
+    for (const file of ['core/storage.js', '00b-events.js', 'core/state-ghost-list.js', '03e-recents-history.js']) {
         vm.runInContext(fs.readFileSync(path.join(JS, file), 'utf8'), context);
     }
     context.__stored = stored;

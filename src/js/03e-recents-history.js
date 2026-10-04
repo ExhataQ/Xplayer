@@ -19,20 +19,17 @@
 // ==============================================================================
 function saveToRecentlyPlayed(song) {
     // List logic (move-to-top instead of duplicating, cap, clean-up) lives in 03a-recents.js.
-    const recentSongs = addToRecentList(getStoredJson(STORAGE_KEYS.RECENTLY_PLAYED, []), song, Date.now(), MAX_RECENT_SONGS);
+    const recentSongs = addToRecentList(storageReadJson(STORAGE_KEYS.RECENTLY_PLAYED, [], normalizeObjectList), song, Date.now(), MAX_RECENT_SONGS);
 
-    try {
-        localStorage.setItem(STORAGE_KEYS.RECENTLY_PLAYED, JSON.stringify(recentSongs));
-    } catch (e) {
-        console.warn('Could not save the recently played list:', e);
-    }
+    // A failed save (for example the quota) is logged by storageWriteJson and must not stop playback.
+    storageWriteJson(STORAGE_KEYS.RECENTLY_PLAYED, recentSongs);
     updateRecentCount();
     emit('recents:added', { song });
 }
 
 
 function getRecentlyPlayed() {
-    const recentSongs = getStoredJson(STORAGE_KEYS.RECENTLY_PLAYED, []);
+    const recentSongs = storageReadJson(STORAGE_KEYS.RECENTLY_PLAYED, [], normalizeObjectList);
     return recentSongs;
 }
 
@@ -51,7 +48,7 @@ async function clearRecentlyPlayed() {
     });
 
     if (confirmed) {
-        localStorage.removeItem(STORAGE_KEYS.RECENTLY_PLAYED);
+        storageRemove(STORAGE_KEYS.RECENTLY_PLAYED);
         clearGhostList(VIEWS.RECENT);
         updateRecentCount();
         emit('recents:cleared');
@@ -65,7 +62,7 @@ async function clearRecentlyPlayed() {
 function saveToPlayHistory(song, playDuration) {
     const actualSong = song.song || song;
 
-    let history = getStoredJson(STORAGE_KEYS.PLAY_HISTORY, []);
+    let history = storageReadJson(STORAGE_KEYS.PLAY_HISTORY, [], normalizeObjectList);
 
     const ghostSlotId = addHistoryGhostSlot(actualSong.id);
 
@@ -89,14 +86,14 @@ function saveToPlayHistory(song, playDuration) {
         history = history.slice(0, MAX_HISTORY_ENTRIES);
     }
 
-    localStorage.setItem(STORAGE_KEYS.PLAY_HISTORY, JSON.stringify(history));
+    storageWriteJson(STORAGE_KEYS.PLAY_HISTORY, history);
 
     emit('history:added');
 }
 
 
 function getPlayHistory() {
-    return getStoredJson(STORAGE_KEYS.PLAY_HISTORY, []);
+    return storageReadJson(STORAGE_KEYS.PLAY_HISTORY, [], normalizeObjectList);
 }
 
 
@@ -109,7 +106,7 @@ async function clearPlayHistory() {
     });
 
     if (confirmed) {
-        localStorage.removeItem(STORAGE_KEYS.PLAY_HISTORY);
+        storageRemove(STORAGE_KEYS.PLAY_HISTORY);
         setHistoryGhostSlots([]);
         setNextHistorySlotId(1);
         emit('history:cleared');

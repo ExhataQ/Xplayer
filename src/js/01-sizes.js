@@ -9,15 +9,9 @@ const LYRICS_NARROW_THRESHOLD = SCREEN_WIDTH * (1280 / 1920);
 const LYRICS_VERY_NARROW_THRESHOLD = SCREEN_WIDTH * (1000 / 1920);
 
 const panelWidths = (function () {
-    const saved = localStorage.getItem(STORAGE_KEYS.PANEL_WIDTHS);
-    if (saved) {
-        try {
-            const parsed = JSON.parse(saved);
-            if (parsed.left && parsed.right) return parsed;
-        } catch (e) {
-            console.warn('[panelWidths] failed to parse saved value, using defaults', e);
-        }
-    }
+    // Read while this file loads, before storage-schema.js has run, so the check is inline.
+    const saved = storageReadJson(STORAGE_KEYS.PANEL_WIDTHS, null);
+    if (saved && saved.left > 0 && saved.right > 0) return saved;
     return {
         left: SCREEN_WIDTH * (400 / 1920),
         right: SCREEN_WIDTH * (400 / 1920)
@@ -143,13 +137,10 @@ function applyPanelWidths() {
         }
     }
 
-    localStorage.setItem(
-        STORAGE_KEYS.PANEL_WIDTHS,
-        JSON.stringify({
-            left: panelWidths.left,
-            right: panelWidths.right
-        })
-    );
+    storageWriteJson(STORAGE_KEYS.PANEL_WIDTHS, {
+        left: panelWidths.left,
+        right: panelWidths.right
+    });
     updateSettingsMargins();
     updateLibraryLocationsLayout();
 }

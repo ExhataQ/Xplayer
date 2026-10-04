@@ -1,7 +1,7 @@
 // ==============================================================================
 // PLAYLISTS
-// Split out of 03-storage.js; still uses the same localStorage helpers from that file
-// (getStoredJson, updatePlaylistCount's siblings, etc.) and getSongById from 00-state.js.
+// Split out of 03-storage.js; reads and writes through core/storage.js and uses getSongById
+// from 00-state.js.
 // ==============================================================================
 // Event-bus conversion: createPlaylist/deletePlaylist/deletePlaylistAndClose/
 // addSongToPlaylist/removeSongFromPlaylist used to call render/DOM functions
@@ -20,11 +20,11 @@
 // duplication is gone too, not just moved.
 
 function getPlaylists() {
-    return getStoredJson(STORAGE_KEYS.PLAYLISTS, []);
+    return storageReadJson(STORAGE_KEYS.PLAYLISTS, [], normalizePlaylists);
 }
 
 function savePlaylists(playlists) {
-    localStorage.setItem(STORAGE_KEYS.PLAYLISTS, JSON.stringify(playlists));
+    storageWriteJson(STORAGE_KEYS.PLAYLISTS, playlists);
 }
 
 function createPlaylist(name) {

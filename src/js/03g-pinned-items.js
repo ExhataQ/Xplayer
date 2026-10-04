@@ -18,12 +18,12 @@
 // PINNED ITEMS & ITEM ORDER
 // ==============================================================================
 function getPinnedItems() {
-    return getStoredJson(STORAGE_KEYS.PINNED_ITEMS, []);
+    return storageReadJson(STORAGE_KEYS.PINNED_ITEMS, [], normalizeIdList);
 }
 
 
 function savePinnedItems(pinnedIds) {
-    localStorage.setItem(STORAGE_KEYS.PINNED_ITEMS, JSON.stringify(pinnedIds));
+    storageWriteJson(STORAGE_KEYS.PINNED_ITEMS, pinnedIds);
 }
 
 
@@ -56,12 +56,12 @@ function togglePinItem(itemId, itemName) {
 
 
 function getPlayedItemOrder() {
-    return getStoredJson(STORAGE_KEYS.PLAYED_ITEM_ORDER, []);
+    return storageReadJson(STORAGE_KEYS.PLAYED_ITEM_ORDER, [], normalizeStringList);
 }
 
 
 function savePlayedItemOrder(order) {
-    localStorage.setItem(STORAGE_KEYS.PLAYED_ITEM_ORDER, JSON.stringify(order));
+    storageWriteJson(STORAGE_KEYS.PLAYED_ITEM_ORDER, order);
 }
 
 
@@ -121,18 +121,12 @@ function movePlayedItemToTop(listId) {
 // FOLDER-SCOPED PINNED ITEMS
 // ==============================================================================
 function getFolderPinnedItemsMap() {
-    try {
-        const saved = localStorage.getItem(STORAGE_KEYS.FOLDER_PINNED_ITEMS);
-        if (saved) return JSON.parse(saved);
-    } catch (e) {
-        console.warn('[folderPinnedItems] failed to parse saved value, using empty map', e);
-    }
-    return {};
+    return storageReadJson(STORAGE_KEYS.FOLDER_PINNED_ITEMS, {}, normalizePinnedMap);
 }
 
 
 function saveFolderPinnedItemsMap(map) {
-    localStorage.setItem(STORAGE_KEYS.FOLDER_PINNED_ITEMS, JSON.stringify(map));
+    storageWriteJson(STORAGE_KEYS.FOLDER_PINNED_ITEMS, map);
 }
 
 

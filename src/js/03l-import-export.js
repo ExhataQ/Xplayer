@@ -129,7 +129,7 @@ function doImportMerge(data) {
     if (data.favorites) {
         const existing = getFavorites();
         const merged = [...new Set([...existing, ...data.favorites])];
-        localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(merged));
+        storageWriteJson(STORAGE_KEYS.FAVORITES, merged);
     }
     if (data.pinnedItems) {
         const existing = getPinnedItems();
@@ -152,10 +152,10 @@ function doImportMerge(data) {
 
 function doImportReplace(data) {
     if (data.playlists) savePlaylists(data.playlists);
-    if (data.favorites) localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(data.favorites));
-    if (data.playHistory) localStorage.setItem(STORAGE_KEYS.PLAY_HISTORY, JSON.stringify(data.playHistory));
-    if (data.recentlyPlayed) localStorage.setItem(STORAGE_KEYS.RECENTLY_PLAYED, JSON.stringify(data.recentlyPlayed));
-    if (data.searchHistory) localStorage.setItem(STORAGE_KEYS.SEARCH_HISTORY, JSON.stringify(data.searchHistory));
+    if (data.favorites) storageWriteJson(STORAGE_KEYS.FAVORITES, data.favorites);
+    if (data.playHistory) storageWriteJson(STORAGE_KEYS.PLAY_HISTORY, data.playHistory);
+    if (data.recentlyPlayed) storageWriteJson(STORAGE_KEYS.RECENTLY_PLAYED, data.recentlyPlayed);
+    if (data.searchHistory) storageWriteJson(STORAGE_KEYS.SEARCH_HISTORY, data.searchHistory);
     if (data.pinnedItems) savePinnedItems(data.pinnedItems);
     if (data.folders) saveFolders(data.folders);
     emit('data:imported');

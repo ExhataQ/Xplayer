@@ -3,8 +3,8 @@
 // ==============================================================================
 
 // Single source of truth for every
-// localStorage key the app uses. Values are unchanged from what each key already
-// was, so existing saved data in users' localStorage keeps working as-is.
+// storage key the app uses (reading and writing: core/storage.js). Values are unchanged from
+// what each key already was, so existing saved data keeps working as-is.
 const STORAGE_KEYS = {
     FAVORITES: 'favorites',
     PLAY_HISTORY: 'playHistory',
@@ -116,12 +116,12 @@ let previousRightPanelState = {
 let lyricsPreScrollTop = 0;
 let lyricsPreView = null;
 
-let leftPanelCollapsed = localStorage.getItem(STORAGE_KEYS.LEFT_PANEL_COLLAPSED) === 'true';
+let leftPanelCollapsed = storageRead(STORAGE_KEYS.LEFT_PANEL_COLLAPSED) === 'true';
 
-let rightPanelCollapsed = localStorage.getItem(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED) === 'true';
-if (localStorage.getItem(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED) === null) {
+let rightPanelCollapsed = storageRead(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED) === 'true';
+if (storageRead(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED) === null) {
     rightPanelCollapsed = false;
-    localStorage.setItem(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED, 'false');
+    storageWriteBool(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED, false);
 }
 
 // ==============================================================================
