@@ -62,7 +62,7 @@ describe('core/state-*.js setters', () => {
         const context = { CustomEvent, EventTarget };
         vm.createContext(context);
         for (const file of ['00b-events.js', 'core/state-queue.js', 'core/state-navigation.js', 'core/state-ui.js']) {
-            vm.runInContext(fs.readFileSync(path.join(JS_DIR, file), 'utf8'), context);
+            vm.runInContext(require('../lib/strip-exports').stripExports(fs.readFileSync(path.join(JS_DIR, file), 'utf8')), context);
         }
         const seen = [];
         vm.runInContext(`

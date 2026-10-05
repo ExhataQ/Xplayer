@@ -15,17 +15,17 @@
 // ==============================================================================
 // FOLDERS
 // ==============================================================================
-function getFolders() {
+export function getFolders() {
     return storageReadJson(STORAGE_KEYS.FOLDERS, [], normalizeFolders);
 }
 
 
-function saveFolders(folders) {
+export function saveFolders(folders) {
     storageWriteJson(STORAGE_KEYS.FOLDERS, folders);
 }
 
 
-function createFolder(name) {
+export function createFolder(name) {
     let folders = getFolders();
     const newFolder = {
         id: generateLongId('f'),
@@ -47,7 +47,7 @@ function createFolder(name) {
 }
 
 
-function deleteFolder(folderId, deleteContents = false) {
+export function deleteFolder(folderId, deleteContents = false) {
     let folders = getFolders();
     const folder = folders.find((f) => f.id === folderId);
     if (!folder) return;
@@ -86,7 +86,7 @@ function deleteFolder(folderId, deleteContents = false) {
 }
 
 
-function getFolderContents(folderId) {
+export function getFolderContents(folderId) {
     const folders = getFolders();
     const folder = folders.find((f) => f.id === folderId);
     if (!folder)
@@ -157,7 +157,7 @@ function getFolderContents(folderId) {
 }
 
 
-function addToFolder(folderId, itemId, itemType, asShortcut = false) {
+export function addToFolder(folderId, itemId, itemType, asShortcut = false) {
     if (itemType === 'folder' && folderId === itemId) return false;
     let folders = getFolders();
     const folder = folders.find((f) => f.id === folderId);
@@ -190,7 +190,7 @@ function addToFolder(folderId, itemId, itemType, asShortcut = false) {
 }
 
 
-function removeItemFromAllFolders(itemId, itemType) {
+export function removeItemFromAllFolders(itemId, itemType) {
     let folders = getFolders();
     let changed = false;
     for (const f of folders) {
@@ -203,7 +203,7 @@ function removeItemFromAllFolders(itemId, itemType) {
 }
 
 
-function removeItemFromFolder(folderId, itemId, itemType) {
+export function removeItemFromFolder(folderId, itemId, itemType) {
     let folders = getFolders();
     const folder = folders.find((f) => f.id === folderId);
     if (!folder) return false;
@@ -218,7 +218,7 @@ function removeItemFromFolder(folderId, itemId, itemType) {
 }
 
 
-function updateFolderCount(folderId) {
+export function updateFolderCount(folderId) {
     const folders = getFolders();
     const folder = folders.find((f) => f.id === folderId);
     if (folder) {
@@ -236,7 +236,7 @@ function updateFolderCount(folderId) {
 }
 
 
-function isItemInAnyFolder(itemId, itemType) {
+export function isItemInAnyFolder(itemId, itemType) {
     const folders = getFolders();
     for (const folder of folders) {
         if (folder.children.some((c) => c.id === itemId && c.type === itemType && !c.shortcut)) {
@@ -247,7 +247,7 @@ function isItemInAnyFolder(itemId, itemType) {
 }
 
 
-function getItemFolderState(folderId, itemId, itemType) {
+export function getItemFolderState(folderId, itemId, itemType) {
     const folders = getFolders();
     const folder = folders.find((f) => f.id === folderId);
     if (!folder) return null;
@@ -259,23 +259,23 @@ function getItemFolderState(folderId, itemId, itemType) {
 }
 
 
-function getExpandedFolderKeys() {
+export function getExpandedFolderKeys() {
     return storageReadJson(STORAGE_KEYS.EXPANDED_FOLDERS, [], normalizeStringList);
 }
 
 
-function saveExpandedFolderKeys(keys) {
+export function saveExpandedFolderKeys(keys) {
     storageWriteJson(STORAGE_KEYS.EXPANDED_FOLDERS, keys);
 }
 
 
-function isFolderExpanded(parentKey, folderId) {
+export function isFolderExpanded(parentKey, folderId) {
     const keys = getExpandedFolderKeys();
     return keys.includes(parentKey + '/' + folderId);
 }
 
 
-function toggleFolderExpanded(parentKey, folderId) {
+export function toggleFolderExpanded(parentKey, folderId) {
     const key = parentKey + '/' + folderId;
     let keys = getExpandedFolderKeys();
     if (keys.includes(key)) {
@@ -288,13 +288,13 @@ function toggleFolderExpanded(parentKey, folderId) {
 }
 
 
-function countFolderChildren(folderId) {
+export function countFolderChildren(folderId) {
     const c = getFolderContents(folderId);
     return c.folders.length + c.playlists.length + c.albums.length + c.artists.length + c.specials.length;
 }
 
 
-function buildFolderChildItems(folderId, parentKey) {
+export function buildFolderChildItems(folderId, parentKey) {
     const { folders, playlists, albums, artists, specials } = getFolderContents(folderId);
     const pinnedIds = getFolderPinnedItems(folderId);
     const playedOrder = getPlayedItemOrder();
@@ -387,7 +387,7 @@ function buildFolderChildItems(folderId, parentKey) {
 }
 
 
-function flattenLeftPanelItems(items, depth, parentKey, out, visited) {
+export function flattenLeftPanelItems(items, depth, parentKey, out, visited) {
     if (depth > 50) return;
     for (const item of items) {
         const cloned = Object.assign({}, item);
@@ -410,4 +410,28 @@ function flattenLeftPanelItems(items, depth, parentKey, out, visited) {
             flattenLeftPanelItems(children, depth + 1, cloned.id, out, branch);
         }
     }
+}
+
+// Classic scripts and inline handlers still call these by name; registered until the final flip.
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        getFolders,
+        saveFolders,
+        createFolder,
+        deleteFolder,
+        getFolderContents,
+        addToFolder,
+        removeItemFromAllFolders,
+        removeItemFromFolder,
+        updateFolderCount,
+        isItemInAnyFolder,
+        getItemFolderState,
+        getExpandedFolderKeys,
+        saveExpandedFolderKeys,
+        isFolderExpanded,
+        toggleFolderExpanded,
+        countFolderChildren,
+        buildFolderChildItems,
+        flattenLeftPanelItems
+    });
 }

@@ -17,7 +17,7 @@
 // ==============================================================================
 // RECENTLY PLAYED
 // ==============================================================================
-function saveToRecentlyPlayed(song) {
+export function saveToRecentlyPlayed(song) {
     // List logic (move-to-top instead of duplicating, cap, clean-up) lives in 03a-recents.js.
     const recentSongs = addToRecentList(storageReadJson(STORAGE_KEYS.RECENTLY_PLAYED, [], normalizeObjectList), song, Date.now(), MAX_RECENT_SONGS);
 
@@ -28,18 +28,18 @@ function saveToRecentlyPlayed(song) {
 }
 
 
-function getRecentlyPlayed() {
+export function getRecentlyPlayed() {
     const recentSongs = storageReadJson(STORAGE_KEYS.RECENTLY_PLAYED, [], normalizeObjectList);
     return recentSongs;
 }
 
 
-function updateRecentCount() {
+export function updateRecentCount() {
     emit('recents:count-changed', { count: getRecentCount() });
 }
 
 
-async function clearRecentlyPlayed() {
+export async function clearRecentlyPlayed() {
     const confirmed = await showConfirmDialog({
         title: 'Clear Recently Played',
         message: 'Clear all recently played songs? This cannot be undone.',
@@ -59,7 +59,7 @@ async function clearRecentlyPlayed() {
 // ==============================================================================
 // PLAY HISTORY
 // ==============================================================================
-function saveToPlayHistory(song, playDuration) {
+export function saveToPlayHistory(song, playDuration) {
     const actualSong = song.song || song;
 
     let history = storageReadJson(STORAGE_KEYS.PLAY_HISTORY, [], normalizeObjectList);
@@ -92,12 +92,12 @@ function saveToPlayHistory(song, playDuration) {
 }
 
 
-function getPlayHistory() {
+export function getPlayHistory() {
     return storageReadJson(STORAGE_KEYS.PLAY_HISTORY, [], normalizeObjectList);
 }
 
 
-async function clearPlayHistory() {
+export async function clearPlayHistory() {
     const confirmed = await showConfirmDialog({
         title: 'Clear History',
         message: 'Clear all play history? This cannot be undone.',
@@ -111,4 +111,17 @@ async function clearPlayHistory() {
         setNextHistorySlotId(1);
         emit('history:cleared');
     }
+}
+
+// Classic scripts and inline handlers still call these by name; registered until the final flip.
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        saveToRecentlyPlayed,
+        getRecentlyPlayed,
+        updateRecentCount,
+        clearRecentlyPlayed,
+        saveToPlayHistory,
+        getPlayHistory,
+        clearPlayHistory
+    });
 }

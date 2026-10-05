@@ -32,6 +32,10 @@ Two jobs, both so that files can become modules without breaking the HTML that c
 - A handler that throws is reported in the console and the elements above still run, as with inline handlers.
 - An action name that was never registered is a console error (`data-action="x" has no registered action`).
 
+## Start-up order and `whenAppReady`
+
+Classic scripts run while the page is parsed, then the module scripts, then the `DOMContentLoaded` handlers. A callback that is driven from outside the page (`electronAPI.onScanCoverBatch`, thumbnail buttons, a timer started at load) can fire before the modules exist, and fails with `X is not defined`. Wrap its body in `whenAppReady(() => { ... })`: it runs once start-up has finished (or at once if it already has). Callbacks queued early run in the order they arrived.
+
 ## Converting an inline handler: recipes
 
 | Inline | Converted |

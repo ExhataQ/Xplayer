@@ -17,23 +17,23 @@
 // ==============================================================================
 // PINNED ITEMS & ITEM ORDER
 // ==============================================================================
-function getPinnedItems() {
+export function getPinnedItems() {
     return storageReadJson(STORAGE_KEYS.PINNED_ITEMS, [], normalizeIdList);
 }
 
 
-function savePinnedItems(pinnedIds) {
+export function savePinnedItems(pinnedIds) {
     storageWriteJson(STORAGE_KEYS.PINNED_ITEMS, pinnedIds);
 }
 
 
-function isItemPinned(itemId) {
+export function isItemPinned(itemId) {
     const pinned = getPinnedItems();
     return pinned.includes(itemId);
 }
 
 
-function togglePinItem(itemId, itemName) {
+export function togglePinItem(itemId, itemName) {
     let pinned = getPinnedItems();
     let nowPinned;
 
@@ -55,12 +55,12 @@ function togglePinItem(itemId, itemName) {
 }
 
 
-function getPlayedItemOrder() {
+export function getPlayedItemOrder() {
     return storageReadJson(STORAGE_KEYS.PLAYED_ITEM_ORDER, [], normalizeStringList);
 }
 
 
-function savePlayedItemOrder(order) {
+export function savePlayedItemOrder(order) {
     storageWriteJson(STORAGE_KEYS.PLAYED_ITEM_ORDER, order);
 }
 
@@ -71,7 +71,7 @@ function savePlayedItemOrder(order) {
 // 06a-context-menus.js, and 03c-playlists.js (x2) — 8 call sites total, only differing in
 // how each item's id string is derived (idFn). Verified every call site's idFn before
 // replacing it below; do not assume they're interchangeable if adding a new caller.
-function sortByPinnedThenRecent(items, idFn, pinnedIds, playedOrder) {
+export function sortByPinnedThenRecent(items, idFn, pinnedIds, playedOrder) {
     return [...items].sort((a, b) => {
         const aId = idFn(a);
         const bId = idFn(b);
@@ -92,7 +92,7 @@ function sortByPinnedThenRecent(items, idFn, pinnedIds, playedOrder) {
 }
 
 
-function movePlayedItemToTop(listId) {
+export function movePlayedItemToTop(listId) {
     if (
         listId === VIEWS.ALL_SONGS ||
         listId === VIEWS.FAVORITES ||
@@ -120,29 +120,29 @@ function movePlayedItemToTop(listId) {
 // ==============================================================================
 // FOLDER-SCOPED PINNED ITEMS
 // ==============================================================================
-function getFolderPinnedItemsMap() {
+export function getFolderPinnedItemsMap() {
     return storageReadJson(STORAGE_KEYS.FOLDER_PINNED_ITEMS, {}, normalizePinnedMap);
 }
 
 
-function saveFolderPinnedItemsMap(map) {
+export function saveFolderPinnedItemsMap(map) {
     storageWriteJson(STORAGE_KEYS.FOLDER_PINNED_ITEMS, map);
 }
 
 
-function getFolderPinnedItems(folderId) {
+export function getFolderPinnedItems(folderId) {
     if (!folderId) return [];
     const map = getFolderPinnedItemsMap();
     return Array.isArray(map[folderId]) ? map[folderId] : [];
 }
 
 
-function isItemPinnedInFolder(folderId, itemId) {
+export function isItemPinnedInFolder(folderId, itemId) {
     return getFolderPinnedItems(folderId).includes(itemId);
 }
 
 
-function togglePinItemInFolder(folderId, itemId, itemName) {
+export function togglePinItemInFolder(folderId, itemId, itemName) {
     const map = getFolderPinnedItemsMap();
     const current = Array.isArray(map[folderId]) ? map[folderId] : [];
     const isPinned = current.includes(itemId);
@@ -153,4 +153,23 @@ function togglePinItemInFolder(folderId, itemId, itemName) {
     }
     saveFolderPinnedItemsMap(map);
     emit('folderPin:changed', { folderId, itemId, itemName, pinned: !isPinned });
+}
+
+// Classic scripts and inline handlers still call these by name; registered until the final flip.
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        getPinnedItems,
+        savePinnedItems,
+        isItemPinned,
+        togglePinItem,
+        getPlayedItemOrder,
+        savePlayedItemOrder,
+        sortByPinnedThenRecent,
+        movePlayedItemToTop,
+        getFolderPinnedItemsMap,
+        saveFolderPinnedItemsMap,
+        getFolderPinnedItems,
+        isItemPinnedInFolder,
+        togglePinItemInFolder
+    });
 }

@@ -4,23 +4,23 @@
 
 // Title bar close / minimize / maximize buttons.
 
-function closeApp() {
-    if (window.electronAPI) {
-        window.electronAPI.closeApp();
+export function closeApp() {
+    if (desktopApi.available()) {
+        desktopApi.window.closeApp();
     }
 }
-function minimizeApp() {
-    if (window.electronAPI) {
-        window.electronAPI.minimizeApp();
+export function minimizeApp() {
+    if (desktopApi.available()) {
+        desktopApi.window.minimizeApp();
     }
 }
 
-function maximizeApp() {
-    if (!window.electronAPI) return;
-    window.electronAPI.maximizeApp();
+export function maximizeApp() {
+    if (!desktopApi.available()) return;
+    desktopApi.window.maximizeApp();
 }
 
-function updateMaximizeIcon(maximized) {
+export function updateMaximizeIcon(maximized) {
     const icon = document.getElementById('maximize-icon');
     const btn = document.getElementById('maximize-btn');
     if (!icon || !btn) return;
@@ -33,4 +33,14 @@ function updateMaximizeIcon(maximized) {
         icon.innerHTML =
             '<rect x="0.5" y="0.5" width="9" height="9" stroke="currentColor" stroke-width="1" fill="none" shape-rendering="crispEdges"/>';
     }
+}
+
+// Classic scripts and inline handlers still call these by name; registered until the final flip.
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        closeApp,
+        minimizeApp,
+        maximizeApp,
+        updateMaximizeIcon
+    });
 }

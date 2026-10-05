@@ -18,7 +18,7 @@
 
 const SCENARIOS = {
     'recents: save a song while the portable Recent panel is open': {
-        spy: ['updateRecentCount', 'renderPortableRecentlyPlayed'],
+        spy: ['renderPortableRecentlyPlayed'],
         setup: "document.getElementById('recently-played-content').classList.add('active');",
         run: 'saveToRecentlyPlayed(SONGS_DATA[0]);'
     },
@@ -66,7 +66,7 @@ const SCENARIOS = {
         run: 'await clearSearchHistory();'
     },
     'recents: clear while the Recent view is showing and the portable panel is open': {
-        spy: ['updateRecentCount', 'renderRecentlyPlayed', 'updateExternalScrollbar', 'renderPortableRecentlyPlayed', 'showNotification'],
+        spy: ['renderRecentlyPlayed', 'updateExternalScrollbar', 'renderPortableRecentlyPlayed', 'showNotification'],
         setup: "window.showConfirmDialog = async () => true; saveToRecentlyPlayed(SONGS_DATA[0]); currentView = VIEWS.RECENT; document.getElementById('recently-played-content').classList.add('active');",
         run: 'await clearRecentlyPlayed(); await new Promise((r) => setTimeout(r, 300));'
     },

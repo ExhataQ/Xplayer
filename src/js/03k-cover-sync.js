@@ -6,7 +6,7 @@
 
 // Pixel-perfect swap: decode the new thumb off-screen first, then assign it, so a row never
 // shows a half-decoded image, and clear any inline style left over from the placeholder stage.
-function swapCoverSrc(img, url) {
+export function swapCoverSrc(img, url) {
     if (!img || !url) return;
     img.style.opacity = '';
     if (img.getAttribute('src') === url) return;
@@ -20,7 +20,7 @@ function swapCoverSrc(img, url) {
 // Left-panel album/artist rows have no <img> until a cover exists (they show an SVG), so they are
 // patched in place. This is intentionally cheap (no getAlbums/getArtists) - the exact
 // "most common cover" choice is re-derived by the full re-render when extraction completes.
-function applyCoverToLeftPanelRow(playBtn, type, url) {
+export function applyCoverToLeftPanelRow(playBtn, type, url) {
     const wrapper = playBtn.closest('.main-item-cover-wrapper');
     if (!wrapper) return;
     const existing = wrapper.querySelector('img');
@@ -39,7 +39,7 @@ function applyCoverToLeftPanelRow(playBtn, type, url) {
 }
 
 
-function applyCoverBatchToUI(updates) {
+export function applyCoverBatchToUI(updates) {
     const leftItemByView = new Map();
     if (typeof leftPanelVirtualState !== 'undefined' && leftPanelVirtualState.currentItems) {
         for (const it of leftPanelVirtualState.currentItems) {
@@ -77,22 +77,22 @@ function applyCoverBatchToUI(updates) {
 }
 
 
-function setupCoverStreamListeners() {
+export function setupCoverStreamListeners() {
     if (typeof window === 'undefined') return;
-    const api = window.electronAPI;
-    if (!api || !api.onScanCoverBatch || window._coverStreamListenersAttached) return;
+    if (!desktopApi.supports('library.onScanCoverBatch') || window._coverStreamListenersAttached) return;
     window._coverStreamListenersAttached = true;
 
     let coverStreamActive = false;
 
-    api.onScanCoverBatch((batch) => {
+    // desktopApi holds these main-process messages until start-up has finished (see whenAppReady).
+    desktopApi.library.onScanCoverBatch((batch) => {
         if (typeof showCoverProgressNotification === 'function') {
             showCoverProgressNotification(batch.processed, batch.total, batch.found);
         }
         applyCoverBatchToUI(batch.updates || []);
     });
 
-    api.onScanCoversComplete(() => {
+    desktopApi.library.onScanCoversComplete(() => {
         if (typeof completeCoverProgressNotification === 'function') {
             completeCoverProgressNotification();
         }
@@ -108,3 +108,12 @@ if (typeof window !== 'undefined') {
     setupCoverStreamListeners();
 }
 
+// Classic scripts and inline handlers still call these by name; registered until the final flip.
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        swapCoverSrc,
+        applyCoverToLeftPanelRow,
+        applyCoverBatchToUI,
+        setupCoverStreamListeners
+    });
+}

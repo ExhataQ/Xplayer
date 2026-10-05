@@ -13,7 +13,6 @@
         "updateScrollbarById",
         "updateScrollbarById",
         "showNotification",
-        "closeFolder",
         "renderLeftPanelMainList",
         "renderLeftPanelVisibleItems",
         "renderFoldersView",

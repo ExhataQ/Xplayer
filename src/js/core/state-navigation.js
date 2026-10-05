@@ -5,31 +5,44 @@
 // Setters only: each one assigns the variable that is still declared in its original
 // file. Nothing was changed to call them by creating this file. Listed in core/SETTERS.md.
 
-function setCurrentView(value) {
+export function setCurrentView(value) {
     currentView = value;
     emit('view:changed', { view: value });
 }
 
-function setSearchQuery(value) {
+export function setSearchQuery(value) {
     searchQuery = value;
 }
 
-function setHistoryNavigationIndex(value) {
+export function setHistoryNavigationIndex(value) {
     historyNavigationIndex = value;
 }
 
-function setPlaybackHistoryStack(value) {
+export function setPlaybackHistoryStack(value) {
     playbackHistoryStack = value;
 }
 
-function setIsNavigatingHistory(value) {
+export function setIsNavigatingHistory(value) {
     isNavigatingHistory = value;
 }
 
-function setLyricsPreView(value) {
+export function setLyricsPreView(value) {
     lyricsPreView = value;
 }
 
-function setLyricsPreScrollTop(value) {
+export function setLyricsPreScrollTop(value) {
     lyricsPreScrollTop = value;
+}
+
+// Classic scripts and inline handlers still call these by name; registered until the final flip.
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        setCurrentView,
+        setSearchQuery,
+        setHistoryNavigationIndex,
+        setPlaybackHistoryStack,
+        setIsNavigatingHistory,
+        setLyricsPreView,
+        setLyricsPreScrollTop
+    });
 }

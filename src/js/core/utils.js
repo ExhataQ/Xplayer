@@ -4,7 +4,7 @@
 
 // Pure helpers with no dependencies: HTML escaping and id generation.
 
-function escapeHtml(text) {
+export function escapeHtml(text) {
     if (!text) return '';
     return text.replace(/[&<>]/g, function (m) {
         if (m === '&') return '&amp;';
@@ -14,11 +14,11 @@ function escapeHtml(text) {
     });
 }
 
-function escapeHtmlAttr(text) {
+export function escapeHtmlAttr(text) {
     return escapeHtml(text).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function generateLongId(prefix) {
+export function generateLongId(prefix) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
     for (let i = 0; i < 16; i++) {
@@ -27,7 +27,7 @@ function generateLongId(prefix) {
     return prefix + result;
 }
 
-function generateConsistentId(prefix, name) {
+export function generateConsistentId(prefix, name) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let h = 0;
     for (let i = 0; i < name.length; i++) {
@@ -40,4 +40,14 @@ function generateConsistentId(prefix, name) {
         result += chars[val % chars.length];
     }
     return prefix + result;
+}
+
+// Classic scripts and inline handlers still call these by name; registered until the final flip.
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        escapeHtml,
+        escapeHtmlAttr,
+        generateLongId,
+        generateConsistentId
+    });
 }

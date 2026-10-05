@@ -24,7 +24,7 @@ async function loadStorageWith(values) {
     // other top-level concerns, left alone per the existing explicit instruction.
     const splitSources = ['03e-recents-history.js', '03f-favorites-settings.js',
         '03g-pinned-items.js', '03h-folders.js', '03i-search-history.js']
-        .map((name) => fs.readFileSync(path.join(__dirname, '../../src/js/' + name), 'utf8'));
+        .map((name) => require('../lib/strip-exports').stripExports(fs.readFileSync(path.join(__dirname, '../../src/js/' + name), 'utf8')));
     // 03-storage.js references STORAGE_KEYS, defined in 00-state.js (the single
     // source of truth for localStorage keys). Pull just that constant out rather than vm-loading the whole
     // of 00-state.js, which has top-level document.getElementById(...) calls this plain vm

@@ -7,12 +7,12 @@
 // ==============================================================================
 // FAVORITES
 // ==============================================================================
-function getFavorites() {
+export function getFavorites() {
     return storageReadJson(STORAGE_KEYS.FAVORITES, [], normalizeIdList);
 }
 
 
-const DEFAULT_SMART_SHUFFLE_SETTINGS = {
+export const DEFAULT_SMART_SHUFFLE_SETTINGS = {
     journeySize: 50,
     groupSize: 5,
     genreFlow: 'gentle',
@@ -23,7 +23,7 @@ const DEFAULT_SMART_SHUFFLE_SETTINGS = {
     durationVariety: true
 };
 
-const DEFAULT_AUDIO_PLAYBACK_SETTINGS = {
+export const DEFAULT_AUDIO_PLAYBACK_SETTINGS = {
     crossfadeEnabled: false,
     crossfadeDuration: 4,
     gaplessEnabled: true,
@@ -37,7 +37,7 @@ const DEFAULT_AUDIO_PLAYBACK_SETTINGS = {
     replayGainLimiter: true
 };
 
-function getSmartShuffleSettings() {
+export function getSmartShuffleSettings() {
     return {
         ...DEFAULT_SMART_SHUFFLE_SETTINGS,
         ...storageReadJson(STORAGE_KEYS.SMART_SHUFFLE_SETTINGS, {}, (v) => normalizeSettings(v, DEFAULT_SMART_SHUFFLE_SETTINGS))
@@ -45,7 +45,7 @@ function getSmartShuffleSettings() {
 }
 
 
-function getAudioPlaybackSettings() {
+export function getAudioPlaybackSettings() {
     const settings = {
         ...DEFAULT_AUDIO_PLAYBACK_SETTINGS,
         ...storageReadJson(STORAGE_KEYS.AUDIO_PLAYBACK_SETTINGS, {}, (v) => normalizeSettings(v, DEFAULT_AUDIO_PLAYBACK_SETTINGS))
@@ -59,12 +59,12 @@ function getAudioPlaybackSettings() {
 }
 
 
-function saveAudioPlaybackSettings(settings) {
+export function saveAudioPlaybackSettings(settings) {
     storageWriteJson(STORAGE_KEYS.AUDIO_PLAYBACK_SETTINGS, settings);
 }
 
 
-function setAudioPlaybackSetting(key, value) {
+export function setAudioPlaybackSetting(key, value) {
     const settings = getAudioPlaybackSettings();
     settings[key] = value;
 
@@ -99,30 +99,30 @@ function setAudioPlaybackSetting(key, value) {
 }
 
 
-function getWindowSettings() {
+export function getWindowSettings() {
     return {
         minimizeOnClose: storageReadBool(STORAGE_KEYS.MINIMIZE_ON_CLOSE)
     };
 }
 
 
-function setMinimizeOnClose(enabled) {
+export function setMinimizeOnClose(enabled) {
     const value = Boolean(enabled);
     storageWriteBool(STORAGE_KEYS.MINIMIZE_ON_CLOSE, value);
-    if (typeof window !== 'undefined' && window.electronAPI && window.electronAPI.setMinimizeOnClose) {
-        window.electronAPI.setMinimizeOnClose(value);
+    if (desktopApi.supports('window.setMinimizeOnClose')) {
+        desktopApi.window.setMinimizeOnClose(value);
     }
 }
 
 
-function saveSmartShuffleSetting(key, value) {
+export function saveSmartShuffleSetting(key, value) {
     const settings = getSmartShuffleSettings();
     settings[key] = value;
     storageWriteJson(STORAGE_KEYS.SMART_SHUFFLE_SETTINGS, settings);
 }
 
 
-function saveFavorite(songId) {
+export function saveFavorite(songId) {
     let favorites = getFavorites();
     if (!favorites.includes(songId)) {
         favorites.unshift(songId);
@@ -131,14 +131,31 @@ function saveFavorite(songId) {
 }
 
 
-function removeFavorite(songId) {
+export function removeFavorite(songId) {
     let favorites = getFavorites();
     favorites = favorites.filter((id) => id !== songId);
     storageWriteJson(STORAGE_KEYS.FAVORITES, favorites);
 }
 
 
-function isFavorite(songId) {
+export function isFavorite(songId) {
     const favorites = getFavorites();
     return favorites.includes(songId);
+}
+
+// Classic scripts and inline handlers still call these by name; registered until the final flip.
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        getFavorites,
+        getSmartShuffleSettings,
+        getAudioPlaybackSettings,
+        saveAudioPlaybackSettings,
+        setAudioPlaybackSetting,
+        getWindowSettings,
+        setMinimizeOnClose,
+        saveSmartShuffleSetting,
+        saveFavorite,
+        removeFavorite,
+        isFavorite
+    });
 }

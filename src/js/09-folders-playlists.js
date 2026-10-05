@@ -1,7 +1,7 @@
 // ==============================================================================
 // PLAYLIST SYSTEM
 // ==============================================================================
-function handleLeftPanelCoverBtnClick(viewId) {
+export function handleLeftPanelCoverBtnClick(viewId) {
     if (!viewId) return;
     if (isViewCurrentlyPlaying(viewId)) {
         if (audioElement.paused) {
@@ -49,7 +49,7 @@ document.addEventListener(
     true
 );
 
-function playViewFromLeftPanel(viewId) {
+export function playViewFromLeftPanel(viewId) {
     if (!viewId) return;
     const run = () => {
         if (typeof playCurrentViewFromStart === 'function') {
@@ -79,7 +79,7 @@ function playViewFromLeftPanel(viewId) {
     }
 }
 
-function removeSongFromPlaylistAndRefresh(songId, playlistId) {
+export function removeSongFromPlaylistAndRefresh(songId, playlistId) {
     removeSongFromPlaylist(songId, playlistId);
 
     // The redraw moved to 04k-playlists-events.js. It is a separate event from
@@ -88,7 +88,7 @@ function removeSongFromPlaylistAndRefresh(songId, playlistId) {
     emit('playlist:songRemovedFromView', { songId, playlistId });
 }
 
-function openPlaylist(playlistId, callback = null) {
+export function openPlaylist(playlistId, callback = null) {
     const playlists = getPlaylists();
     const playlist = playlists.find((p) => p.id == playlistId || p.id === playlistId);
     if (!playlist) return;
@@ -154,7 +154,7 @@ function openPlaylist(playlistId, callback = null) {
 // ==============================================================================
 // FOLDER SYSTEM
 // ==============================================================================
-function toggleFolderExpandedFromUI(parentKey, folderId) {
+export function toggleFolderExpandedFromUI(parentKey, folderId) {
     if (typeof toggleFolderExpanded !== 'function') return;
     const nowExpanded = toggleFolderExpanded(parentKey, folderId);
     const btn = document.querySelector(`.folder-chevron[data-folder-key="${parentKey}/${folderId}"]`);
@@ -179,7 +179,7 @@ function toggleFolderExpandedFromUI(parentKey, folderId) {
     }
 }
 
-function openFolder(folderId) {
+export function openFolder(folderId) {
     const folders = getFolders();
     const folder = folders.find((f) => f.id === folderId);
     if (!folder) return;
@@ -224,7 +224,7 @@ function openFolder(folderId) {
     updateScrollbarById('left-panel-main-content');
 }
 
-function closeFolder() {
+export function closeFolder() {
     if (folderNavigationStack.length > 0) {
         const parentFolderId = folderNavigationStack.pop();
         setCurrentOpenFolderId(parentFolderId);
@@ -340,7 +340,7 @@ function closeFolder() {
     updateScrollbarById('left-panel-main-content');
 }
 
-async function confirmDeleteFolder(folderId, folderName) {
+export async function confirmDeleteFolder(folderId, folderName) {
     const folders = getFolders();
     const folder = folders.find((f) => f.id === folderId);
     const itemCount = folder ? folder.children.length : 0;
@@ -381,4 +381,18 @@ async function confirmDeleteFolder(folderId, folderName) {
     if (currentOpenFolderId === folderId) {
         closeFolder();
     }
+}
+
+// Classic scripts and inline handlers still call these by name; registered until the final flip.
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        handleLeftPanelCoverBtnClick,
+        playViewFromLeftPanel,
+        removeSongFromPlaylistAndRefresh,
+        openPlaylist,
+        toggleFolderExpandedFromUI,
+        openFolder,
+        closeFolder,
+        confirmDeleteFolder
+    });
 }

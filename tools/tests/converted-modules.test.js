@@ -136,4 +136,38 @@ describe('converted ES modules in the real page', { concurrency: false }, () => 
         assert.deepEqual(errors, []);
         await page.close();
     });
+
+    test('every function exported by a module is also on window, and so is every function an inline handler calls', { timeout: 30000 }, async (t) => {
+        if (!guard(t)) return;
+        const read = (rel) => fs.readFileSync(path.join(ROOT, 'src', 'js', ...rel.split('/')), 'utf8');
+        // Functions the modules export (they are registered with registerLegacyGlobals). These four
+        // export their internal helpers for the unit tests and register only what other files call.
+        // (06i-theme-switcher.js is another module's own file; its exports are used inside it.)
+        const registersOnlyWhatIsUsed = new Set(['core/storage-schema.js', '03-storage.js', '03a-recents.js', '03b-search-engine.js', '06i-theme-switcher.js']);
+        const exported = [];
+        for (const name of manifest.modules.filter((n) => !registersOnlyWhatIsUsed.has(n))) {
+            for (const m of read(name).matchAll(/^export (?:async )?function (\w+)/gm)) exported.push(m[1]);
+        }
+        // Functions that inline on...="" handlers call by name (in the page template and in JS strings).
+        const sources = [fs.readFileSync(path.join(ROOT, 'build', 'music_player.html'), 'utf8')];
+        const topLevel = new Set();
+        for (const name of [...manifest.js, ...manifest.modules]) {
+            const code = read(name);
+            sources.push(code);
+            for (const m of code.matchAll(/^(?:export )?(?:async )?function (\w+)/gm)) topLevel.add(m[1]);
+        }
+        const called = new Set();
+        for (const code of sources) {
+            for (const attr of code.matchAll(/\bon(?:click|dblclick|change|input|keydown|keyup|mousedown|mouseup|contextmenu|blur|focus|error|submit)=\\?["']([^"']*)["']/g)) {
+                for (const call of attr[1].matchAll(/(?<![.\w$])([A-Za-z_$][\w$]*)\s*\(/g)) if (topLevel.has(call[1])) called.add(call[1]);
+            }
+        }
+        assert.ok(exported.length > 100, 'expected the modules to export well over 100 functions, found ' + exported.length);
+        assert.ok(called.size > 50, 'expected well over 50 handler functions, found ' + called.size);
+        const { page, errors } = await openApp();
+        const missing = await page.evaluate((names) => names.filter((n) => typeof window[n] !== 'function'), [...new Set([...exported, ...called])]);
+        assert.deepEqual(missing, []);
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
 });

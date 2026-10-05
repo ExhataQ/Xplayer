@@ -10,12 +10,12 @@
 // ==============================================================================
 // SEARCH HISTORY
 // ==============================================================================
-function getSearchHistory() {
+export function getSearchHistory() {
     return storageReadJson(STORAGE_KEYS.SEARCH_HISTORY, [], normalizeObjectList);
 }
 
 
-function saveSearchToHistory(searchQuery, searchSessionId, resultCount) {
+export function saveSearchToHistory(searchQuery, searchSessionId, resultCount) {
     let searchHistory = storageReadJson(STORAGE_KEYS.SEARCH_HISTORY, [], normalizeObjectList);
 
     const searchEntry = {
@@ -37,7 +37,7 @@ function saveSearchToHistory(searchQuery, searchSessionId, resultCount) {
 }
 
 
-async function clearSearchHistory() {
+export async function clearSearchHistory() {
     const confirmed = await showConfirmDialog({
         title: 'Clear Search History',
         message: 'Clear all search history? This cannot be undone.',
@@ -52,9 +52,19 @@ async function clearSearchHistory() {
 }
 
 
-function deleteSearchHistoryEntry(sessionId) {
+export function deleteSearchHistoryEntry(sessionId) {
     let searchHistory = storageReadJson(STORAGE_KEYS.SEARCH_HISTORY, [], normalizeObjectList);
     searchHistory = searchHistory.filter((entry) => entry.sessionId !== sessionId);
     storageWriteJson(STORAGE_KEYS.SEARCH_HISTORY, searchHistory);
     emit('searchHistory:entryDeleted', { sessionId });
+}
+
+// Classic scripts and inline handlers still call these by name; registered until the final flip.
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        getSearchHistory,
+        saveSearchToHistory,
+        clearSearchHistory,
+        deleteSearchHistoryEntry
+    });
 }

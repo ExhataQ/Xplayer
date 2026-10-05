@@ -5,15 +5,15 @@
 // Imports audio files dropped onto the content area (the drop handler itself lives in
 // the startup handler in player.js).
 
-function importDroppedFiles(filePaths) {
-    if (!window.electronAPI || !window.electronAPI.importDroppedFiles) {
+export function importDroppedFiles(filePaths) {
+    if (!desktopApi.supports('library.importDroppedFiles')) {
         showNotification('Import not available in browser mode', 'warning', 2000);
         return;
     }
 
     showNotification(`Importing ${filePaths.length} file(s)...`, 'info', 3000);
 
-    window.electronAPI
+    desktopApi.library
         .importDroppedFiles(filePaths, currentView)
         .then((result) => {
             if (result.success && result.newSongs && result.newSongs.length > 0) {
@@ -49,4 +49,11 @@ function importDroppedFiles(filePaths) {
         .catch((err) => {
             showNotification('Failed to import files', 'error', 2000);
         });
+}
+
+// Classic scripts and inline handlers still call these by name; registered until the final flip.
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        importDroppedFiles
+    });
 }

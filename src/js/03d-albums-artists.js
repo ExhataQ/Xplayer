@@ -3,7 +3,7 @@
 // Split out of 03-storage.js. Derives album/artist groupings from SONGS_DATA.
 // ==============================================================================
 
-function getAlbums() {
+export function getAlbums() {
     const albums = {};
     for (const song of SONGS_DATA) {
         if (!song.album || song.album.trim() === '') continue;
@@ -48,7 +48,7 @@ function getAlbums() {
     return albumList;
 }
 
-function getAlbumSongs(albumId) {
+export function getAlbumSongs(albumId) {
     const albums = getAlbums();
     const album = albums.find((a) => a.id === albumId);
     if (!album) return [];
@@ -64,7 +64,7 @@ function getAlbumSongs(albumId) {
     return songs;
 }
 
-function getArtistNamesForSong(song) {
+export function getArtistNamesForSong(song) {
     if (!song || !song.artist) return [];
     const raw = song.artist;
     let pieces = [];
@@ -87,7 +87,7 @@ function getArtistNamesForSong(song) {
     return result;
 }
 
-function getArtists() {
+export function getArtists() {
     const artists = {};
     for (const song of SONGS_DATA) {
         const names = getArtistNamesForSong(song);
@@ -131,7 +131,7 @@ function getArtists() {
     return artistList;
 }
 
-function getArtistSongs(artistId) {
+export function getArtistSongs(artistId) {
     const artists = getArtists();
     const artist = artists.find((a) => a.id === artistId);
     if (!artist) return [];
@@ -143,4 +143,15 @@ function getArtistSongs(artistId) {
         return (a.title || '').localeCompare(b.title || '');
     });
     return songs;
+}
+
+// Classic scripts and inline handlers still call these by name; registered until the final flip.
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        getAlbums,
+        getAlbumSongs,
+        getArtistNamesForSong,
+        getArtists,
+        getArtistSongs
+    });
 }

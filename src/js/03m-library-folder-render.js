@@ -5,7 +5,7 @@
 // ==============================================================================
 
 
-async function renderLibraryLocations() {
+export async function renderLibraryLocations() {
     const container = document.getElementById('library-locations-list');
     if (!container) return;
 
@@ -115,7 +115,7 @@ async function renderLibraryLocations() {
 }
 
 
-async function removeSelectedLibraryFolder() {
+export async function removeSelectedLibraryFolder() {
     if (selectedLibraryFolders.length === 0) {
         showNotification('No folder selected', 'warning', 2000);
         return;
@@ -133,14 +133,14 @@ async function removeSelectedLibraryFolder() {
 
     if (!confirmed) return;
 
-    if (!window.electronAPI || (!window.electronAPI.removeMusicFolders && !window.electronAPI.removeMusicFolder)) {
+    if (!desktopApi.supports('library.removeMusicFolders') && !desktopApi.supports('library.removeMusicFolder')) {
         showNotification('Not available', 'warning', 2000);
         return;
     }
 
-    const result = window.electronAPI.removeMusicFolders
-        ? await window.electronAPI.removeMusicFolders(foldersToRemove)
-        : await Promise.all(foldersToRemove.map((folderPath) => window.electronAPI.removeMusicFolder(folderPath))).then(
+    const result = desktopApi.supports('library.removeMusicFolders')
+        ? await desktopApi.library.removeMusicFolders(foldersToRemove)
+        : await Promise.all(foldersToRemove.map((folderPath) => desktopApi.library.removeMusicFolder(folderPath))).then(
               (results) => ({ success: results.every((item) => item && item.success) })
           );
 
@@ -158,13 +158,13 @@ async function removeSelectedLibraryFolder() {
 }
 
 
-async function addLibraryLocation() {
-    if (!window.electronAPI || !window.electronAPI.addMusicFolder) {
+export async function addLibraryLocation() {
+    if (!desktopApi.supports('library.addMusicFolder')) {
         showNotification('Not available', 'warning', 2000);
         return;
     }
 
-    const result = await window.electronAPI.addMusicFolder();
+    const result = await desktopApi.library.addMusicFolder();
 
     if (result && result.success) {
         await renderLibraryLocations();
@@ -177,8 +177,8 @@ async function addLibraryLocation() {
 }
 
 
-async function rebuildLibraryFromFolders() {
-    if (!window.electronAPI || !window.electronAPI.rebuildFromFolders) {
+export async function rebuildLibraryFromFolders() {
+    if (!desktopApi.supports('library.rebuildFromFolders')) {
         showNotification('Not available', 'warning', 2000);
         return;
     }
@@ -202,7 +202,7 @@ async function rebuildLibraryFromFolders() {
         3000
     );
 
-    const result = await window.electronAPI.rebuildFromFolders();
+    const result = await desktopApi.library.rebuildFromFolders();
 
     if (result && result.success && Array.isArray(result.songs)) {
         resetLibraryAfterRebuild(result.songs);
@@ -220,4 +220,14 @@ async function rebuildLibraryFromFolders() {
         const errorMsg = result ? result.reason || result.error || 'Unknown error' : 'No response';
         showNotification(`Failed to rebuild library: ${errorMsg}`, 'error', 4000);
     }
+}
+
+// Classic scripts and inline handlers still call these by name; registered until the final flip.
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        renderLibraryLocations,
+        removeSelectedLibraryFolder,
+        addLibraryLocation,
+        rebuildLibraryFromFolders
+    });
 }

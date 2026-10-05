@@ -19,15 +19,15 @@
 // scrollbar" tail. Both now emit the same 'playlist:listChanged' event, so that
 // duplication is gone too, not just moved.
 
-function getPlaylists() {
+export function getPlaylists() {
     return storageReadJson(STORAGE_KEYS.PLAYLISTS, [], normalizePlaylists);
 }
 
-function savePlaylists(playlists) {
+export function savePlaylists(playlists) {
     storageWriteJson(STORAGE_KEYS.PLAYLISTS, playlists);
 }
 
-function createPlaylist(name) {
+export function createPlaylist(name) {
     let playlists = getPlaylists();
     const newPlaylist = {
         id: generateLongId('p'),
@@ -52,7 +52,7 @@ function createPlaylist(name) {
     return newPlaylist;
 }
 
-function deletePlaylist(playlistId) {
+export function deletePlaylist(playlistId) {
     let playlists = getPlaylists();
     const wasCurrentView =
         currentView &&
@@ -97,7 +97,7 @@ function deletePlaylist(playlistId) {
     emit('playlist:listChanged');
 }
 
-async function deletePlaylistAndClose(playlistId) {
+export async function deletePlaylistAndClose(playlistId) {
     const playlists = getPlaylists();
     const playlist = playlists.find((p) => p.id == playlistId || p.id === playlistId);
     const playlistName = playlist ? playlist.name : 'Playlist';
@@ -119,14 +119,14 @@ async function deletePlaylistAndClose(playlistId) {
     }
 }
 
-function getPlaylistSongs(playlistId) {
+export function getPlaylistSongs(playlistId) {
     const playlists = getPlaylists();
     const playlist = playlists.find((p) => p.id == playlistId || p.id === playlistId);
     if (!playlist) return [];
     return filterDeletedSongs(playlist.songs.map((songId) => getSongById(songId)));
 }
 
-function removeSongFromPlaylist(songId, playlistId) {
+export function removeSongFromPlaylist(songId, playlistId) {
     let playlists = getPlaylists();
     const playlistIndex = playlists.findIndex((p) => p.id == playlistId || p.id === playlistId);
     if (playlistIndex === -1) return false;
@@ -140,7 +140,7 @@ function removeSongFromPlaylist(songId, playlistId) {
     return true;
 }
 
-function addSongToPlaylist(songId, playlistId) {
+export function addSongToPlaylist(songId, playlistId) {
     let playlists = getPlaylists();
     const playlistIndex = playlists.findIndex((p) => p.id == playlistId || p.id === playlistId);
     if (playlistIndex === -1) return false;
@@ -152,4 +152,18 @@ function addSongToPlaylist(songId, playlistId) {
         return true;
     }
     return false;
+}
+
+// Classic scripts and inline handlers still call these by name; registered until the final flip.
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        getPlaylists,
+        savePlaylists,
+        createPlaylist,
+        deletePlaylist,
+        deletePlaylistAndClose,
+        getPlaylistSongs,
+        removeSongFromPlaylist,
+        addSongToPlaylist
+    });
 }

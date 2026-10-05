@@ -148,5 +148,37 @@
         return out;
     }
 
-    registerLegacyGlobals({ registerLegacyGlobals, registerActions, actionAttrs, legacyGlobalNames, registeredActionNames });
+    // Start-up gate. Classic scripts run while the page is parsed, ES modules (src/manifest.json
+    // "modules") run after that, and the DOMContentLoaded handlers last. A message from outside the
+    // page (an Electron main-process event, a timer started at load) can arrive in between, when
+    // functions that live in a module, or SONGS_DATA from player.js, do not exist yet.
+    // whenAppReady(fn) runs fn once start-up has finished, or at once if it already has.
+    // Use it for any callback driven from outside the page that calls app code.
+    const startupQueue = [];
+    let appReady = document.readyState === 'complete';
+
+    function flushStartupQueue() {
+        appReady = true;
+        for (const fn of startupQueue.splice(0)) {
+            try {
+                fn();
+            } catch (e) {
+                console.error('[whenAppReady] callback failed:', e);
+            }
+        }
+    }
+
+    function whenAppReady(fn) {
+        if (typeof fn !== 'function') throw new Error('whenAppReady: expected a function');
+        if (appReady) fn();
+        else startupQueue.push(fn);
+    }
+
+    if (!appReady) {
+        // The timeout lets every DOMContentLoaded handler (the app's own start-up) finish first.
+        document.addEventListener('DOMContentLoaded', () => setTimeout(flushStartupQueue, 0));
+        window.addEventListener('load', () => setTimeout(flushStartupQueue, 0));
+    }
+
+    registerLegacyGlobals({ registerLegacyGlobals, registerActions, actionAttrs, legacyGlobalNames, registeredActionNames, whenAppReady });
 })();

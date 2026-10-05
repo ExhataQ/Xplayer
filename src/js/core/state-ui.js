@@ -5,54 +5,73 @@
 // Setters only: each one assigns the variable that is still declared in its original
 // file. Nothing was changed to call them by creating this file. Listed in core/SETTERS.md.
 
-function setHoveredSongIndex(value) {
+export function setHoveredSongIndex(value) {
     hoveredSongIndex = value;
 }
 
-function setLastMouseX(value) {
+export function setLastMouseX(value) {
     lastMouseX = value;
 }
 
-function setLastMouseY(value) {
+export function setLastMouseY(value) {
     lastMouseY = value;
 }
 
-function setNotificationHistory(value) {
+export function setNotificationHistory(value) {
     notificationHistory = value;
 }
 
-function setDownloadNotifyIndex(value) {
+export function setDownloadNotifyIndex(value) {
     downloadNotifyIndex = value;
 }
 
-function setLastRightPanelStateBeforeQueue(value) {
+export function setLastRightPanelStateBeforeQueue(value) {
     lastRightPanelStateBeforeQueue = value;
 }
 
-function setRightPanelCollapsed(value) {
+export function setRightPanelCollapsed(value) {
     rightPanelCollapsed = value;
 }
 
-function setAdvancedSettingsOpen(value) {
+export function setAdvancedSettingsOpen(value) {
     advancedSettingsOpen = value;
 }
 
-function setLeftPanelFilterMode(value) {
+export function setLeftPanelFilterMode(value) {
     leftPanelFilterMode = value;
 }
 
-function setLeftPanelCollapsed(value) {
+export function setLeftPanelCollapsed(value) {
     leftPanelCollapsed = value;
 }
 
-function setSelectionHighlights(value) {
+export function setSelectionHighlights(value) {
     selectionHighlights = value;
 }
 
-function setSelectedSongId(value) {
+export function setSelectedSongId(value) {
     selectedSongId = value;
 }
 
-function setLastSelectedIndex(value) {
+export function setLastSelectedIndex(value) {
     lastSelectedIndex = value;
+}
+
+// Classic scripts and inline handlers still call these by name; registered until the final flip.
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        setHoveredSongIndex,
+        setLastMouseX,
+        setLastMouseY,
+        setNotificationHistory,
+        setDownloadNotifyIndex,
+        setLastRightPanelStateBeforeQueue,
+        setRightPanelCollapsed,
+        setAdvancedSettingsOpen,
+        setLeftPanelFilterMode,
+        setLeftPanelCollapsed,
+        setSelectionHighlights,
+        setSelectedSongId,
+        setLastSelectedIndex
+    });
 }

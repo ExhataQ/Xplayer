@@ -35,12 +35,11 @@ function resetLibraryAfterRebuild(songs) {
 }
 
 async function loadLibraryLocations() {
-    const api = typeof window !== 'undefined' ? window.electronAPI : null;
-    if (!api || !api.getMusicFolders) {
+    if (!desktopApi.supports('library.getMusicFolders')) {
         return [];
     }
     try {
-        const folders = await api.getMusicFolders();
+        const folders = await desktopApi.library.getMusicFolders();
         return folders;
     } catch (e) {
         return [];
@@ -49,15 +48,14 @@ async function loadLibraryLocations() {
 
 
 async function getFolderStats(folderPath) {
-    const api = typeof window !== 'undefined' ? window.electronAPI : null;
-    if (!api || !api.getFolderStats) {
+    if (!desktopApi.supports('library.getFolderStats')) {
         return {
             songCount: 0,
             addedTime: null
         };
     }
     try {
-        return await api.getFolderStats(folderPath);
+        return await desktopApi.library.getFolderStats(folderPath);
     } catch (e) {
         return {
             songCount: 0,
@@ -158,7 +156,7 @@ async function addFolderPathFromInput(rawValue, label = 'Folder') {
     }
 
     try {
-        const result = await window.electronAPI.addMusicFolder(folderPath);
+        const result = await desktopApi.library.addMusicFolder(folderPath);
         if (result && result.success) {
             await renderLibraryLocations();
             showNotification(`${label} added`, 'success', 2500);
@@ -227,14 +225,14 @@ async function handlePastedLibraryFolder(event) {
 }
 
 function changeMusicFolder() {
-    if (!window.electronAPI || !window.electronAPI.changeMusicFolder) {
+    if (!desktopApi.supports('library.changeMusicFolder')) {
         showNotification('Not available in browser mode', 'warning', 2000);
         return;
     }
 
     showNotification('Selecting folder...', 'info', 5000);
 
-    window.electronAPI
+    desktopApi.library
         .changeMusicFolder()
         .then((result) => {
             if (!result.success) {

@@ -4,7 +4,10 @@
 // Format and workflow: see helpers/sequence-suite.js.
 // Spy only on UI functions that live in D's files; keep scenarios small (one reaction each).
 
-const SPY = ['renderFoldersView', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'updateScrollbarById', 'closeFolder', 'showNotification'];
+// closeFolder() is in 09-folders-playlists.js, an ES module now, and is called from inside that file,
+// where a spy on window.closeFolder cannot see it; it is no longer spied (its entry is removed from
+// the recorded sequence in expected/events-a.json, nothing else changed).
+const SPY = ['renderFoldersView', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'updateScrollbarById', 'showNotification'];
 
 const SCENARIOS = {
     // 09's confirmDeleteFolder() calls deleteFolder() (which now emits folder:listChanged and

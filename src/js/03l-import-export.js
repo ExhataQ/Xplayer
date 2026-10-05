@@ -18,7 +18,7 @@
 //   - exportAllData() keeps its name (called from 08e-panel-settings.js) but the
 //     data-gathering half is now buildExportData(), which is pure.
 
-function buildExportData() {
+export function buildExportData() {
     return {
         playlists: getPlaylists(),
         folders: getFolders(),
@@ -32,7 +32,7 @@ function buildExportData() {
 }
 
 
-function exportAllData() {
+export function exportAllData() {
     const data = buildExportData();
 
     const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -49,7 +49,7 @@ function exportAllData() {
 }
 
 
-function importAllData() {
+export function importAllData() {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
@@ -74,7 +74,7 @@ function importAllData() {
 }
 
 
-function showImportChoiceModal(data, filename) {
+export function showImportChoiceModal(data, filename) {
     const { modal, overlay } = createModal('playlist-modal', 'playlist-modal-overlay', closeImportChoiceModal);
     modal.onclick = (e) => e.stopPropagation();
 
@@ -107,7 +107,7 @@ function showImportChoiceModal(data, filename) {
 }
 
 
-function closeImportChoiceModal() {
+export function closeImportChoiceModal() {
     const modal = document.querySelector('.playlist-modal');
     const overlay = document.querySelector('.playlist-modal-overlay');
     if (modal) modal.remove();
@@ -115,7 +115,7 @@ function closeImportChoiceModal() {
 }
 
 
-function doImportMerge(data) {
+export function doImportMerge(data) {
     if (data.playlists) {
         const existing = getPlaylists();
         const merged = [...existing];
@@ -150,7 +150,7 @@ function doImportMerge(data) {
 }
 
 
-function doImportReplace(data) {
+export function doImportReplace(data) {
     if (data.playlists) savePlaylists(data.playlists);
     if (data.favorites) storageWriteJson(STORAGE_KEYS.FAVORITES, data.favorites);
     if (data.playHistory) storageWriteJson(STORAGE_KEYS.PLAY_HISTORY, data.playHistory);
@@ -159,4 +159,17 @@ function doImportReplace(data) {
     if (data.pinnedItems) savePinnedItems(data.pinnedItems);
     if (data.folders) saveFolders(data.folders);
     emit('data:imported');
+}
+
+// Classic scripts and inline handlers still call these by name; registered until the final flip.
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        buildExportData,
+        exportAllData,
+        importAllData,
+        showImportChoiceModal,
+        closeImportChoiceModal,
+        doImportMerge,
+        doImportReplace
+    });
 }

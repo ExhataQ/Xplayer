@@ -12,6 +12,10 @@ const vm = require('vm');
 const { pathToFileURL } = require('url');
 
 const JS = path.join(__dirname, '../../src/js');
+// These files are ES modules in the app (export + registerLegacyGlobals); a vm context runs them
+// as plain scripts, so the export keywords are dropped. Their functions behave the same.
+const { stripExports } = require('../lib/strip-exports');
+const legacySource = (file) => stripExports(fs.readFileSync(file, 'utf8'));
 const recentsModule = import(pathToFileURL(path.join(JS, '03a-recents.js')).href);
 const storageModule = import(pathToFileURL(path.join(JS, '03-storage.js')).href);
 const schemaModule = import(pathToFileURL(path.join(JS, 'core/storage-schema.js')).href);
@@ -45,7 +49,7 @@ async function loadRecentsHistory({ stored = {}, failWrites = false, library = [
     if (!keys) throw new Error('recents.test.js: could not find STORAGE_KEYS in 00-state.js - did it move or get renamed?');
     vm.runInContext(keys[0], context);
     for (const file of ['core/storage.js', '00b-events.js', 'core/state-ghost-list.js', '03e-recents-history.js']) {
-        vm.runInContext(fs.readFileSync(path.join(JS, file), 'utf8'), context);
+        vm.runInContext(legacySource(path.join(JS, file)), context);
     }
     context.__stored = stored;
     return context;

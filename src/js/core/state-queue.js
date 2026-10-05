@@ -5,16 +5,25 @@
 // Setters only: each one assigns the variable that is still declared in its original
 // file. Nothing was changed to call them by creating this file. Listed in core/SETTERS.md.
 
-function setPlaybackQueue(value) {
+export function setPlaybackQueue(value) {
     playbackQueue = value;
     emit('queue:changed', { queue: value });
 }
 
-function setCurrentQueueIndex(value) {
+export function setCurrentQueueIndex(value) {
     currentQueueIndex = value;
     emit('queue:indexChanged', { index: value });
 }
 
-function setQueueDisplayLimit(value) {
+export function setQueueDisplayLimit(value) {
     queueDisplayLimit = value;
+}
+
+// Classic scripts and inline handlers still call these by name; registered until the final flip.
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        setPlaybackQueue,
+        setCurrentQueueIndex,
+        setQueueDisplayLimit
+    });
 }

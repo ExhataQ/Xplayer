@@ -10,8 +10,8 @@ window.PLACEHOLDER_IMAGE = PLACEHOLDER_IMAGE;
 // INITIALIZATION
 // ==============================================================================
 document.addEventListener('DOMContentLoaded', function () {
-    if (typeof getWindowSettings === 'function' && window.electronAPI?.setMinimizeOnClose) {
-        window.electronAPI.setMinimizeOnClose(getWindowSettings().minimizeOnClose);
+    if (typeof getWindowSettings === 'function' && desktopApi.supports('window.setMinimizeOnClose')) {
+        desktopApi.window.setMinimizeOnClose(getWindowSettings().minimizeOnClose);
     }
     updateAlbumArt();
     renderSongsList(SONGS_DATA);

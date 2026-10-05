@@ -6,11 +6,11 @@
 // Registers the window resize listener at load, so keep this file after the other
 // scripts that register their own resize listeners.
 
-function isBelowCollapseThreshold() {
+export function isBelowCollapseThreshold() {
     return window.innerWidth < COLLAPSE_THRESHOLD;
 }
 
-function collapseLeftPanel() {
+export function collapseLeftPanel() {
     setLeftPanelCollapsed(true);
     const leftPanel = leftPanelElement;
     const collapseBtn = document.getElementById('collapse-panel-btn');
@@ -29,7 +29,7 @@ function collapseLeftPanel() {
     }, 30);
 }
 
-function expandLeftPanel() {
+export function expandLeftPanel() {
     if (isBelowCollapseThreshold()) return;
     setLeftPanelCollapsed(false);
     const leftPanel = leftPanelElement;
@@ -49,7 +49,7 @@ function expandLeftPanel() {
     }, 30);
 }
 
-function toggleLeftPanelCollapse() {
+export function toggleLeftPanelCollapse() {
     if (leftPanelCollapsed) {
         expandLeftPanel();
     } else {
@@ -73,7 +73,7 @@ window.addEventListener('resize', function () {
     if (typeof updateLibraryLocationsLayout === 'function') updateLibraryLocationsLayout();
 });
 
-function initPanelResize(panelId, options = {}) {
+export function initPanelResize(panelId, options = {}) {
     const {
         handleSide = 'right',
         minWidth = SCREEN_WIDTH * (285 / 1920),
@@ -178,7 +178,7 @@ function initPanelResize(panelId, options = {}) {
     resizeHandle.addEventListener('mousedown', startResize);
 }
 
-function initTracklistScrollEffect() {
+export function initTracklistScrollEffect() {
     const content = document.querySelector('.content');
     const tracklistHeader = document.querySelector('.tracklist-header');
     const heroSection = document.querySelector('.playlist-hero-section');
@@ -200,4 +200,16 @@ function initTracklistScrollEffect() {
     content.addEventListener('scroll', updateHeaderBackground);
     window.addEventListener('resize', updateHeaderBackground);
     updateHeaderBackground();
+}
+
+// Classic scripts and inline handlers still call these by name; registered until the final flip.
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        isBelowCollapseThreshold,
+        collapseLeftPanel,
+        expandLeftPanel,
+        toggleLeftPanelCollapse,
+        initPanelResize,
+        initTracklistScrollEffect
+    });
 }

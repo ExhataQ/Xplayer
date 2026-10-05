@@ -29,8 +29,8 @@ Status values: `todo`, `in progress`, `patch received`, `applied + verified`, `b
 | A-11 | 4     | Split `99-player.js`                       | A-04, A-07       | applied + verified               |                                                                       |
 | A-12 | 4     | Convert storage, recents and search engine | A-10             | applied + verified               |                                                                       |
 | A-13 | 5     | Storage module                             | A-12             | applied + verified               |                                                                       |
-| A-14 | 5     | `api/` wrapper and preload                 | A-10             | todo               |                                                                       |
-| A-15 | 6     | Convert core and library to modules        | A-13, A-14, A-11 | todo               |                                                                       |
+| A-14 | 5     | `api/` wrapper and preload                 | A-10             | patch received               |                                                                       |
+| A-15 | 6     | Convert core and library to modules        | A-13, A-14, A-11 | patch received (staged) |                                                                       |
 | A-16 | 6     | Final flip                                 | B-10, C-07, D-09 | todo               |                                                                       |
 
 ### Agent B: Playback
