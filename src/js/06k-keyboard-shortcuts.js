@@ -182,8 +182,8 @@ document.addEventListener('keydown', function (e) {
                         savePlaylists(playlists);
                     }
 
-                    if (window.electronAPI && window.electronAPI.deleteFile) {
-                        window.electronAPI.deleteFile(windowsPath);
+                    if (desktopApi.supports('files.deleteFile')) {
+                        desktopApi.files.deleteFile(windowsPath);
                     }
                 });
 

@@ -56,3 +56,6 @@
 
 2026-10-04
 - D-05 (Agent D), first slice: 84 inline on...= handlers converted to data-action through the bridge: 41 in build/music_player.html (60 -> 20 left), 1 in 04e, 3 in 04f, 11 in 04g, 28 in 06a (31 -> 3 left). New: src/js/07a-ui-actions.js (49 registered actions, one manifest line after 07-views.js), action table and 6 helper actions in 06a, tools/tests/ui-handlers.test.js (static ceiling per file + 4 browser tests). Handlers that call event.stopPropagation(), are found by their onclick text, or are rewritten at runtime were left inline on purpose (.agent/reports/D/0007-D05-inline-handlers.md).
+
+2026-10-06
+- D-06/D-08 (Agent D): swapped the remaining D-owned storage/API calls in 05a-lazy-load-main-list.js, 06b-modals.js and 06k-keyboard-shortcuts.js to core/storage.js and api/desktop-api.js. Removed those files from the corresponding "not yet" test allowlists. Added ui-storage-api.test.js (12 tests). D shell audit now finds no direct localStorage/sessionStorage/electronAPI access in 04*, 05*, 06*, 07*. Verification: 34 relevant tests passed; full suite 224 passed, 0 failed, 2 skipped; event-audit --strict exits 0.

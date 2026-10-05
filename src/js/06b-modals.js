@@ -687,8 +687,8 @@ function playFromUrl(saveToFolder) {
 
     const isTemp = !saveToFolder;
 
-    if (window.electronAPI && window.electronAPI.downloadAndScan) {
-        window.electronAPI
+    if (desktopApi.supports('library.downloadAndScan')) {
+        desktopApi.library
             .downloadAndScan(value, isTemp)
             .then((result) => {
                 updateDownloadNotification(100, 'Processing...');
@@ -890,8 +890,8 @@ function showWelcomeDialog() {
     document.body.appendChild(overlay);
 
     document.getElementById('welcome-select-folder').onclick = async () => {
-        if (window.electronAPI && window.electronAPI.invoke) {
-            const result = await window.electronAPI.invoke('welcome-select-folder');
+        if (desktopApi.supports('library.welcomeSelectFolder')) {
+            const result = await desktopApi.library.welcomeSelectFolder();
             if (result && result.selected) {
                 overlay.remove();
             }
