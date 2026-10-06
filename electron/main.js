@@ -30,8 +30,8 @@ const { getAudioMetadata, saveAudioMetadata, saveAudioCover } = require('./metad
 const { searchOnlineMetadata, getOnlineMetadata } = require('./online-metadata');
 const { parseSongsData, replaceSongsData } = require('./songs-data');
 const { configPath: settingsFile } = require('./storage-paths');
+const checks = require('./ipc-checks');
 
-const DELETABLE_AUDIO_EXTENSIONS = new Set(['.mp3', '.flac', '.m4a', '.mp4', '.aac', '.ogg', '.opus', '.wma', '.wav', '.aiff', '.aif', '.ape', '.wv']);
 const thumbarIconPath = path.join(__dirname, 'MusicPlayerOutput', 'icons');
 
 
@@ -64,6 +64,7 @@ ipcMain.handle('get-online-metadata', async (event, params) => {
 
 ipcMain.handle('save-audio-cover', async (event, params) => {
     try {
+        if (!checks.isImagePath(params?.imagePath)) return { success: false, error: 'Choose a JPG, PNG, WebP or GIF image' };
         const result = await saveAudioCover(params?.fileUrl, params?.imagePath);
         return result;
     } catch (error) { return { success: false, error: error.message || 'Failed to save cover' }; }
@@ -85,6 +86,7 @@ ipcMain.handle('get-audio-metadata', async (event, fileUrl) => {
 
 ipcMain.handle('save-audio-metadata', async (event, params) => {
     try {
+        if (params?.coverPath && !checks.isImagePath(params.coverPath)) return { success: false, error: 'Choose a JPG, PNG, WebP or GIF image' };
         const result = await saveAudioMetadata(params?.fileUrl, params?.metadata || {}, params?.coverPath || '');
         if (result.success) updateDeployedSongMetadata(params?.fileUrl, result.metadata || {});
         return result;
@@ -127,9 +129,12 @@ ipcMain.handle('import-audio-metadata-json', async () => {
 
 ipcMain.handle('import-dropped-files', async (event, filePaths, targetView) => {
     const outputDir = path.join(__dirname, 'MusicPlayerOutput');
-    return scanDroppedFiles(filePaths, outputDir);
+    const audioPaths = checks.stringList(filePaths).filter(checks.isAudioPath);
+    if (audioPaths.length === 0) return { success: false, error: 'No supported audio files' };
+    return scanDroppedFiles(audioPaths, outputDir);
 });
 ipcMain.handle('download-and-scan', async (event, url, isTemp) => {
+    if (!checks.isHttpUrl(url)) return { success: false, error: 'Only http and https links can be downloaded' };
     const downloadFolder = isTemp
         ? require('path').join(require('os').tmpdir(), 'music-player-temp')
         : getDownloadFolder();
@@ -176,6 +181,7 @@ ipcMain.handle('add-music-folder', async (event, folderPath) => {
     const configPath = settingsFile('foldersConfig');
 
     if (folderPath && typeof folderPath === 'string' && folderPath.trim()) {
+        if (!checks.isDirectory(folderPath.trim())) return { success: false, reason: 'not-found' };
         return addMusicFolder(configPath, folderPath.trim());
     }
 
@@ -196,17 +202,17 @@ ipcMain.handle('add-music-folder', async (event, folderPath) => {
 
 ipcMain.handle('remove-music-folder', async (event, folderPath) => {
     const configPath = settingsFile('foldersConfig');
-    return removeMusicFolder(configPath, folderPath);
+    return removeMusicFolder(configPath, checks.stringList([folderPath])[0] || '');
 });
 
 ipcMain.handle('remove-music-folders', async (event, folderPaths) => {
     const configPath = settingsFile('foldersConfig');
-    return removeMusicFolders(configPath, folderPaths);
+    return removeMusicFolders(configPath, checks.stringList(folderPaths));
 });
 
 ipcMain.handle('get-folder-stats', async (event, folderPath) => {
     const configPath = settingsFile('foldersConfig');
-    return getFolderStats(configPath, folderPath);
+    return getFolderStats(configPath, checks.isAbsolutePath(folderPath) ? folderPath : '');
 });
 
 ipcMain.handle('rebuild-from-folders', async () => {
@@ -374,14 +380,14 @@ app.whenReady().then(async () => {
     });
 
     ipcMain.on('show-file-in-explorer', (event, filePath) => {
+        if (!checks.isAbsolutePath(filePath)) return;
         shell.showItemInFolder(filePath);
     });
 
     ipcMain.on('delete-file', async (event, filePath) => {
         // Only an absolute path to an existing audio file is moved to the recycle bin.
         try {
-            if (typeof filePath !== 'string' || !path.isAbsolute(filePath)) return;
-            if (!DELETABLE_AUDIO_EXTENSIONS.has(path.extname(filePath).toLowerCase())) return;
+            if (!checks.isAudioPath(filePath)) return;
             if (!fs.statSync(filePath).isFile()) return;
             await shell.trashItem(filePath);
         } catch (e) {

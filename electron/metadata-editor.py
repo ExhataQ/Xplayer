@@ -1,4 +1,4 @@
-import json, os, sys
+import contextlib, json, os, shutil, sys, tempfile
 from mutagen import File
 from mutagen.id3 import ID3, APIC, COMM, TXXX, TIT2, TPE1, TALB, TPE2, TCOM, TCON, TDRC, TRCK, TPOS, TPUB, TCOP, TENC, TPE3, TPE4, TBPM, TSRC, TPRO, TEXT, TOLY, TIT3, TMOO, TLAN, TMED, TSOC
 from mutagen.flac import Picture
@@ -374,6 +374,25 @@ def save_cover(path, image_path):
     audio.save()
     return {'success':True}
 
+@contextlib.contextmanager
+def restore_on_failure(path):
+    """Edits are written into the file itself. Keep a copy first and, if the edit fails part-way, put the
+    original bytes back, so a failed save cannot leave a damaged audio file. If the copy cannot be made
+    (for example the disk is full) nothing is edited at all."""
+    fd, backup = tempfile.mkstemp(prefix='metadata-backup-')
+    os.close(fd)
+    try:
+        shutil.copyfile(path, backup)
+        try:
+            yield
+        except BaseException:
+            try: shutil.copyfile(backup, path)
+            except Exception: pass
+            raise
+    finally:
+        try: os.unlink(backup)
+        except OSError: pass
+
 def main():
     q=json.loads(sys.stdin.read()); p=q.get('path')
     if not p or not os.path.isfile(p): raise RuntimeError('Audio file not found')
@@ -381,11 +400,11 @@ def main():
     if action=='save':
         md=q.get('metadata') or {}
         if q.get('coverPath'): md['__coverPath']=q.get('coverPath')
-        meta,skipped=save_metadata(p,md)
+        with restore_on_failure(p): meta,skipped=save_metadata(p,md)
         out={'success':True,'metadata':meta}
         if skipped: out['skipped']=skipped
     elif action=='cover':
-        out=save_cover(p,q.get('imagePath'))
+        with restore_on_failure(p): out=save_cover(p,q.get('imagePath'))
     else:
         # NB: this used to be wrapped a second time ({'metadata': {'success':..,'metadata':..}}),
         # so the editor never received the real tags on read.

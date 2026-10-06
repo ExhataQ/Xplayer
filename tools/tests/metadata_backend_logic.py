@@ -128,6 +128,37 @@ class VorbisSave(unittest.TestCase):
         r = call(load(self.make()), {'action': 'save', 'metadata': {'mood': 'Happy'}})
         self.assertEqual(r.get('skipped'), ['mood'])
 
+class FailedSave(unittest.TestCase):
+    def run_failing_save(self, action, extra):
+        class Breaking(fm.File_):
+            def save(s, **kw):
+                with open(path, 'wb') as f: f.write(b'HALF-WRITTEN')
+                raise OSError('disk full')
+        tmp = tempfile.NamedTemporaryFile(suffix='.mp3', delete=False); tmp.write(b'ORIGINAL BYTES'); tmp.close(); path = tmp.name
+        before = set(n for n in os.listdir(tempfile.gettempdir()) if n.startswith('metadata-backup-'))
+        mod = load(Breaking(fm.ID3()))
+        old_in, old_out = sys.stdin, sys.stdout
+        sys.stdin, sys.stdout = io.StringIO(json.dumps(dict(extra, action=action, path=path))), io.StringIO()
+        try:
+            with self.assertRaises(OSError): mod.main()
+        finally:
+            sys.stdin, sys.stdout = old_in, old_out
+        with open(path, 'rb') as f: content = f.read()
+        os.unlink(path)
+        after = set(n for n in os.listdir(tempfile.gettempdir()) if n.startswith('metadata-backup-'))
+        return content, after - before
+
+    def test_failed_tag_save_puts_the_original_file_back(self):
+        content, leftovers = self.run_failing_save('save', {'metadata': {'title': 'x'}})
+        self.assertEqual(content, b'ORIGINAL BYTES'); self.assertFalse(leftovers)
+
+    def test_failed_cover_save_puts_the_original_file_back(self):
+        img = tempfile.NamedTemporaryFile(suffix='.png', delete=False); img.write(b'png'); img.close()
+        try:
+            content, leftovers = self.run_failing_save('cover', {'imagePath': img.name})
+        finally: os.unlink(img.name)
+        self.assertEqual(content, b'ORIGINAL BYTES'); self.assertFalse(leftovers)
+
 class Mp4Guard(unittest.TestCase):
     def test_text_edit_on_mp4_is_refused_not_written(self):
         audio = fm.MP4(fm.VorbisTags({}))

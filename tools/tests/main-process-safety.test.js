@@ -192,3 +192,47 @@ test('the scan process keeps its folder list in the settings folder it is given,
     // and the main process hands that folder to the scan process
     assert.match(fs.readFileSync(path.join(__dirname, '..', '..', 'electron', 'scanner.js'), 'utf8'), /MUSIC_PLAYER_CONFIG_DIR: getConfigDir\(\)/);
 });
+
+// ---- arguments from the page -----------------------------------------------------------
+
+test('ipc checks accept only the kind of value a handler expects', () => {
+    const c = require('../../electron/ipc-checks');
+    const abs = (p) => path.resolve(os.tmpdir(), p);
+    assert.equal(c.isAudioPath(abs('a.MP3')), true);
+    assert.equal(c.isAudioPath(abs('a.exe')), false);
+    assert.equal(c.isAudioPath('relative/a.mp3'), false);
+    assert.equal(c.isAudioPath(abs('a\0.mp3')), false);
+    assert.equal(c.isAudioPath({ toString: () => abs('a.mp3') }), false);
+    assert.equal(c.isImagePath(abs('c.jpeg')), true);
+    assert.equal(c.isImagePath(abs('c.mp3')), false);
+    assert.equal(c.isDirectory(os.tmpdir()), true);
+    assert.equal(c.isDirectory(abs('does-not-exist-' + Date.now())), false);
+    assert.equal(c.isDirectory(__filename), false);
+    assert.equal(c.isHttpUrl('https://a/b'), true);
+    assert.equal(c.isHttpUrl('file:///etc/passwd'), false);
+    assert.equal(c.isHttpUrl(5), false);
+    assert.deepEqual(c.stringList(['a', 3, null, 'b']), ['a', 'b']);
+    assert.deepEqual(c.stringList('a'), []);
+    assert.deepEqual(c.stringList(undefined), []);
+});
+
+test('every handler that takes a path or link from the page checks it first', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', '..', 'electron', 'main.js'), 'utf8');
+    const handlerBody = (header) => {
+        const at = src.indexOf(header);
+        assert.ok(at >= 0, header + ' not found');
+        return src.slice(at, at + 700);
+    };
+    const expectCheck = {
+        "ipcMain.on('show-file-in-explorer'": /checks\.isAbsolutePath/,
+        "ipcMain.on('delete-file'": /checks\.isAudioPath/,
+        "ipcMain.handle('import-dropped-files'": /checks\.isAudioPath/,
+        "ipcMain.handle('download-and-scan'": /checks\.isHttpUrl/,
+        "ipcMain.handle('save-audio-cover'": /checks\.isImagePath/,
+        "ipcMain.handle('save-audio-metadata'": /checks\.isImagePath/,
+        "ipcMain.handle('add-music-folder'": /checks\.isDirectory/,
+        "ipcMain.handle('remove-music-folders'": /checks\.stringList/,
+        "ipcMain.handle('get-folder-stats'": /checks\.isAbsolutePath/
+    };
+    for (const [header, pattern] of Object.entries(expectCheck)) assert.match(handlerBody(header), pattern, header);
+});
