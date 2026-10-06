@@ -37,7 +37,7 @@ Status values: `todo`, `in progress`, `patch received`, `applied + verified`, `b
 | A-S3 | side  | Song list as data, not text                | A-S2             | partly done (songs-data.js) |   |
 | A-S4 | side  | IPC and window hardening                   | -                | patch received        |   |
 | A-S5 | side  | Safer tag writes                           | -                | patch received               |   |
-| A-S6 | side  | Tests for each fix                         | A-S1..S5         | ongoing            |   |
+| A-S6 | side  | Tests for each fix                         | A-S1..S5         | patch received            |   |
 
 ### Agent B: Playback
 

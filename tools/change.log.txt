@@ -64,3 +64,6 @@
 
 2026-10-07
 - Side plan A-S4/A-S5 (Agent A, no UI change): new electron/ipc-checks.js; main.js checks the paths, links and folder lists it receives from the page before acting on them. metadata-editor.py keeps a temporary copy of the audio file while saving tags or a cover and restores it if the save fails. Tests: main-process-safety.test.js, metadata_backend_logic.py.
+
+2026-10-07
+- Side plan A-S6 (Agent A, no UI change): fixed network music folders in electron/music-folders.js. Folder normalization now preserves the two leading backslashes of UNC paths while still collapsing doubled backslashes elsewhere. Added tests for the real song.url format, network-folder song counts, normalization, storage and duplicate detection.

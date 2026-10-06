@@ -46,6 +46,15 @@ function writeConfig(configPath, folders, folderMetadata) {
     );
 }
 
+// A folder path with doubled backslashes (as they look after JSON escaping) collapsed to single ones.
+// A network path starts with exactly two backslashes (\\server\share) and keeps them.
+function normalizeFolderPath(folder) {
+    const text = String(folder || '');
+    const leading = (text.match(/^\\+/) || [''])[0].length;
+    const rest = text.slice(leading).replace(/\\\\/g, '\\');
+    return (leading >= 2 ? '\\\\' : leading === 1 ? '\\' : '') + rest;
+}
+
 function isDuplicateFolder(folders, newPath) {
     return folders.some((folder) => folder.toLowerCase() === newPath.toLowerCase());
 }
@@ -60,7 +69,7 @@ function normalizeSongFilePath(url) {
 }
 
 function computeFolderSongCount(folder, songs) {
-    const normalizedFolder = folder.replace(/\\\\/g, '\\').replace(/[\\/]$/, '').toLowerCase();
+    const normalizedFolder = normalizeFolderPath(folder).replace(/[\\/]$/, '').toLowerCase();
     const folderPrefix = normalizedFolder + '\\';
 
     return songs.filter((song) => {
@@ -74,9 +83,9 @@ function getMusicFolders(configPath) {
 }
 
 function addMusicFolder(configPath, folderPath) {
-    let newFolder = folderPath.replace(/\\\\/g, '\\');
+    let newFolder = normalizeFolderPath(folderPath);
     const config = readConfig(configPath);
-    let folders = config.folders.map((f) => f.replace(/\\\\/g, '\\'));
+    let folders = config.folders.map(normalizeFolderPath);
     const folderMetadata = config.folderMetadata;
 
     const isDuplicate = isDuplicateFolder(folders, newFolder);
@@ -174,6 +183,7 @@ function updateFolderSongCounts(configPath, folders, songs) {
 module.exports = {
     readConfig,
     writeConfig,
+    normalizeFolderPath,
     isDuplicateFolder,
     removeFolder,
     computeFolderSongCount,
