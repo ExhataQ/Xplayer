@@ -2,13 +2,13 @@ const { BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-const storePath = path.join(__dirname, 'window-state.json');
+const { configPath: settingsFile } = require('./storage-paths');
 const thumbarIconPath = path.join(__dirname, 'MusicPlayerOutput', 'icons');
 
 function loadWindowState() {
     try {
-        if (fs.existsSync(storePath)) {
-            const data = fs.readFileSync(storePath, 'utf-8');
+        if (fs.existsSync(settingsFile('windowState'))) {
+            const data = fs.readFileSync(settingsFile('windowState'), 'utf-8');
             return JSON.parse(data);
         }
     } catch (e) {
@@ -37,7 +37,7 @@ function saveWindowState(mainWindow) {
         isMaximized: isMaximized
     };
     try {
-        fs.writeFileSync(storePath, JSON.stringify(state, null, 2), 'utf-8');
+        fs.writeFileSync(settingsFile('windowState'), JSON.stringify(state, null, 2), 'utf-8');
     } catch (e) {
         // Intentionally silent: failing to persist window position/size on close is
         // non-critical — the app just reopens with the defaults next launch.

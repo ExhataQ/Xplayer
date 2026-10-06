@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { fork } = require('child_process');
 const { parseSongsData, replaceSongsData } = require('./songs-data');
+const { getConfigDir } = require('./storage-paths');
 
 function getScanScriptPath() {
     return path.join(__dirname, 'scan-folder.js');
@@ -30,6 +31,7 @@ function runScan(args, options = {}) {
             silent: true,
             env: {
                 ...process.env,
+                MUSIC_PLAYER_CONFIG_DIR: getConfigDir(),
                 ELECTRON_RUN_AS_NODE: '1'
             }
         });

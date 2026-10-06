@@ -172,6 +172,8 @@ function updateFolderSongCounts(configPath, folders, songs) {
 }
 
 module.exports = {
+    readConfig,
+    writeConfig,
     isDuplicateFolder,
     removeFolder,
     computeFolderSongCount,

@@ -6,6 +6,8 @@ const { createFullScanner } = require('./full-scan');
 const { createFastScanner } = require('./fast-scan');
 const { scanSingleFile, scanMultipleFiles } = require('./single-file-rescan');
 const { replaceSongsData } = require('./songs-data');
+const { configPath: settingsFile } = require('./storage-paths');
+const { readConfig: readFoldersConfig, writeConfig: writeFoldersConfig } = require('./music-folders');
 
 const SUPPORTED_FORMATS = [
     '.mp3',
@@ -38,48 +40,21 @@ function debugLog(...args) {
 
 function getFoldersConfigPath() {
     if (!foldersConfigPath) {
-        foldersConfigPath = path.join(__dirname, 'music-folders-config.json');
+        foldersConfigPath = settingsFile('foldersConfig');
     }
     return foldersConfigPath;
 }
 
 function loadMusicFolders() {
-    const configPath = getFoldersConfigPath();
-    try {
-        if (fs.existsSync(configPath)) {
-            const data = fs.readFileSync(configPath, 'utf-8');
-            const parsed = JSON.parse(data);
-            activeFolders = parsed.folders || [];
-            return activeFolders;
-        }
-    } catch (e) {
-        // Intentionally silent: missing/corrupt config just falls back to no folders below.
-    }
-    activeFolders = [];
+    // A missing or unreadable config gives no folders.
+    activeFolders = readFoldersConfig(getFoldersConfigPath()).folders;
     return activeFolders;
 }
 
 function saveMusicFolders(folders) {
     const configPath = getFoldersConfigPath();
-    // Keep the per-folder details (added time, song count) that music-folders.js stores in the same file.
-    let folderMetadata = {};
-    try {
-        folderMetadata = JSON.parse(fs.readFileSync(configPath, 'utf-8')).folderMetadata || {};
-    } catch (e) {
-        // Intentionally silent: no config yet (or an unreadable one) means no details to keep.
-    }
-    fs.writeFileSync(
-        configPath,
-        JSON.stringify(
-            {
-                folders: folders,
-                folderMetadata: folderMetadata
-            },
-            null,
-            2
-        ),
-        'utf-8'
-    );
+    // The per-folder details (added time, song count) live in the same file; keep them.
+    writeFoldersConfig(configPath, folders, readFoldersConfig(configPath).folderMetadata);
     activeFolders = folders;
 }
 
@@ -449,6 +424,8 @@ if (require.main === module) {
 }
 
 module.exports = {
+    addMusicFolder,
+    removeMusicFolder,
     sanitizeString,
     sanitizeLyrics,
     extractAllNativeTags,

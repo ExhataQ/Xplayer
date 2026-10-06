@@ -4,12 +4,16 @@ const path = require('path');
 const https = require('https');
 const http = require('http');
 
-const configPath = path.join(__dirname, 'download-folder-config.json');
+const { configPath: settingsFile } = require('./storage-paths');
+
+function getConfigFile() {
+    return settingsFile('downloadFolder');
+}
 
 function getConfiguredDownloadFolder() {
     try {
-        if (fs.existsSync(configPath)) {
-            const data = fs.readFileSync(configPath, 'utf-8');
+        if (fs.existsSync(getConfigFile())) {
+            const data = fs.readFileSync(getConfigFile(), 'utf-8');
             const parsed = JSON.parse(data);
             if (parsed.downloadFolder) return parsed.downloadFolder;
         }
@@ -26,7 +30,7 @@ function getDownloadFolder() {
 function saveDownloadFolder(folder) {
     try {
         fs.writeFileSync(
-            configPath,
+            getConfigFile(),
             JSON.stringify({ downloadFolder: folder }, null, 2),
             'utf-8'
         );
@@ -44,7 +48,7 @@ function saveDownloadFolder(folder) {
 
 function resetDownloadFolder() {
     try {
-        if (fs.existsSync(configPath)) fs.unlinkSync(configPath);
+        if (fs.existsSync(getConfigFile())) fs.unlinkSync(getConfigFile());
         return {
             success: true
         };

@@ -29,6 +29,7 @@ const { searchLyrics, downloadLyricsFile } = require('./online-lyrics');
 const { getAudioMetadata, saveAudioMetadata, saveAudioCover } = require('./metadata-editor');
 const { searchOnlineMetadata, getOnlineMetadata } = require('./online-metadata');
 const { parseSongsData, replaceSongsData } = require('./songs-data');
+const { configPath: settingsFile } = require('./storage-paths');
 
 const DELETABLE_AUDIO_EXTENSIONS = new Set(['.mp3', '.flac', '.m4a', '.mp4', '.aac', '.ogg', '.opus', '.wma', '.wav', '.aiff', '.aif', '.ape', '.wv']);
 const thumbarIconPath = path.join(__dirname, 'MusicPlayerOutput', 'icons');
@@ -167,12 +168,12 @@ ipcMain.handle('download-online-lyrics', async (event, params) => {
 });
 
 ipcMain.handle('get-music-folders', async () => {
-    const configPath = path.join(__dirname, 'music-folders-config.json');
+    const configPath = settingsFile('foldersConfig');
     return getMusicFolders(configPath);
 });
 
 ipcMain.handle('add-music-folder', async (event, folderPath) => {
-    const configPath = path.join(__dirname, 'music-folders-config.json');
+    const configPath = settingsFile('foldersConfig');
 
     if (folderPath && typeof folderPath === 'string' && folderPath.trim()) {
         return addMusicFolder(configPath, folderPath.trim());
@@ -194,22 +195,22 @@ ipcMain.handle('add-music-folder', async (event, folderPath) => {
 });
 
 ipcMain.handle('remove-music-folder', async (event, folderPath) => {
-    const configPath = path.join(__dirname, 'music-folders-config.json');
+    const configPath = settingsFile('foldersConfig');
     return removeMusicFolder(configPath, folderPath);
 });
 
 ipcMain.handle('remove-music-folders', async (event, folderPaths) => {
-    const configPath = path.join(__dirname, 'music-folders-config.json');
+    const configPath = settingsFile('foldersConfig');
     return removeMusicFolders(configPath, folderPaths);
 });
 
 ipcMain.handle('get-folder-stats', async (event, folderPath) => {
-    const configPath = path.join(__dirname, 'music-folders-config.json');
+    const configPath = settingsFile('foldersConfig');
     return getFolderStats(configPath, folderPath);
 });
 
 ipcMain.handle('rebuild-from-folders', async () => {
-    const configPath = path.join(__dirname, 'music-folders-config.json');
+    const configPath = settingsFile('foldersConfig');
     const folders = getMusicFolders(configPath);
 
     const outputDir = path.join(__dirname, 'MusicPlayerOutput');
@@ -458,7 +459,7 @@ app.whenReady().then(async () => {
     });
 
     ipcMain.handle('welcome-select-folder', async () => {
-        const configPath = path.join(__dirname, 'music-folder-config.json');
+        const configPath = settingsFile('setupFlag');
         const folderResult = await dialog.showOpenDialog(mainWindow, {
             title: 'Select Music Folder',
             properties: ['openDirectory']
@@ -512,7 +513,7 @@ app.whenReady().then(async () => {
         };
     });
 
-    const configPath = path.join(__dirname, 'music-folder-config.json');
+    const configPath = settingsFile('setupFlag');
     const playerJsPath = path.join(__dirname, 'MusicPlayerOutput', 'player.js');
 
     let hasSongs = false;

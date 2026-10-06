@@ -59,3 +59,5 @@
 
 2026-10-06
 - D-06/D-08 (Agent D): swapped the remaining D-owned storage/API calls in 05a-lazy-load-main-list.js, 06b-modals.js and 06k-keyboard-shortcuts.js to core/storage.js and api/desktop-api.js. Removed those files from the corresponding "not yet" test allowlists. Added ui-storage-api.test.js (12 tests). D shell audit now finds no direct localStorage/sessionStorage/electronAPI access in 04*, 05*, 06*, 07*. Verification: 34 relevant tests passed; full suite 224 passed, 0 failed, 2 skipped; event-audit --strict exits 0.
+2026-10-07
+- A-17 / Side plan A-S2 (Agent A): settings storage moved into Electron's user-data folder through new electron/storage-paths.js. The folder list, setup flag, download folder and window state are migrated from the old code-adjacent location on first use; scan-folder receives the config directory through MUSIC_PLAYER_CONFIG_DIR. Added A-S1 to A-S6 planning entries and main-process safety coverage for settings storage.

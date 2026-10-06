@@ -320,6 +320,17 @@ Each step is sized for one session or less. The IDs are used in reports and on t
   - Done when: All tests and the full smoke checklist pass.
   - Needs: B-10, C-07, D-09
 
+**Side plan (Agent A, main process): hardening `electron/`.** Found by reading `electron/` (not the renderer). None of it changes the UI or the renderer files, so it can run any time and does not block or wait for A-16. Each step ships with tests in `tools/tests/main-process-safety.test.js`. Ids `A-S1` to `A-S6` match the plan's six steps.
+
+- [x] **A-S1** **Safe downloads and delete.** `downloads.js`: plain file name only (no path traversal), HTTP status check, redirects (max 5), http/https only, remove a half-written file. `main.js` `delete-file`: `shell.trashItem` on an absolute audio-file path instead of a PowerShell command string. Report A/0012.
+- [x] **A-S2** **One place for settings files.** New `electron/storage-paths.js`: the folder list, setup flag, download folder and window state live in Electron's user-data folder; an old file next to the code is moved over the first time it is asked for. The scan process gets the folder through `MUSIC_PLAYER_CONFIG_DIR` (set in `scanner.js`). `scan-folder.js` now reads and writes the folder list through `music-folders.js` (one reader and writer; it no longer drops `folderMetadata`). Report A/0013. Not moved: the generated `MusicPlayerOutput/player.js` and `covers/` (the page loads them by relative path, so moving them is a build and page change, not a settings change).
+- [ ] **A-S3** **Song list as data, not text.** Done so far: `electron/songs-data.js` reads and replaces the `SONGS_DATA` array without a lazy regex or `$` replacement patterns (used in `main.js`, `scanner.js`, `scan-folder.js`). Still to do: keep the list in its own JSON file and have the build put it into the page, so nothing rewrites `player.js` text at all. Needs a decision on the build change.
+- [ ] **A-S4** **IPC and window hardening.** Done so far: the window refuses navigation away from the player page and new windows; the scan loading window closes in a `finally`; window state is saved after a pause from the restored bounds. Still to do: check the arguments of `show-file-in-explorer`, `add-music-folder`, `import-dropped-files` and the metadata calls (absolute path, exists, expected type); decide about `sandbox: true`.
+- [ ] **A-S5** **Safer tag writes.** `metadata-editor.py` writes the audio file in place. Write a temporary copy and rename it over the original (or keep a one-time backup), and keep one Python process for a batch of saves.
+- [ ] **A-S6** **Tests for each fix.** Added with each step above; remaining: tests for the argument checks (A-S4) and the Python write (A-S5). Also open: `music-folders.js` handles only Windows paths and does not decode `%20` in song URLs (check the real `song.url` format first).
+
+*Ideas, not scheduled (ask the owner before starting; most touch the UI):* duplicate finder, missing/changed file check, folder watching, undo for tag edits, batch tag editing with preview, play counts and smart playlists, media keys, ReplayGain, library export/import, auto-fetch lyrics for songs without any.
+
 #### Agent B: Playback
 
 - [ ] **B-01** (Phase 1) **Review A's playback setters.** Read `core/SETTERS.md`. For the queue, playback-mode and now-playing setters, report anything missing or wrong (side effects the old direct assignment had, ordering, extra variables).
