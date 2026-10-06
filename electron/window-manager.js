@@ -25,7 +25,9 @@ function loadWindowState() {
 
 function saveWindowState(mainWindow) {
     if (!mainWindow) return;
-    const bounds = mainWindow.getBounds();
+    // The restored size and position, so a maximized or minimized window does not store its
+    // maximized size or the off-screen minimized position as the normal one.
+    const bounds = mainWindow.getNormalBounds();
     const isMaximized = mainWindow.isMaximized();
     const state = {
         width: bounds.width,
@@ -103,6 +105,13 @@ function createWindow() {
         mainWindow.center();
     }
 
+    // The window only ever shows the player page: block navigation away from it (for example a file
+    // dropped outside the drop zone) and block new windows.
+    mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    mainWindow.webContents.on('will-navigate', (event, url) => {
+        if (url !== mainWindow.webContents.getURL()) event.preventDefault();
+    });
+
     mainWindow.setAlwaysOnTop(true);
     setTimeout(() => {
         mainWindow.setAlwaysOnTop(false);
@@ -122,7 +131,16 @@ function createWindow() {
         `);
     });
 
-    mainWindow.on('move', () => saveWindowState(mainWindow));
+    // Moving and resizing fire many events; write the file once things settle. Closing saves at once.
+    let saveTimeout = null;
+    const saveSoon = () => {
+        if (saveTimeout) clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            saveTimeout = null;
+            if (mainWindow && !mainWindow.isDestroyed()) saveWindowState(mainWindow);
+        }, 400);
+    };
+    mainWindow.on('move', saveSoon);
     mainWindow.on('close', (event) => {
         saveWindowState(mainWindow);
         if (minimizeOnClose) {
@@ -140,7 +158,7 @@ function createWindow() {
 
     let resizeTimeout = null;
     mainWindow.on('resize', () => {
-        saveWindowState(mainWindow);
+        saveSoon();
         if (resizeTimeout) clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(() => {
             if (mainWindow) {

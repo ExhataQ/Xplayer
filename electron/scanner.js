@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { fork } = require('child_process');
+const { parseSongsData, replaceSongsData } = require('./songs-data');
 
 function getScanScriptPath() {
     return path.join(__dirname, 'scan-folder.js');
@@ -168,10 +169,7 @@ function updatePlayerSongs(outputDir, songs) {
     if (!fs.existsSync(jsPath)) return false;
 
     const jsContent = fs.readFileSync(jsPath, 'utf-8');
-    const newJsContent = jsContent.replace(
-        /const SONGS_DATA = \[.*?\];/s,
-        'const SONGS_DATA = ' + JSON.stringify(songs) + ';'
-    );
+    const newJsContent = replaceSongsData(jsContent, JSON.stringify(songs)) ?? jsContent;
     fs.writeFileSync(jsPath, newJsContent, 'utf-8');
     return true;
 }
@@ -236,10 +234,9 @@ function mergeNewSongs(outputDir, newSongs, prepend) {
     if (!fs.existsSync(existingJsPath)) return null;
 
     const existingContent = fs.readFileSync(existingJsPath, 'utf-8');
-    const existingMatch = existingContent.match(/const SONGS_DATA = (\[.*?\]);/s);
-    if (!existingMatch) return null;
+    const existingSongs = parseSongsData(existingContent);
+    if (!existingSongs) return null;
 
-    const existingSongs = JSON.parse(existingMatch[1]);
     const merged = prepend
         ? mergePrepend(existingSongs, newSongs)
         : mergeAppend(existingSongs, newSongs);
@@ -369,10 +366,7 @@ async function rebuildFromFolders(outputDir, options = {}) {
     }
 
     let jsContent = fs.readFileSync(jsPath, 'utf-8');
-    const newJsContent = jsContent.replace(
-        /const SONGS_DATA = \[.*?\];/s,
-        'const SONGS_DATA = ' + JSON.stringify(parsed.songs) + ';'
-    );
+    const newJsContent = replaceSongsData(jsContent, JSON.stringify(parsed.songs)) ?? jsContent;
     fs.writeFileSync(jsPath, newJsContent, 'utf-8');
 
     return {

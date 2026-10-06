@@ -5,6 +5,7 @@ const { createIncrementalScanner } = require('./incremental-scan');
 const { createFullScanner } = require('./full-scan');
 const { createFastScanner } = require('./fast-scan');
 const { scanSingleFile, scanMultipleFiles } = require('./single-file-rescan');
+const { replaceSongsData } = require('./songs-data');
 
 const SUPPORTED_FORMATS = [
     '.mp3',
@@ -60,11 +61,19 @@ function loadMusicFolders() {
 
 function saveMusicFolders(folders) {
     const configPath = getFoldersConfigPath();
+    // Keep the per-folder details (added time, song count) that music-folders.js stores in the same file.
+    let folderMetadata = {};
+    try {
+        folderMetadata = JSON.parse(fs.readFileSync(configPath, 'utf-8')).folderMetadata || {};
+    } catch (e) {
+        // Intentionally silent: no config yet (or an unreadable one) means no details to keep.
+    }
     fs.writeFileSync(
         configPath,
         JSON.stringify(
             {
-                folders: folders
+                folders: folders,
+                folderMetadata: folderMetadata
             },
             null,
             2
@@ -190,10 +199,7 @@ async function main(folderPath, outputDir, mode, specificFile) {
 
         if (fs.existsSync(jsPath)) {
             let existingContent = fs.readFileSync(jsPath, 'utf-8');
-            existingContent = existingContent.replace(
-                /const SONGS_DATA = \[.*?\];/s,
-                'const SONGS_DATA = ' + songsJson + ';'
-            );
+            existingContent = replaceSongsData(existingContent, songsJson) ?? existingContent;
             fs.writeFileSync(jsPath, existingContent, 'utf-8');
         } else {
             fs.writeFileSync(jsPath, 'const SONGS_DATA = ' + songsJson + ';', 'utf-8');
@@ -255,10 +261,7 @@ async function main(folderPath, outputDir, mode, specificFile) {
             const songsJson = JSON.stringify(songsToWrite);
             if (fs.existsSync(jsPath)) {
                 let existingContent = fs.readFileSync(jsPath, 'utf-8');
-                existingContent = existingContent.replace(
-                    /const SONGS_DATA = \[.*?\];/s,
-                    'const SONGS_DATA = ' + songsJson + ';'
-                );
+                existingContent = replaceSongsData(existingContent, songsJson) ?? existingContent;
                 fs.writeFileSync(jsPath, existingContent, 'utf-8');
             } else {
                 fs.writeFileSync(jsPath, `const SONGS_DATA = ${songsJson};`, 'utf-8');
@@ -316,10 +319,7 @@ async function main(folderPath, outputDir, mode, specificFile) {
             const songsJson = JSON.stringify(songsToWrite);
             if (fs.existsSync(jsPath)) {
                 let existingContent = fs.readFileSync(jsPath, 'utf-8');
-                existingContent = existingContent.replace(
-                    /const SONGS_DATA = \[.*?\];/s,
-                    'const SONGS_DATA = ' + songsJson + ';'
-                );
+                existingContent = replaceSongsData(existingContent, songsJson) ?? existingContent;
                 fs.writeFileSync(jsPath, existingContent, 'utf-8');
             } else {
                 fs.writeFileSync(jsPath, `const SONGS_DATA = ${songsJson};`, 'utf-8');
@@ -375,10 +375,7 @@ async function main(folderPath, outputDir, mode, specificFile) {
     if (fs.existsSync(jsPath)) {
         let existingContent = fs.readFileSync(jsPath, 'utf-8');
         const songsJson = JSON.stringify(allSongs);
-        existingContent = existingContent.replace(
-            /const SONGS_DATA = \[.*?\];/s,
-            'const SONGS_DATA = ' + songsJson + ';'
-        );
+        existingContent = replaceSongsData(existingContent, songsJson) ?? existingContent;
         fs.writeFileSync(jsPath, existingContent, 'utf-8');
     } else {
         const songsJson = JSON.stringify(allSongs);

@@ -28,6 +28,9 @@ const { saveLyricsFile, readLyricsFile } = require('./file-operations');
 const { searchLyrics, downloadLyricsFile } = require('./online-lyrics');
 const { getAudioMetadata, saveAudioMetadata, saveAudioCover } = require('./metadata-editor');
 const { searchOnlineMetadata, getOnlineMetadata } = require('./online-metadata');
+const { parseSongsData, replaceSongsData } = require('./songs-data');
+
+const DELETABLE_AUDIO_EXTENSIONS = new Set(['.mp3', '.flac', '.m4a', '.mp4', '.aac', '.ogg', '.opus', '.wma', '.wav', '.aiff', '.aif', '.ape', '.wv']);
 const thumbarIconPath = path.join(__dirname, 'MusicPlayerOutput', 'icons');
 
 
@@ -36,15 +39,14 @@ function updateDeployedSongMetadata(fileUrl, metadata) {
     try {
         if (!fs.existsSync(playerJsPath)) return false;
         const content = fs.readFileSync(playerJsPath, 'utf-8');
-        const match = content.match(/const SONGS_DATA = (\[.*?\]);/s);
-        if (!match) return false;
-        const songs = JSON.parse(match[1]);
+        const songs = parseSongsData(content);
+        if (!songs) return false;
         const target = String(fileUrl || '').replace(/\\/g, '/');
         const song = songs.find((x) => String(x.url || '').replace(/\\/g, '/') === target);
         if (!song) return false;
         const fields = ['title','artist','album','albumArtist','composer','genre','year','track','trackTotal','discNumber','discTotal','label','publisher','copyright','comment','conductor','remixer','sortTitle','sortArtist','sortAlbum','sortComposer','grouping','description','bpm','compilation','mood','language','mediaKind','isrc','musicBrainzTrackId','musicBrainzAlbumId','musicBrainzOriginalAlbumId','musicBrainzReleaseGroupId','musicBrainzArtistId','encodedBy','producer','lyricist','writer'];
         fields.forEach((key) => { if (metadata[key] !== undefined) song[key] = metadata[key]; });
-        fs.writeFileSync(playerJsPath, content.replace(match[1], JSON.stringify(songs)), 'utf-8');
+        fs.writeFileSync(playerJsPath, replaceSongsData(content, JSON.stringify(songs)), 'utf-8');
         return true;
     } catch (e) { return false; }
 }
@@ -214,7 +216,9 @@ ipcMain.handle('rebuild-from-folders', async () => {
     showLoadingWindow(mainWindow);
     updateLoadingProgress(0, 'Starting scan...', '');
 
-    const result = await rebuildFromFolders(outputDir, {
+    let result;
+    try {
+        result = await rebuildFromFolders(outputDir, {
         onStdoutProgress: (percent, stepTitle) => updateLoadingProgress(percent, stepTitle, ''),
         onStderrProgress: (percent, stepTitle) => updateLoadingProgress(percent, stepTitle, ''),
         streamed: true,
@@ -228,9 +232,10 @@ ipcMain.handle('rebuild-from-folders', async () => {
                 mainWindow.webContents.send('scan-covers-complete');
             }
         }
-    });
-
-    hideLoadingWindow();
+        });
+    } finally {
+        hideLoadingWindow();
+    }
 
     if (result.success) {
         updateFolderSongCounts(configPath, folders, result.songs);
@@ -257,7 +262,9 @@ ipcMain.handle('change-folder', async () => {
     showLoadingWindow(mainWindow);
     updateLoadingProgress(0, 'Starting scan...', '');
 
-    const scanResult = await scanFolder(selectedFolder, outputDir, {
+    let scanResult;
+    try {
+        scanResult = await scanFolder(selectedFolder, outputDir, {
         onStdoutProgress: (percent, stepTitle) => updateLoadingProgress(percent, stepTitle, ''),
         onStderrProgress: (percent, stepTitle) => updateLoadingProgress(percent, stepTitle, ''),
         trackStepChanges: true,
@@ -272,9 +279,10 @@ ipcMain.handle('change-folder', async () => {
                 mainWindow.webContents.send('scan-covers-complete');
             }
         }
-    });
-
-    hideLoadingWindow();
+        });
+    } finally {
+        hideLoadingWindow();
+    }
 
     if (scanResult.code === null) {
         return {
@@ -300,9 +308,8 @@ ipcMain.handle('change-folder', async () => {
         }
         const jsPath = path.join(outputDir, 'player.js');
         const jsContent = fs.readFileSync(jsPath, 'utf-8');
-        const songsMatch = jsContent.match(/const SONGS_DATA = (\[.*?\]);/s);
-        if (songsMatch) {
-            const songsData = JSON.parse(songsMatch[1]);
+        const songsData = parseSongsData(jsContent);
+        if (songsData) {
             return {
                 success: true,
                 songs: songsData
@@ -369,13 +376,16 @@ app.whenReady().then(async () => {
         shell.showItemInFolder(filePath);
     });
 
-    ipcMain.on('delete-file', (event, filePath) => {
-        const { exec } = require('child_process');
-        const psCommand = `Add-Type -AssemblyName Microsoft.VisualBasic; [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile('${filePath.replace(
-            /'/g,
-            "''"
-        )}', 'OnlyErrorDialogs', 'SendToRecycleBin')`;
-        exec(`powershell -Command "& { ${psCommand} }"`);
+    ipcMain.on('delete-file', async (event, filePath) => {
+        // Only an absolute path to an existing audio file is moved to the recycle bin.
+        try {
+            if (typeof filePath !== 'string' || !path.isAbsolute(filePath)) return;
+            if (!DELETABLE_AUDIO_EXTENSIONS.has(path.extname(filePath).toLowerCase())) return;
+            if (!fs.statSync(filePath).isFile()) return;
+            await shell.trashItem(filePath);
+        } catch (e) {
+            console.error('[delete-file] could not move the file to the recycle bin:', e && e.message);
+        }
     });
 
     ipcMain.on('focus-window', () => {
@@ -473,6 +483,7 @@ app.whenReady().then(async () => {
         updateLoadingProgress(0, 'Starting scan...', '');
 
         const outputDir = path.join(__dirname, 'MusicPlayerOutput');
+        try {
         await scanFolder(selectedFolder, outputDir, {
             onStdoutProgress: (percent) => updateLoadingProgress(percent, 'Scanning...', ''),
             stdoutProgressMode: 'simple',
@@ -488,8 +499,9 @@ app.whenReady().then(async () => {
                 }
             }
         });
-
-        hideLoadingWindow();
+        } finally {
+            hideLoadingWindow();
+        }
 
         mainWindow.webContents.executeJavaScript(`
             location.reload();
@@ -508,11 +520,8 @@ app.whenReady().then(async () => {
     if (fs.existsSync(playerJsPath)) {
         try {
             const content = fs.readFileSync(playerJsPath, 'utf-8');
-            const match = content.match(/const SONGS_DATA = (\[.*?\]);/s);
-            if (match) {
-                const songs = JSON.parse(match[1]);
-                hasSongs = songs.length > 0;
-            }
+            const songs = parseSongsData(content);
+            if (songs) hasSongs = songs.length > 0;
         } catch (e) {
             // Intentionally silent: this is just a best-effort peek at the generated
             // player.js to decide whether to show the empty-library state; if it can't be
