@@ -5,7 +5,7 @@ const { createIncrementalScanner } = require('./incremental-scan');
 const { createFullScanner } = require('./full-scan');
 const { createFastScanner } = require('./fast-scan');
 const { scanSingleFile, scanMultipleFiles } = require('./single-file-rescan');
-const { replaceSongsData } = require('./songs-data');
+const { writeSongs, storePath } = require('./songs-store');
 const { configPath: settingsFile } = require('./storage-paths');
 const { readConfig: readFoldersConfig, writeConfig: writeFoldersConfig } = require('./music-folders');
 
@@ -169,18 +169,11 @@ async function main(folderPath, outputDir, mode, specificFile) {
         debugLog('🎵  STEP 3: GENERATING MUSIC PLAYER');
         debugLog('─'.repeat(60));
 
-        const jsPath = path.join(outputDir, 'player.js');
-        const songsJson = JSON.stringify(allSongs);
+        const songsFile = storePath(outputDir);
 
-        if (fs.existsSync(jsPath)) {
-            let existingContent = fs.readFileSync(jsPath, 'utf-8');
-            existingContent = replaceSongsData(existingContent, songsJson) ?? existingContent;
-            fs.writeFileSync(jsPath, existingContent, 'utf-8');
-        } else {
-            fs.writeFileSync(jsPath, 'const SONGS_DATA = ' + songsJson + ';', 'utf-8');
-        }
+        writeSongs(outputDir, allSongs);
 
-        debugLog(`  ✅  ${jsPath}`);
+        debugLog(`  ✅  ${songsFile}`);
         debugLog(`  ✅  ${allSongs.length} songs written`);
 
         const resultJson = JSON.stringify({
@@ -231,16 +224,8 @@ async function main(folderPath, outputDir, mode, specificFile) {
         debugLog('📀  SCANNING SONGS (FAST PASS)');
         debugLog('─'.repeat(60));
 
-        const jsPath = path.join(outputDir, 'player.js');
         function writePlayerJsRebuild(songsToWrite) {
-            const songsJson = JSON.stringify(songsToWrite);
-            if (fs.existsSync(jsPath)) {
-                let existingContent = fs.readFileSync(jsPath, 'utf-8');
-                existingContent = replaceSongsData(existingContent, songsJson) ?? existingContent;
-                fs.writeFileSync(jsPath, existingContent, 'utf-8');
-            } else {
-                fs.writeFileSync(jsPath, `const SONGS_DATA = ${songsJson};`, 'utf-8');
-            }
+            writeSongs(outputDir, songsToWrite);
         }
 
         const allSongs = await scanAllFoldersStreamed(streamedCoversFolder, mm, Jimp, writePlayerJsRebuild);
@@ -289,16 +274,8 @@ async function main(folderPath, outputDir, mode, specificFile) {
         debugLog('📀  SCANNING SONGS (FAST PASS)');
         debugLog('─'.repeat(60));
 
-        const jsPath = path.join(outputDir, 'player.js');
         function writePlayerJs(songsToWrite) {
-            const songsJson = JSON.stringify(songsToWrite);
-            if (fs.existsSync(jsPath)) {
-                let existingContent = fs.readFileSync(jsPath, 'utf-8');
-                existingContent = replaceSongsData(existingContent, songsJson) ?? existingContent;
-                fs.writeFileSync(jsPath, existingContent, 'utf-8');
-            } else {
-                fs.writeFileSync(jsPath, `const SONGS_DATA = ${songsJson};`, 'utf-8');
-            }
+            writeSongs(outputDir, songsToWrite);
         }
 
         const allSongs = await scanMusicFolderStreamed(folderPath, streamedCoversFolder, mm, Jimp, writePlayerJs);
@@ -345,20 +322,11 @@ async function main(folderPath, outputDir, mode, specificFile) {
     debugLog('🎵  STEP 3: GENERATING MUSIC PLAYER');
     debugLog('─'.repeat(60));
 
-    const jsPath = path.join(outputDir, 'player.js');
+    const songsFile = storePath(outputDir);
 
-    if (fs.existsSync(jsPath)) {
-        let existingContent = fs.readFileSync(jsPath, 'utf-8');
-        const songsJson = JSON.stringify(allSongs);
-        existingContent = replaceSongsData(existingContent, songsJson) ?? existingContent;
-        fs.writeFileSync(jsPath, existingContent, 'utf-8');
-    } else {
-        const songsJson = JSON.stringify(allSongs);
-        const jsContent = `const SONGS_DATA = ${songsJson};`;
-        fs.writeFileSync(jsPath, jsContent, 'utf-8');
-    }
+    writeSongs(outputDir, allSongs);
 
-    debugLog(`  ✅  ${jsPath}`);
+    debugLog(`  ✅  ${songsFile}`);
     debugLog(`  ✅  ${allSongs.length} songs written`);
 
     process.stdout.write(

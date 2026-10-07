@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { fork } = require('child_process');
-const { parseSongsData, replaceSongsData } = require('./songs-data');
+const { writeSongs, updateSongs } = require('./songs-store');
 const { getConfigDir } = require('./storage-paths');
 
 function getScanScriptPath() {
@@ -166,16 +166,6 @@ function runScan(args, options = {}) {
     });
 }
 
-function updatePlayerSongs(outputDir, songs) {
-    const jsPath = path.join(outputDir, 'player.js');
-    if (!fs.existsSync(jsPath)) return false;
-
-    const jsContent = fs.readFileSync(jsPath, 'utf-8');
-    const newJsContent = replaceSongsData(jsContent, JSON.stringify(songs)) ?? jsContent;
-    fs.writeFileSync(jsPath, newJsContent, 'utf-8');
-    return true;
-}
-
 function extractJsonArray(rawOutput) {
     let cleanResult = rawOutput;
     cleanResult = cleanResult.replace(/[\r\n].*?\|[█░]*\|[^\n]*/g, '');
@@ -232,19 +222,14 @@ function mergePrepend(existingSongs, newSongs) {
 function mergeNewSongs(outputDir, newSongs, prepend) {
     if (!newSongs || newSongs.length === 0) return null;
 
-    const existingJsPath = path.join(outputDir, 'player.js');
-    if (!fs.existsSync(existingJsPath)) return null;
-
-    const existingContent = fs.readFileSync(existingJsPath, 'utf-8');
-    const existingSongs = parseSongsData(existingContent);
-    if (!existingSongs) return null;
-
-    const merged = prepend
-        ? mergePrepend(existingSongs, newSongs)
-        : mergeAppend(existingSongs, newSongs);
-    if (!merged) return null;
-
-    updatePlayerSongs(outputDir, merged.songs);
+    // Read, merge and save under one lock, so a tag save or another scan cannot slip in between.
+    let merged = null;
+    updateSongs(outputDir, (existingSongs) => {
+        merged = prepend
+            ? mergePrepend(existingSongs, newSongs)
+            : mergeAppend(existingSongs, newSongs);
+        return merged ? merged.songs : undefined;
+    });
     return merged;
 }
 
@@ -359,17 +344,7 @@ async function rebuildFromFolders(outputDir, options = {}) {
         };
     }
 
-    const jsPath = path.join(outputDir, 'player.js');
-    if (!fs.existsSync(jsPath)) {
-        return {
-            success: false,
-            reason: 'file-not-found'
-        };
-    }
-
-    let jsContent = fs.readFileSync(jsPath, 'utf-8');
-    const newJsContent = replaceSongsData(jsContent, JSON.stringify(parsed.songs)) ?? jsContent;
-    fs.writeFileSync(jsPath, newJsContent, 'utf-8');
+    writeSongs(outputDir, parsed.songs);
 
     return {
         success: true,

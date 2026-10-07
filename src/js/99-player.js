@@ -1,7 +1,12 @@
 // ==============================================================================
 // DATA & INITIALIZATION
 // ==============================================================================
-const SONGS_DATA = {{SONGS_DATA}};
+// The saved library comes from songs.json through the main process. Without the desktop bridge
+// (a plain browser, the tests) the build's placeholder list is used.
+const SONGS_DATA = (function () {
+    const saved = desktopApi.library.getStartupSongs();
+    return Array.isArray(saved) ? saved : {{SONGS_DATA}};
+})();
 
 const PLACEHOLDER_IMAGE = '{{PLACEHOLDER_IMAGE}}';
 window.PLACEHOLDER_IMAGE = PLACEHOLDER_IMAGE;

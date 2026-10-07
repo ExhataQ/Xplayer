@@ -62,13 +62,40 @@ def create_placeholder_image():
     return "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode("utf-8")
 
 
+SONGS_FILE = os.path.join(output_dir, "songs.json")
+
+
+def read_songs_file():
+    """The saved library (songs.json), or None when there is no readable one."""
+    try:
+        with open(SONGS_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return None
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict) and isinstance(data.get("songs"), list):
+        return data["songs"]
+    return None
+
+
+def write_songs_file(songs):
+    """Save the library as songs.json (written to a temporary file first, then renamed into place)."""
+    temp = SONGS_FILE + ".tmp"
+    with open(temp, "w", encoding="utf-8") as f:
+        json.dump({"version": 1, "songs": songs}, f, ensure_ascii=False)
+    os.replace(temp, SONGS_FILE)
+
+
 def extract_deployed_data():
     deployed_js = os.path.join(output_dir, "player.js")
     songs = []
     placeholder = None
 
+    saved_songs = read_songs_file()
+
     if not os.path.exists(deployed_js):
-        return songs, placeholder
+        return (saved_songs if saved_songs is not None else songs), placeholder
 
     try:
         with open(deployed_js, "r", encoding="utf-8") as f:
@@ -117,7 +144,8 @@ def extract_deployed_data():
     except Exception as e:
         logging.warning(f"Failed to extract deployed data: {e}")
 
-    return songs, placeholder
+    # songs.json is the library; a list inside an older player.js is only used to carry it over.
+    return (saved_songs if saved_songs is not None else songs), placeholder
 
 
 def copy_manifest_file(src, dest_dir, name):
@@ -140,10 +168,14 @@ def generate_html_template(songs_data, placeholder_image):
     with open(js_template_path, "r", encoding="utf-8") as f:
         js_template = f.read()
 
-    songs_json = json.dumps(songs_data, ensure_ascii=False)
     songs_count = len(songs_data)
 
-    js_content = js_template.replace("{{SONGS_DATA}}", songs_json)
+    # The library lives in songs.json (the app reads it at start-up), not inside player.js. A library that
+    # was still inside an older player.js is moved into songs.json here; an existing songs.json is kept.
+    if songs_data and read_songs_file() is None:
+        write_songs_file(songs_data)
+
+    js_content = js_template.replace("{{SONGS_DATA}}", "[]")
     js_content = js_content.replace("{{PLACEHOLDER_IMAGE}}", placeholder_image)
 
     with open(os.path.join(output_dir, "player.js"), "w", encoding="utf-8") as f:
@@ -166,7 +198,7 @@ def generate_html_template(songs_data, placeholder_image):
 
     electron_dir = os.path.join(source_root, "electron")
     if os.path.exists(electron_dir):
-        for config_file in ["main.js", "preload.js", "package.json", "scan-folder.js", "tag-builder.js", "full-scan.js", "incremental-scan.js", "fast-scan.js", "single-file-rescan.js", "window-manager.js", "loading-window.js", "scanner.js", "music-folders.js", "downloads.js", "file-operations.js", "online-lyrics.js", "online-metadata.js", "metadata-editor.js", "metadata-editor.py", "songs-data.js", "storage-paths.js", "ipc-checks.js"]:
+        for config_file in ["main.js", "preload.js", "package.json", "scan-folder.js", "tag-builder.js", "full-scan.js", "incremental-scan.js", "fast-scan.js", "single-file-rescan.js", "window-manager.js", "loading-window.js", "scanner.js", "music-folders.js", "downloads.js", "file-operations.js", "online-lyrics.js", "online-metadata.js", "metadata-editor.js", "metadata-editor.py", "songs-data.js", "storage-paths.js", "ipc-checks.js", "songs-store.js"]:
             src = os.path.join(electron_dir, config_file)
             dst = os.path.join(app_dir, config_file)
             if os.path.exists(src):
@@ -303,7 +335,7 @@ def main():
         print("  ℹ️  No deployed placeholder found — regenerating")
     else:
         print("  ℹ️  Preserved existing placeholder image")
-    print(f"  ℹ️  Preserved {len(songs_data)} song(s) from deployed player.js")
+    print(f"  ℹ️  Kept {len(songs_data)} song(s) from the saved library")
 
     print("\n" + "─" * 60)
     print("📄  STEP 2: GENERATING HTML & JS")

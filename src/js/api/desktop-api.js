@@ -26,7 +26,8 @@
 // in the preload and in the table below instead.
 
 const desktopApi = (function () {
-    // 'invoke' = returns a promise, 'send' = fire and forget, 'on' = subscribes to an event.
+    // 'invoke' = returns a promise, 'send' = fire and forget, 'sync' = returns its value right away,
+    // 'on' = subscribes to an event.
     const TABLE = {
         window: {
             getWindowMaximized: 'invoke',
@@ -55,6 +56,7 @@ const desktopApi = (function () {
             pickDownloadFolder: 'invoke',
             resetDownloadFolder: 'invoke',
             getDownloadFolder: 'invoke',
+            getStartupSongs: 'sync',
             onScanCoverBatch: 'on',
             onScanCoversComplete: 'on'
         },

@@ -47,6 +47,12 @@ with open(html_path, "w", encoding="utf-8") as f:
     f.write(html_content)
 print("  ✅  music_player.html rebuilt with 0 songs")
 
+if os.path.isdir(output_dir):
+    for leftover in os.listdir(output_dir):
+        if leftover.startswith("songs.json"):
+            os.remove(os.path.join(output_dir, leftover))
+            print(f"  ✅  {leftover} removed")
+
 if os.path.exists(covers_dir):
     for file in os.listdir(covers_dir):
         file_path = os.path.join(covers_dir, file)

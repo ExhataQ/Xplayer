@@ -31,6 +31,8 @@ const groups = {
         pickDownloadFolder: () => ipcRenderer.invoke('pick-download-folder'),
         resetDownloadFolder: () => ipcRenderer.invoke('reset-download-folder'),
         getDownloadFolder: () => ipcRenderer.invoke('get-download-folder'),
+        // The saved song list, handed over right away (the page builds its library from it while loading).
+        getStartupSongs: () => ipcRenderer.sendSync('songs-store:load'),
         onScanCoverBatch: (cb) => ipcRenderer.on('scan-cover-batch', (event, updates) => cb(updates)),
         onScanCoversComplete: (cb) => ipcRenderer.on('scan-covers-complete', () => cb())
     },

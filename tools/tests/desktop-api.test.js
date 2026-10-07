@@ -32,7 +32,7 @@ function loadPreload() {
     let exposed;
     const fakeElectron = {
         contextBridge: { exposeInMainWorld: (name, api) => { exposed = { name, api }; } },
-        ipcRenderer: { invoke: record('invoke'), send: record('send'), on: record('on') }
+        ipcRenderer: { invoke: record('invoke'), send: record('send'), on: record('on'), sendSync: record('sendSync') }
     };
     const realLoad = Module._load;
     Module._load = function (request, ...rest) { return request === 'electron' ? fakeElectron : realLoad.call(this, request, ...rest); };
@@ -66,7 +66,7 @@ test('preload: every flat name except invoke is in exactly one group, and the gr
     for (const g of GROUPS) assert.equal(typeof api[g], 'object', `electronAPI.${g}`);
     const inGroups = GROUPS.flatMap((g) => Object.keys(api[g]).map((n) => [g, n]));
     const names = inGroups.map(([, n]) => n);
-    assert.deepEqual([...names].sort(), ORIGINAL_FLAT_NAMES.filter((n) => n !== 'invoke').concat(['welcomeSelectFolder']).sort(), 'groups cover every old name, plus welcomeSelectFolder');
+    assert.deepEqual([...names].sort(), ORIGINAL_FLAT_NAMES.filter((n) => n !== 'invoke').concat(['welcomeSelectFolder', 'getStartupSongs']).sort(), 'groups cover every old name, plus welcomeSelectFolder and getStartupSongs');
     assert.equal(new Set(names).size, names.length, 'no name in two groups');
     for (const [g, n] of inGroups) {
         calls.length = 0;
@@ -112,6 +112,12 @@ test('preload: every old name still makes the same ipc call as before the groups
     calls.length = 0;
     exposed.api.invoke('some-channel', 1);
     assert.deepEqual(calls[0], { kind: 'invoke', channel: 'some-channel', args: [1] });
+});
+
+test('preload: getStartupSongs asks the main process for the saved song list, right away', () => {
+    const { exposed, calls } = loadPreload();
+    exposed.api.library.getStartupSongs();
+    assert.deepEqual(calls[0], { kind: 'sendSync', channel: 'songs-store:load', args: [] });
 });
 
 test('preload: the new welcomeSelectFolder uses the channel 06b used through invoke()', () => {

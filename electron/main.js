@@ -28,29 +28,35 @@ const { saveLyricsFile, readLyricsFile } = require('./file-operations');
 const { searchLyrics, downloadLyricsFile } = require('./online-lyrics');
 const { getAudioMetadata, saveAudioMetadata, saveAudioCover } = require('./metadata-editor');
 const { searchOnlineMetadata, getOnlineMetadata } = require('./online-metadata');
-const { parseSongsData, replaceSongsData } = require('./songs-data');
+const songsStore = require('./songs-store');
 const { configPath: settingsFile } = require('./storage-paths');
 const checks = require('./ipc-checks');
 
 const thumbarIconPath = path.join(__dirname, 'MusicPlayerOutput', 'icons');
+const OUTPUT_DIR = path.join(__dirname, 'MusicPlayerOutput');
 
 
 function updateDeployedSongMetadata(fileUrl, metadata) {
-    const playerJsPath = path.join(__dirname, 'MusicPlayerOutput', 'player.js');
+    const fields = ['title','artist','album','albumArtist','composer','genre','year','track','trackTotal','discNumber','discTotal','label','publisher','copyright','comment','conductor','remixer','sortTitle','sortArtist','sortAlbum','sortComposer','grouping','description','bpm','compilation','mood','language','mediaKind','isrc','musicBrainzTrackId','musicBrainzAlbumId','musicBrainzOriginalAlbumId','musicBrainzReleaseGroupId','musicBrainzArtistId','encodedBy','producer','lyricist','writer'];
+    const target = String(fileUrl || '').replace(/\\/g, '/');
+    let found = false;
     try {
-        if (!fs.existsSync(playerJsPath)) return false;
-        const content = fs.readFileSync(playerJsPath, 'utf-8');
-        const songs = parseSongsData(content);
-        if (!songs) return false;
-        const target = String(fileUrl || '').replace(/\\/g, '/');
-        const song = songs.find((x) => String(x.url || '').replace(/\\/g, '/') === target);
-        if (!song) return false;
-        const fields = ['title','artist','album','albumArtist','composer','genre','year','track','trackTotal','discNumber','discTotal','label','publisher','copyright','comment','conductor','remixer','sortTitle','sortArtist','sortAlbum','sortComposer','grouping','description','bpm','compilation','mood','language','mediaKind','isrc','musicBrainzTrackId','musicBrainzAlbumId','musicBrainzOriginalAlbumId','musicBrainzReleaseGroupId','musicBrainzArtistId','encodedBy','producer','lyricist','writer'];
-        fields.forEach((key) => { if (metadata[key] !== undefined) song[key] = metadata[key]; });
-        fs.writeFileSync(playerJsPath, replaceSongsData(content, JSON.stringify(songs)), 'utf-8');
-        return true;
+        songsStore.updateSongs(OUTPUT_DIR, (songs) => {
+            const song = songs.find((x) => String(x.url || '').replace(/\\/g, '/') === target);
+            if (!song) return undefined;
+            fields.forEach((key) => { if (metadata[key] !== undefined) song[key] = metadata[key]; });
+            found = true;
+            return songs;
+        });
     } catch (e) { return false; }
+    return found;
 }
+
+// The page asks for the song list once, while it is being set up (see preload.js).
+ipcMain.on('songs-store:load', (event) => {
+    try { event.returnValue = songsStore.readSongs(OUTPUT_DIR); }
+    catch (e) { event.returnValue = []; }
+});
 
 ipcMain.handle('search-online-metadata', async (event, params) => {
     try { return await searchOnlineMetadata(params || {}); }
@@ -313,18 +319,9 @@ ipcMain.handle('change-folder', async () => {
                 songs: scanResult.parsed.songs
             };
         }
-        const jsPath = path.join(outputDir, 'player.js');
-        const jsContent = fs.readFileSync(jsPath, 'utf-8');
-        const songsData = parseSongsData(jsContent);
-        if (songsData) {
-            return {
-                success: true,
-                songs: songsData
-            };
-        }
         return {
-            success: false,
-            reason: 'parse-error'
+            success: true,
+            songs: songsStore.readSongs(outputDir)
         };
     }
 
@@ -520,20 +517,13 @@ app.whenReady().then(async () => {
     });
 
     const configPath = settingsFile('setupFlag');
-    const playerJsPath = path.join(__dirname, 'MusicPlayerOutput', 'player.js');
-
     let hasSongs = false;
 
-    if (fs.existsSync(playerJsPath)) {
-        try {
-            const content = fs.readFileSync(playerJsPath, 'utf-8');
-            const songs = parseSongsData(content);
-            if (songs) hasSongs = songs.length > 0;
-        } catch (e) {
-            // Intentionally silent: this is just a best-effort peek at the generated
-            // player.js to decide whether to show the empty-library state; if it can't be
-            // read/parsed, hasSongs simply stays at its default.
-        }
+    try {
+        hasSongs = songsStore.readSongs(OUTPUT_DIR).length > 0;
+    } catch (e) {
+        // Intentionally silent: this is only a peek at the saved library to decide whether to
+        // show the empty-library state; if it cannot be read, hasSongs stays false.
     }
 
     const needsSetup = !fs.existsSync(configPath) && !hasSongs;

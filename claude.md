@@ -43,7 +43,7 @@ The Electron files under `Source/electron/` are copied into the built applicatio
 
 The renderer files under `Source/src/js/` and `Source/src/css/` are copied into `App/MusicPlayerOutput/`.
 
-`Source/src/js/99-player.js` is the renderer bootstrap/template containing generated song data placeholders.
+`Source/src/js/99-player.js` is the renderer bootstrap/template. The library is not inside it: it is read from `MusicPlayerOutput/songs.json` (see `electron/songs-store.js`); the `{{SONGS_DATA}}` placeholder is only the fallback list for a plain browser and the tests.
 
 `Source/tools/change.log.txt` is the append-only project change log.
 
