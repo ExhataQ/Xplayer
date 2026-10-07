@@ -1,7 +1,11 @@
 // ==============================================================================
 // RIGHT PANEL INFO / TABS
 // ==============================================================================
-function getCurrentSongForInfo() {
+registerActions({
+    showCurrentSourceContextMenu
+});
+
+export function getCurrentSongForInfo() {
     if (currentQueueIndex >= 0 && playbackQueue[currentQueueIndex]) {
         const queueItem = playbackQueue[currentQueueIndex];
         return queueItem.song || queueItem;
@@ -9,12 +13,12 @@ function getCurrentSongForInfo() {
     return null;
 }
 
-function hasEnabledExtendedFields() {
+export function hasEnabledExtendedFields() {
     const settings = getExtendedMetadataSettings();
     return EXTENDED_METADATA_FIELDS.some((f) => !f.hidden && settings[f.key]);
 }
 
-function updateInfoButtonVisibility() {
+export function updateInfoButtonVisibility() {
     const btn = document.getElementById('track-info-btn');
     if (!btn) return;
     const tagsActive = tagsContentElement.classList.contains('active');
@@ -22,7 +26,7 @@ function updateInfoButtonVisibility() {
     btn.style.display = tagsActive && hasSong ? 'flex' : 'none';
 }
 
-function openExtendedInfoPanel() {
+export function openExtendedInfoPanel() {
     const overlay = document.getElementById('extended-info-overlay');
     const content = document.getElementById('extended-info-content');
     if (!overlay || !content) return;
@@ -79,19 +83,19 @@ function openExtendedInfoPanel() {
     document.addEventListener('keydown', extendedInfoKeyHandler);
 }
 
-function closeExtendedInfoPanel() {
+export function closeExtendedInfoPanel() {
     const overlay = document.getElementById('extended-info-overlay');
     if (overlay) overlay.classList.remove('active');
     document.removeEventListener('keydown', extendedInfoKeyHandler);
 }
 
-function extendedInfoKeyHandler(e) {
+export function extendedInfoKeyHandler(e) {
     if (e.key === 'Escape') {
         closeExtendedInfoPanel();
     }
 }
 
-function showRightPanelContextMenu(event) {
+export function showRightPanelContextMenu(event) {
     event.stopPropagation();
     event.preventDefault();
 
@@ -106,7 +110,7 @@ function showRightPanelContextMenu(event) {
     }
 }
 
-function switchRightPanelTab(tab) {
+export function switchRightPanelTab(tab) {
     document.querySelectorAll('.panel-content').forEach((c) => c.classList.remove('active'));
     document.getElementById(`${tab}-content`).classList.add('active');
     updateRightPanelHeader(tab);
@@ -144,7 +148,7 @@ function switchRightPanelTab(tab) {
     updateScrollbarById('right-panel-content');
 }
 
-function updateRightPanelHeader(tab) {
+export function updateRightPanelHeader(tab) {
     const headerTitle = document.getElementById('right-panel-header-title');
     const recentText = document.getElementById('recently-played-text');
 
@@ -152,7 +156,9 @@ function updateRightPanelHeader(tab) {
 
     headerTitle.classList.remove('active-underline', 'source-name-header');
     recentText.classList.remove('active-underline');
-    headerTitle.removeAttribute('oncontextmenu');
+    headerTitle.removeAttribute('onclick');
+    headerTitle.removeAttribute('data-action-contextmenu');
+    headerTitle.removeAttribute('data-args-contextmenu');
 
     if (tab === 'queue') {
         headerTitle.textContent = 'Queue';
@@ -160,22 +166,23 @@ function updateRightPanelHeader(tab) {
         recentText.style.display = 'inline';
         headerTitle.style.pointerEvents = 'auto';
         headerTitle.style.cursor = 'pointer';
-        headerTitle.setAttribute('onclick', 'switchToQueuePanel()');
+        headerTitle.setAttribute('data-action', 'switchToQueuePanel');
     } else if (tab === 'metadata') {
         headerTitle.textContent = 'Metadata';
         headerTitle.classList.add('active-underline');
         recentText.style.display = 'none';
         headerTitle.style.pointerEvents = 'auto';
         headerTitle.style.cursor = 'pointer';
-        headerTitle.setAttribute('onclick', 'closeMetadataEditor()');
+        headerTitle.setAttribute('data-action', 'closeMetadataEditor');
     } else if (tab === 'tags') {
         const sourceName = getCurrentPlayingSourceName();
         headerTitle.textContent = sourceName;
         headerTitle.classList.add('source-name-header');
         headerTitle.style.pointerEvents = 'auto';
         headerTitle.style.cursor = 'pointer';
-        headerTitle.setAttribute('onclick', 'navigateToCurrentSourceView()');
-        headerTitle.setAttribute('oncontextmenu', 'showCurrentSourceContextMenu(event)');
+        headerTitle.setAttribute('data-action', 'navigateToCurrentSourceView');
+        headerTitle.setAttribute('data-action-contextmenu', 'showCurrentSourceContextMenu');
+        headerTitle.setAttribute('data-args-contextmenu', '["$event"]');
         recentText.style.display = 'none';
     } else if (tab === 'recently-played') {
         headerTitle.textContent = 'Queue';
@@ -183,11 +190,11 @@ function updateRightPanelHeader(tab) {
         recentText.style.display = 'inline';
         headerTitle.style.pointerEvents = 'auto';
         headerTitle.style.cursor = 'pointer';
-        headerTitle.setAttribute('onclick', 'switchToQueuePanel()');
+        headerTitle.setAttribute('data-action', 'switchToQueuePanel');
     }
 }
 
-function getCurrentPlayingSourceName() {
+export function getCurrentPlayingSourceName() {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) {
         return 'Track Info';
     }
@@ -219,7 +226,7 @@ function getCurrentPlayingSourceName() {
     return 'Track Info';
 }
 
-function navigateToCurrentSourceView() {
+export function navigateToCurrentSourceView() {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) {
         return;
     }
@@ -243,7 +250,7 @@ function navigateToCurrentSourceView() {
     }
 }
 
-function showCurrentSourceContextMenu(event) {
+export function showCurrentSourceContextMenu(event) {
     event.stopPropagation();
     event.preventDefault();
 
@@ -268,12 +275,31 @@ function showCurrentSourceContextMenu(event) {
     }
 }
 
-function switchToRecentlyPlayedPanel() {
+export function switchToRecentlyPlayedPanel() {
     if (!document.getElementById('recently-played-content').classList.contains('active')) {
         switchRightPanelTab('recently-played');
     }
 }
 
-function switchToQueuePanel() {
+export function switchToQueuePanel() {
     switchRightPanelTab('queue');
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        getCurrentSongForInfo,
+        hasEnabledExtendedFields,
+        updateInfoButtonVisibility,
+        openExtendedInfoPanel,
+        closeExtendedInfoPanel,
+        extendedInfoKeyHandler,
+        showRightPanelContextMenu,
+        switchRightPanelTab,
+        updateRightPanelHeader,
+        getCurrentPlayingSourceName,
+        navigateToCurrentSourceView,
+        showCurrentSourceContextMenu,
+        switchToRecentlyPlayedPanel,
+        switchToQueuePanel
+    });
 }

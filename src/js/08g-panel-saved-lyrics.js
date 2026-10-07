@@ -1,7 +1,14 @@
 // ==============================================================================
 // SAVED LYRICS MANAGEMENT
 // ==============================================================================
-function getSavedLyricsEntries() {
+registerActions({
+    closeSavedLyricsViewer,
+    deleteSavedLyricsEntry,
+    openSavedLyricsViewer,
+    removeAllSavedLyrics
+});
+
+export function getSavedLyricsEntries() {
     const store = getCustomLyricsStore();
     const entries = [];
     const activeSongs = getActiveSongs();
@@ -37,7 +44,7 @@ function getSavedLyricsEntries() {
     return entries;
 }
 
-function renderSavedLyricsList() {
+export function renderSavedLyricsList() {
     const container = document.getElementById('saved-lyrics-list');
     if (!container) return;
 
@@ -63,10 +70,7 @@ function renderSavedLyricsList() {
             const iconColor = entry.missing ? '#ff4444' : '';
 
             return `
-            <div class="library-location-item" data-lyrics-key="${safeKey}" onclick="openSavedLyricsViewer('${safeKey.replace(
-                /'/g,
-                "\\'"
-            )}')">
+            <div class="library-location-item" data-lyrics-key="${safeKey}" ${actionAttrs('openSavedLyricsViewer', [entry.key])}>
                 <div class="library-location-name">
                     <i class="fas ${icon}" style="${iconColor ? 'color: ' + iconColor + ';' : ''}"></i>
                     <span>${titleText}</span>
@@ -81,7 +85,7 @@ function renderSavedLyricsList() {
         .join('');
 }
 
-function openSavedLyricsViewer(key) {
+export function openSavedLyricsViewer(key) {
     const store = getCustomLyricsStore();
     if (store[key] === undefined) return;
 
@@ -105,12 +109,12 @@ function openSavedLyricsViewer(key) {
         overlay = document.createElement('div');
         overlay.id = 'saved-lyrics-overlay';
         overlay.className = 'extended-info-overlay';
-        overlay.onclick = closeSavedLyricsViewer;
+        overlay.setAttribute('data-action', 'closeSavedLyricsViewer');
         document.body.appendChild(overlay);
     }
 
     overlay.innerHTML = `
-        <div class="extended-info-modal saved-lyrics-modal" onclick="event.stopPropagation()">
+        <div class="extended-info-modal saved-lyrics-modal" data-stop>
             <div class="extended-info-header">
                 <div>
                     <div class="extended-info-title">${escapeHtml(title)}</div>
@@ -119,13 +123,10 @@ function openSavedLyricsViewer(key) {
                     )}</div>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center;">
-                    <button class="extended-info-close" onclick="deleteSavedLyricsEntry('${key.replace(
-                        /'/g,
-                        "\\'"
-                    )}')" title="Delete lyrics" aria-label="Delete lyrics" style="color: #ff4444;">
+                    <button class="extended-info-close" ${actionAttrs('deleteSavedLyricsEntry', [key])} title="Delete lyrics" aria-label="Delete lyrics" style="color: #ff4444;">
                         <span class="material-symbols-outlined">delete</span>
                     </button>
-                    <button class="extended-info-close" onclick="closeSavedLyricsViewer()" aria-label="Close">
+                    <button class="extended-info-close" data-action="closeSavedLyricsViewer" aria-label="Close">
                         <span class="material-symbols-outlined">close</span>
                     </button>
                 </div>
@@ -140,19 +141,19 @@ function openSavedLyricsViewer(key) {
     document.addEventListener('keydown', savedLyricsKeyHandler);
 }
 
-function closeSavedLyricsViewer() {
+export function closeSavedLyricsViewer() {
     const overlay = document.getElementById('saved-lyrics-overlay');
     if (overlay) overlay.classList.remove('active');
     document.removeEventListener('keydown', savedLyricsKeyHandler);
 }
 
-function savedLyricsKeyHandler(e) {
+export function savedLyricsKeyHandler(e) {
     if (e.key === 'Escape') {
         closeSavedLyricsViewer();
     }
 }
 
-function deleteSavedLyricsEntry(key) {
+export function deleteSavedLyricsEntry(key) {
     const store = getCustomLyricsStore();
     delete store[key];
     saveCustomLyricsStore(store);
@@ -170,7 +171,7 @@ function deleteSavedLyricsEntry(key) {
     }
 }
 
-async function removeAllSavedLyrics() {
+export async function removeAllSavedLyrics() {
     const entries = getSavedLyricsEntries();
     if (entries.length === 0) {
         showNotification('No saved lyrics to remove', 'warning', 2000);
@@ -193,4 +194,16 @@ async function removeAllSavedLyrics() {
     if (currentView === VIEWS.LYRICS) {
         emit('lyrics:changed', { songId: null });
     }
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        getSavedLyricsEntries,
+        renderSavedLyricsList,
+        openSavedLyricsViewer,
+        closeSavedLyricsViewer,
+        savedLyricsKeyHandler,
+        deleteSavedLyricsEntry,
+        removeAllSavedLyrics
+    });
 }

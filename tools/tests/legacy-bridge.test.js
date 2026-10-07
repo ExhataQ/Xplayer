@@ -172,6 +172,23 @@ describe('legacy bridge in the real page', { concurrency: false }, () => {
         await page.close();
     });
 
+    test('data-stop also keeps the click from other listeners on document and window; without it they run', async (t) => {
+        if (skip) return void t.skip(skip);
+        const { page } = await openPage();
+        const result = await inPage(page, `
+            const seen = [];
+            document.addEventListener('click', () => seen.push('document'));
+            window.addEventListener('click', () => seen.push('window'));
+            box.innerHTML = '<span id="stopped" data-stop>a</span><span id="plain">b</span>';
+            document.getElementById('stopped').click();
+            const afterStopped = seen.slice();
+            document.getElementById('plain').click();
+            return [afterStopped, seen];
+        `);
+        assert.deepEqual(result, [[], ['document', 'window']]);
+        await page.close();
+    });
+
     test('a handler that returns false cancels the default action', async (t) => {
         if (skip) return void t.skip(skip);
         const { page } = await openPage();

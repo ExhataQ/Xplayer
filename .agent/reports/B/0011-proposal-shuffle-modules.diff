@@ -1,0 +1,85 @@
+diff --git a/src/js/10a-playback-shuffle.js b/src/js/10a-playback-shuffle.js
+index a79abcf..d9988ce 100644
+--- a/src/js/10a-playback-shuffle.js
++++ b/src/js/10a-playback-shuffle.js
+@@ -1,13 +1,6 @@
+ // ==============================================================================
+ // PLAYBACK - SHUFFLE STATE
+ // ==============================================================================
+-let shuffleOrder = [];
+-let shuffleIndex = 0;
+-let shuffleSourceId = null;
+-let smartShuffleJourney = [];
+-let smartShuffleJourneyIndex = 0;
+-let smartShuffleSourceId = null;
+-let smartShufflePreviousSong = null;
+ 
+ // ==============================================================================
+ // PLAYBACK - SHUFFLE SYSTEM
+@@ -21,7 +14,7 @@ function shuffleArray(array) {
+     return newArray;
+ }
+ 
+-function createShuffleOrder(songs, excludeSongId = null) {
++export function createShuffleOrder(songs, excludeSongId = null) {
+     let ids = songs
+         .filter((song) => song && !deletedSongIds.has(song.id))
+         .map((song) => song.id);
+@@ -33,14 +26,14 @@ function createShuffleOrder(songs, excludeSongId = null) {
+     return shuffleArray(ids);
+ }
+ 
+-function resetShuffle(songs = null, excludeSongId = null, sourceId = currentView) {
++export function resetShuffle(songs = null, excludeSongId = null, sourceId = currentView) {
+     const sourceSongs = songs || getSongsForList(sourceId);
+     shuffleOrder = createShuffleOrder(sourceSongs, excludeSongId);
+     shuffleIndex = 0;
+     shuffleSourceId = sourceId;
+ }
+ 
+-function clearShuffle() {
++export function clearShuffle() {
+     shuffleOrder = [];
+     shuffleIndex = 0;
+     shuffleSourceId = null;
+@@ -50,8 +43,10 @@ function clearShuffle() {
+     smartShufflePreviousSong = null;
+ }
+ 
+-function getSongDurationSeconds(song) {
++export function getSongDurationSeconds(song) {
+     const parts = String(song?.duration || '0:00').split(':').map(Number);
+     return parts.length === 2 && parts.every(Number.isFinite) ? parts[0] * 60 + parts[1] : 0;
+ }
+ 
++
++registerLegacyGlobals({ shuffleArray, createShuffleOrder, resetShuffle, clearShuffle, getSongDurationSeconds });
+diff --git a/src/js/10a0-shuffle-state.js b/src/js/10a0-shuffle-state.js
+new file mode 100644
+index 0000000..430c892
+--- /dev/null
++++ b/src/js/10a0-shuffle-state.js
+@@ -0,0 +1,8 @@
++// Shuffle state that classic code and the setters still reach.
++let shuffleOrder = [];
++let shuffleIndex = 0;
++let shuffleSourceId = null;
++let smartShuffleJourney = [];
++let smartShuffleJourneyIndex = 0;
++let smartShuffleSourceId = null;
++let smartShufflePreviousSong = null;
+diff --git a/src/js/10b-playback-smart-shuffle.js b/src/js/10b-playback-smart-shuffle.js
+index cb4fb13..b7ba7a9 100644
+--- a/src/js/10b-playback-smart-shuffle.js
++++ b/src/js/10b-playback-smart-shuffle.js
+@@ -1,3 +1,4 @@
++import { resetShuffle, clearShuffle, getSongDurationSeconds } from './10a-playback-shuffle.js';
+ // ==============================================================================
+ // SMART SHUFFLE — ARTIST-CHAIN GENERATOR
+ // ==============================================================================
+@@ -586,3 +587,5 @@ function startSmartShuffleFromCurrentView() {
+     return true;
+ }
+ 
++
++registerLegacyGlobals({ generateSmartShuffleJourney, resetSmartShuffle, getNextSmartShuffledSong, getNextShuffledSong, startSmartShuffleFromCurrentView });

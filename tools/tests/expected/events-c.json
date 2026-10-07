@@ -171,19 +171,13 @@
         "updateScrollbarById"
     ],
     "right panel: switch to the recently-played tab": [
-        "updateRightPanelHeader",
         "renderPortableRecentlyPlayed",
-        "updateInfoButtonVisibility",
         "updateScrollbarById"
     ],
     "right panel: switch to the queue tab": [
-        "updateRightPanelHeader",
-        "updateInfoButtonVisibility",
         "updateScrollbarById"
     ],
     "right panel: switch to the tags tab": [
-        "updateRightPanelHeader",
-        "updateInfoButtonVisibility",
         "updateScrollbarById"
     ]
 }

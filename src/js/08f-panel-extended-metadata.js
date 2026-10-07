@@ -1,11 +1,15 @@
 // ==============================================================================
 // EXTENDED METADATA SETTINGS
 // ==============================================================================
-function getExtendedMetadataSettings() {
+registerActions({
+    toggleExtendedMetadataField,
+    toggleHideRightPanelLyrics
+});
+
+export function getExtendedMetadataSettings() {
     try {
-        const saved = localStorage.getItem(STORAGE_KEYS.EXTENDED_METADATA_ENABLED);
-        if (saved) {
-            const parsed = JSON.parse(saved);
+        const parsed = storageReadJson(STORAGE_KEYS.EXTENDED_METADATA_ENABLED, null);
+        if (parsed) {
             const result = {};
             EXTENDED_METADATA_FIELDS.forEach((f) => {
                 if (f.hidden) {
@@ -26,28 +30,39 @@ function getExtendedMetadataSettings() {
     return defaults;
 }
 
-function saveExtendedMetadataSettings(settings) {
-    localStorage.setItem(STORAGE_KEYS.EXTENDED_METADATA_ENABLED, JSON.stringify(settings));
+export function saveExtendedMetadataSettings(settings) {
+    storageWriteJson(STORAGE_KEYS.EXTENDED_METADATA_ENABLED, settings);
 }
 
-function toggleExtendedMetadataField(fieldKey, enabled) {
+export function toggleExtendedMetadataField(fieldKey, enabled) {
     const settings = getExtendedMetadataSettings();
     settings[fieldKey] = !!enabled;
     saveExtendedMetadataSettings(settings);
     updateInfoButtonVisibility();
 }
 
-function getHideRightPanelLyrics() {
-    return localStorage.getItem(STORAGE_KEYS.HIDE_RIGHT_PANEL_LYRICS) === 'true';
+export function getHideRightPanelLyrics() {
+    return storageReadBool(STORAGE_KEYS.HIDE_RIGHT_PANEL_LYRICS, false);
 }
 
-function setHideRightPanelLyrics(value) {
-    localStorage.setItem(STORAGE_KEYS.HIDE_RIGHT_PANEL_LYRICS, value ? 'true' : 'false');
+export function setHideRightPanelLyrics(value) {
+    storageWriteBool(STORAGE_KEYS.HIDE_RIGHT_PANEL_LYRICS, !!value);
     if (typeof renderTrackLyricsBox === 'function') {
         renderTrackLyricsBox();
     }
 }
 
-function toggleHideRightPanelLyrics(checked) {
+export function toggleHideRightPanelLyrics(checked) {
     setHideRightPanelLyrics(!!checked);
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        getExtendedMetadataSettings,
+        saveExtendedMetadataSettings,
+        toggleExtendedMetadataField,
+        getHideRightPanelLyrics,
+        setHideRightPanelLyrics,
+        toggleHideRightPanelLyrics
+    });
 }

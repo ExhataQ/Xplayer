@@ -18,7 +18,7 @@ const pw = loadPlaywright();
 
 // Every name that classic scripts use from a converted file (see `node tools/dep-map.js uses <name>`).
 const REGISTERED = {
-    functions: ['normalizeIdList', 'normalizeStringList', 'normalizeObjectList', 'normalizePlaylists', 'normalizeFolders', 'normalizePinnedMap', 'normalizeSettings', 'normalizePanelWidths', 'storageRead', 'storageWrite', 'storageRemove', 'storageReadBool', 'storageWriteBool', 'storageReadJson', 'storageWriteJson', 'addToRecentList', 'getRecentlyPlayedSongs', 'getRecentCount', 'normalizeSearchText', 'searchSongs', 'getSearchResults', 'initThemeButtons'],
+    functions: ['normalizeIdList', 'normalizeStringList', 'normalizeObjectList', 'normalizePlaylists', 'normalizeFolders', 'normalizePinnedMap', 'normalizeSettings', 'normalizePanelWidths', 'storageRead', 'storageWrite', 'storageRemove', 'storageReadBool', 'storageWriteBool', 'storageReadJson', 'storageWriteJson', 'addToRecentList', 'getRecentlyPlayedSongs', 'getRecentCount', 'normalizeSearchText', 'searchSongs', 'getSearchResults', 'initThemeButtons', 'parseLrcLine', 'parseLRC', 'extractDominantColor', 'applyViewColorFromCover', 'detectLanguageFromText', 'detectSongLanguage', 'analyzeAllSongsLanguages', 'smartShuffleLanguagePrepass', 'ensureShuffleLanguages'],
     constants: { MAX_RECENT_SONGS: 50, MAX_HISTORY_ENTRIES: 500, MAX_SEARCH_HISTORY: 20 }
 };
 
@@ -163,7 +163,8 @@ describe('converted ES modules in the real page', { concurrency: false }, () => 
             }
         }
         assert.ok(exported.length > 100, 'expected the modules to export well over 100 functions, found ' + exported.length);
-        assert.ok(called.size > 50, 'expected well over 50 handler functions, found ' + called.size);
+        // Inline handlers are being converted to data-action, so this count only shrinks; it just proves the scan finds some.
+        assert.ok(called.size > 10, 'expected more than 10 handler functions, found ' + called.size);
         const { page, errors } = await openApp();
         const missing = await page.evaluate((names) => names.filter((n) => typeof window[n] !== 'function'), [...new Set([...exported, ...called])]);
         assert.deepEqual(missing, []);

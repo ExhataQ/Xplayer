@@ -130,7 +130,7 @@ function collapseRightPanel() {
     rightPanel.classList.add('collapsed');
     if (collapseBtn) collapseBtn.classList.add('active');
     if (collapseIcon) collapseIcon.textContent = 'left_panel_open';
-    localStorage.setItem(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED, 'true');
+    storageWriteBool(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED, true);
 
     document.querySelectorAll('.queue-toggle-btn').forEach((btn) => {
         btn.classList.remove('active');
@@ -177,7 +177,7 @@ function expandRightPanel() {
     rightPanel.classList.remove('collapsed');
     if (collapseBtn) collapseBtn.classList.remove('active');
     if (collapseIcon) collapseIcon.textContent = 'left_panel_close';
-    localStorage.setItem(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED, 'false');
+    storageWriteBool(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED, false);
 
     const rightPanelContent = document.querySelector('.right-panel-content');
     if (rightPanelContent) {

@@ -1,7 +1,7 @@
 // ==============================================================================
 // SEARCH PANEL
 // ==============================================================================
-function resetSearchState() {
+export function resetSearchState() {
     const searchInput = getCachedEl('search-input');
     if (searchInput) {
         searchInput.value = '';
@@ -10,7 +10,7 @@ function resetSearchState() {
     setCurrentSearchSessionId(null);
 }
 
-function resetSubheroSearch() {
+export function resetSubheroSearch() {
     const input = getCachedEl('subhero-search-input');
     if (input) {
         input.value = '';
@@ -32,7 +32,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 // performSearch is the debounced entry point every keystroke
 // calls; performSearchNow is the actual search logic, unchanged, just renamed and
 // no longer responsible for its own timer bookkeeping.
-function performSearchNow() {
+export function performSearchNow() {
     setSearchQuery(getCachedEl('search-input').value.toLowerCase().trim());
 
     if (searchQuery === '') {
@@ -89,7 +89,7 @@ function performSearchNow() {
 }
 const performSearch = debounce(performSearchNow, SEARCH_DEBOUNCE_MS);
 
-function focusSubheroSearch() {
+export function focusSubheroSearch() {
     const input = getCachedEl('subhero-search-input');
     const wrapper = getCachedEl('subhero-search-wrapper');
     if (!input) return;
@@ -105,7 +105,7 @@ function focusSubheroSearch() {
     }
 }
 
-function clearSubheroSearch() {
+export function clearSubheroSearch() {
     const input = getCachedEl('subhero-search-input');
     if (!input) return;
     input.value = '';
@@ -113,7 +113,7 @@ function clearSubheroSearch() {
     input.focus();
 }
 
-function handleSubheroSearchBlur() {
+export function handleSubheroSearchBlur() {
     setTimeout(() => {
         const input = getCachedEl('subhero-search-input');
         const wrapper = getCachedEl('subhero-search-wrapper');
@@ -131,7 +131,7 @@ function handleSubheroSearchBlur() {
     }, 100);
 }
 
-function performSubheroSearch() {
+export function performSubheroSearch() {
     const input = getCachedEl('subhero-search-input');
     const clearBtn = document.getElementById('subhero-search-clear');
     if (!input) return;
@@ -157,7 +157,7 @@ function performSubheroSearch() {
     emit('search:resultsChanged', { view: currentView, songs: filtered });
 }
 
-function focusLeftPanelSearch() {
+export function focusLeftPanelSearch() {
     const input = getCachedEl('left-panel-search-input');
     const wrapper = getCachedEl('left-panel-search-wrapper');
     if (!input) return;
@@ -173,7 +173,7 @@ function focusLeftPanelSearch() {
     }
 }
 
-function clearLeftPanelSearch() {
+export function clearLeftPanelSearch() {
     const input = getCachedEl('left-panel-search-input');
     if (!input) return;
     input.value = '';
@@ -181,7 +181,7 @@ function clearLeftPanelSearch() {
     input.focus();
 }
 
-function handleLeftPanelSearchBlur() {
+export function handleLeftPanelSearchBlur() {
     setTimeout(() => {
         const input = getCachedEl('left-panel-search-input');
         const wrapper = getCachedEl('left-panel-search-wrapper');
@@ -199,7 +199,7 @@ function handleLeftPanelSearchBlur() {
     }, 100);
 }
 
-function performLeftPanelSearch() {
+export function performLeftPanelSearch() {
     const input = getCachedEl('left-panel-search-input');
     const clearBtn = document.getElementById('left-panel-search-clear');
     if (!input) return;
@@ -239,4 +239,21 @@ function performLeftPanelSearch() {
     });
 
     updateScrollbarById('left-panel-main-content');
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        resetSearchState,
+        resetSubheroSearch,
+        performSearchNow,
+        focusSubheroSearch,
+        clearSubheroSearch,
+        handleSubheroSearchBlur,
+        performSubheroSearch,
+        focusLeftPanelSearch,
+        clearLeftPanelSearch,
+        handleLeftPanelSearchBlur,
+        performLeftPanelSearch,
+        performSearch
+    });
 }

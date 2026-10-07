@@ -1,62 +1,4 @@
-// LRC parsing plus the (non-editor) synced-lyrics display: parse/mode/highlight/scroll/follow-button.
-
-function parseLrcLine(rawLine) {
-    const line = String(rawLine).trim();
-    if (!line) return null;
-    if (/^\[(ti|ar|al|by|re|ve|length|offset):/i.test(line)) return null;
-
-    const timestampRegex = /\[(\d+):(\d+)(?:[.:](\d{1,3}))?\]/g;
-    timestampRegex.lastIndex = 0;
-    const times = [];
-    let m;
-    let lastIndex = 0;
-
-    while ((m = timestampRegex.exec(line)) !== null) {
-        const minutes = parseInt(m[1], 10);
-        const seconds = parseInt(m[2], 10);
-        let frac = m[3] || '0';
-        if (frac.length === 1) frac = frac + '00';
-        else if (frac.length === 2) frac = frac + '0';
-        const centis = parseInt(frac, 10);
-        times.push(minutes * 60 + seconds + centis / 1000);
-        lastIndex = timestampRegex.lastIndex;
-    }
-
-    if (times.length === 0) return null;
-
-    const rawText = line.substring(lastIndex).trim();
-    const isInstrumentalMarker = /^\[instrumental\]$/i.test(rawText);
-    const text = isInstrumentalMarker ? '' : rawText;
-    return {
-        times: times,
-        text: text,
-        instrumental: isInstrumentalMarker
-    };
-}
-
-function parseLRC(lrcText) {
-    if (!lrcText) return null;
-
-    const lines = String(lrcText).replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-    const entries = [];
-
-    for (const rawLine of lines) {
-        const parsed = parseLrcLine(rawLine);
-        if (!parsed) continue;
-        for (const t of parsed.times) {
-            entries.push({
-                time: t,
-                text: parsed.text,
-                instrumental: parsed.instrumental
-            });
-        }
-    }
-
-    if (entries.length === 0) return null;
-
-    entries.sort((a, b) => a.time - b.time);
-    return entries;
-}
+// The (non-editor) synced-lyrics display: mode/highlight/scroll/follow-button. The LRC parser is lyrics/lrc-parser.js.
 
 let syncedLyricsState = {
     entries: null,
@@ -74,13 +16,13 @@ let lyricsDisplayMode = {
     mode: 'auto'
 };
 
-function getLyricsDisplayMode(song) {
+export function getLyricsDisplayMode(song) {
     if (!song) return 'auto';
     if (lyricsDisplayMode.songId !== song.id) return 'auto';
     return lyricsDisplayMode.mode;
 }
 
-function setLyricsDisplayMode(mode) {
+export function setLyricsDisplayMode(mode) {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) return;
     const queueItem = playbackQueue[currentQueueIndex];
     const song = queueItem.song || queueItem;
@@ -104,17 +46,17 @@ function setLyricsDisplayMode(mode) {
     }
 }
 
-function refreshSyncedHighlight() {
+export function refreshSyncedHighlight() {
     if (!syncedLyricsState.entries || syncedLyricsState.entries.length === 0) return;
     updateSyncedLyricsHighlight(audioElement.currentTime || 0);
 }
 
-function resetLyricsDisplayMode(songId) {
+export function resetLyricsDisplayMode(songId) {
     lyricsDisplayMode.songId = songId || null;
     lyricsDisplayMode.mode = 'auto';
 }
 
-function initSyncedLyrics(song) {
+export function initSyncedLyrics(song) {
     resetSyncedLyricsFollowState();
     syncedLyricsState.entries = null;
     syncedLyricsState.activeIndex = -1;
@@ -132,7 +74,7 @@ function initSyncedLyrics(song) {
     return true;
 }
 
-function updateSyncedLyricsHighlight(currentTime) {
+export function updateSyncedLyricsHighlight(currentTime) {
     const state = syncedLyricsState;
     if (!state.entries || state.entries.length === 0) return;
     if (!state.lineElements || state.lineElements.length === 0) return;
@@ -193,7 +135,7 @@ function updateSyncedLyricsHighlight(currentTime) {
     }
 }
 
-function smoothScrollToLine(el) {
+export function smoothScrollToLine(el) {
     const state = syncedLyricsState;
     if (!state.container) return;
 
@@ -212,7 +154,7 @@ function smoothScrollToLine(el) {
     markProgrammaticScroll(state);
 }
 
-function markProgrammaticScroll(state) {
+export function markProgrammaticScroll(state) {
     clearTimeout(state._programmaticScrollTimeout);
     state._programmaticScrollTimeout = setTimeout(() => {
         state.programmaticScroll = false;
@@ -220,7 +162,7 @@ function markProgrammaticScroll(state) {
     }, 700);
 }
 
-function attachSyncedLyricsScrollWatcher() {
+export function attachSyncedLyricsScrollWatcher() {
     const state = syncedLyricsState;
     if (state.scrollCleanup) {
         state.scrollCleanup();
@@ -270,7 +212,7 @@ function attachSyncedLyricsScrollWatcher() {
     };
 }
 
-function showFollowLyricsButton() {
+export function showFollowLyricsButton() {
     let btn = document.getElementById('follow-lyrics-btn');
     if (!btn) {
         btn = document.createElement('button');
@@ -289,13 +231,13 @@ function showFollowLyricsButton() {
     requestAnimationFrame(() => btn.classList.add('visible'));
 }
 
-function hideFollowLyricsButton() {
+export function hideFollowLyricsButton() {
     const btn = document.getElementById('follow-lyrics-btn');
     if (!btn) return;
     btn.classList.remove('visible');
 }
 
-function resetSyncedLyricsFollowState() {
+export function resetSyncedLyricsFollowState() {
     syncedLyricsState.userScrolledAway = false;
     syncedLyricsState.programmaticScroll = false;
     hideFollowLyricsButton();
@@ -305,4 +247,23 @@ function resetSyncedLyricsFollowState() {
     }
     clearTimeout(syncedLyricsState._programmaticScrollTimeout);
     syncedLyricsState._programmaticScrollTimeout = null;
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        getLyricsDisplayMode,
+        setLyricsDisplayMode,
+        refreshSyncedHighlight,
+        resetLyricsDisplayMode,
+        initSyncedLyrics,
+        updateSyncedLyricsHighlight,
+        smoothScrollToLine,
+        markProgrammaticScroll,
+        attachSyncedLyricsScrollWatcher,
+        showFollowLyricsButton,
+        hideFollowLyricsButton,
+        resetSyncedLyricsFollowState,
+        syncedLyricsState,
+        lyricsDisplayMode
+    });
 }

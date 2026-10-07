@@ -1,6 +1,14 @@
 // Sync editor: line insert/delete/shift and the per-line context menu.
 
-function insertSyncLineAbove(index) {
+registerActions({
+    insertSyncLineAbove,
+    insertSyncLineBelow,
+    selectSyncLine,
+    shiftSyncLineTime,
+    toggleSyncLineInstrumental
+});
+
+export function insertSyncLineAbove(index) {
     pushSyncHistory('Insert line above');
     syncEditorState.lines.splice(index, 0, {
         text: '',
@@ -14,7 +22,7 @@ function insertSyncLineAbove(index) {
     setTimeout(() => editSyncLineText(index), 30);
 }
 
-function insertSyncLineBelow(index) {
+export function insertSyncLineBelow(index) {
     pushSyncHistory('Insert line below');
     syncEditorState.lines.splice(index + 1, 0, {
         text: '',
@@ -28,7 +36,7 @@ function insertSyncLineBelow(index) {
     setTimeout(() => editSyncLineText(index + 1), 30);
 }
 
-function deleteSyncLine(index) {
+export function deleteSyncLine(index) {
     if (index < 0 || index >= syncEditorState.lines.length) return;
     pushSyncHistory('Delete line');
     syncEditorState.lines.splice(index, 1);
@@ -40,7 +48,7 @@ function deleteSyncLine(index) {
     updateSyncEditorProgress();
 }
 
-function setSyncLineTimeToNow(index) {
+export function setSyncLineTimeToNow(index) {
     if (index < 0 || index >= syncEditorState.lines.length) return;
     pushSyncHistory('Set time');
     syncEditorState.lines[index].time = Math.max(0, audioElement.currentTime || 0);
@@ -49,7 +57,7 @@ function setSyncLineTimeToNow(index) {
     updateSyncEditorProgress();
 }
 
-function toggleSyncLineInstrumental(index) {
+export function toggleSyncLineInstrumental(index) {
     if (index < 0 || index >= syncEditorState.lines.length) return;
     pushSyncHistory('Toggle instrumental');
     const line = syncEditorState.lines[index];
@@ -60,7 +68,7 @@ function toggleSyncLineInstrumental(index) {
     updateSyncEditorProgress();
 }
 
-function shiftSyncLineTime(index, delta) {
+export function shiftSyncLineTime(index, delta) {
     if (index < 0 || index >= syncEditorState.lines.length) return;
     const line = syncEditorState.lines[index];
     if (typeof line.time !== 'number') {
@@ -79,7 +87,7 @@ let _syncLineContextMenu = null;
 let _syncLineContextMenuOpenedAt = 0;
 let _syncLineContextMenuDocHandler = null;
 
-function showSyncLineContextMenu(event, index) {
+export function showSyncLineContextMenu(event, index) {
     if (event) {
         event.preventDefault();
         event.stopPropagation();
@@ -202,7 +210,7 @@ function showSyncLineContextMenu(event, index) {
     }, 50);
 }
 
-function closeSyncLineContextMenu() {
+export function closeSyncLineContextMenu() {
     if (_syncLineContextMenu) {
         _syncLineContextMenu.remove();
         _syncLineContextMenu = null;
@@ -214,9 +222,23 @@ function closeSyncLineContextMenu() {
     }
 }
 
-function selectSyncLine(index) {
+export function selectSyncLine(index) {
     if (index < 0 || index >= syncEditorState.lines.length) return;
     if (index === syncEditorState.focusedIndex) return;
     syncEditorState.focusedIndex = index;
     renderSyncEditorLines();
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        insertSyncLineAbove,
+        insertSyncLineBelow,
+        deleteSyncLine,
+        setSyncLineTimeToNow,
+        toggleSyncLineInstrumental,
+        shiftSyncLineTime,
+        showSyncLineContextMenu,
+        closeSyncLineContextMenu,
+        selectSyncLine
+    });
 }

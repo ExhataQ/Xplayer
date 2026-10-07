@@ -1,6 +1,14 @@
 // Sync editor: mini-player volume plus generate/save/seek/live-follow.
 
-function updateSyncMiniVolume() {
+registerActions({
+    saveSyncAsFile,
+    saveSyncEditor,
+    startSyncVolumeDrag,
+    syncMiniToggleMute,
+    toggleLiveFollow
+});
+
+export function updateSyncMiniVolume() {
     if (!syncEditorState.open) return;
     const vol = audioElement.volume || 0;
     const fill = document.getElementById('sync-volume-fill');
@@ -16,13 +24,13 @@ function updateSyncMiniVolume() {
     }
 }
 
-function syncMiniToggleMute() {
+export function syncMiniToggleMute() {
     audioElement.muted = !audioElement.muted;
     updateSyncMiniVolume();
     if (typeof updateVolume === 'function') updateVolume(audioElement.volume);
 }
 
-function startSyncVolumeDrag(event) {
+export function startSyncVolumeDrag(event) {
     event.preventDefault();
     const slider = document.getElementById('sync-volume-slider');
     if (!slider) return;
@@ -58,7 +66,7 @@ function startSyncVolumeDrag(event) {
     document.addEventListener('mouseup', onUp);
 }
 
-function generateLrcFromEditor() {
+export function generateLrcFromEditor() {
     const timed = syncEditorState.lines.filter((l) => {
         if (typeof l.time !== 'number') return false;
         if (l.instrumental) return true;
@@ -84,12 +92,12 @@ function generateLrcFromEditor() {
     return out;
 }
 
-function updateSyncEditorPreview() {
+export function updateSyncEditorPreview() {
     const ta = document.getElementById('sync-lrc-preview');
     if (ta) ta.value = generateLrcFromEditor();
 }
 
-function updateSyncEditorProgress() {
+export function updateSyncEditorProgress() {
     const el = document.getElementById('sync-progress-count');
     if (!el) return;
     const nonBlank = syncEditorState.lines.filter((l) => l.text.trim() !== '');
@@ -97,7 +105,7 @@ function updateSyncEditorProgress() {
     el.textContent = timed.length + ' / ' + nonBlank.length;
 }
 
-function saveSyncAsFile(format) {
+export function saveSyncAsFile(format) {
     const song = getSongById(syncEditorState.songId);
     if (!song) return;
     const contents = generateLrcFromEditor();
@@ -109,8 +117,8 @@ function saveSyncAsFile(format) {
     const safeArtist = (song.artist || '').replace(/[\\/:*?"<>|]/g, '_');
     const defaultName = (safeArtist ? safeArtist + ' - ' : '') + safeTitle + '.' + format;
 
-    if (window.electronAPI && window.electronAPI.saveLyricsFile) {
-        window.electronAPI.saveLyricsFile(defaultName, contents).then((result) => {
+    if (desktopApi.supports('lyrics.saveLyricsFile')) {
+        desktopApi.lyrics.saveLyricsFile(defaultName, contents).then((result) => {
             if (result && result.success) {
                 showNotification('Saved', 'success', 2000);
             }
@@ -129,7 +137,7 @@ function saveSyncAsFile(format) {
     }
 }
 
-function saveSyncEditor() {
+export function saveSyncEditor() {
     const song = getSongById(syncEditorState.songId);
     if (!song) {
         closeSyncEditor();
@@ -178,7 +186,7 @@ function saveSyncEditor() {
     }
 }
 
-function seekToSyncedLine(index) {
+export function seekToSyncedLine(index) {
     if (!syncedLyricsState.entries || index < 0 || index >= syncedLyricsState.entries.length) return;
     const entry = syncedLyricsState.entries[index];
     if (!entry) return;
@@ -201,7 +209,7 @@ function seekToSyncedLine(index) {
     updateSyncedLyricsHighlight(audioElement.currentTime);
 }
 
-function toggleLiveFollow() {
+export function toggleLiveFollow() {
     syncEditorState.liveFollow = !syncEditorState.liveFollow;
     updateLiveFollowButton();
     if (syncEditorState.liveFollow) {
@@ -209,13 +217,13 @@ function toggleLiveFollow() {
     }
 }
 
-function updateLiveFollowButton() {
+export function updateLiveFollowButton() {
     const btn = document.getElementById('sync-live-follow-btn');
     if (!btn) return;
     btn.classList.toggle('active', !!syncEditorState.liveFollow);
 }
 
-function followPlayingLine() {
+export function followPlayingLine() {
     if (!syncEditorState.liveFollow) return;
     if (!syncEditorState.entries && (!syncEditorState.lines || syncEditorState.lines.length === 0)) return;
 
@@ -233,4 +241,21 @@ function followPlayingLine() {
     syncEditorState.focusedIndex = targetIndex;
     renderSyncEditorLines();
     scrollSyncLineIntoView(targetIndex);
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        updateSyncMiniVolume,
+        syncMiniToggleMute,
+        startSyncVolumeDrag,
+        generateLrcFromEditor,
+        updateSyncEditorPreview,
+        updateSyncEditorProgress,
+        saveSyncAsFile,
+        saveSyncEditor,
+        seekToSyncedLine,
+        toggleLiveFollow,
+        updateLiveFollowButton,
+        followPlayingLine
+    });
 }

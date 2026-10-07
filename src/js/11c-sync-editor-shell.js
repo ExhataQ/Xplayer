@@ -1,5 +1,9 @@
 // Sync editor: time helpers, undo/redo history, and the editor shell (open/close/render).
 
+registerActions({
+    attemptCancelSyncEditor
+});
+
 function formatLrcTime(seconds) {
     if (seconds < 0) seconds = 0;
     const mins = Math.floor(seconds / 60);
@@ -286,7 +290,7 @@ function renderSyncEditor() {
         .join('');
 
     overlay.innerHTML = `
-        <div class="sync-editor-modal" onclick="event.stopPropagation()">
+        <div class="sync-editor-modal" data-stop>
             <div class="sync-editor-header">
                 <div>
                     <div class="sync-editor-title">Sync Editor</div>
@@ -294,7 +298,7 @@ function renderSyncEditor() {
         song ? song.artist : 'Unknown Artist'
     )}</div>
                 </div>
-                <button class="sync-editor-close" onclick="attemptCancelSyncEditor()" aria-label="Close">
+                <button class="sync-editor-close" data-action="attemptCancelSyncEditor" aria-label="Close">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
@@ -305,8 +309,8 @@ function renderSyncEditor() {
                             <option value="">Load from variant…</option>
                             ${variantOptions}
                         </select>
-                        <button class="sync-editor-mini-btn" onclick="loadPlainLyricsIntoEditor()">Load Plain Lyrics</button>
-                        <button class="sync-editor-mini-btn" onclick="importLrcIntoEditor()">Import .lrc</button>
+                        <button class="sync-editor-mini-btn" data-action="loadPlainLyricsIntoEditor">Load Plain Lyrics</button>
+                        <button class="sync-editor-mini-btn" data-action="importLrcIntoEditor">Import .lrc</button>
                     </div>
                     <div class="sync-editor-lines" id="sync-editor-lines"></div>
                 </div>
@@ -314,34 +318,34 @@ function renderSyncEditor() {
                     <div class="sync-editor-miniplayer">
                         <div class="sync-editor-timecodes">
                             <div class="sync-editor-timecode" id="sync-timecode-current">00:00.00</div>
-                            <button class="sync-editor-copy-time" onclick="copySyncCurrentTime()" title="Copy current time">
+                            <button class="sync-editor-copy-time" data-action="copySyncCurrentTime" title="Copy current time">
                                 <span class="material-symbols-outlined">content_copy</span>
                             </button>
                             <div class="sync-editor-timecode-sep">/</div>
                             <div class="sync-editor-timecode-total" id="sync-timecode-total">${escapeHtml(
                                 song ? song.duration : '00:00.00'
                             )}</div>
-                            <button class="sync-editor-live-follow-btn" id="sync-live-follow-btn" onclick="toggleLiveFollow()" title="Follow playing line">
+                            <button class="sync-editor-live-follow-btn" id="sync-live-follow-btn" data-action="toggleLiveFollow" title="Follow playing line">
                                 <span class="material-symbols-outlined">playlist_play</span>
                             </button>
                         </div>
-                        <div class="sync-editor-scrubber" id="sync-scrubber" onmousedown="startSyncScrub(event)">
+                        <div class="sync-editor-scrubber" id="sync-scrubber" data-action-mousedown="startSyncScrub" data-args-mousedown='["$event"]'>
                             <div class="sync-editor-scrubber-fill" id="sync-scrubber-fill"></div>
                             <div class="sync-editor-scrubber-knob" id="sync-scrubber-knob"></div>
                         </div>
                         <div class="sync-editor-mini-controls">
-                            <button class="sync-editor-miniplayer-btn" onclick="syncMiniSeekBy(-5)" title="Back 5s">−5s</button>
-                            <button class="sync-editor-miniplayer-btn" onclick="syncMiniSeekBy(-2)" title="Back 2s">−2s</button>
-                            <button class="sync-editor-miniplayer-btn" onclick="syncMiniSeekBy(-1)" title="Back 1s">−1s</button>
-                            <button class="sync-editor-miniplayer-btn sync-editor-miniplayer-btn-primary" id="sync-mini-play-btn" onclick="syncMiniTogglePlay()" title="Play/Pause">
+                            <button class="sync-editor-miniplayer-btn" data-action="syncMiniSeekBy" data-args='[-5]' title="Back 5s">−5s</button>
+                            <button class="sync-editor-miniplayer-btn" data-action="syncMiniSeekBy" data-args='[-2]' title="Back 2s">−2s</button>
+                            <button class="sync-editor-miniplayer-btn" data-action="syncMiniSeekBy" data-args='[-1]' title="Back 1s">−1s</button>
+                            <button class="sync-editor-miniplayer-btn sync-editor-miniplayer-btn-primary" id="sync-mini-play-btn" data-action="syncMiniTogglePlay" title="Play/Pause">
                                 <span class="material-symbols-outlined" id="sync-mini-play-icon">play_arrow</span>
                             </button>
-                            <button class="sync-editor-miniplayer-btn" onclick="syncMiniSeekBy(1)" title="Forward 1s">+1s</button>
-                            <button class="sync-editor-miniplayer-btn" onclick="syncMiniSeekBy(2)" title="Forward 2s">+2s</button>
-                            <button class="sync-editor-miniplayer-btn" onclick="syncMiniSeekBy(5)" title="Forward 5s">+5s</button>
+                            <button class="sync-editor-miniplayer-btn" data-action="syncMiniSeekBy" data-args='[1]' title="Forward 1s">+1s</button>
+                            <button class="sync-editor-miniplayer-btn" data-action="syncMiniSeekBy" data-args='[2]' title="Forward 2s">+2s</button>
+                            <button class="sync-editor-miniplayer-btn" data-action="syncMiniSeekBy" data-args='[5]' title="Forward 5s">+5s</button>
                             <div class="sync-editor-volume">
-                                <span class="material-symbols-outlined sync-editor-volume-icon" id="sync-volume-icon" onclick="syncMiniToggleMute()">volume_up</span>
-                                <div class="sync-editor-volume-slider" id="sync-volume-slider" onmousedown="startSyncVolumeDrag(event)">
+                                <span class="material-symbols-outlined sync-editor-volume-icon" id="sync-volume-icon" data-action="syncMiniToggleMute">volume_up</span>
+                                <div class="sync-editor-volume-slider" id="sync-volume-slider" data-action-mousedown="startSyncVolumeDrag" data-args-mousedown='["$event"]'>
                                     <div class="sync-editor-volume-fill" id="sync-volume-fill"></div>
                                     <div class="sync-editor-volume-knob" id="sync-volume-knob"></div>
                                 </div>
@@ -360,14 +364,14 @@ function renderSyncEditor() {
             </div>
             <div class="sync-editor-footer">
                 <div class="sync-editor-footer-left">
-                    <button class="sync-editor-btn" onclick="clearAllSyncStamps()">Clear All Stamps</button>
-                    <button class="sync-editor-btn" onclick="discardSyncChanges()">Discard Changes</button>
+                    <button class="sync-editor-btn" data-action="clearAllSyncStamps">Clear All Stamps</button>
+                    <button class="sync-editor-btn" data-action="discardSyncChanges">Discard Changes</button>
                 </div>
                 <div class="sync-editor-footer-right">
-                    <button class="sync-editor-btn" onclick="saveSyncAsFile('lrc')">Save as .lrc</button>
-                    <button class="sync-editor-btn" onclick="saveSyncAsFile('txt')">Save as .txt</button>
-                    <button class="sync-editor-btn sync-editor-btn-primary" onclick="saveSyncEditor()">Save</button>
-                    <button class="sync-editor-btn" onclick="attemptCancelSyncEditor()">Cancel</button>
+                    <button class="sync-editor-btn" data-action="saveSyncAsFile" data-args='["lrc"]'>Save as .lrc</button>
+                    <button class="sync-editor-btn" data-action="saveSyncAsFile" data-args='["txt"]'>Save as .txt</button>
+                    <button class="sync-editor-btn sync-editor-btn-primary" data-action="saveSyncEditor">Save</button>
+                    <button class="sync-editor-btn" data-action="attemptCancelSyncEditor">Cancel</button>
                 </div>
             </div>
         </div>

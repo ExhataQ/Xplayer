@@ -1,6 +1,35 @@
 // ============================================================================
 // MULTI-SONG LYRICS FINDER
 // ============================================================================
+registerActions({
+    clearOnlineLyricsSearchInputs,
+    clearSmartLyricsSelection,
+    closeOnlineLyricsPicker,
+    closeOnlineLyricsResult,
+    confirmOnlineLyricsPicker,
+    copyOnlineLyrics,
+    downloadOnlineLyrics,
+    handleOnlineLyricsPickerInput,
+    handleSmartLyricsFinderSearch,
+    nextOnlineLyricsPage,
+    openOnlineLyricsPicker,
+    openOnlineLyricsResult,
+    openSmartLyricsFinder,
+    previousOnlineLyricsPage,
+    runSmartLyricsFinder,
+    searchOnlineLyrics,
+    selectAllSmartLyricsSongs,
+    selectOnlineLyricsType,
+    setSmartLyricsMode,
+    stopSmartLyricsFinder,
+    switchView: function (...args) {
+        return switchView.apply(this, args);
+    },
+    toggleSmartLyricsSkipExisting,
+    toggleSmartLyricsSong,
+    useOnlineLyrics
+});
+
 const SMART_LYRICS_CONCURRENCY = 5;
 
 let smartLyricsFinderState = {
@@ -16,7 +45,7 @@ let smartLyricsFinderState = {
     lrclibCache: new Map()
 };
 
-function openSmartLyricsFinder() {
+export function openSmartLyricsFinder() {
     smartLyricsFinderState = {
         mode: 'lrc',
         query: '',
@@ -32,7 +61,7 @@ function openSmartLyricsFinder() {
     switchView(VIEWS.SMART_LYRICS);
 }
 
-function getSmartLyricsFinderSongs() {
+export function getSmartLyricsFinderSongs() {
     const query = String(smartLyricsFinderState.query || '').toLowerCase().trim();
     const songs = typeof SONGS_DATA !== 'undefined' ? SONGS_DATA : (typeof getActiveSongs === 'function' ? getActiveSongs() : []);
     if (!query) return songs;
@@ -43,7 +72,7 @@ function getSmartLyricsFinderSongs() {
     });
 }
 
-function stopSmartLyricsFinder() {
+export function stopSmartLyricsFinder() {
     if (!smartLyricsFinderState.processing) return;
     smartLyricsFinderState.stopRequested = true;
     smartLyricsFinderState.status = 'Stopping…';
@@ -51,12 +80,12 @@ function stopSmartLyricsFinder() {
     updateSmartLyricsFinderToolbarState();
 }
 
-function toggleSmartLyricsSkipExisting(checked) {
+export function toggleSmartLyricsSkipExisting(checked) {
     if (smartLyricsFinderState.processing) return;
     smartLyricsFinderState.skipExisting = !!checked;
 }
 
-function toggleSmartLyricsSong(songId) {
+export function toggleSmartLyricsSong(songId) {
     if (smartLyricsFinderState.processing) return;
     if (smartLyricsFinderState.selectedIds.has(songId)) smartLyricsFinderState.selectedIds.delete(songId);
     else smartLyricsFinderState.selectedIds.add(songId);
@@ -64,44 +93,44 @@ function toggleSmartLyricsSong(songId) {
     updateSmartLyricsFinderSelectionCount();
 }
 
-function selectAllSmartLyricsSongs() {
+export function selectAllSmartLyricsSongs() {
     if (smartLyricsFinderState.processing) return;
     getSmartLyricsFinderSongs().forEach(song => smartLyricsFinderState.selectedIds.add(song.id));
     updateSmartLyricsFinderList();
     updateSmartLyricsFinderSelectionCount();
 }
 
-function clearSmartLyricsSelection() {
+export function clearSmartLyricsSelection() {
     if (smartLyricsFinderState.processing) return;
     smartLyricsFinderState.selectedIds.clear();
     updateSmartLyricsFinderList();
     updateSmartLyricsFinderSelectionCount();
 }
 
-function setSmartLyricsMode(mode) {
+export function setSmartLyricsMode(mode) {
     if (smartLyricsFinderState.processing) return;
     smartLyricsFinderState.mode = mode === 'lyrics' ? 'lyrics' : 'lrc';
     renderSmartLyricsFinder();
 }
 
-function handleSmartLyricsFinderSearch(value) {
+export function handleSmartLyricsFinderSearch(value) {
     smartLyricsFinderState.query = value || '';
     updateSmartLyricsFinderList();
     updateSmartLyricsFinderSelectionCount();
 }
 
-function updateSmartLyricsFinderSelectionCount() {
+export function updateSmartLyricsFinderSelectionCount() {
     const el = document.getElementById('smart-lyrics-selection-count');
     if (el) el.textContent = `${smartLyricsFinderState.selectedIds.size} selected`;
     updateSmartLyricsFinderToolbarState();
 }
 
-function updateSmartLyricsFinderProgress() {
+export function updateSmartLyricsFinderProgress() {
     const el = document.getElementById('smart-lyrics-progress');
     if (el) el.textContent = smartLyricsFinderState.status || '';
 }
 
-function updateSmartLyricsFinderToolbarState() {
+export function updateSmartLyricsFinderToolbarState() {
     const processing = smartLyricsFinderState.processing;
     const stopBtn = document.getElementById('smart-lyrics-stop-btn');
     const findSelectedBtn = document.getElementById('smart-lyrics-find-selected');
@@ -114,7 +143,7 @@ function updateSmartLyricsFinderToolbarState() {
     if (skipCheckbox) skipCheckbox.disabled = processing;
 }
 
-function buildSmartLyricsRowHTML(song, index) {
+export function buildSmartLyricsRowHTML(song, index) {
     const selected = smartLyricsFinderState.selectedIds.has(song.id);
     const result = smartLyricsFinderState.results.get(song.id);
     const stateClass = result ? (result.success ? 'found' : 'failed') : '';
@@ -124,12 +153,12 @@ function buildSmartLyricsRowHTML(song, index) {
     const albumText = buildSongAlbumHTML(song) || escapeHtml(song.album || '');
 
     return `
-    <div class="song-item smart-lyrics-song-row ${selected ? 'selected' : ''} ${stateClass}" onclick="toggleSmartLyricsSong(${song.id})" data-song-id="${song.id}">
+    <div class="song-item smart-lyrics-song-row ${selected ? 'selected' : ''} ${stateClass}" ${actionAttrs('toggleSmartLyricsSong', [song.id])} data-song-id="${song.id}">
         <div class="song-number-item smart-lyrics-checkbox">
             <span class="material-symbols-outlined">${selected ? 'check_box' : 'check_box_outline_blank'}</span>
         </div>
         <div class="left-song-item">
-            <img class="song-cover" src="${coverSrc}" alt="Cover for ${escapeHtml(song.title || 'Unknown title')}" onerror="this.onerror=null; this.src=PLACEHOLDER_IMAGE">
+            <img class="song-cover" src="${coverSrc}" alt="Cover for ${escapeHtml(song.title || 'Unknown title')}" data-action-error="replaceBrokenCoverWithPlaceholder" data-args-error='["$this"]'>
             <div class="song-info">
                 <div class="song-title">${escapeHtml(song.title || 'Unknown title')}</div>
                 <div class="song-artist">${artistText}</div>
@@ -142,7 +171,7 @@ function buildSmartLyricsRowHTML(song, index) {
     </div>`;
 }
 
-function updateSmartLyricsFinderList() {
+export function updateSmartLyricsFinderList() {
     const list = document.getElementById('smart-lyrics-song-list');
     if (!list) return;
     const songs = getSmartLyricsFinderSongs();
@@ -160,7 +189,7 @@ function updateSmartLyricsFinderList() {
     }
 }
 
-function buildSmartLyricsCacheKey(song) {
+export function buildSmartLyricsCacheKey(song) {
     const artist = String(song.artist || '').trim().toLowerCase();
     const title = String(song.title || '').trim().toLowerCase();
     const album = String(song.album || '').trim().toLowerCase();
@@ -168,12 +197,12 @@ function buildSmartLyricsCacheKey(song) {
     return `${artist}|${title}|${album}|${duration}`;
 }
 
-async function searchLyricsForSmartSong(song, mode) {
+export async function searchLyricsForSmartSong(song, mode) {
     const cacheKey = buildSmartLyricsCacheKey(song);
 
     let rawResult = smartLyricsFinderState.lrclibCache.get(cacheKey);
     if (!rawResult) {
-        rawResult = await window.electronAPI.searchOnlineLyrics({
+        rawResult = await desktopApi.lyrics.searchOnlineLyrics({
             artist: String(song.artist || ''),
             title: String(song.title || ''),
             album: String(song.album || ''),
@@ -200,7 +229,7 @@ async function searchLyricsForSmartSong(song, mode) {
     };
 }
 
-async function runSmartLyricsFinder(allSongs = false) {
+export async function runSmartLyricsFinder(allSongs = false) {
     if (smartLyricsFinderState.processing) return;
 
     const songs = getSmartLyricsFinderSongs();
@@ -289,7 +318,7 @@ async function runSmartLyricsFinder(allSongs = false) {
     renderSmartLyricsFinder();
 }
 
-function renderSmartLyricsFinder() {
+export function renderSmartLyricsFinder() {
     const mainContentInner = document.querySelector('.main-content-inner');
     if (!mainContentInner) return;
     let root = document.getElementById('lyrics-view-root');
@@ -305,23 +334,23 @@ function renderSmartLyricsFinder() {
     root.innerHTML = `<div class="online-lyrics-view-container smart-lyrics-finder-container">
         <div class="online-lyrics-header">
             <div><h2>Find multi song lyrics &amp; LRC</h2><p>Choose songs and automatically find and save synced LRC or plain lyrics.</p></div>
-            <button class="lyrics-view-edit-btn" onclick="switchView('${VIEWS.LYRICS}')"><span class="material-symbols-outlined">arrow_back</span>Back to Lyrics</button>
+            <button class="lyrics-view-edit-btn" ${actionAttrs('switchView', [VIEWS.LYRICS])}><span class="material-symbols-outlined">arrow_back</span>Back to Lyrics</button>
         </div>
         <div class="smart-lyrics-toolbar">
-            <input class="smart-lyrics-search" placeholder="Search songs..." value="${escapeOnlineLyricsAttribute(smartLyricsFinderState.query)}" oninput="handleSmartLyricsFinderSearch(this.value)" ${smartLyricsFinderState.processing ? 'disabled' : ''}>
+            <input class="smart-lyrics-search" placeholder="Search songs..." value="${escapeOnlineLyricsAttribute(smartLyricsFinderState.query)}" data-action-input="handleSmartLyricsFinderSearch" data-args-input='["$value"]' ${smartLyricsFinderState.processing ? 'disabled' : ''}>
             <div class="smart-lyrics-mode">
-                <button class="lyrics-view-edit-btn ${smartLyricsFinderState.mode === 'lrc' ? 'active' : ''}" onclick="setSmartLyricsMode('lrc')" ${smartLyricsFinderState.processing ? 'disabled' : ''}>Synced LRC</button>
-                <button class="lyrics-view-edit-btn ${smartLyricsFinderState.mode === 'lyrics' ? 'active' : ''}" onclick="setSmartLyricsMode('lyrics')" ${smartLyricsFinderState.processing ? 'disabled' : ''}>Plain lyrics</button>
+                <button class="lyrics-view-edit-btn ${smartLyricsFinderState.mode === 'lrc' ? 'active' : ''}" data-action="setSmartLyricsMode" data-args='["lrc"]' ${smartLyricsFinderState.processing ? 'disabled' : ''}>Synced LRC</button>
+                <button class="lyrics-view-edit-btn ${smartLyricsFinderState.mode === 'lyrics' ? 'active' : ''}" data-action="setSmartLyricsMode" data-args='["lyrics"]' ${smartLyricsFinderState.processing ? 'disabled' : ''}>Plain lyrics</button>
             </div>
-            <button class="lyrics-view-edit-btn" onclick="selectAllSmartLyricsSongs()" ${smartLyricsFinderState.processing ? 'disabled' : ''}>Select visible</button>
-            <button class="lyrics-view-edit-btn" onclick="clearSmartLyricsSelection()" ${smartLyricsFinderState.processing ? 'disabled' : ''}>Clear</button>
+            <button class="lyrics-view-edit-btn" data-action="selectAllSmartLyricsSongs" ${smartLyricsFinderState.processing ? 'disabled' : ''}>Select visible</button>
+            <button class="lyrics-view-edit-btn" data-action="clearSmartLyricsSelection" ${smartLyricsFinderState.processing ? 'disabled' : ''}>Clear</button>
         </div>
         <div class="smart-lyrics-actions"><span id="smart-lyrics-selection-count">${selectedCount} selected</span><div>
-            <button class="lyrics-view-edit-btn lyrics-online-btn" id="smart-lyrics-find-selected" onclick="runSmartLyricsFinder(false)" ${smartLyricsFinderState.processing || !selectedCount ? 'disabled' : ''}>Find for selected</button>
-            <button class="lyrics-view-edit-btn lyrics-online-btn" id="smart-lyrics-stop-btn" onclick="stopSmartLyricsFinder()" style="${smartLyricsFinderState.processing ? '' : 'display:none;'}">Stop</button>
-            <button class="lyrics-view-edit-btn lyrics-online-btn" id="smart-lyrics-find-all" onclick="runSmartLyricsFinder(true)" ${smartLyricsFinderState.processing || !songs.length ? 'disabled' : ''}>Find for all songs</button>
+            <button class="lyrics-view-edit-btn lyrics-online-btn" id="smart-lyrics-find-selected" data-action="runSmartLyricsFinder" data-args='[false]' ${smartLyricsFinderState.processing || !selectedCount ? 'disabled' : ''}>Find for selected</button>
+            <button class="lyrics-view-edit-btn lyrics-online-btn" id="smart-lyrics-stop-btn" data-action="stopSmartLyricsFinder" style="${smartLyricsFinderState.processing ? '' : 'display:none;'}">Stop</button>
+            <button class="lyrics-view-edit-btn lyrics-online-btn" id="smart-lyrics-find-all" data-action="runSmartLyricsFinder" data-args='[true]' ${smartLyricsFinderState.processing || !songs.length ? 'disabled' : ''}>Find for all songs</button>
             <label class="smart-lyrics-skip-existing" title="Skip songs that already have lyrics saved">
-                <input type="checkbox" id="smart-lyrics-skip-existing" ${smartLyricsFinderState.skipExisting ? 'checked' : ''} ${smartLyricsFinderState.processing ? 'disabled' : ''} onchange="toggleSmartLyricsSkipExisting(this.checked)">
+                <input type="checkbox" id="smart-lyrics-skip-existing" ${smartLyricsFinderState.skipExisting ? 'checked' : ''} ${smartLyricsFinderState.processing ? 'disabled' : ''} data-action-change="toggleSmartLyricsSkipExisting" data-args-change='["$checked"]'>
                 <span>Skip existing</span>
             </label>
         </div></div>
@@ -359,13 +388,13 @@ let onlineLyricsState = {
 
 let onlineLyricsPickerMouseDownOutside = false;
 
-function getCurrentPlaybackSong() {
+export function getCurrentPlaybackSong() {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) return null;
     const item = playbackQueue[currentQueueIndex];
     return item.song || item;
 }
 
-function parseSongDurationSeconds(value) {
+export function parseSongDurationSeconds(value) {
     if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
     const text = String(value || '').trim();
     const parts = text.split(':').map(Number);
@@ -375,18 +404,18 @@ function parseSongDurationSeconds(value) {
     return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function escapeOnlineLyricsAttribute(text) {
+export function escapeOnlineLyricsAttribute(text) {
     return escapeHtml(String(text || '')).replace(/\"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function formatOnlineLyricsDuration(seconds) {
+export function formatOnlineLyricsDuration(seconds) {
     const value = Number(seconds);
     if (!Number.isFinite(value) || value <= 0) return '';
     const total = Math.round(value);
     return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 }
 
-function openOnlineLyricsView() {
+export function openOnlineLyricsView() {
     const song = getCurrentPlaybackSong();
     if (!song) {
         showNotification('No song playing', 'warning', 2000);
@@ -396,14 +425,14 @@ function openOnlineLyricsView() {
     openOnlineLyricsSearchView(song, true);
 }
 
-function setOnlineLyricsSearchButtonActive(active) {
+export function setOnlineLyricsSearchButtonActive(active) {
     const btn = document.getElementById('online-lyrics-search-btn');
     if (!btn) return;
     btn.classList.toggle('active', active);
     btn.setAttribute('aria-pressed', active ? 'true' : 'false');
 }
 
-function toggleOnlineLyricsSearchView() {
+export function toggleOnlineLyricsSearchView() {
     if (currentView === VIEWS.ONLINE_LYRICS) {
         setOnlineLyricsSearchButtonActive(false);
         if (canGoBack()) {
@@ -417,7 +446,7 @@ function toggleOnlineLyricsSearchView() {
     openOnlineLyricsSearchView();
 }
 
-function openOnlineLyricsSearchView(song = null, autoSearch = false) {
+export function openOnlineLyricsSearchView(song = null, autoSearch = false) {
     const fromHeader = !song;
     onlineLyricsState = {
         song: song || null,
@@ -453,7 +482,7 @@ function openOnlineLyricsSearchView(song = null, autoSearch = false) {
     if (autoSearch) searchOnlineLyrics();
 }
 
-async function searchOnlineLyrics() {
+export async function searchOnlineLyrics() {
     const artistInput = document.getElementById('online-lyrics-artist');
     const titleInput = document.getElementById('online-lyrics-title');
     const albumInput = document.getElementById('online-lyrics-album');
@@ -480,7 +509,7 @@ async function searchOnlineLyrics() {
     updateOnlineLyricsResultsSection();
 
     try {
-        const result = await window.electronAPI.searchOnlineLyrics({
+        const result = await desktopApi.lyrics.searchOnlineLyrics({
             artist,
             title,
             album,
@@ -502,19 +531,19 @@ async function searchOnlineLyrics() {
     }
 }
 
-function openOnlineLyricsResult(index) {
+export function openOnlineLyricsResult(index) {
     if (index < 0 || index >= onlineLyricsState.results.length) return;
     if (onlineLyricsState.selectedIndex === index) return;
     onlineLyricsState.selectedIndex = index;
     updateOnlineLyricsResultsSection();
 }
 
-function closeOnlineLyricsResult() {
+export function closeOnlineLyricsResult() {
     onlineLyricsState.selectedIndex = -1;
     updateOnlineLyricsResultsSection();
 }
 
-function selectOnlineLyricsType(index, type) {
+export function selectOnlineLyricsType(index, type) {
     if (index < 0 || index >= onlineLyricsState.results.length) return;
     if (type !== 'lrc' && type !== 'lyrics') return;
 
@@ -523,12 +552,12 @@ function selectOnlineLyricsType(index, type) {
     updateOnlineLyricsResultsSection();
 }
 
-function getOnlineLyricsText(result, type) {
+export function getOnlineLyricsText(result, type) {
     if (!result) return '';
     return type === 'lrc' ? String(result.syncedLyrics || '') : String(result.plainLyrics || '');
 }
 
-function hasOnlineLyricsQueryChanged() {
+export function hasOnlineLyricsQueryChanged() {
     if (onlineLyricsState.fromHeader) return true;
     const orig = onlineLyricsState.originalQuery;
     if (!orig) return true;
@@ -539,7 +568,7 @@ function hasOnlineLyricsQueryChanged() {
     );
 }
 
-async function copyOnlineLyrics(index, type) {
+export async function copyOnlineLyrics(index, type) {
     const result = onlineLyricsState.results[index];
     const text = getOnlineLyricsText(result, type);
     if (!text.trim()) {
@@ -555,7 +584,7 @@ async function copyOnlineLyrics(index, type) {
     }
 }
 
-async function downloadOnlineLyrics(index, type) {
+export async function downloadOnlineLyrics(index, type) {
     const result = onlineLyricsState.results[index];
     const text = getOnlineLyricsText(result, type);
     if (!text.trim()) {
@@ -563,7 +592,7 @@ async function downloadOnlineLyrics(index, type) {
         return;
     }
 
-    const saved = await window.electronAPI.downloadOnlineLyrics({
+    const saved = await desktopApi.lyrics.downloadOnlineLyrics({
         title: result.trackName || onlineLyricsState.title,
         artist: result.artistName || onlineLyricsState.artist,
         type,
@@ -577,7 +606,7 @@ async function downloadOnlineLyrics(index, type) {
     }
 }
 
-function useOnlineLyrics(index, type) {
+export function useOnlineLyrics(index, type) {
     const result = onlineLyricsState.results[index];
     const text = getOnlineLyricsText(result, type);
     const song = onlineLyricsState.song || getCurrentPlaybackSong();
@@ -590,13 +619,13 @@ function useOnlineLyrics(index, type) {
     applyOnlineLyricsToSong(song.id, text, type, Boolean(result && result.instrumental));
 }
 
-function markSongInstrumental(songId) {
+export function markSongInstrumental(songId) {
     const song = SONGS_DATA.find((s) => s.id === songId);
     if (!song) return;
     song.instrumental = true;
 }
 
-function applyOnlineLyricsToSong(songId, text, type, isInstrumental = false) {
+export function applyOnlineLyricsToSong(songId, text, type, isInstrumental = false) {
     if (!text || !text.trim()) {
         showNotification('No lyrics available', 'warning', 2000);
         return false;
@@ -627,7 +656,7 @@ function applyOnlineLyricsToSong(songId, text, type, isInstrumental = false) {
     return true;
 }
 
-function openOnlineLyricsPicker(index, type, anchorEvent) {
+export function openOnlineLyricsPicker(index, type, anchorEvent) {
     const result = onlineLyricsState.results[index];
     if (!result) return;
 
@@ -656,7 +685,7 @@ function openOnlineLyricsPicker(index, type, anchorEvent) {
                 class="online-lyrics-picker-input"
                 placeholder="Search songs..."
                 value="${escapeOnlineLyricsAttribute(onlineLyricsState.pickerQuery)}"
-                oninput="handleOnlineLyricsPickerInput(this.value)"
+                data-action-input="handleOnlineLyricsPickerInput" data-args-input='["$value"]'
                 autocomplete="off"
             />
         </div>
@@ -669,8 +698,8 @@ function openOnlineLyricsPicker(index, type, anchorEvent) {
             </div>
         </div>
         <div class="online-lyrics-picker-footer">
-            <button class="lyrics-editor-btn" onclick="closeOnlineLyricsPicker()">Cancel</button>
-            <button class="lyrics-editor-btn lyrics-editor-btn-primary" id="online-lyrics-picker-confirm" onclick="confirmOnlineLyricsPicker()" disabled>Save to song</button>
+            <button class="lyrics-editor-btn" data-action="closeOnlineLyricsPicker">Cancel</button>
+            <button class="lyrics-editor-btn lyrics-editor-btn-primary" id="online-lyrics-picker-confirm" data-action="confirmOnlineLyricsPicker" disabled>Save to song</button>
         </div>
     `;
 
@@ -741,7 +770,7 @@ function openOnlineLyricsPicker(index, type, anchorEvent) {
     }, 0);
 }
 
-function closeOnlineLyricsPicker() {
+export function closeOnlineLyricsPicker() {
     onlineLyricsState.pickerOpen = false;
     onlineLyricsState.pickerIndex = -1;
     onlineLyricsState.pickerType = 'lrc';
@@ -754,14 +783,14 @@ function closeOnlineLyricsPicker() {
     onlineLyricsPickerMouseDownOutside = false;
 }
 
-function onlineLyricsPickerKeyHandler(e) {
+export function onlineLyricsPickerKeyHandler(e) {
     if (e.key === 'Escape' && onlineLyricsState.pickerOpen) {
         e.preventDefault();
         closeOnlineLyricsPicker();
     }
 }
 
-function onlineLyricsPickerMouseDownHandler(e) {
+export function onlineLyricsPickerMouseDownHandler(e) {
     if (!onlineLyricsState.pickerOpen) return;
     const picker = document.getElementById('online-lyrics-picker');
     if (!picker) {
@@ -775,7 +804,7 @@ function onlineLyricsPickerMouseDownHandler(e) {
     onlineLyricsPickerMouseDownOutside = !inside;
 }
 
-function onlineLyricsPickerOutsideHandler(e) {
+export function onlineLyricsPickerOutsideHandler(e) {
     if (!onlineLyricsState.pickerOpen) return;
     if (!onlineLyricsPickerMouseDownOutside) return;
     const picker = document.getElementById('online-lyrics-picker');
@@ -789,7 +818,7 @@ function onlineLyricsPickerOutsideHandler(e) {
     closeOnlineLyricsPicker();
 }
 
-function getOnlineLyricsPickerSongs() {
+export function getOnlineLyricsPickerSongs() {
     const rawQuery = (onlineLyricsState.pickerQuery || '').toLowerCase().trim();
     const songs = getActiveSongs();
     if (!rawQuery) return songs;
@@ -848,7 +877,7 @@ window.addEventListener('resize', function () {
     picker.style.top = posY + 'px';
 });
 
-function updateOnlineLyricsPickerList() {
+export function updateOnlineLyricsPickerList() {
     const list = document.getElementById('online-lyrics-picker-list');
     if (!list) return;
 
@@ -877,19 +906,19 @@ function updateOnlineLyricsPickerList() {
     updateScrollbarById('online-lyrics-picker-list-content');
 }
 
-function selectOnlineLyricsPickerSong(songId) {
+export function selectOnlineLyricsPickerSong(songId) {
     onlineLyricsState.pickerSelectedSongId = songId;
     updateOnlineLyricsPickerList();
     updateOnlineLyricsPickerConfirmButton();
 }
 
-function updateOnlineLyricsPickerConfirmButton() {
+export function updateOnlineLyricsPickerConfirmButton() {
     const btn = document.getElementById('online-lyrics-picker-confirm');
     if (!btn) return;
     btn.disabled = onlineLyricsState.pickerSelectedSongId === null;
 }
 
-function confirmOnlineLyricsPicker() {
+export function confirmOnlineLyricsPicker() {
     if (onlineLyricsState.pickerSelectedSongId === null) return;
     if (onlineLyricsState.pickerIndex < 0) return;
     const result = onlineLyricsState.results[onlineLyricsState.pickerIndex];
@@ -904,16 +933,16 @@ function confirmOnlineLyricsPicker() {
     if (applied) closeOnlineLyricsPicker();
 }
 
-function handleOnlineLyricsPickerInput(value) {
+export function handleOnlineLyricsPickerInput(value) {
     onlineLyricsState.pickerQuery = value;
     updateOnlineLyricsPickerList();
 }
 
-function getOnlineLyricsPageCount() {
+export function getOnlineLyricsPageCount() {
     return Math.max(1, Math.ceil(onlineLyricsState.results.length / onlineLyricsState.pageSize));
 }
 
-function setOnlineLyricsPage(page) {
+export function setOnlineLyricsPage(page) {
     const pageCount = getOnlineLyricsPageCount();
     onlineLyricsState.page = Math.max(0, Math.min(page, pageCount - 1));
     onlineLyricsState.selectedIndex = -1;
@@ -921,15 +950,15 @@ function setOnlineLyricsPage(page) {
     updateOnlineLyricsResultsSection();
 }
 
-function nextOnlineLyricsPage() {
+export function nextOnlineLyricsPage() {
     setOnlineLyricsPage(onlineLyricsState.page + 1);
 }
 
-function previousOnlineLyricsPage() {
+export function previousOnlineLyricsPage() {
     setOnlineLyricsPage(onlineLyricsState.page - 1);
 }
 
-function renderOnlineLyricsResult(result, index) {
+export function renderOnlineLyricsResult(result, index) {
     const selected = onlineLyricsState.selectedIndex === index;
     const synced = Boolean(String(result.syncedLyrics || '').trim());
     const plain = Boolean(String(result.plainLyrics || '').trim());
@@ -940,17 +969,17 @@ function renderOnlineLyricsResult(result, index) {
     const activeText = activeType === 'lrc' ? result.syncedLyrics : result.plainLyrics;
 
     return `
-        <div class="online-lyrics-result ${selected ? 'selected' : ''}" ${selected ? '' : `onclick="openOnlineLyricsResult(${index})"`}>
-            <button class="online-lyrics-result-header" onclick="event.stopPropagation(); openOnlineLyricsResult(${index})">
+        <div class="online-lyrics-result ${selected ? 'selected' : ''}" ${selected ? '' : `${actionAttrs('openOnlineLyricsResult', [index])}`}>
+            <button class="online-lyrics-result-header" ${actionAttrs('openOnlineLyricsResult', [index], { stop: true })}>
                 <span class="online-lyrics-result-title">${escapeHtml(result.trackName || 'Unknown title')}</span>
                 <span class="online-lyrics-result-artist">${escapeHtml(result.artistName || 'Unknown artist')}</span>
                 <span class="online-lyrics-result-album">${escapeHtml(album || '—')}</span>
                 <span class="online-lyrics-result-meta">${escapeHtml(duration)}</span>
-                <span class="material-symbols-outlined online-lyrics-expand" onclick="event.stopPropagation(); ${selected ? `closeOnlineLyricsResult()` : `openOnlineLyricsResult(${index})`}">${selected ? 'expand_less' : 'expand_more'}</span>
+                <span class="material-symbols-outlined online-lyrics-expand" ${selected ? actionAttrs('closeOnlineLyricsResult', [], { stop: true }) : actionAttrs('openOnlineLyricsResult', [index], { stop: true })}>${selected ? 'expand_less' : 'expand_more'}</span>
             </button>
             <div class="online-lyrics-badges">
-                ${synced ? `<button class="online-lyrics-badge synced ${selected && activeType === 'lrc' ? 'active' : ''}" onclick="event.stopPropagation(); selectOnlineLyricsType(${index}, 'lrc')">Synced LRC</button>` : ''}
-                ${plain ? `<button class="online-lyrics-badge ${selected && activeType === 'lyrics' ? 'active' : ''}" onclick="event.stopPropagation(); selectOnlineLyricsType(${index}, 'lyrics')">Lyrics</button>` : ''}
+                ${synced ? `<button class="online-lyrics-badge synced ${selected && activeType === 'lrc' ? 'active' : ''}" ${actionAttrs('selectOnlineLyricsType', [index, 'lrc'], { stop: true })}>Synced LRC</button>` : ''}
+                ${plain ? `<button class="online-lyrics-badge ${selected && activeType === 'lyrics' ? 'active' : ''}" ${actionAttrs('selectOnlineLyricsType', [index, 'lyrics'], { stop: true })}>Lyrics</button>` : ''}
                 ${isInstrumental ? '<span class="online-lyrics-badge instrumental" title="Marked as instrumental by LRCLIB">Instrumental</span>' : ''}
                 ${!synced && !plain ? '<span class="online-lyrics-badge unavailable">No lyrics</span>' : ''}
             </div>
@@ -959,21 +988,21 @@ function renderOnlineLyricsResult(result, index) {
                     <pre>${escapeHtml(activeText || 'No lyrics available')}</pre>
                     <div class="online-lyrics-actions">
                         ${activeType === 'lrc' && synced ? `
-                            <button class="lyrics-view-edit-btn" onclick="event.stopPropagation(); copyOnlineLyrics(${index}, 'lrc')">Copy LRC</button>
-                            <button class="lyrics-view-edit-btn" onclick="event.stopPropagation(); downloadOnlineLyrics(${index}, 'lrc')">Download LRC</button>
+                            <button class="lyrics-view-edit-btn" ${actionAttrs('copyOnlineLyrics', [index, 'lrc'], { stop: true })}>Copy LRC</button>
+                            <button class="lyrics-view-edit-btn" ${actionAttrs('downloadOnlineLyrics', [index, 'lrc'], { stop: true })}>Download LRC</button>
                             ${onlineLyricsState.fromHeader
-                                ? `<button class="lyrics-view-edit-btn online-lyrics-primary-btn" onclick="event.stopPropagation(); openOnlineLyricsPicker(${index}, 'lrc', event)">Save LRC to a song</button>`
+                                ? `<button class="lyrics-view-edit-btn online-lyrics-primary-btn" ${actionAttrs('openOnlineLyricsPicker', [index, 'lrc', '$event'], { stop: true })}>Save LRC to a song</button>`
                                 : hasOnlineLyricsQueryChanged()
-                                ? `<button class="lyrics-view-edit-btn online-lyrics-primary-btn" onclick="event.stopPropagation(); useOnlineLyrics(${index}, 'lrc')">Use LRC for this song</button>`
+                                ? `<button class="lyrics-view-edit-btn online-lyrics-primary-btn" ${actionAttrs('useOnlineLyrics', [index, 'lrc'], { stop: true })}>Use LRC for this song</button>`
                                 : ''}
                         ` : ''}
                         ${activeType === 'lyrics' && plain ? `
-                            <button class="lyrics-view-edit-btn" onclick="event.stopPropagation(); copyOnlineLyrics(${index}, 'lyrics')">Copy Lyrics</button>
-                            <button class="lyrics-view-edit-btn" onclick="event.stopPropagation(); downloadOnlineLyrics(${index}, 'lyrics')">Download Lyrics</button>
+                            <button class="lyrics-view-edit-btn" ${actionAttrs('copyOnlineLyrics', [index, 'lyrics'], { stop: true })}>Copy Lyrics</button>
+                            <button class="lyrics-view-edit-btn" ${actionAttrs('downloadOnlineLyrics', [index, 'lyrics'], { stop: true })}>Download Lyrics</button>
                             ${onlineLyricsState.fromHeader
-                                ? `<button class="lyrics-view-edit-btn online-lyrics-primary-btn" onclick="event.stopPropagation(); openOnlineLyricsPicker(${index}, 'lyrics', event)">Save Lyrics to a song</button>`
+                                ? `<button class="lyrics-view-edit-btn online-lyrics-primary-btn" ${actionAttrs('openOnlineLyricsPicker', [index, 'lyrics', '$event'], { stop: true })}>Save Lyrics to a song</button>`
                                 : hasOnlineLyricsQueryChanged()
-                                ? `<button class="lyrics-view-edit-btn online-lyrics-primary-btn" onclick="event.stopPropagation(); useOnlineLyrics(${index}, 'lyrics')">Use Lyrics for this song</button>`
+                                ? `<button class="lyrics-view-edit-btn online-lyrics-primary-btn" ${actionAttrs('useOnlineLyrics', [index, 'lyrics'], { stop: true })}>Use Lyrics for this song</button>`
                                 : ''}
                         ` : ''}
                     </div>
@@ -983,7 +1012,7 @@ function renderOnlineLyricsResult(result, index) {
     `;
 }
 
-function clearOnlineLyricsSearchInputs() {
+export function clearOnlineLyricsSearchInputs() {
     const artistInput = document.getElementById('online-lyrics-artist');
     const titleInput = document.getElementById('online-lyrics-title');
     const albumInput = document.getElementById('online-lyrics-album');
@@ -1002,7 +1031,7 @@ function clearOnlineLyricsSearchInputs() {
     updateOnlineLyricsResultsSection();
 }
 
-function renderOnlineLyricsView() {
+export function renderOnlineLyricsView() {
     let container = document.getElementById('lyrics-view-root');
     const songListContainer = document.getElementById('song-list-container');
     const mainContentInner = document.querySelector('.main-content-inner');
@@ -1030,12 +1059,12 @@ function renderOnlineLyricsView() {
             ${
                 state.fromHeader
                     ? ''
-                    : `<button class="lyrics-view-edit-btn" onclick="switchView('${VIEWS.LYRICS}')">
+                    : `<button class="lyrics-view-edit-btn" ${actionAttrs('switchView', [VIEWS.LYRICS])}>
                             <span class="material-symbols-outlined">arrow_back</span>
                             Back to Lyrics
                         </button>`
             }
-            <button class="lyrics-view-edit-btn" onclick="openSmartLyricsFinder()">
+            <button class="lyrics-view-edit-btn" data-action="openSmartLyricsFinder">
                 <span class="material-symbols-outlined">library_music</span>
                 Find multi song lyrics &amp; LRC
             </button>
@@ -1056,10 +1085,10 @@ function renderOnlineLyricsView() {
                 <input id="online-lyrics-title" value="${escapeOnlineLyricsAttribute(state.title)}" placeholder="Song title">
                 <input id="online-lyrics-artist" value="${escapeOnlineLyricsAttribute(state.artist)}" placeholder="Artist name">
                 <input id="online-lyrics-album" value="${escapeOnlineLyricsAttribute(state.album)}" placeholder="Album">
-                <button class="lyrics-view-edit-btn online-lyrics-search-btn" onclick="searchOnlineLyrics()">
+                <button class="lyrics-view-edit-btn online-lyrics-search-btn" data-action="searchOnlineLyrics">
                     Search
                 </button>
-                <button class="lyrics-view-edit-btn online-lyrics-search-btn" onclick="clearOnlineLyricsSearchInputs()" title="Clear search fields">
+                <button class="lyrics-view-edit-btn online-lyrics-search-btn" data-action="clearOnlineLyricsSearchInputs" title="Clear search fields">
                     Clear
                 </button>
             </div>
@@ -1075,7 +1104,7 @@ function renderOnlineLyricsView() {
     }, 50);
 }
 
-function updateOnlineLyricsResultsSection() {
+export function updateOnlineLyricsResultsSection() {
     const section = document.getElementById('online-lyrics-results-section');
     if (!section) return;
 
@@ -1101,12 +1130,12 @@ function updateOnlineLyricsResultsSection() {
         <div class="online-lyrics-results">${resultsHTML}</div>
         ${state.results.length > state.pageSize ? `
             <div class="online-lyrics-pagination">
-                <button class="lyrics-view-edit-btn" onclick="previousOnlineLyricsPage()" ${state.page === 0 ? 'disabled' : ''}>
+                <button class="lyrics-view-edit-btn" data-action="previousOnlineLyricsPage" ${state.page === 0 ? 'disabled' : ''}>
                     <span class="material-symbols-outlined">chevron_left</span>
                     Previous
                 </button>
                 <span class="online-lyrics-page-indicator">Page ${state.page + 1} of ${pageCount}</span>
-                <button class="lyrics-view-edit-btn" onclick="nextOnlineLyricsPage()" ${state.page >= pageCount - 1 ? 'disabled' : ''}>
+                <button class="lyrics-view-edit-btn" data-action="nextOnlineLyricsPage" ${state.page >= pageCount - 1 ? 'disabled' : ''}>
                     Next
                     <span class="material-symbols-outlined">chevron_right</span>
                 </button>
@@ -1117,4 +1146,65 @@ function updateOnlineLyricsResultsSection() {
     setTimeout(() => {
         if (typeof updateExternalScrollbar === 'function') updateExternalScrollbar();
     }, 30);
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        openSmartLyricsFinder,
+        getSmartLyricsFinderSongs,
+        stopSmartLyricsFinder,
+        toggleSmartLyricsSkipExisting,
+        toggleSmartLyricsSong,
+        selectAllSmartLyricsSongs,
+        clearSmartLyricsSelection,
+        setSmartLyricsMode,
+        handleSmartLyricsFinderSearch,
+        updateSmartLyricsFinderSelectionCount,
+        updateSmartLyricsFinderProgress,
+        updateSmartLyricsFinderToolbarState,
+        buildSmartLyricsRowHTML,
+        updateSmartLyricsFinderList,
+        buildSmartLyricsCacheKey,
+        searchLyricsForSmartSong,
+        runSmartLyricsFinder,
+        renderSmartLyricsFinder,
+        getCurrentPlaybackSong,
+        parseSongDurationSeconds,
+        escapeOnlineLyricsAttribute,
+        formatOnlineLyricsDuration,
+        openOnlineLyricsView,
+        setOnlineLyricsSearchButtonActive,
+        toggleOnlineLyricsSearchView,
+        openOnlineLyricsSearchView,
+        searchOnlineLyrics,
+        openOnlineLyricsResult,
+        closeOnlineLyricsResult,
+        selectOnlineLyricsType,
+        getOnlineLyricsText,
+        hasOnlineLyricsQueryChanged,
+        copyOnlineLyrics,
+        downloadOnlineLyrics,
+        useOnlineLyrics,
+        markSongInstrumental,
+        applyOnlineLyricsToSong,
+        openOnlineLyricsPicker,
+        closeOnlineLyricsPicker,
+        onlineLyricsPickerKeyHandler,
+        onlineLyricsPickerMouseDownHandler,
+        onlineLyricsPickerOutsideHandler,
+        getOnlineLyricsPickerSongs,
+        updateOnlineLyricsPickerList,
+        selectOnlineLyricsPickerSong,
+        updateOnlineLyricsPickerConfirmButton,
+        confirmOnlineLyricsPicker,
+        handleOnlineLyricsPickerInput,
+        getOnlineLyricsPageCount,
+        setOnlineLyricsPage,
+        nextOnlineLyricsPage,
+        previousOnlineLyricsPage,
+        renderOnlineLyricsResult,
+        clearOnlineLyricsSearchInputs,
+        renderOnlineLyricsView,
+        updateOnlineLyricsResultsSection
+    });
 }

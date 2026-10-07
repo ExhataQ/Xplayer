@@ -1,6 +1,57 @@
 // ==============================================================================
 // SETTINGS PANEL
 // ==============================================================================
+registerActions({
+    addLibraryLocation: function (...args) {
+        return addLibraryLocation.apply(this, args);
+    },
+    changeMusicFolder: function (...args) {
+        return changeMusicFolder.apply(this, args);
+    },
+    changeUrlSaveFolder,
+    closeAdvancedSettings,
+    exportAllData: function (...args) {
+        return exportAllData.apply(this, args);
+    },
+    handleThresholdInput,
+    importAllData: function (...args) {
+        return importAllData.apply(this, args);
+    },
+    openAdvancedSettings,
+    rebuildLibraryFromFolders: function (...args) {
+        return rebuildLibraryFromFolders.apply(this, args);
+    },
+    removeSelectedLibraryFolder: function (...args) {
+        return removeSelectedLibraryFolder.apply(this, args);
+    },
+    resetUrlSaveFolder,
+    setAudioPlaybackDurationSetting,
+    setAudioPlaybackSetting: function (...args) {
+        return setAudioPlaybackSetting.apply(this, args);
+    },
+    setMinimizeOnClose: function (...args) {
+        return setMinimizeOnClose.apply(this, args);
+    },
+    setReplayGainTrimSetting,
+    setSmartShuffleSetting,
+    switchToHistoryFromSettings: function (...args) {
+        return switchToHistoryFromSettings.apply(this, args);
+    },
+    switchToSearchHistoryFromSettings: function (...args) {
+        return switchToSearchHistoryFromSettings.apply(this, args);
+    }
+});
+
+function setAudioPlaybackDurationSetting(input, key) {
+    setAudioPlaybackSetting(key, Number(input.value));
+    input.nextElementSibling.textContent = input.value + 's';
+}
+
+function setReplayGainTrimSetting(input) {
+    setAudioPlaybackSetting('replayGainTrimDb', Number(input.value));
+    input.nextElementSibling.textContent = (Number(input.value) > 0 ? '+' : '') + input.value + ' dB';
+}
+
 let advancedSettingsOpen = false;
 
 function openSettingsPanel() {
@@ -45,11 +96,11 @@ function openSettingsPanel() {
     <div class="settings-panel-content">
             <h3 class="settings-panel-title">Settings</h3>
                 <div class="settings-panel-actions">
-                    <button class="settings-action-btn" onclick="switchToHistoryFromSettings();">
+                    <button class="settings-action-btn" data-action="switchToHistoryFromSettings">
                         <i class="fas fa-history"></i>
                         <span>View Play History</span>
                     </button>
-                    <button class="settings-action-btn" onclick="switchToSearchHistoryFromSettings();">
+                    <button class="settings-action-btn" data-action="switchToSearchHistoryFromSettings">
                         <i class="fas fa-search"></i>
                         <span>Search History</span>
                     </button>
@@ -64,7 +115,7 @@ function openSettingsPanel() {
                             <input
                                 type="checkbox"
                                 id="settings-hide-right-panel-lyrics"
-                                onchange="toggleHideRightPanelLyrics(this.checked)"
+                                data-action-change="toggleHideRightPanelLyrics" data-args-change='["$checked"]'
                             >
                             <span>Remove right panel lyrics</span>
                         </label>
@@ -75,56 +126,56 @@ function openSettingsPanel() {
                         <input
                             type="checkbox"
                             ${getWindowSettings().minimizeOnClose ? 'checked' : ''}
-                            onchange="setMinimizeOnClose(this.checked)"
+                            data-action-change="setMinimizeOnClose" data-args-change='["$checked"]'
                         >
                         <span>Minimize to taskbar when closed</span>
                         </label>
                     </div>
                     <div class="settings-section">
                         <div class="settings-section-title">Playback & Audio</div>
-                        <label class="settings-toggle-row"><input type="checkbox" data-playback-setting="crossfadeEnabled" ${getAudioPlaybackSettings().crossfadeEnabled ? 'checked' : ''} onchange="setAudioPlaybackSetting('crossfadeEnabled', this.checked)"><span>Crossfade between tracks</span></label>
-                        <div class="settings-threshold-row"><span>Crossfade length</span><input type="range" min="0.5" max="10" step="0.5" value="${Number(getAudioPlaybackSettings().crossfadeDuration) || 4}" oninput="setAudioPlaybackSetting('crossfadeDuration', Number(this.value)); this.nextElementSibling.textContent = this.value + 's'" aria-label="Crossfade duration"><span>${Number(getAudioPlaybackSettings().crossfadeDuration) || 4}s</span></div>
-                        <label class="settings-toggle-row"><input type="checkbox" data-playback-setting="gaplessEnabled" ${getAudioPlaybackSettings().gaplessEnabled ? 'checked' : ''} onchange="setAudioPlaybackSetting('gaplessEnabled', this.checked)"><span>Gapless playback</span></label>
-                        <label class="settings-toggle-row"><input type="checkbox" ${getAudioPlaybackSettings().fadeInEnabled ? 'checked' : ''} onchange="setAudioPlaybackSetting('fadeInEnabled', this.checked)"><span>Fade in</span></label>
-                        <div class="settings-threshold-row"><span>Fade in length</span><input type="range" min="0.2" max="5" step="0.1" value="${Number(getAudioPlaybackSettings().fadeInDuration) || 1}" oninput="setAudioPlaybackSetting('fadeInDuration', Number(this.value)); this.nextElementSibling.textContent = this.value + 's'" aria-label="Fade in duration"><span>${Number(getAudioPlaybackSettings().fadeInDuration) || 1}s</span></div>
-                        <label class="settings-toggle-row"><input type="checkbox" ${getAudioPlaybackSettings().fadeOutEnabled ? 'checked' : ''} onchange="setAudioPlaybackSetting('fadeOutEnabled', this.checked)"><span>Fade out</span></label>
-                        <div class="settings-threshold-row"><span>Fade out length</span><input type="range" min="0.2" max="5" step="0.1" value="${Number(getAudioPlaybackSettings().fadeOutDuration) || 1.25}" oninput="setAudioPlaybackSetting('fadeOutDuration', Number(this.value)); this.nextElementSibling.textContent = this.value + 's'" aria-label="Fade out duration"><span>${Number(getAudioPlaybackSettings().fadeOutDuration) || 1.25}s</span></div>
-                        <label class="settings-toggle-row"><input type="checkbox" ${getAudioPlaybackSettings().replayGainEnabled ? 'checked' : ''} onchange="setAudioPlaybackSetting('replayGainEnabled', this.checked)"><span>ReplayGain / loudness normalization</span></label>
-                        <div class="settings-threshold-row"><span>Gain mode</span><select onchange="setAudioPlaybackSetting('replayGainMode', this.value)">
+                        <label class="settings-toggle-row"><input type="checkbox" data-playback-setting="crossfadeEnabled" ${getAudioPlaybackSettings().crossfadeEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["crossfadeEnabled","$checked"]'><span>Crossfade between tracks</span></label>
+                        <div class="settings-threshold-row"><span>Crossfade length</span><input type="range" min="0.5" max="10" step="0.5" value="${Number(getAudioPlaybackSettings().crossfadeDuration) || 4}" data-action-input="setAudioPlaybackDurationSetting" data-args-input='["$this","crossfadeDuration"]' aria-label="Crossfade duration"><span>${Number(getAudioPlaybackSettings().crossfadeDuration) || 4}s</span></div>
+                        <label class="settings-toggle-row"><input type="checkbox" data-playback-setting="gaplessEnabled" ${getAudioPlaybackSettings().gaplessEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["gaplessEnabled","$checked"]'><span>Gapless playback</span></label>
+                        <label class="settings-toggle-row"><input type="checkbox" ${getAudioPlaybackSettings().fadeInEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["fadeInEnabled","$checked"]'><span>Fade in</span></label>
+                        <div class="settings-threshold-row"><span>Fade in length</span><input type="range" min="0.2" max="5" step="0.1" value="${Number(getAudioPlaybackSettings().fadeInDuration) || 1}" data-action-input="setAudioPlaybackDurationSetting" data-args-input='["$this","fadeInDuration"]' aria-label="Fade in duration"><span>${Number(getAudioPlaybackSettings().fadeInDuration) || 1}s</span></div>
+                        <label class="settings-toggle-row"><input type="checkbox" ${getAudioPlaybackSettings().fadeOutEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["fadeOutEnabled","$checked"]'><span>Fade out</span></label>
+                        <div class="settings-threshold-row"><span>Fade out length</span><input type="range" min="0.2" max="5" step="0.1" value="${Number(getAudioPlaybackSettings().fadeOutDuration) || 1.25}" data-action-input="setAudioPlaybackDurationSetting" data-args-input='["$this","fadeOutDuration"]' aria-label="Fade out duration"><span>${Number(getAudioPlaybackSettings().fadeOutDuration) || 1.25}s</span></div>
+                        <label class="settings-toggle-row"><input type="checkbox" ${getAudioPlaybackSettings().replayGainEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["replayGainEnabled","$checked"]'><span>ReplayGain / loudness normalization</span></label>
+                        <div class="settings-threshold-row"><span>Gain mode</span><select data-action-change="setAudioPlaybackSetting" data-args-change='["replayGainMode","$value"]'>
                             ${['track', 'album'].map((value) => `<option value="${value}" ${getAudioPlaybackSettings().replayGainMode === value ? 'selected' : ''}>${value.charAt(0).toUpperCase() + value.slice(1)}</option>`).join('')}
                         </select></div>
-                        <div class="settings-threshold-row"><span>Trim</span><input type="range" min="-6" max="6" step="0.5" value="${Number(getAudioPlaybackSettings().replayGainTrimDb) || 0}" oninput="setAudioPlaybackSetting('replayGainTrimDb', Number(this.value)); this.nextElementSibling.textContent = (Number(this.value) > 0 ? '+' : '') + this.value + ' dB'" aria-label="ReplayGain trim"><span>${(Number(getAudioPlaybackSettings().replayGainTrimDb) || 0) > 0 ? '+' : ''}${Number(getAudioPlaybackSettings().replayGainTrimDb) || 0} dB</span></div>
+                        <div class="settings-threshold-row"><span>Trim</span><input type="range" min="-6" max="6" step="0.5" value="${Number(getAudioPlaybackSettings().replayGainTrimDb) || 0}" data-action-input="setReplayGainTrimSetting" data-args-input='["$this"]' aria-label="ReplayGain trim"><span>${(Number(getAudioPlaybackSettings().replayGainTrimDb) || 0) > 0 ? '+' : ''}${Number(getAudioPlaybackSettings().replayGainTrimDb) || 0} dB</span></div>
                     </div>
                     <div class="settings-section">
                         <div class="settings-section-title">Smart Shuffle v1</div>
                         <div class="settings-threshold-hint" style="margin-bottom: 12px;">Uses local metadata, favorites, and playback history. It is available in lists with more than 50 songs.</div>
-                        <div class="settings-threshold-row"><span>Journey size</span><select onchange="setSmartShuffleSetting('journeySize', this.value)">
+                        <div class="settings-threshold-row"><span>Journey size</span><select data-action-change="setSmartShuffleSetting" data-args-change='["journeySize","$value"]'>
                             ${[25, 50, 100, 250, 500].map((size) => `<option value="${size}" ${Number(smartShuffleSettings.journeySize) === size ? 'selected' : ''}>${size} songs</option>`).join('')}
                         </select></div>
-                        <div class="settings-threshold-row"><span>Custom journey size</span><input type="number" min="1" value="${Number(smartShuffleSettings.journeySize) || 50}" onchange="setSmartShuffleSetting('journeySize', this.value)" aria-label="Custom journey size"></div>
-                        <div class="settings-threshold-row"><span>Similar-song group</span><select onchange="setSmartShuffleSetting('groupSize', this.value)">
+                        <div class="settings-threshold-row"><span>Custom journey size</span><input type="number" min="1" value="${Number(smartShuffleSettings.journeySize) || 50}" data-action-change="setSmartShuffleSetting" data-args-change='["journeySize","$value"]' aria-label="Custom journey size"></div>
+                        <div class="settings-threshold-row"><span>Similar-song group</span><select data-action-change="setSmartShuffleSetting" data-args-change='["groupSize","$value"]'>
                             ${[1, 3, 5, 10].map((size) => `<option value="${size}" ${Number(smartShuffleSettings.groupSize) === size ? 'selected' : ''}>${size} songs</option>`).join('')}
                         </select></div>
-                        <div class="settings-threshold-row"><span>Genre flow</span><select onchange="setSmartShuffleSetting('genreFlow', this.value)">
+                        <div class="settings-threshold-row"><span>Genre flow</span><select data-action-change="setSmartShuffleSetting" data-args-change='["genreFlow","$value"]'>
                             ${['off', 'gentle', 'strong'].map((value) => `<option value="${value}" ${smartShuffleSettings.genreFlow === value ? 'selected' : ''}>${value.charAt(0).toUpperCase() + value.slice(1)}</option>`).join('')}
                         </select></div>
-                        <div class="settings-threshold-row"><span>Artist separation</span><select onchange="setSmartShuffleSetting('artistSeparation', this.value)">
+                        <div class="settings-threshold-row"><span>Artist separation</span><select data-action-change="setSmartShuffleSetting" data-args-change='["artistSeparation","$value"]'>
                             ${['off', 'normal', 'strong'].map((value) => `<option value="${value}" ${smartShuffleSettings.artistSeparation === value ? 'selected' : ''}>${value.charAt(0).toUpperCase() + value.slice(1)}</option>`).join('')}
                         </select></div>
-                        <div class="settings-threshold-row"><span>Avoid recently played</span><select onchange="setSmartShuffleSetting('recentLimit', this.value)">
+                        <div class="settings-threshold-row"><span>Avoid recently played</span><select data-action-change="setSmartShuffleSetting" data-args-change='["recentLimit","$value"]'>
                             ${[0, 25, 50, 100].map((size) => `<option value="${size}" ${Number(smartShuffleSettings.recentLimit) === size ? 'selected' : ''}>${size === 0 ? 'Off' : `${size} songs`}</option>`).join('')}
                         </select></div>
-                        <div class="settings-threshold-row"><span>Favorites</span><select onchange="setSmartShuffleSetting('favoriteWeight', this.value)">
+                        <div class="settings-threshold-row"><span>Favorites</span><select data-action-change="setSmartShuffleSetting" data-args-change='["favoriteWeight","$value"]'>
                             ${['neutral', 'prefer', 'strong'].map((value) => `<option value="${value}" ${smartShuffleSettings.favoriteWeight === value ? 'selected' : ''}>${value.charAt(0).toUpperCase() + value.slice(1)}</option>`).join('')}
                         </select></div>
-                        <div class="settings-threshold-row"><span>Discovery</span><select onchange="setSmartShuffleSetting('discoveryWeight', this.value)">
+                        <div class="settings-threshold-row"><span>Discovery</span><select data-action-change="setSmartShuffleSetting" data-args-change='["discoveryWeight","$value"]'>
                             ${['neutral', 'prefer', 'strong'].map((value) => `<option value="${value}" ${smartShuffleSettings.discoveryWeight === value ? 'selected' : ''}>${value.charAt(0).toUpperCase() + value.slice(1)}</option>`).join('')}
                         </select></div>
-                        <label class="settings-toggle-row"><input type="checkbox" ${smartShuffleSettings.durationVariety ? 'checked' : ''} onchange="setSmartShuffleSetting('durationVariety', this.checked)"><span>Balance song durations</span></label>
+                        <label class="settings-toggle-row"><input type="checkbox" ${smartShuffleSettings.durationVariety ? 'checked' : ''} data-action-change="setSmartShuffleSetting" data-args-change='["durationVariety","$checked"]'><span>Balance song durations</span></label>
                     </div>
                     <div class="settings-section">
                         <div class="settings-section-title">Music Library</div>
-                        <button class="settings-action-btn settings-action-btn-full" onclick="changeMusicFolder()">
+                        <button class="settings-action-btn settings-action-btn-full" data-action="changeMusicFolder">
                             <i class="fas fa-folder-open"></i>
                             <span>Change Music Folder (Legacy)</span>
                         </button>
@@ -133,11 +184,11 @@ function openSettingsPanel() {
 <div class="library-locations-header">
 <span class="library-locations-title">Music Library Folders</span>
 <div class="library-locations-header-buttons">
-<button class="library-locations-add-btn" onclick="addLibraryLocation()">
+<button class="library-locations-add-btn" data-action="addLibraryLocation">
 <i class="fas fa-plus"></i>
 Add Folder
 </button>
-<button class="library-locations-add-btn" onclick="removeSelectedLibraryFolder()" style="border-color: #ff4444; color: #ff4444;">
+<button class="library-locations-add-btn" data-action="removeSelectedLibraryFolder" style="border-color: #ff4444; color: #ff4444;">
 <i class="fas fa-trash-alt"></i>
 Remove Folder
 </button>
@@ -153,7 +204,7 @@ Remove Folder
 </div>
 </div>
 <div class="library-locations-footer">
-<button class="library-locations-rebuild-btn" onclick="rebuildLibraryFromFolders()">
+<button class="library-locations-rebuild-btn" data-action="rebuildLibraryFromFolders">
 <i class="fas fa-save"></i>
 Save and Apply Changes
 </button>
@@ -163,11 +214,11 @@ Save and Apply Changes
                         <div class="settings-section-title">Play from URL — Save Location</div>
                         <div class="settings-url-save-row">
                             <div class="settings-url-save-path" id="url-save-path-display" title="">—</div>
-                            <button class="settings-action-btn settings-action-btn-half" onclick="changeUrlSaveFolder()">
+                            <button class="settings-action-btn settings-action-btn-half" data-action="changeUrlSaveFolder">
                                 <i class="fas fa-folder-open"></i>
                                 <span>Change</span>
                             </button>
-                            <button class="settings-action-btn settings-action-btn-half" onclick="resetUrlSaveFolder()">
+                            <button class="settings-action-btn settings-action-btn-half" data-action="resetUrlSaveFolder">
                                 <i class="fas fa-undo"></i>
                                 <span>Reset</span>
                             </button>
@@ -179,11 +230,11 @@ Save and Apply Changes
                     <div class="settings-section">
                         <div class="settings-section-title">Backup & Restore</div>
                         <div class="settings-backup-row">
-                            <button class="settings-action-btn settings-action-btn-half" onclick="exportAllData()">
+                            <button class="settings-action-btn settings-action-btn-half" data-action="exportAllData">
                                 <i class="fas fa-download"></i>
                                 <span>Export Data</span>
                             </button>
-                            <button class="settings-action-btn settings-action-btn-half" onclick="importAllData()">
+                            <button class="settings-action-btn settings-action-btn-half" data-action="importAllData">
                                 <i class="fas fa-upload"></i>
                                 <span>Import Data</span>
                             </button>
@@ -191,7 +242,7 @@ Save and Apply Changes
                     </div>
                     <div class="settings-section">
                         <div class="settings-section-title">Advanced</div>
-                        <button class="settings-action-btn settings-action-btn-full" onclick="openAdvancedSettings()">
+                        <button class="settings-action-btn settings-action-btn-full" data-action="openAdvancedSettings">
                             <i class="fas fa-sliders-h"></i>
                             <span>Advanced Settings</span>
                         </button>
@@ -309,7 +360,7 @@ function renderAdvancedSettingsPanel() {
             checkboxHTML += `
                 <label class="extended-field-checkbox-row">
                     <input type="checkbox" ${checked}
-                           onchange="toggleExtendedMetadataField('${f.key}', this.checked)">
+                           ${actionAttrs('toggleExtendedMetadataField', [String(f.key), '$checked'], { event: 'change' })}>
                     <span>${escapeHtml(f.label)}</span>
                 </label>`;
         });
@@ -320,7 +371,7 @@ function renderAdvancedSettingsPanel() {
     songList.innerHTML = `
     <div class="settings-panel-content">
             <div class="settings-advanced-header">
-                    <button class="settings-advanced-back-btn" onclick="closeAdvancedSettings()" aria-label="Back to settings">
+                    <button class="settings-advanced-back-btn" data-action="closeAdvancedSettings" aria-label="Back to settings">
                             <span class="material-symbols-outlined">arrow_back</span>
                     </button>
                     <h3 class="settings-panel-title" style="margin: 0; border-bottom: none; padding-bottom: 0;">Advanced Settings</h3>
@@ -334,7 +385,7 @@ function renderAdvancedSettingsPanel() {
                                            max="${MAX_VIRTUAL_SCROLL_THRESHOLD}"
                                            step="50"
                                            value="${VIRTUAL_SCROLL_THRESHOLD}"
-                                           oninput="handleThresholdInput(this.value)"
+                                           data-action-input="handleThresholdInput" data-args-input='["$value"]'
                                            aria-label="Virtual scroll threshold">
                                     <div class="settings-threshold-value" id="threshold-value-display">${VIRTUAL_SCROLL_THRESHOLD}</div>
                             </div>
@@ -355,7 +406,7 @@ function renderAdvancedSettingsPanel() {
 <div class="library-locations-header">
 <span class="library-locations-title">Saved Lyrics</span>
 <div class="library-locations-header-buttons">
-<button class="library-locations-add-btn" onclick="removeAllSavedLyrics()" style="border-color: #ff4444; color: #ff4444;">
+<button class="library-locations-add-btn" data-action="removeAllSavedLyrics" style="border-color: #ff4444; color: #ff4444;">
 <i class="fas fa-trash-alt"></i>
 Remove All
 </button>
@@ -527,13 +578,13 @@ function toggleSettingsPanel() {
 async function refreshUrlSaveFolderDisplay() {
     const el = document.getElementById('url-save-path-display');
     if (!el) return;
-    if (!window.electronAPI || !window.electronAPI.getDownloadFolder) {
+    if (!desktopApi.supports('library.getDownloadFolder')) {
         el.textContent = 'Not available in browser mode';
         el.title = '';
         return;
     }
     try {
-        const res = await window.electronAPI.getDownloadFolder();
+        const res = await desktopApi.library.getDownloadFolder();
         if (res && res.folder) {
             el.textContent = res.folder;
             el.title = res.folder;
@@ -548,11 +599,11 @@ async function refreshUrlSaveFolderDisplay() {
 }
 
 async function changeUrlSaveFolder() {
-    if (!window.electronAPI || !window.electronAPI.pickDownloadFolder) {
+    if (!desktopApi.supports('library.pickDownloadFolder')) {
         showNotification('Not available in browser mode', 'warning', 2000);
         return;
     }
-    const res = await window.electronAPI.pickDownloadFolder();
+    const res = await desktopApi.library.pickDownloadFolder();
     if (res && res.success) {
         await refreshUrlSaveFolderDisplay();
         showNotification('Download folder updated', 'success', 2000);
@@ -562,7 +613,7 @@ async function changeUrlSaveFolder() {
 }
 
 async function resetUrlSaveFolder() {
-    if (!window.electronAPI || !window.electronAPI.pickDownloadFolder) {
+    if (!desktopApi.supports('library.pickDownloadFolder')) {
         showNotification('Not available in browser mode', 'warning', 2000);
         return;
     }
@@ -573,7 +624,7 @@ async function resetUrlSaveFolder() {
         cancelText: 'Cancel'
     });
     if (!confirmed) return;
-    const res = await window.electronAPI.resetDownloadFolder?.();
+    const res = desktopApi.supports('library.resetDownloadFolder') ? await desktopApi.library.resetDownloadFolder() : undefined;
     if (res && res.success) {
         await refreshUrlSaveFolderDisplay();
         showNotification('Reset to default Downloads folder', 'success', 2000);

@@ -9,7 +9,7 @@ let trackLyricsProgrammaticScroll = false;
 let trackLyricsUserScrolledAway = false;
 let trackLyricsScrollCleanup = null;
 
-function getTrackLyricsForCurrentSong() {
+export function getTrackLyricsForCurrentSong() {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) return null;
     const queueItem = playbackQueue[currentQueueIndex];
     const song = queueItem.song || queueItem;
@@ -17,7 +17,7 @@ function getTrackLyricsForCurrentSong() {
     return song;
 }
 
-function renderTrackLyricsBox() {
+export function renderTrackLyricsBox() {
     const box = getCachedEl('track-lyrics-box');
     const text = document.getElementById('track-lyrics-text');
     if (!box || !text) return;
@@ -143,7 +143,7 @@ function renderTrackLyricsBox() {
     setTimeout(() => updateScrollbarById('track-lyrics-body'), 200);
 }
 
-function applyTrackLyricsExpandedState() {
+export function applyTrackLyricsExpandedState() {
     const container = document.querySelector('.track-lyrics-body-container');
     const icon = document.getElementById('track-lyrics-expand-icon');
     if (!container) return;
@@ -185,13 +185,13 @@ function applyTrackLyricsExpandedState() {
     }, 300);
 }
 
-function toggleTrackLyricsExpand() {
+export function toggleTrackLyricsExpand() {
     if (document.body.classList.contains('in-lyrics-view')) return;
     trackLyricsExpanded = !trackLyricsExpanded;
     applyTrackLyricsExpandedState();
 }
 
-function updateTrackLyricsHighlight(currentTime) {
+export function updateTrackLyricsHighlight(currentTime) {
     if (!trackLyricsEntries || trackLyricsLineElements.length === 0) return;
     if (document.body.classList.contains('in-lyrics-view')) return;
 
@@ -224,7 +224,7 @@ function updateTrackLyricsHighlight(currentTime) {
     }
 }
 
-function seekTrackLyricsToLine(index) {
+export function seekTrackLyricsToLine(index) {
     if (!trackLyricsEntries || index < 0 || index >= trackLyricsEntries.length) return;
     const entry = trackLyricsEntries[index];
     if (!entry || !audioElement.src) return;
@@ -233,7 +233,7 @@ function seekTrackLyricsToLine(index) {
     updateTrackLyricsHighlight(audioElement.currentTime);
 }
 
-function scrollTrackLyricsToActive(silent) {
+export function scrollTrackLyricsToActive(silent) {
     const container = getCachedEl('track-lyrics-body');
     if (!container) return;
     if (document.body.classList.contains('in-lyrics-view')) return;
@@ -260,7 +260,7 @@ function scrollTrackLyricsToActive(silent) {
     }
 }
 
-function attachTrackLyricsScrollWatcher() {
+export function attachTrackLyricsScrollWatcher() {
     const container = getCachedEl('track-lyrics-body');
     if (!container) return;
 
@@ -294,7 +294,7 @@ function attachTrackLyricsScrollWatcher() {
     };
 }
 
-function attachTrackLyricsWheelGuard() {
+export function attachTrackLyricsWheelGuard() {
     const container = getCachedEl('track-lyrics-body');
     if (!container || container._wheelGuardAttached) return;
     container._wheelGuardAttached = true;
@@ -316,17 +316,17 @@ function attachTrackLyricsWheelGuard() {
     );
 }
 
-function showTrackLyricsSyncButton() {
+export function showTrackLyricsSyncButton() {
     const btn = getCachedEl('track-lyrics-sync');
     if (btn) btn.style.display = '';
 }
 
-function hideTrackLyricsSyncButton() {
+export function hideTrackLyricsSyncButton() {
     const btn = getCachedEl('track-lyrics-sync');
     if (btn) btn.style.display = 'none';
 }
 
-function clearTrackLyricsBox() {
+export function clearTrackLyricsBox() {
     const box = getCachedEl('track-lyrics-box');
     if (box) box.style.display = 'none';
     trackLyricsEntries = null;
@@ -338,4 +338,21 @@ function clearTrackLyricsBox() {
         trackLyricsScrollCleanup = null;
     }
     hideTrackLyricsSyncButton();
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        getTrackLyricsForCurrentSong,
+        renderTrackLyricsBox,
+        applyTrackLyricsExpandedState,
+        toggleTrackLyricsExpand,
+        updateTrackLyricsHighlight,
+        seekTrackLyricsToLine,
+        scrollTrackLyricsToActive,
+        attachTrackLyricsScrollWatcher,
+        attachTrackLyricsWheelGuard,
+        showTrackLyricsSyncButton,
+        hideTrackLyricsSyncButton,
+        clearTrackLyricsBox
+    });
 }

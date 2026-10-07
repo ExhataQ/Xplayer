@@ -1,3 +1,17 @@
+registerActions({
+    cancelMetadataEditor,
+    chooseMetadataCover,
+    closeMetadataEditor,
+    exportMetadataJson,
+    findOnlineMetadata,
+    importMetadataJson,
+    metadataMultiKeydown,
+    removeMetadataValue,
+    saveMetadataEditor,
+    toggleMetadataMore,
+    useOnlineMetadata
+});
+
 let metadataEditorSongUrl = null,
     metadataEditorDirty = false,
     metadataEditorCoverPath = '';
@@ -90,12 +104,12 @@ const ME_DEFAULT_ON = new Set([
     'musicBrainzOriginalAlbumId'
 ]);
 let metadataEditorMoreOpen = false;
-function metadataEditorSong() {
+export function metadataEditorSong() {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) return null;
     const q = playbackQueue[currentQueueIndex];
     return q.song || q;
 }
-function metadataEditorTargetSong() {
+export function metadataEditorTargetSong() {
     // the song being edited, found by URL: playback may have moved on to another track
     if (!metadataEditorSongUrl) return null;
     return (
@@ -104,7 +118,7 @@ function metadataEditorTargetSong() {
         null
     );
 }
-function mdNorm(key, v) {
+export function mdNorm(key, v) {
     // comparable form of a field value
     if (ME_MULTI.has(key)) {
         const a = Array.isArray(v) ? v : v ? [v] : [];
@@ -112,7 +126,7 @@ function mdNorm(key, v) {
     }
     return (Array.isArray(v) ? v.join(', ') : String(v ?? '')).replace(/\r\n?/g, '\n').trim();
 }
-function metadataEditorChanges() {
+export function metadataEditorChanges() {
     // patch: only the fields the user actually changed (an empty value means "clear it")
     const cur = collectMetadataEditorValues(),
         out = {};
@@ -122,7 +136,7 @@ function metadataEditorChanges() {
     }
     return out;
 }
-function setMetadataEditorLoading(on) {
+export function setMetadataEditorLoading(on) {
     // fields stay locked until the real tags have been read from the file
     metadataEditorLoaded = !on;
     const root = getCachedEl('metadata-editor-content');
@@ -134,7 +148,7 @@ function setMetadataEditorLoading(on) {
     const b = getCachedEl('metadata-editor-save');
     if (b) b.disabled = on || !metadataEditorDirty;
 }
-function applyCoverFile(p, status) {
+export function applyCoverFile(p, status) {
     const img = getCachedEl('metadata-cover-preview'),
         ph = getCachedEl('metadata-cover-placeholder');
     if (img) {
@@ -144,15 +158,15 @@ function applyCoverFile(p, status) {
     if (ph) ph.style.display = 'none';
     if (status) updateCoverStatus(status);
 }
-function mdDisplay(v) {
+export function mdDisplay(v) {
     return Array.isArray(v) ? v.join(', ') : String(v ?? '');
 }
-function metadataCoverSource(cover) {
+export function metadataCoverSource(cover) {
     if (!cover) return '';
     if (typeof cover === 'string') return cover;
     return cover.data ? `data:${cover.mime || 'image/jpeg'};base64,${cover.data}` : '';
 }
-function metadataEditorInitialValues(song) {
+export function metadataEditorInitialValues(song) {
     const r = {};
     for (const [, ...fields] of ME_SECTIONS)
         for (const [key] of fields) {
@@ -161,28 +175,28 @@ function metadataEditorInitialValues(song) {
         }
     return r;
 }
-function metadataFieldIsVisible(key) {
+export function metadataFieldIsVisible(key) {
     return metadataEditorMoreOpen || ME_DEFAULT_ON.has(key);
 }
-function markMetadataDirty() {
+export function markMetadataDirty() {
     metadataEditorDirty = true;
     const b = getCachedEl('metadata-editor-save');
     if (b) b.disabled = !metadataEditorLoaded;
 }
-function renderMultiField(key, label, value) {
+export function renderMultiField(key, label, value) {
     const values = Array.isArray(value) ? value : value ? [value] : [];
     return `<div class="metadata-editor-field"><span>${label}</span><div class="metadata-multi" data-metadata-key="${key}"><div class="metadata-multi-values">${values
         .map(
             (v) =>
                 `<span class="metadata-multi-chip">${escapeHtml(
                     String(v)
-                )}<button type="button" onclick="removeMetadataValue(this)">×</button></span>`
+                )}<button type="button" data-action="removeMetadataValue" data-args='["$this"]'>×</button></span>`
         )
         .join('')}</div><input class="metadata-multi-input" type="text" placeholder="Add ${escapeHtml(
         label.toLowerCase()
-    )}…" onkeydown="metadataMultiKeydown(event)"></div></div>`;
+    )}…" data-action-keydown="metadataMultiKeydown" data-args-keydown='["$event","$this"]'></div></div>`;
 }
-function renderMetadataEditor(m) {
+export function renderMetadataEditor(m) {
     const root = getCachedEl('metadata-editor-content');
     if (!root) return;
     let html = '';
@@ -202,19 +216,19 @@ function renderMetadataEditor(m) {
         }
         html += '</div>';
     }
-    root.innerHTML = `<div class="metadata-editor-toolbar"><button class="metadata-editor-back" onclick="closeMetadataEditor()" title="Back to Info"><span class="material-symbols-outlined">arrow_back</span></button><div class="metadata-editor-toolbar-title">Edit metadata</div><div class="metadata-editor-toolbar-actions"><select class="metadata-search-scope" id="metadata-search-scope" title="Online search area"><option value="recording">Song</option><option value="release">Release</option></select><button onclick="findOnlineMetadata()" title="Search metadata online"><span class="material-symbols-outlined">search</span> Search</button><button onclick="importMetadataJson()" title="Import metadata from JSON">Import</button><button onclick="exportMetadataJson()" title="Export metadata to JSON">Export</button></div></div><div id="metadata-online-results" class="metadata-online-results"></div><div class="metadata-editor-top"><button class="metadata-cover-box" id="metadata-cover-box" onclick="chooseMetadataCover()" title="Choose or change cover"><span id="metadata-cover-placeholder" class="material-symbols-outlined">album</span><img id="metadata-cover-preview" alt="Cover"></button><div class="metadata-cover-info"><span id="metadata-cover-status">No cover selected</span><button onclick="chooseMetadataCover()">Change cover</button></div></div><div class="metadata-editor-fields"><div class="metadata-more-toggle-row"><button class="metadata-more-toggle" onclick="toggleMetadataMore()"><span class="material-symbols-outlined">${
+    root.innerHTML = `<div class="metadata-editor-toolbar"><button class="metadata-editor-back" data-action="closeMetadataEditor" title="Back to Info"><span class="material-symbols-outlined">arrow_back</span></button><div class="metadata-editor-toolbar-title">Edit metadata</div><div class="metadata-editor-toolbar-actions"><select class="metadata-search-scope" id="metadata-search-scope" title="Online search area"><option value="recording">Song</option><option value="release">Release</option></select><button data-action="findOnlineMetadata" title="Search metadata online"><span class="material-symbols-outlined">search</span> Search</button><button data-action="importMetadataJson" title="Import metadata from JSON">Import</button><button data-action="exportMetadataJson" title="Export metadata to JSON">Export</button></div></div><div id="metadata-online-results" class="metadata-online-results"></div><div class="metadata-editor-top"><button class="metadata-cover-box" id="metadata-cover-box" data-action="chooseMetadataCover" title="Choose or change cover"><span id="metadata-cover-placeholder" class="material-symbols-outlined">album</span><img id="metadata-cover-preview" alt="Cover"></button><div class="metadata-cover-info"><span id="metadata-cover-status">No cover selected</span><button data-action="chooseMetadataCover">Change cover</button></div></div><div class="metadata-editor-fields"><div class="metadata-more-toggle-row"><button class="metadata-more-toggle" data-action="toggleMetadataMore"><span class="material-symbols-outlined">${
         metadataEditorMoreOpen ? 'expand_less' : 'expand_more'
     }</span>${metadataEditorMoreOpen ? 'Hide' : 'More'} metadata tags</button></div>${html}${
         metadataEditorMoreOpen
             ? '<div class="metadata-editor-section metadata-other-section"><div class="metadata-editor-section-title">Other Tags</div><div id="metadata-other-tags" class="metadata-other-tags"><div class="metadata-editor-state">No additional tags.</div></div></div>'
             : ''
-    }</div><div class="metadata-editor-actions"><button class="metadata-editor-cancel" onclick="cancelMetadataEditor()">Cancel</button><button class="metadata-editor-save" id="metadata-editor-save" onclick="saveMetadataEditor()" disabled>Save changes</button></div>`;
+    }</div><div class="metadata-editor-actions"><button class="metadata-editor-cancel" data-action="cancelMetadataEditor">Cancel</button><button class="metadata-editor-save" id="metadata-editor-save" data-action="saveMetadataEditor" disabled>Save changes</button></div>`;
     root.querySelectorAll('[data-metadata-key]:not(.metadata-multi)').forEach((x) =>
         x.addEventListener('input', markMetadataDirty)
     );
     applyCoverPreview(m.cover);
 }
-async function openMetadataEditor() {
+export async function openMetadataEditor() {
     const song = metadataEditorSong();
     if (!song || !song.url) return;
 
@@ -225,7 +239,7 @@ async function openMetadataEditor() {
     metadataEditorCoverPath = '';
 
     switchRightPanelTab('metadata');
-    if (!window.electronAPI?.getAudioMetadata) {
+    if (!desktopApi.supports('metadata.getAudioMetadata')) {
         renderMetadataEditorError('Tag editing is not available in this environment.');
         return;
     }
@@ -233,7 +247,7 @@ async function openMetadataEditor() {
     setMetadataEditorLoading(true);
 
     try {
-        const result = await window.electronAPI.getAudioMetadata(metadataEditorSongUrl);
+        const result = await desktopApi.metadata.getAudioMetadata(metadataEditorSongUrl);
         if (metadataEditorSongUrl !== song.url) return;
         if (!result?.success) throw new Error(result?.error || 'Failed to read metadata');
 
@@ -260,7 +274,7 @@ async function openMetadataEditor() {
         setMetadataEditorLoading(true);
     }
 }
-function applyCoverPreview(cover) {
+export function applyCoverPreview(cover) {
     const img = getCachedEl('metadata-cover-preview'),
         ph = getCachedEl('metadata-cover-placeholder');
     if (!img || !ph) return;
@@ -275,7 +289,7 @@ function applyCoverPreview(cover) {
         ph.style.display = 'inline-flex';
     }
 }
-function setOtherTags(tags) {
+export function setOtherTags(tags) {
     const box = document.getElementById('metadata-other-tags');
     if (!box) return;
     if (!Array.isArray(tags) || !tags.length) {
@@ -291,36 +305,35 @@ function setOtherTags(tags) {
         )
         .join('');
 }
-function metadataMultiKeydown(e) {
+export function metadataMultiKeydown(e, input) {
     if (e.key !== 'Enter' && e.key !== ',') return;
     e.preventDefault();
-    const input = e.currentTarget;
     const value = input.value.trim().replace(/,$/, '').trim();
     if (!value) return;
     addMetadataValue(input.parentElement, value);
     input.value = '';
     markMetadataDirty();
 }
-function addMetadataValue(container, value) {
+export function addMetadataValue(container, value) {
     const values = container.querySelector('.metadata-multi-values');
     if ([...values.querySelectorAll('.metadata-multi-chip')].some((x) => x.firstChild?.textContent === value)) return;
     values.insertAdjacentHTML(
         'beforeend',
         `<span class="metadata-multi-chip">${escapeHtml(
             value
-        )}<button type="button" onclick="removeMetadataValue(this)">×</button></span>`
+        )}<button type="button" data-action="removeMetadataValue" data-args='["$this"]'>×</button></span>`
     );
 }
-function removeMetadataValue(btn) {
+export function removeMetadataValue(btn) {
     btn.parentElement.remove();
     markMetadataDirty();
 }
-function getMultiValues(container) {
+export function getMultiValues(container) {
     return [...container.querySelectorAll('.metadata-multi-chip')]
         .map((x) => x.childNodes[0]?.textContent?.trim())
         .filter(Boolean);
 }
-function collectMetadataEditorValues() {
+export function collectMetadataEditorValues() {
     const r = {};
     document.querySelectorAll('#metadata-editor-content [data-metadata-key]').forEach((x) => {
         if (x.classList.contains('metadata-multi')) r[x.dataset.metadataKey] = getMultiValues(x);
@@ -328,7 +341,7 @@ function collectMetadataEditorValues() {
     });
     return r;
 }
-function toggleMetadataMore() {
+export function toggleMetadataMore() {
     // re-render with more/fewer fields WITHOUT losing what the user typed
     const song = metadataEditorTargetSong();
     if (!song) return;
@@ -349,7 +362,7 @@ function toggleMetadataMore() {
         if (b) b.disabled = !metadataEditorDirty;
     }
 }
-function applyMetadataValues(metadata) {
+export function applyMetadataValues(metadata) {
     Object.keys(metadata || {}).forEach((key) => {
         const el = document.querySelector(`#metadata-editor-content [data-metadata-key="${CSS.escape(key)}"]`);
         if (!el) return;
@@ -362,16 +375,16 @@ function applyMetadataValues(metadata) {
     if (metadata?.otherTags) setOtherTags(metadata.otherTags);
     if (metadata?.cover) applyCoverPreview(metadata.cover);
 }
-function updateCoverStatus(text) {
+export function updateCoverStatus(text) {
     const s = document.getElementById('metadata-cover-status');
     if (s) s.textContent = text;
 }
 
-function renderMetadataEditorError(msg) {
+export function renderMetadataEditorError(msg) {
     const r = getCachedEl('metadata-editor-content');
     if (r) r.innerHTML = `<div class="metadata-editor-state">${escapeHtml(msg)}</div>`;
 }
-async function saveMetadataEditor() {
+export async function saveMetadataEditor() {
     const url = metadataEditorSongUrl;
     if (!url || !metadataEditorLoaded) return;
     const b = getCachedEl('metadata-editor-save');
@@ -386,7 +399,7 @@ async function saveMetadataEditor() {
         b.textContent = 'Saving…';
     }
     try {
-        const r = await window.electronAPI.saveAudioMetadata({
+        const r = await desktopApi.metadata.saveAudioMetadata({
             fileUrl: url,
             metadata: changes,
             coverPath: metadataEditorCoverPath
@@ -434,27 +447,27 @@ async function saveMetadataEditor() {
         }
     }
 }
-function cancelMetadataEditor() {
+export function cancelMetadataEditor() {
     if (metadataEditorDirty && !window.confirm('Discard unsaved metadata changes?')) return;
     closeMetadataEditor();
 }
-function closeMetadataEditor() {
+export function closeMetadataEditor() {
     metadataEditorSongUrl = null;
     metadataEditorDirty = false;
     metadataEditorBaseline = null;
     metadataEditorLoaded = false;
     switchRightPanelTab('tags');
 }
-async function exportMetadataJson() {
-    if (!metadataEditorSongUrl || !window.electronAPI?.exportAudioMetadataJson) return;
+export async function exportMetadataJson() {
+    if (!metadataEditorSongUrl || !desktopApi.supports('metadata.exportAudioMetadataJson')) return;
     const metadata = collectMetadataEditorValues();
-    const r = await window.electronAPI.exportAudioMetadataJson({ fileUrl: metadataEditorSongUrl, metadata });
+    const r = await desktopApi.metadata.exportAudioMetadataJson({ fileUrl: metadataEditorSongUrl, metadata });
     if (r?.success) showNotification('Metadata exported', 'success', 2500);
     else if (!r?.canceled) showNotification(r?.error || 'Failed to export metadata', 'error', 4000);
 }
-async function importMetadataJson() {
-    if (!metadataEditorSongUrl || !window.electronAPI?.importAudioMetadataJson) return;
-    const r = await window.electronAPI.importAudioMetadataJson();
+export async function importMetadataJson() {
+    if (!metadataEditorSongUrl || !desktopApi.supports('metadata.importAudioMetadataJson')) return;
+    const r = await desktopApi.metadata.importAudioMetadataJson();
     if (!r?.success) {
         if (!r?.canceled) showNotification(r?.error || 'Failed to import metadata', 'error', 4000);
         return;
@@ -468,7 +481,7 @@ async function importMetadataJson() {
     }
     showNotification('Metadata imported — review and save', 'success', 3000);
 }
-function setMetadataFields(metadata) {
+export function setMetadataFields(metadata) {
     // online import: fill only what the source actually provided, never blank existing values
     const filled = {};
     Object.keys(metadata || {}).forEach((k) => {
@@ -479,15 +492,15 @@ function setMetadataFields(metadata) {
     applyMetadataValues(filled);
     markMetadataDirty();
 }
-async function findOnlineMetadata() {
+export async function findOnlineMetadata() {
     const song = metadataEditorTargetSong();
-    if (!song || !window.electronAPI?.searchOnlineMetadata) return;
+    if (!song || !desktopApi.supports('metadata.searchOnlineMetadata')) return;
     const box = getCachedEl('metadata-online-results');
     if (box) box.innerHTML = '<div class="metadata-online-state">Searching MusicBrainz…</div>';
     try {
         const scope = document.getElementById('metadata-search-scope')?.value || 'recording';
         const current = collectMetadataEditorValues();
-        const r = await window.electronAPI.searchOnlineMetadata({
+        const r = await desktopApi.metadata.searchOnlineMetadata({
             fileUrl: metadataEditorSongUrl,
             title: current.title || song.title || '',
             artist: mdDisplay(current.artist) || song.artist || '',
@@ -506,9 +519,7 @@ async function findOnlineMetadata() {
                     .slice()
                     .sort((a, b) => String(a.date || '9999').localeCompare(String(b.date || '9999')));
                 const original = releases[0];
-                return `<div class="metadata-online-result-card"><button class="metadata-online-result" onclick="useOnlineMetadata('${
-                    x.releaseGroupId ? '' : x.id
-                }','${x.releaseGroupId ? x.id : original?.id || ''}')"><span>${escapeHtml(
+                return `<div class="metadata-online-result-card"><button class="metadata-online-result" ${actionAttrs('useOnlineMetadata', [String(x.releaseGroupId ? '' : x.id), String(x.releaseGroupId ? x.id : original?.id || '')])}><span>${escapeHtml(
                     x.title || 'Untitled'
                 )}</span><small>${escapeHtml(x.artist || 'Unknown Artist')}${
                     x.firstReleaseDate ? ' · ' + escapeHtml(x.firstReleaseDate) : ''
@@ -517,9 +528,7 @@ async function findOnlineMetadata() {
                         ? `<div class="metadata-online-releases">${releases
                               .map(
                                   (rel) =>
-                                      `<button onclick="useOnlineMetadata('${x.releaseGroupId ? '' : x.id}','${
-                                          x.releaseGroupId ? x.id : rel.id
-                                      }')">${escapeHtml(rel.title || 'Untitled')} · ${escapeHtml(
+                                      `<button ${actionAttrs('useOnlineMetadata', [String(x.releaseGroupId ? '' : x.id), String(x.releaseGroupId ? x.id : rel.id)])}>${escapeHtml(rel.title || 'Untitled')} · ${escapeHtml(
                                           rel.date || 'date unknown'
                                       )}${rel.country ? ' · ' + escapeHtml(rel.country) : ''}${
                                           original && rel.id === original.id ? ' · Original' : ''
@@ -537,12 +546,12 @@ async function findOnlineMetadata() {
             )}</div>`;
     }
 }
-async function useOnlineMetadata(recordingId, releaseId = '') {
-    if (!metadataEditorSongUrl || !window.electronAPI?.getOnlineMetadata) return;
+export async function useOnlineMetadata(recordingId, releaseId = '') {
+    if (!metadataEditorSongUrl || !desktopApi.supports('metadata.getOnlineMetadata')) return;
     const box = getCachedEl('metadata-online-results');
     if (box) box.innerHTML = '<div class="metadata-online-state">Downloading metadata…</div>';
     try {
-        const r = await window.electronAPI.getOnlineMetadata({
+        const r = await desktopApi.metadata.getOnlineMetadata({
             fileUrl: metadataEditorSongUrl,
             recordingId,
             releaseId,
@@ -576,9 +585,9 @@ async function useOnlineMetadata(recordingId, releaseId = '') {
             )}</div>`;
     }
 }
-async function chooseMetadataCover() {
-    if (!window.electronAPI?.chooseCoverImage) return;
-    const r = await window.electronAPI.chooseCoverImage();
+export async function chooseMetadataCover() {
+    if (!desktopApi.supports('metadata.chooseCoverImage')) return;
+    const r = await desktopApi.metadata.chooseCoverImage();
     if (!r?.success) {
         if (!r?.canceled) showNotification(r?.error || 'Could not choose cover', 'error', 4000);
         return;
@@ -593,4 +602,43 @@ async function chooseMetadataCover() {
     if (ph) ph.style.display = 'none';
     updateCoverStatus('Cover selected and ready to save.');
     markMetadataDirty();
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        metadataEditorSong,
+        metadataEditorTargetSong,
+        mdNorm,
+        metadataEditorChanges,
+        setMetadataEditorLoading,
+        applyCoverFile,
+        mdDisplay,
+        metadataCoverSource,
+        metadataEditorInitialValues,
+        metadataFieldIsVisible,
+        markMetadataDirty,
+        renderMultiField,
+        renderMetadataEditor,
+        openMetadataEditor,
+        applyCoverPreview,
+        setOtherTags,
+        metadataMultiKeydown,
+        addMetadataValue,
+        removeMetadataValue,
+        getMultiValues,
+        collectMetadataEditorValues,
+        toggleMetadataMore,
+        applyMetadataValues,
+        updateCoverStatus,
+        renderMetadataEditorError,
+        saveMetadataEditor,
+        cancelMetadataEditor,
+        closeMetadataEditor,
+        exportMetadataJson,
+        importMetadataJson,
+        setMetadataFields,
+        findOnlineMetadata,
+        useOnlineMetadata,
+        chooseMetadataCover
+    });
 }

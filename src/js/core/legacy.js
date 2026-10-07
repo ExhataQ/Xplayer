@@ -121,7 +121,10 @@
         for (const node of path) {
             if (!(node instanceof Element)) continue;
             runAction(node, suffix, event);
-            if (node.hasAttribute('data-stop' + suffix)) event.stopPropagation();
+            // An inline event.stopPropagation() kept the event from reaching document at all. This listener is already on
+            // document, so stopImmediatePropagation is needed to also keep it from the other document and window listeners
+            // (it is registered before all of them).
+            if (node.hasAttribute('data-stop' + suffix)) event.stopImmediatePropagation();
             // cancelBubble turns true once anyone called stopPropagation, even this late.
             if (event.cancelBubble) break;
         }

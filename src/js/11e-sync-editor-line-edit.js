@@ -1,13 +1,22 @@
 // Sync editor: per-line editing (focus, stamp, clear, edit text, discard changes).
 
-function focusSyncLine(index) {
+registerActions({
+    clearAllSyncStamps,
+    copySyncCurrentTime,
+    discardSyncChanges,
+    editSyncLineText,
+    editSyncLineTime,
+    stampFocusedLine
+});
+
+export function focusSyncLine(index) {
     if (index < 0 || index >= syncEditorState.lines.length) return;
     syncEditorState.focusedIndex = index;
     renderSyncEditorLines();
     scrollSyncLineIntoView(index);
 }
 
-function scrollSyncLineIntoView(index) {
+export function scrollSyncLineIntoView(index) {
     const container = document.getElementById('sync-editor-lines');
     if (!container) return;
     const el = container.querySelector('.sync-editor-line[data-index="' + index + '"]');
@@ -22,7 +31,7 @@ function scrollSyncLineIntoView(index) {
     }
 }
 
-function stampFocusedLine() {
+export function stampFocusedLine() {
     if (!syncEditorState.open) return;
     const idx = syncEditorState.focusedIndex;
     if (idx < 0 || idx >= syncEditorState.lines.length) return;
@@ -49,7 +58,7 @@ function stampFocusedLine() {
     updateSyncEditorProgress();
 }
 
-function clearSyncLineTime(index) {
+export function clearSyncLineTime(index) {
     if (index < 0 || index >= syncEditorState.lines.length) return;
     pushSyncHistory('Clear stamp');
     syncEditorState.lines[index].time = null;
@@ -58,7 +67,7 @@ function clearSyncLineTime(index) {
     updateSyncEditorProgress();
 }
 
-function editSyncLineTime(index) {
+export function editSyncLineTime(index) {
     if (index < 0 || index >= syncEditorState.lines.length) return;
     const container = document.getElementById('sync-editor-lines');
     if (!container) return;
@@ -105,7 +114,7 @@ function editSyncLineTime(index) {
     input.addEventListener('blur', commit);
 }
 
-function editSyncLineText(index) {
+export function editSyncLineText(index) {
     if (index < 0 || index >= syncEditorState.lines.length) return;
     const container = document.getElementById('sync-editor-lines');
     if (!container) return;
@@ -178,7 +187,7 @@ function editSyncLineText(index) {
     input.addEventListener('blur', () => commit(false));
 }
 
-function clearAllSyncStamps() {
+export function clearAllSyncStamps() {
     if (syncEditorState.lines.length === 0) return;
     pushSyncHistory('Clear all stamps');
     syncEditorState.lines.forEach((l) => {
@@ -189,7 +198,7 @@ function clearAllSyncStamps() {
     updateSyncEditorProgress();
 }
 
-function discardSyncChanges() {
+export function discardSyncChanges() {
     if (!syncEditorState.open) return;
     const hasWork = syncEditorState.lines.length > 0 || (syncEditorState.history && syncEditorState.history.length > 0);
     if (!hasWork) return;
@@ -213,7 +222,7 @@ function discardSyncChanges() {
     });
 }
 
-function copySyncCurrentTime() {
+export function copySyncCurrentTime() {
     const t = formatSyncTimecode(audioElement.currentTime || 0);
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard
@@ -239,4 +248,18 @@ function copySyncCurrentTime() {
         }
         ta.remove();
     }
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        focusSyncLine,
+        scrollSyncLineIntoView,
+        stampFocusedLine,
+        clearSyncLineTime,
+        editSyncLineTime,
+        editSyncLineText,
+        clearAllSyncStamps,
+        discardSyncChanges,
+        copySyncCurrentTime
+    });
 }

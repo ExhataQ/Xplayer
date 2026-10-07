@@ -132,7 +132,7 @@ function _getLyricsTextForSong(song) {
     return '';
 }
 
-function detectLanguageFromText(text) {
+export function detectLanguageFromText(text) {
     if (!text || String(text).trim() === '') {
         return { language: 'undetected', confidence: 0, source: 'none' };
     }
@@ -203,14 +203,14 @@ function detectLanguageFromText(text) {
     return { language: topLang, confidence, source: 'stopwords' };
 }
 
-function detectSongLanguage(song) {
+export function detectSongLanguage(song) {
     if (!song) return { language: 'undetected', confidence: 0, source: 'none' };
     if (song.instrumental === true) return { language: 'instrumental', confidence: 1, source: 'flag' };
     const text = _getLyricsTextForSong(song);
     return detectLanguageFromText(text);
 }
 
-function analyzeAllSongsLanguages(songsOverride) {
+export function analyzeAllSongsLanguages(songsOverride) {
     const songs = songsOverride
         || (typeof getActiveSongs === 'function' ? getActiveSongs() : (typeof SONGS_DATA !== 'undefined' ? SONGS_DATA : []));
 
@@ -238,7 +238,7 @@ function analyzeAllSongsLanguages(songsOverride) {
     return { rows, tally };
 }
 
-function smartShuffleLanguagePrepass(songsOverride) {
+export function smartShuffleLanguagePrepass(songsOverride) {
     const t0 = performance.now();
     const { rows, tally } = analyzeAllSongsLanguages(songsOverride);
     const elapsed = Math.round(performance.now() - t0);
@@ -255,7 +255,7 @@ function smartShuffleLanguagePrepass(songsOverride) {
     return rows;
 }
 
-function ensureShuffleLanguages(songs) {
+export function ensureShuffleLanguages(songs) {
     if (!Array.isArray(songs) || songs.length === 0) return;
     let classified = 0;
     for (const song of songs) {
@@ -271,26 +271,38 @@ function ensureShuffleLanguages(songs) {
     }
 }
 
-window.__language = {
-    analyzeAll: analyzeAllSongsLanguages,
-    prepass: smartShuffleLanguagePrepass,
-    ensureShuffle: ensureShuffleLanguages,
-    detectOne: (songId) => {
-        const song = (typeof SONGS_DATA !== 'undefined' ? SONGS_DATA : []).find(s => s.id === songId);
-        if (!song) return console.warn('song not found', songId);
-        const result = detectSongLanguage(song);
-        song._detectedLanguage = result.language;
-        console.log(song.title, '->', result);
-        return result;
-    },
-    tally: () => {
-        const t = {};
-        const songs = typeof SONGS_DATA !== 'undefined' ? SONGS_DATA : [];
-        for (const s of songs) {
-            const l = s._detectedLanguage || 'not analyzed';
-            t[l] = (t[l] || 0) + 1;
+if (typeof window !== 'undefined') {
+    window.__language = {
+        analyzeAll: analyzeAllSongsLanguages,
+        prepass: smartShuffleLanguagePrepass,
+        ensureShuffle: ensureShuffleLanguages,
+        detectOne: (songId) => {
+            const song = (typeof SONGS_DATA !== 'undefined' ? SONGS_DATA : []).find(s => s.id === songId);
+            if (!song) return console.warn('song not found', songId);
+            const result = detectSongLanguage(song);
+            song._detectedLanguage = result.language;
+            console.log(song.title, '->', result);
+            return result;
+        },
+        tally: () => {
+            const t = {};
+            const songs = typeof SONGS_DATA !== 'undefined' ? SONGS_DATA : [];
+            for (const s of songs) {
+                const l = s._detectedLanguage || 'not analyzed';
+                t[l] = (t[l] || 0) + 1;
+            }
+            console.log(t);
+            return t;
         }
-        console.log(t);
-        return t;
-    }
-};
+    };
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        detectLanguageFromText,
+        detectSongLanguage,
+        analyzeAllSongsLanguages,
+        smartShuffleLanguagePrepass,
+        ensureShuffleLanguages
+    });
+}

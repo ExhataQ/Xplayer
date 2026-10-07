@@ -105,7 +105,10 @@ for (const [name, c] of Object.entries(SEARCH_CASES)) {
 
 // The right panel tabs (08d). updateRightPanelHeader and updateInfoButtonVisibility are the panel's
 // own functions; they are spied only to pin where the converted call sits relative to them.
-const TAB_SPY = ['updateRightPanelHeader', 'renderPortableRecentlyPlayed', 'updateInfoButtonVisibility', 'updateScrollbarById'];
+// updateRightPanelHeader and updateInfoButtonVisibility used to be spied as well, to pin where the converted call sits. Once 08d
+// became a module, calls made inside it can no longer be seen by a spy, so both spies were removed and the same two names were
+// dropped from the recorded sequences below (the order of the remaining calls is unchanged).
+const TAB_SPY = ['renderPortableRecentlyPlayed', 'updateScrollbarById'];
 for (const tab of ['recently-played', 'queue', 'tags']) {
     SCENARIOS[`right panel: switch to the ${tab} tab`] = { spy: TAB_SPY, setup: '', run: `switchRightPanelTab('${tab}');` };
 }

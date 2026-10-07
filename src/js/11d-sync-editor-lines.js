@@ -1,6 +1,29 @@
 // Sync editor: mini player controls plus rendering/loading the editable line list.
 
-function formatSyncTimecode(seconds) {
+registerActions({
+    clearSyncLineTimeFromContextMenu,
+    importLrcIntoEditor,
+    loadPastedIntoEditor,
+    loadPlainLyricsIntoEditor,
+    showSyncLineContextMenuForRow,
+    startBlankSyncSession,
+    startSyncScrub,
+    syncMiniSeekBy,
+    syncMiniTogglePlay,
+    togglePasteArea
+});
+
+export function clearSyncLineTimeFromContextMenu(event, index) {
+    event.preventDefault();
+    clearSyncLineTime(index);
+}
+
+export function showSyncLineContextMenuForRow(event, index) {
+    event.preventDefault();
+    showSyncLineContextMenu(event, index);
+}
+
+export function formatSyncTimecode(seconds) {
     if (!isFinite(seconds) || seconds < 0) seconds = 0;
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -8,7 +31,7 @@ function formatSyncTimecode(seconds) {
     return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0') + '.' + String(cs).padStart(2, '0');
 }
 
-function updateSyncMiniPlayer() {
+export function updateSyncMiniPlayer() {
     if (!syncEditorState.open) return;
     const cur = document.getElementById('sync-timecode-current');
     if (cur) cur.textContent = formatSyncTimecode(audioElement.currentTime || 0);
@@ -33,14 +56,14 @@ function updateSyncMiniPlayer() {
     }
 }
 
-function syncMiniTogglePlay() {
+export function syncMiniTogglePlay() {
     if (!audioElement.src) return;
     if (audioElement.paused) audioElement.play().catch(() => {});
     else audioElement.pause();
     updateSyncMiniPlayer();
 }
 
-function syncMiniSeekBy(delta) {
+export function syncMiniSeekBy(delta) {
     if (!audioElement.src) return;
     const dur = audioElement.duration || 0;
     let t = (audioElement.currentTime || 0) + delta;
@@ -50,7 +73,7 @@ function syncMiniSeekBy(delta) {
     updateSyncMiniPlayer();
 }
 
-function startSyncScrub(event) {
+export function startSyncScrub(event) {
     if (!audioElement.src) return;
     event.preventDefault();
     const scrubber = document.getElementById('sync-scrubber');
@@ -86,7 +109,7 @@ function startSyncScrub(event) {
     document.addEventListener('mouseup', onUp);
 }
 
-function renderSyncEditorLines() {
+export function renderSyncEditorLines() {
     const container = document.getElementById('sync-editor-lines');
     if (!container) return;
 
@@ -98,15 +121,15 @@ function renderSyncEditorLines() {
                 <p>No lines loaded</p>
                 <small>Choose a source above, or start from scratch.</small>
                 <div class="sync-editor-empty-actions">
-                    <button class="sync-editor-mini-btn" onclick="togglePasteArea()">Paste Lyrics</button>
-                    <button class="sync-editor-mini-btn sync-editor-mini-btn-primary" onclick="startBlankSyncSession()">Start Blank</button>
+                    <button class="sync-editor-mini-btn" data-action="togglePasteArea">Paste Lyrics</button>
+                    <button class="sync-editor-mini-btn sync-editor-mini-btn-primary" data-action="startBlankSyncSession">Start Blank</button>
                 </div>
                 ${
                     pasteOpen
                         ? `
                     <div class="sync-editor-paste-area">
                         <textarea class="sync-editor-paste" id="sync-editor-paste" placeholder="Paste lyrics here (one line per row)…"></textarea>
-                        <button class="sync-editor-mini-btn sync-editor-mini-btn-primary" onclick="loadPastedIntoEditor()">Load Pasted Lyrics</button>
+                        <button class="sync-editor-mini-btn sync-editor-mini-btn-primary" data-action="loadPastedIntoEditor">Load Pasted Lyrics</button>
                     </div>
                 `
                         : ''
@@ -136,36 +159,34 @@ function renderSyncEditorLines() {
                 : escapeHtml(line.text);
 
             return `
-                            <div class="sync-editor-line${focusedClass}${blankClass}${instrClass}" data-index="${i}" onclick="selectSyncLine(${i})">
+                            <div class="sync-editor-line${focusedClass}${blankClass}${instrClass}" data-index="${i}" ${actionAttrs('selectSyncLine', [i])} ${actionAttrs('showSyncLineContextMenuForRow', ['$event', i], { event: 'contextmenu', stop: true })}>
                 <div class="sync-editor-insert">
-                    <button class="sync-editor-insert-btn" onclick="event.stopPropagation(); insertSyncLineAbove(${i})" title="Add line above">+</button>
-                    <button class="sync-editor-insert-btn" onclick="event.stopPropagation(); insertSyncLineBelow(${i})" title="Add line below">+</button>
+                    <button class="sync-editor-insert-btn" ${actionAttrs('insertSyncLineAbove', [i], { stop: true })} title="Add line above">+</button>
+                    <button class="sync-editor-insert-btn" ${actionAttrs('insertSyncLineBelow', [i], { stop: true })} title="Add line below">+</button>
                 </div>
-                <div class="sync-editor-text" ondblclick="event.stopPropagation(); ${
-                    isInstrumental ? '' : `editSyncLineText(${i})`
-                }" title="${isInstrumental ? 'Instrumental marker' : 'Double-click to edit'}">${textContent}</div>
-                <div class="sync-editor-time" onclick="event.stopPropagation(); editSyncLineTime(${i})" oncontextmenu="event.preventDefault(); event.stopPropagation(); clearSyncLineTime(${i});">
+                <div class="sync-editor-text" ${isInstrumental ? 'data-stop-dblclick' : actionAttrs('editSyncLineText', [i], { event: 'dblclick', stop: true })} title="${isInstrumental ? 'Instrumental marker' : 'Double-click to edit'}">${textContent}</div>
+                <div class="sync-editor-time" ${actionAttrs('editSyncLineTime', [i], { stop: true })} ${actionAttrs('clearSyncLineTimeFromContextMenu', ['$event', i], { event: 'contextmenu', stop: true })}>
                     ${timeStr}
                 </div>
                 <div class="sync-editor-shift-group">
-                    <button class="sync-editor-shift-btn" onclick="event.stopPropagation(); shiftSyncLineTime(${i}, -1)" title="−1s">−1</button>
-                    <button class="sync-editor-shift-btn" onclick="event.stopPropagation(); shiftSyncLineTime(${i}, -0.5)" title="−0.5s">−.5</button>
-                    <button class="sync-editor-shift-btn" onclick="event.stopPropagation(); shiftSyncLineTime(${i}, -0.1)" title="−0.1s">−.1</button>
-                    <button class="sync-editor-shift-btn" onclick="event.stopPropagation(); shiftSyncLineTime(${i}, 0.1)" title="+0.1s">+.1</button>
-                    <button class="sync-editor-shift-btn" onclick="event.stopPropagation(); shiftSyncLineTime(${i}, 0.5)" title="+0.5s">+.5</button>
-                    <button class="sync-editor-shift-btn" onclick="event.stopPropagation(); shiftSyncLineTime(${i}, 1)" title="+1s">+1</button>
+                    <button class="sync-editor-shift-btn" ${actionAttrs('shiftSyncLineTime', [i, -1], { stop: true })} title="−1s">−1</button>
+                    <button class="sync-editor-shift-btn" ${actionAttrs('shiftSyncLineTime', [i, -0.5], { stop: true })} title="−0.5s">−.5</button>
+                    <button class="sync-editor-shift-btn" ${actionAttrs('shiftSyncLineTime', [i, -0.1], { stop: true })} title="−0.1s">−.1</button>
+                    <button class="sync-editor-shift-btn" ${actionAttrs('shiftSyncLineTime', [i, 0.1], { stop: true })} title="+0.1s">+.1</button>
+                    <button class="sync-editor-shift-btn" ${actionAttrs('shiftSyncLineTime', [i, 0.5], { stop: true })} title="+0.5s">+.5</button>
+                    <button class="sync-editor-shift-btn" ${actionAttrs('shiftSyncLineTime', [i, 1], { stop: true })} title="+1s">+1</button>
                 </div>
                 <div class="sync-editor-actions">
                     ${
                         isFocused && (isInstrumental || !isBlank)
-                            ? '<button class="sync-editor-icon-btn sync-editor-icon-btn-primary" onclick="event.stopPropagation(); stampFocusedLine()" title="Stamp current time (F1)">+</button>'
+                            ? '<button class="sync-editor-icon-btn sync-editor-icon-btn-primary" data-action="stampFocusedLine" data-stop title="Stamp current time (F1)">+</button>'
                             : ''
                     }
                     ${
                         isFocused
                             ? `<button class="sync-editor-icon-btn ${
                                   isInstrumental ? 'sync-editor-icon-btn-active' : ''
-                              }" onclick="event.stopPropagation(); toggleSyncLineInstrumental(${i})" title="${
+                              }" ${actionAttrs('toggleSyncLineInstrumental', [i], { stop: true })} title="${
                                   isInstrumental ? 'Mark as lyric' : 'Mark as instrumental'
                               }"><span class="material-symbols-outlined">music_note</span></button>`
                             : ''
@@ -178,30 +199,21 @@ function renderSyncEditorLines() {
 
     container.innerHTML = html;
 
-    container.querySelectorAll('.sync-editor-line').forEach((row) => {
-        row.addEventListener('contextmenu', (e) => {
-            const idx = parseInt(row.getAttribute('data-index'), 10);
-            if (isNaN(idx)) return;
-            e.preventDefault();
-            e.stopPropagation();
-            showSyncLineContextMenu(e, idx);
-        });
-    });
 }
 
-function loadPastedIntoEditor() {
+export function loadPastedIntoEditor() {
     const textarea = document.getElementById('sync-editor-paste');
     if (!textarea) return;
     syncEditorState.pasteOpen = false;
     setSyncEditorLinesFromText(textarea.value);
 }
 
-function togglePasteArea() {
+export function togglePasteArea() {
     syncEditorState.pasteOpen = !syncEditorState.pasteOpen;
     renderSyncEditorLines();
 }
 
-function startBlankSyncSession() {
+export function startBlankSyncSession() {
     pushSyncHistory('Start blank');
     syncEditorState.lines = [
         {
@@ -217,7 +229,7 @@ function startBlankSyncSession() {
     setTimeout(() => editSyncLineText(0), 30);
 }
 
-function setSyncEditorLinesFromText(text) {
+export function setSyncEditorLinesFromText(text) {
     pushSyncHistory('Load lyrics');
     const normalized = String(text || '')
         .replace(/\r\n/g, '\n')
@@ -236,7 +248,7 @@ function setSyncEditorLinesFromText(text) {
     updateSyncEditorProgress();
 }
 
-function loadPlainLyricsIntoEditor() {
+export function loadPlainLyricsIntoEditor() {
     const song = getSongById(syncEditorState.songId);
     if (!song) return;
     const plain = getLyricsForSong(song);
@@ -248,7 +260,7 @@ function loadPlainLyricsIntoEditor() {
     setSyncEditorLinesFromText(stripped);
 }
 
-function loadVariantIntoEditor(variantId) {
+export function loadVariantIntoEditor(variantId) {
     const song = getSongById(syncEditorState.songId);
     if (!song) return;
     const entry = getSyncedLyricsVariantsForSong(song);
@@ -283,9 +295,9 @@ function loadVariantIntoEditor(variantId) {
     updateSyncEditorProgress();
 }
 
-function importLrcIntoEditor() {
-    if (window.electronAPI && window.electronAPI.readLyricsFile) {
-        window.electronAPI.readLyricsFile().then((result) => {
+export function importLrcIntoEditor() {
+    if (desktopApi.supports('lyrics.readLyricsFile')) {
+        desktopApi.lyrics.readLyricsFile().then((result) => {
             if (!result || !result.success) return;
             applyImportedLrcText(result.contents);
         });
@@ -304,7 +316,7 @@ function importLrcIntoEditor() {
     }
 }
 
-function applyImportedLrcText(text) {
+export function applyImportedLrcText(text) {
     const normalized = String(text || '')
         .replace(/\r\n/g, '\n')
         .replace(/\r/g, '\n');
@@ -335,4 +347,25 @@ function applyImportedLrcText(text) {
     updateSyncEditorPreview();
     updateSyncEditorProgress();
     showNotification('Imported ' + lines.length + ' lines', 'success', 2000);
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        clearSyncLineTimeFromContextMenu,
+        showSyncLineContextMenuForRow,
+        formatSyncTimecode,
+        updateSyncMiniPlayer,
+        syncMiniTogglePlay,
+        syncMiniSeekBy,
+        startSyncScrub,
+        renderSyncEditorLines,
+        loadPastedIntoEditor,
+        togglePasteArea,
+        startBlankSyncSession,
+        setSyncEditorLinesFromText,
+        loadPlainLyricsIntoEditor,
+        loadVariantIntoEditor,
+        importLrcIntoEditor,
+        applyImportedLrcText
+    });
 }

@@ -28,7 +28,7 @@ Two jobs, both so that files can become modules without breaking the HTML that c
 - Strings that stand for something known only at click time: `"$this"` the element, `"$event"` the event, `"$value"` `this.value`, `"$checked"` `this.checked`. (A real value that is exactly one of these four strings cannot be passed; write a small wrapper function.)
 - Inside the handler, `this` is the element that has the attribute, as with an inline handler. `window.event` is the current event.
 - The handler returning `false` calls `preventDefault()`, as `onclick="...; return false"` did.
-- `data-stop` stops the event from reaching `data-action` elements above it. On its own (no `data-action`) it replaces an inline `event.stopPropagation()`.
+- `data-stop` stops the event from reaching `data-action` elements above it and from reaching any other listener on `document` or `window`. On its own (no `data-action`) it replaces an inline `event.stopPropagation()`.
 - A handler that throws is reported in the console and the elements above still run, as with inline handlers.
 - An action name that was never registered is a console error (`data-action="x" has no registered action`).
 

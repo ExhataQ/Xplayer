@@ -1,7 +1,21 @@
 // ==============================================================================
 // ALBUM ART & RIGHT PANEL TABS
 // ==============================================================================
-function updateAlbumArt() {
+registerActions({
+    playTrackNext,
+    replaceBrokenCoverWithPlaceholder
+});
+
+export function replaceBrokenCoverWithPlaceholder(img) {
+    img.removeAttribute('data-action-error');
+    img.src = PLACEHOLDER_IMAGE;
+}
+
+export function playTrackNext(index) {
+    playFromQueue(index);
+}
+
+export function updateAlbumArt() {
     const albumArtImage = document.getElementById('album-art-image');
     const tagTitle = document.getElementById('tag-title');
     const tagArtist = document.getElementById('tag-artist');
@@ -75,7 +89,8 @@ function updateAlbumArt() {
                 headerTitle.textContent = sourceName;
                 headerTitle.classList.remove('active-underline');
                 headerTitle.classList.add('source-name-header');
-                headerTitle.setAttribute('oncontextmenu', 'showCurrentSourceContextMenu(event)');
+                headerTitle.setAttribute('data-action-contextmenu', 'showCurrentSourceContextMenu');
+                headerTitle.setAttribute('data-args-contextmenu', '["$event"]');
             }
         }
     } else {
@@ -113,7 +128,7 @@ function updateAlbumArt() {
     }
 }
 
-function updateTrackInfoBoxVisibility() {
+export function updateTrackInfoBoxVisibility() {
     const box = document.getElementById('track-info-box');
     const columnsWrap = document.getElementById('track-info-columns');
     if (!box || !columnsWrap) return;
@@ -144,7 +159,7 @@ function updateTrackInfoBoxVisibility() {
     }
 }
 
-function showTrackPlaceholders() {
+export function showTrackPlaceholders() {
     const albumArtImage = document.getElementById('album-art-image');
     const albumArtContainer = document.querySelector('.album-art-container');
     const tagDetails = document.getElementById('tag-details');
@@ -261,12 +276,12 @@ function showTrackPlaceholders() {
     }
 }
 
-function removePlaceholder(id) {
+export function removePlaceholder(id) {
     const existing = document.getElementById(id);
     if (existing) existing.remove();
 }
 
-function clearTrackPlaceholders() {
+export function clearTrackPlaceholders() {
     removePlaceholder('placeholder-track-header');
     removePlaceholder('placeholder-info-box');
     removePlaceholder('placeholder-lyrics-box');
@@ -286,7 +301,7 @@ function clearTrackPlaceholders() {
     }
 }
 
-function updateTrackNextBox() {
+export function updateTrackNextBox() {
     const box = document.getElementById('track-next-box');
     const body = document.getElementById('track-next-body');
     if (!box || !body) return;
@@ -311,10 +326,10 @@ function updateTrackNextBox() {
 
     box.style.display = '';
     body.innerHTML = `
-        <div class="track-next-item" onclick="playFromQueue(${nextIndex})">
+        <div class="track-next-item" ${actionAttrs('playTrackNext', [nextIndex])}>
             <div class="track-next-cover-wrapper">
-                <img class="track-next-cover" src="${cover}" alt="" onerror="this.onerror=null; this.src=PLACEHOLDER_IMAGE">
-                <button class="track-next-play-btn" onclick="event.stopPropagation(); playFromQueue(${nextIndex})" aria-label="Play next"></button>
+                <img class="track-next-cover" src="${cover}" alt="" data-action-error="replaceBrokenCoverWithPlaceholder" data-args-error='["$this"]'>
+                <button class="track-next-play-btn" ${actionAttrs('playTrackNext', [nextIndex], { stop: true })} aria-label="Play next"></button>
             </div>
             <div class="track-next-info">
                 <div class="track-next-song-title">${title}</div>
@@ -322,4 +337,17 @@ function updateTrackNextBox() {
             </div>
         </div>
     `;
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        replaceBrokenCoverWithPlaceholder,
+        playTrackNext,
+        updateAlbumArt,
+        updateTrackInfoBoxVisibility,
+        showTrackPlaceholders,
+        removePlaceholder,
+        clearTrackPlaceholders,
+        updateTrackNextBox
+    });
 }

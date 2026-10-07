@@ -178,6 +178,14 @@
                 "why": "EB-C2 (Agent C report 0002): openSettingsPanel, enterSettingsFromHistory, enterAdvancedSettingsFromHistory and toggleSettingsPanel set up the settings view the user just opened. Scoped to this file instead of the global navigation list so it does not hide the same names in A's and B's files. updateActiveHighlight here is C's judgment; B's EB-B5 decision about the same name in 13 and 17 is separate and still waits for D."
             },
             {
+                "file": "08e-panel-settings.js",
+                "names": [
+                    "switchToHistoryFromSettings",
+                    "switchToSearchHistoryFromSettings"
+                ],
+                "why": "C-04 (Agent C report 0008): the Settings buttons 'History' and 'Search history' open those views. They are registered as click actions in 08e and only forward to the view functions in 07; no data changed. Before C-04 the same calls sat in inline onclick strings that the audit could not see."
+            },
+            {
                 "file": "13-song-highlight.js",
                 "names": [
                     "updateActiveHighlight",

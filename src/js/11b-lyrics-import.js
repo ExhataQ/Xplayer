@@ -1,6 +1,12 @@
 // Importing/pasting LRC text onto the currently playing song (outside the sync editor).
 
-function importLrcFile() {
+registerActions({
+    clearSyncedLyricsForCurrentSong,
+    closeLrcPasteDialog,
+    saveLrcPaste
+});
+
+export function importLrcFile() {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) {
         showNotification('No song playing', 'warning', 2000);
         return;
@@ -39,7 +45,7 @@ function importLrcFile() {
     input.click();
 }
 
-function openLrcPasteDialog() {
+export function openLrcPasteDialog() {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) {
         showNotification('No song playing', 'warning', 2000);
         return;
@@ -54,12 +60,12 @@ function openLrcPasteDialog() {
         overlay = document.createElement('div');
         overlay.id = 'lrc-paste-overlay';
         overlay.className = 'lyrics-editor-overlay';
-        overlay.onclick = closeLrcPasteDialog;
+        overlay.setAttribute('data-action', 'closeLrcPasteDialog');
         document.body.appendChild(overlay);
     }
 
     overlay.innerHTML = `
-        <div class="lyrics-editor-modal" onclick="event.stopPropagation()">
+        <div class="lyrics-editor-modal" data-stop>
             <div class="lyrics-editor-header">
                 <div class="lyrics-editor-title">Paste LRC</div>
                 <div class="lyrics-editor-song">${escapeHtml(song.title || 'Unknown')} — ${escapeHtml(
@@ -68,10 +74,10 @@ function openLrcPasteDialog() {
             </div>
             <textarea class="lyrics-editor-textarea" id="lrc-paste-textarea" placeholder="[00:19.26] Sittin' all alone&#10;[00:21.66] Mouth full of gum&#10;[00:23.73] In the driveway&#10;..."></textarea>
             <div class="lyrics-editor-actions">
-                <button class="lyrics-editor-btn lyrics-editor-btn-danger" onclick="clearSyncedLyricsForCurrentSong()">Clear Synced</button>
+                <button class="lyrics-editor-btn lyrics-editor-btn-danger" data-action="clearSyncedLyricsForCurrentSong">Clear Synced</button>
                 <div class="lyrics-editor-actions-right">
-                    <button class="lyrics-editor-btn" onclick="closeLrcPasteDialog()">Cancel</button>
-                    <button class="lyrics-editor-btn lyrics-editor-btn-primary" onclick="saveLrcPaste()">Save</button>
+                    <button class="lyrics-editor-btn" data-action="closeLrcPasteDialog">Cancel</button>
+                    <button class="lyrics-editor-btn lyrics-editor-btn-primary" data-action="saveLrcPaste">Save</button>
                 </div>
             </div>
         </div>
@@ -91,13 +97,13 @@ function openLrcPasteDialog() {
     document.addEventListener('keydown', lrcPasteKeyHandler);
 }
 
-function closeLrcPasteDialog() {
+export function closeLrcPasteDialog() {
     const overlay = document.getElementById('lrc-paste-overlay');
     if (overlay) overlay.classList.remove('active');
     document.removeEventListener('keydown', lrcPasteKeyHandler);
 }
 
-function lrcPasteKeyHandler(e) {
+export function lrcPasteKeyHandler(e) {
     if (e.key === 'Escape') {
         e.preventDefault();
         closeLrcPasteDialog();
@@ -107,7 +113,7 @@ function lrcPasteKeyHandler(e) {
     }
 }
 
-function saveLrcPaste() {
+export function saveLrcPaste() {
     const textarea = document.getElementById('lrc-paste-textarea');
     if (!textarea) return;
 
@@ -141,7 +147,7 @@ function saveLrcPaste() {
     }
 }
 
-function clearSyncedLyricsForCurrentSong() {
+export function clearSyncedLyricsForCurrentSong() {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) return;
     const queueItem = playbackQueue[currentQueueIndex];
     const song = queueItem.song || queueItem;
@@ -151,4 +157,15 @@ function clearSyncedLyricsForCurrentSong() {
     if (currentView === VIEWS.LYRICS) {
         emit('lyrics:changed', { songId: song.id });
     }
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        importLrcFile,
+        openLrcPasteDialog,
+        closeLrcPasteDialog,
+        lrcPasteKeyHandler,
+        saveLrcPaste,
+        clearSyncedLyricsForCurrentSong
+    });
 }

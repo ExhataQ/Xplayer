@@ -76,7 +76,7 @@ function _colorDistance(r1, g1, b1, r2, g2, b2) {
 
 // Extract the dominant non-trivial color from an image URL.
 // Returns { rgb: "r, g, b", hex: "#rrggbb", hoverHex, isFallback } or null on failure.
-async function extractDominantColor(imageUrl) {
+export async function extractDominantColor(imageUrl) {
     if (!imageUrl) return null;
     if (_colorExtractCache.has(imageUrl)) return _colorExtractCache.get(imageUrl);
 
@@ -280,7 +280,7 @@ async function extractDominantColor(imageUrl) {
 
 // Apply the extracted color to the body as the active view accent.
 // Pass null to revert to the color that the current view class would use.
-async function applyViewColorFromCover(imageUrl) {
+export async function applyViewColorFromCover(imageUrl) {
     const body = document.body;
     const fallback = () => {
         body.style.removeProperty('--view-accent');
@@ -306,4 +306,8 @@ async function applyViewColorFromCover(imageUrl) {
     body.style.setProperty('--view-accent-rgb', color.rgb);
     body.style.setProperty('--view-accent-lum', String(color.lum));
     body.style.setProperty('--view-accent-dark-bias', String(color.darkBias));
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({ extractDominantColor, applyViewColorFromCover });
 }

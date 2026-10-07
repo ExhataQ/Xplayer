@@ -1,21 +1,23 @@
 // ==============================================================================
 // CUSTOM LYRICS STORAGE
 // ==============================================================================
-function getCustomLyricsStore() {
-    try {
-        const saved = localStorage.getItem(STORAGE_KEYS.CUSTOM_LYRICS);
-        if (saved) return JSON.parse(saved);
-    } catch (e) {
-        console.warn('[customLyrics] failed to parse saved value, using empty store', e);
-    }
-    return {};
+registerActions({
+    clearLyricsForCurrentSong,
+    clearLyricsForSong,
+    closeLyricsEditor,
+    saveLyricsForSong,
+    saveLyricsFromEditor
+});
+
+export function getCustomLyricsStore() {
+    return storageReadJson(STORAGE_KEYS.CUSTOM_LYRICS, {});
 }
 
-function saveCustomLyricsStore(store) {
-    localStorage.setItem(STORAGE_KEYS.CUSTOM_LYRICS, JSON.stringify(store));
+export function saveCustomLyricsStore(store) {
+    storageWriteJson(STORAGE_KEYS.CUSTOM_LYRICS, store);
 }
 
-function getLyricsForSong(song) {
+export function getLyricsForSong(song) {
     if (!song || song.id === undefined || song.id === null) return '';
     const store = getCustomLyricsStore();
     const key = song.url || String(song.id);
@@ -28,7 +30,7 @@ function getLyricsForSong(song) {
     return song.lyrics || '';
 }
 
-function setLyricsForSong(songId, lyricsText) {
+export function setLyricsForSong(songId, lyricsText) {
     const store = getCustomLyricsStore();
     const song = SONGS_DATA.find((s) => s.id === songId);
     const key = song && song.url ? song.url : String(songId);
@@ -54,26 +56,20 @@ function setLyricsForSong(songId, lyricsText) {
 // ==============================================================================
 let _syncedVariantIdCounter = 0;
 
-function _nextVariantId() {
+export function _nextVariantId() {
     _syncedVariantIdCounter++;
     return 'v' + Date.now().toString(36) + '_' + _syncedVariantIdCounter.toString(36);
 }
 
-function getSyncedLyricsStore() {
-    try {
-        const saved = localStorage.getItem(STORAGE_KEYS.CUSTOM_SYNCED_LYRICS);
-        if (saved) return JSON.parse(saved);
-    } catch (e) {
-        console.warn('[customSyncedLyrics] failed to parse saved value, using empty store', e);
-    }
-    return {};
+export function getSyncedLyricsStore() {
+    return storageReadJson(STORAGE_KEYS.CUSTOM_SYNCED_LYRICS, {});
 }
 
-function saveSyncedLyricsStore(store) {
-    localStorage.setItem(STORAGE_KEYS.CUSTOM_SYNCED_LYRICS, JSON.stringify(store));
+export function saveSyncedLyricsStore(store) {
+    storageWriteJson(STORAGE_KEYS.CUSTOM_SYNCED_LYRICS, store);
 }
 
-function _migrateEntry(raw) {
+export function _migrateEntry(raw) {
     if (!raw) return null;
     if (typeof raw === 'string') {
         if (raw.trim() === '') return null;
@@ -96,7 +92,7 @@ function _migrateEntry(raw) {
     return null;
 }
 
-function getSyncedLyricsVariantsForSong(song) {
+export function getSyncedLyricsVariantsForSong(song) {
     if (!song) return null;
     const store = getSyncedLyricsStore();
     const key = song.url || String(song.id);
@@ -111,19 +107,19 @@ function getSyncedLyricsVariantsForSong(song) {
     return migrated;
 }
 
-function getActiveSyncedLyricsForSong(song) {
+export function getActiveSyncedLyricsForSong(song) {
     const entry = getSyncedLyricsVariantsForSong(song);
     if (!entry || !entry.variants || entry.variants.length === 0) return null;
     const active = entry.variants.find((v) => v.id === entry.activeId) || entry.variants[0];
     return active || null;
 }
 
-function getSyncedLyricsForSong(song) {
+export function getSyncedLyricsForSong(song) {
     const active = getActiveSyncedLyricsForSong(song);
     return active ? active.text : null;
 }
 
-function _getOrCreateEntry(songId) {
+export function _getOrCreateEntry(songId) {
     const store = getSyncedLyricsStore();
     const song = SONGS_DATA.find((s) => s.id === songId);
     const key = song && song.url ? song.url : String(songId);
@@ -144,7 +140,7 @@ function _getOrCreateEntry(songId) {
     };
 }
 
-function addSyncedLyricsVariant(songId, text, offset) {
+export function addSyncedLyricsVariant(songId, text, offset) {
     if (!text || String(text).trim() === '') return null;
     const { store, key, entry } = _getOrCreateEntry(songId);
 
@@ -169,7 +165,7 @@ function addSyncedLyricsVariant(songId, text, offset) {
     return variant;
 }
 
-function setSyncedLyricsForSong(songId, lrcText) {
+export function setSyncedLyricsForSong(songId, lrcText) {
     if (!lrcText || String(lrcText).trim() === '') {
         clearSyncedLyricsForSong(songId);
         return null;
@@ -205,7 +201,7 @@ function setSyncedLyricsForSong(songId, lrcText) {
     return result;
 }
 
-function setActiveSyncedLyricsVariant(songId, variantId) {
+export function setActiveSyncedLyricsVariant(songId, variantId) {
     const { store, key, entry } = _getOrCreateEntry(songId);
     if (!entry.variants.some((v) => v.id === variantId)) return false;
     entry.activeId = variantId;
@@ -214,7 +210,7 @@ function setActiveSyncedLyricsVariant(songId, variantId) {
     return true;
 }
 
-function renameSyncedLyricsVariant(songId, variantId, newName) {
+export function renameSyncedLyricsVariant(songId, variantId, newName) {
     if (!newName || String(newName).trim() === '') return false;
     const { store, key, entry } = _getOrCreateEntry(songId);
     const variant = entry.variants.find((v) => v.id === variantId);
@@ -225,7 +221,7 @@ function renameSyncedLyricsVariant(songId, variantId, newName) {
     return true;
 }
 
-function deleteSyncedLyricsVariant(songId, variantId) {
+export function deleteSyncedLyricsVariant(songId, variantId) {
     const { store, key, entry } = _getOrCreateEntry(songId);
     const idx = entry.variants.findIndex((v) => v.id === variantId);
     if (idx === -1) return false;
@@ -245,7 +241,7 @@ function deleteSyncedLyricsVariant(songId, variantId) {
     return true;
 }
 
-function clearSyncedLyricsForSong(songId) {
+export function clearSyncedLyricsForSong(songId) {
     const store = getSyncedLyricsStore();
     const song = SONGS_DATA.find((s) => s.id === songId);
     const key = song && song.url ? song.url : String(songId);
@@ -265,7 +261,7 @@ function clearSyncedLyricsForSong(songId) {
 // ==============================================================================
 // LYRICS EDITOR (PLAIN TEXT)
 // ==============================================================================
-function openLyricsEditor() {
+export function openLyricsEditor() {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) {
         showNotification('No song playing', 'warning', 2000);
         return;
@@ -280,12 +276,12 @@ function openLyricsEditor() {
         overlay = document.createElement('div');
         overlay.id = 'lyrics-editor-overlay';
         overlay.className = 'lyrics-editor-overlay';
-        overlay.onclick = closeLyricsEditor;
+        overlay.setAttribute('data-action', 'closeLyricsEditor');
         document.body.appendChild(overlay);
     }
 
     overlay.innerHTML = `
-        <div class="lyrics-editor-modal" onclick="event.stopPropagation()">
+        <div class="lyrics-editor-modal" data-stop>
             <div class="lyrics-editor-header">
                 <div class="lyrics-editor-title">${existing ? 'Edit Lyrics' : 'Add Lyrics'}</div>
                 <div class="lyrics-editor-song">${escapeHtml(song.title || 'Unknown')} — ${escapeHtml(
@@ -296,10 +292,10 @@ function openLyricsEditor() {
                 existing
             )}</textarea>
             <div class="lyrics-editor-actions">
-                <button class="lyrics-editor-btn lyrics-editor-btn-danger" onclick="clearLyricsForCurrentSong()">Clear</button>
+                <button class="lyrics-editor-btn lyrics-editor-btn-danger" data-action="clearLyricsForCurrentSong">Clear</button>
                 <div class="lyrics-editor-actions-right">
-                    <button class="lyrics-editor-btn" onclick="closeLyricsEditor()">Cancel</button>
-                    <button class="lyrics-editor-btn lyrics-editor-btn-primary" onclick="saveLyricsFromEditor()">Save</button>
+                    <button class="lyrics-editor-btn" data-action="closeLyricsEditor">Cancel</button>
+                    <button class="lyrics-editor-btn lyrics-editor-btn-primary" data-action="saveLyricsFromEditor">Save</button>
                 </div>
             </div>
         </div>
@@ -314,7 +310,7 @@ function openLyricsEditor() {
     document.addEventListener('keydown', lyricsEditorKeyHandler);
 }
 
-function openLyricsEditorForSong(songId) {
+export function openLyricsEditorForSong(songId) {
     const song = SONGS_DATA.find((s) => s.id === songId);
     if (!song) return;
 
@@ -325,12 +321,12 @@ function openLyricsEditorForSong(songId) {
         overlay = document.createElement('div');
         overlay.id = 'lyrics-editor-overlay';
         overlay.className = 'lyrics-editor-overlay';
-        overlay.onclick = closeLyricsEditor;
+        overlay.setAttribute('data-action', 'closeLyricsEditor');
         document.body.appendChild(overlay);
     }
 
     overlay.innerHTML = `
-        <div class="lyrics-editor-modal" onclick="event.stopPropagation()">
+        <div class="lyrics-editor-modal" data-stop>
             <div class="lyrics-editor-header">
                 <div class="lyrics-editor-title">${existing ? 'Edit Lyrics' : 'Add Lyrics'}</div>
                 <div class="lyrics-editor-song">${escapeHtml(song.title || 'Unknown')} — ${escapeHtml(
@@ -339,10 +335,10 @@ function openLyricsEditorForSong(songId) {
             </div>
             <textarea class="lyrics-editor-textarea" id="lyrics-editor-textarea" placeholder="Paste or type lyrics here. Line breaks are preserved."></textarea>
             <div class="lyrics-editor-actions">
-                <button class="lyrics-editor-btn lyrics-editor-btn-danger" onclick="clearLyricsForSong('${songId}')">Clear</button>
+                <button class="lyrics-editor-btn lyrics-editor-btn-danger" ${actionAttrs('clearLyricsForSong', [String(songId)])}>Clear</button>
                 <div class="lyrics-editor-actions-right">
-                    <button class="lyrics-editor-btn" onclick="closeLyricsEditor()">Cancel</button>
-                    <button class="lyrics-editor-btn lyrics-editor-btn-primary" onclick="saveLyricsForSong('${songId}')">Save</button>
+                    <button class="lyrics-editor-btn" data-action="closeLyricsEditor">Cancel</button>
+                    <button class="lyrics-editor-btn lyrics-editor-btn-primary" ${actionAttrs('saveLyricsForSong', [String(songId)])}>Save</button>
                 </div>
             </div>
         </div>
@@ -359,7 +355,7 @@ function openLyricsEditorForSong(songId) {
     document.addEventListener('keydown', lyricsEditorKeyHandler);
 }
 
-function saveLyricsForSong(songId) {
+export function saveLyricsForSong(songId) {
     const textarea = document.getElementById('lyrics-editor-textarea');
     if (!textarea) return;
     const normalized = textarea.value.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -385,7 +381,7 @@ function saveLyricsForSong(songId) {
     showNotification('Lyrics saved', 'success', 2000);
 }
 
-function clearLyricsForSong(songId) {
+export function clearLyricsForSong(songId) {
     setLyricsForSong(songId, '');
     closeLyricsEditor();
 
@@ -407,13 +403,13 @@ function clearLyricsForSong(songId) {
     showNotification('Lyrics cleared', 'info', 2000);
 }
 
-function closeLyricsEditor() {
+export function closeLyricsEditor() {
     const overlay = document.getElementById('lyrics-editor-overlay');
     if (overlay) overlay.classList.remove('active');
     document.removeEventListener('keydown', lyricsEditorKeyHandler);
 }
 
-function lyricsEditorKeyHandler(e) {
+export function lyricsEditorKeyHandler(e) {
     if (e.key === 'Escape') {
         e.preventDefault();
         closeLyricsEditor();
@@ -423,7 +419,7 @@ function lyricsEditorKeyHandler(e) {
     }
 }
 
-function saveLyricsFromEditor() {
+export function saveLyricsFromEditor() {
     const textarea = document.getElementById('lyrics-editor-textarea');
     if (!textarea) return;
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) return;
@@ -436,7 +432,7 @@ function saveLyricsFromEditor() {
     showNotification('Lyrics saved', 'success', 2000);
 }
 
-function clearLyricsForCurrentSong() {
+export function clearLyricsForCurrentSong() {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) return;
     const queueItem = playbackQueue[currentQueueIndex];
     const song = queueItem.song || queueItem;
@@ -449,7 +445,7 @@ function clearLyricsForCurrentSong() {
 // ==============================================================================
 // SYNCED VARIANT SELECTION FROM LYRICS VIEW
 // ==============================================================================
-function selectSyncedVariant(variantId) {
+export function selectSyncedVariant(variantId) {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) return;
     const queueItem = playbackQueue[currentQueueIndex];
     const song = queueItem.song || queueItem;
@@ -458,7 +454,7 @@ function selectSyncedVariant(variantId) {
     }
 }
 
-function renameSyncedVariant(variantId) {
+export function renameSyncedVariant(variantId) {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) return;
     const queueItem = playbackQueue[currentQueueIndex];
     const song = queueItem.song || queueItem;
@@ -473,7 +469,7 @@ function renameSyncedVariant(variantId) {
     }
 }
 
-function deleteSyncedVariant(variantId) {
+export function deleteSyncedVariant(variantId) {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) return;
     const queueItem = playbackQueue[currentQueueIndex];
     const song = queueItem.song || queueItem;
@@ -488,5 +484,39 @@ function deleteSyncedVariant(variantId) {
             if (currentView === VIEWS.LYRICS) emit('lyrics:changed', { songId: song.id });
             showNotification('Variant deleted', 'info', 2000);
         }
+    });
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        getCustomLyricsStore,
+        saveCustomLyricsStore,
+        getLyricsForSong,
+        setLyricsForSong,
+        _nextVariantId,
+        getSyncedLyricsStore,
+        saveSyncedLyricsStore,
+        _migrateEntry,
+        getSyncedLyricsVariantsForSong,
+        getActiveSyncedLyricsForSong,
+        getSyncedLyricsForSong,
+        _getOrCreateEntry,
+        addSyncedLyricsVariant,
+        setSyncedLyricsForSong,
+        setActiveSyncedLyricsVariant,
+        renameSyncedLyricsVariant,
+        deleteSyncedLyricsVariant,
+        clearSyncedLyricsForSong,
+        openLyricsEditor,
+        openLyricsEditorForSong,
+        saveLyricsForSong,
+        clearLyricsForSong,
+        closeLyricsEditor,
+        lyricsEditorKeyHandler,
+        saveLyricsFromEditor,
+        clearLyricsForCurrentSong,
+        selectSyncedVariant,
+        renameSyncedVariant,
+        deleteSyncedVariant
     });
 }
