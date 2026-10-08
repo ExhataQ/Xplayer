@@ -17,7 +17,7 @@
 </head>
 <body>
     <h1>Shuffle Test</h1>
-    <p>This is a standalone tester. It uses the same shuffle algorithm from the player source.</p>
+    <p>This is a standalone tester. It uses the same shuffle algorithm from the player source. The source is an ES module, so open this page through a local web server (a <code>file://</code> page cannot import it).</p>
 
     <div class="controls">
         <label>
@@ -39,8 +39,10 @@
         const deletedSongIds = new Set();
         const currentView = 'shuffle-test';
     </script>
-    <script src="../src/js/10a-playback-shuffle.js"></script>
-    <script src="../src/js/10b-playback-smart-shuffle.js"></script>
+    <script type="module">
+        import { createShuffleOrder } from '../src/js/10a-playback-shuffle.js';
+        window.createShuffleOrder = createShuffleOrder;
+    </script>
     <script>
         const results = document.getElementById('results');
         const summary = document.getElementById('summary');

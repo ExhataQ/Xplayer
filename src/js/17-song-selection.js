@@ -1,7 +1,7 @@
 // ==============================================================================
 // SONG SELECTION & UI SYNC
 // ==============================================================================
-function updateLeftPanelCounts() {
+export function updateLeftPanelCounts() {
     const favoritesCount = getActiveFavoritesCount();
 
     const likedCountDisplay = document.getElementById('liked-count-display');
@@ -31,15 +31,15 @@ function updateLeftPanelCounts() {
     updateRecentCount();
 }
 
-function syncAllUIState() {
+export function syncAllUIState() {
     emit('favorites:changed');
 }
 
-function onSongsChanged() {
+export function onSongsChanged() {
     emit('songs:changed');
 }
 
-function refreshCurrentViewAfterMutation() {
+export function refreshCurrentViewAfterMutation() {
     document.querySelectorAll('#song-list .song-item.selected').forEach((item) => {
         const id = parseInt(item.getAttribute('data-song-id'));
         if (!isNaN(id) && !selectedSongIds.has(id)) {
@@ -118,7 +118,7 @@ function pruneSelectionSet(validIds) {
     }
 }
 
-function toggleFavorite(songId, buttonElement) {
+export function toggleFavorite(songId, buttonElement) {
     const wasFav = isFavorite(songId);
 
     if (wasFav) {
@@ -156,7 +156,7 @@ function toggleFavorite(songId, buttonElement) {
     showNotification(wasFav ? 'Removed from favorites' : 'Added to favorites', 'heart', 2000);
 }
 
-function toggleFavoriteFromMenu() {
+export function toggleFavoriteFromMenu() {
     if (currentContextSongId === null) return;
 
     const idsToToggle =
@@ -207,4 +207,15 @@ function toggleFavoriteFromMenu() {
         'heart',
         2000
     );
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        updateLeftPanelCounts,
+        syncAllUIState,
+        onSongsChanged,
+        refreshCurrentViewAfterMutation,
+        toggleFavorite,
+        toggleFavoriteFromMenu
+    });
 }

@@ -1,18 +1,7 @@
 // ==============================================================================
-// PLAYBACK - SHUFFLE STATE
-// ==============================================================================
-let shuffleOrder = [];
-let shuffleIndex = 0;
-let shuffleSourceId = null;
-let smartShuffleJourney = [];
-let smartShuffleJourneyIndex = 0;
-let smartShuffleSourceId = null;
-let smartShufflePreviousSong = null;
-
-// ==============================================================================
 // PLAYBACK - SHUFFLE SYSTEM
 // ==============================================================================
-function shuffleArray(array) {
+export function shuffleArray(array) {
     const newArray = [...array];
     for (let i = newArray.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -21,9 +10,9 @@ function shuffleArray(array) {
     return newArray;
 }
 
-function createShuffleOrder(songs, excludeSongId = null) {
+export function createShuffleOrder(songs, excludeSongId = null, isDeleted = (id) => deletedSongIds.has(id)) {
     let ids = songs
-        .filter((song) => song && !deletedSongIds.has(song.id))
+        .filter((song) => song && !isDeleted(song.id))
         .map((song) => song.id);
 
     if (excludeSongId !== null && ids.length > 1) {
@@ -33,14 +22,14 @@ function createShuffleOrder(songs, excludeSongId = null) {
     return shuffleArray(ids);
 }
 
-function resetShuffle(songs = null, excludeSongId = null, sourceId = currentView) {
+export function resetShuffle(songs = null, excludeSongId = null, sourceId = currentView) {
     const sourceSongs = songs || getSongsForList(sourceId);
     shuffleOrder = createShuffleOrder(sourceSongs, excludeSongId);
     shuffleIndex = 0;
     shuffleSourceId = sourceId;
 }
 
-function clearShuffle() {
+export function clearShuffle() {
     shuffleOrder = [];
     shuffleIndex = 0;
     shuffleSourceId = null;
@@ -50,8 +39,11 @@ function clearShuffle() {
     smartShufflePreviousSong = null;
 }
 
-function getSongDurationSeconds(song) {
+export function getSongDurationSeconds(song) {
     const parts = String(song?.duration || '0:00').split(':').map(Number);
     return parts.length === 2 && parts.every(Number.isFinite) ? parts[0] * 60 + parts[1] : 0;
 }
 
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({ shuffleArray, createShuffleOrder, resetShuffle, clearShuffle, getSongDurationSeconds });
+}

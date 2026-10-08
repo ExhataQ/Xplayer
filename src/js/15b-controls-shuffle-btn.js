@@ -1,7 +1,7 @@
 // ==============================================================================
 // SHUFFLE BUTTON
 // ==============================================================================
-function toggleNormalShuffle() {
+export function toggleNormalShuffle() {
     temporarilySuppressTooltip(shuffleButton);
     setIsShuffled(!isShuffled);
     shuffleButton.classList.toggle('active', isShuffled);
@@ -198,3 +198,8 @@ function openShuffleModeDialog() {
 
 shuffleButton.onclick = openShuffleModeDialog;
 
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        toggleNormalShuffle
+    });
+}

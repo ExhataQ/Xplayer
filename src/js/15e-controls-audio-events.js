@@ -1,7 +1,7 @@
 // ==============================================================================
 // AUDIO EVENT HANDLERS
 // ==============================================================================
-function refreshCurrentRowIndicator() {
+export function refreshCurrentRowIndicator() {
     const row = document.querySelector('.song-item.playing');
     document.querySelectorAll('.left-panel-main-item.playing').forEach((leftPlaying) => {
         leftPlaying.classList.toggle('paused', audioElement.paused);
@@ -20,7 +20,7 @@ function refreshCurrentRowIndicator() {
     }
 }
 
-function handleNumberCellClick(songId, listId, index) {
+export function handleNumberCellClick(songId, listId, index) {
     const clickedSong = getSongById(songId);
     if (!clickedSong) return;
 
@@ -46,12 +46,10 @@ function handleNumberCellClick(songId, listId, index) {
     playSongFromList(songId, listId, index);
 }
 
-function syncPlayPauseButtons() {
+export function syncPlayPauseButtons() {
     const isPaused = audioElement.paused;
 
-    if (window.electronAPI && window.electronAPI.updateThumbarPlayState) {
-        window.electronAPI.updateThumbarPlayState(!isPaused);
-    }
+    desktopApi.window.updateThumbarPlayState(!isPaused);
 
     if (playButton) {
         playButton.innerHTML = isPaused ? '<i class="fas fa-play"></i>' : '<i class="fas fa-pause"></i>';
@@ -262,15 +260,15 @@ function bindPlaybackAudioEvents(audio) {
     };
 }
 
-if (window.electronAPI && window.electronAPI.onThumbarPrev) {
-    window.electronAPI.onThumbarPrev(() => {
+if (desktopApi.supports('window.onThumbarPrev')) {
+    desktopApi.window.onThumbarPrev(() => {
         const prevBtn = document.getElementById('prev-btn');
         if (prevBtn) prevBtn.click();
     });
-    window.electronAPI.onThumbarPlayPause(() => {
+    desktopApi.window.onThumbarPlayPause(() => {
         playOrResumeCurrentView();
     });
-    window.electronAPI.onThumbarNext(() => {
+    desktopApi.window.onThumbarNext(() => {
         const nextBtn = document.getElementById('next-btn');
         if (nextBtn) nextBtn.click();
     });
@@ -278,18 +276,18 @@ if (window.electronAPI && window.electronAPI.onThumbarPrev) {
 
 let isWindowMaximized = false;
 
-if (window.electronAPI && window.electronAPI.onWindowMaximize) {
+if (desktopApi.supports('window.onWindowMaximize')) {
     const handleWindowMaximizeChange = debounce((isMax) => {
         isWindowMaximized = isMax;
         if (typeof updateMaximizeIcon === 'function') {
             updateMaximizeIcon(isMax);
         }
     }, 80);
-    window.electronAPI.onWindowMaximize((isMax) => {
+    desktopApi.window.onWindowMaximize((isMax) => {
         handleWindowMaximizeChange(isMax);
     });
-    if (window.electronAPI.getWindowMaximized) {
-        window.electronAPI.getWindowMaximized().then((isMax) => {
+    if (desktopApi.supports('window.getWindowMaximized')) {
+        desktopApi.window.getWindowMaximized().then((isMax) => {
             isWindowMaximized = isMax;
             if (typeof updateMaximizeIcon === 'function') {
                 updateMaximizeIcon(isMax);
@@ -301,3 +299,10 @@ if (window.electronAPI && window.electronAPI.onWindowMaximize) {
 bindPlaybackAudioEvents(audioElement);
 bindPlaybackAudioEvents(gaplessAudioElement);
 
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        refreshCurrentRowIndicator,
+        handleNumberCellClick,
+        syncPlayPauseButtons
+    });
+}

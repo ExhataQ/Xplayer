@@ -1,17 +1,17 @@
 // ==============================================================================
 // CONTEXT MENU ACTIONS
 // ==============================================================================
-function deleteHistoryEntry() {
+export function deleteHistoryEntry() {
     if (currentContextSongId === null) return;
 
-    let history = JSON.parse(localStorage.getItem(STORAGE_KEYS.PLAY_HISTORY) || '[]');
+    const history = getPlayHistory();
 
     const slotIndex = activeContextMenuSlot;
 
     if (slotIndex !== null && slotIndex < history.length) {
         removeHistoryGhostSlot(slotIndex);
         history.splice(slotIndex, 1);
-        localStorage.setItem(STORAGE_KEYS.PLAY_HISTORY, JSON.stringify(history));
+        storageWriteJson(STORAGE_KEYS.PLAY_HISTORY, history);
 
         if (currentView === VIEWS.HISTORY) {
             refreshCurrentViewAfterMutation();
@@ -23,7 +23,7 @@ function deleteHistoryEntry() {
     }
 }
 
-function addToPlaylistFromMenu(songId, playlistId) {
+export function addToPlaylistFromMenu(songId, playlistId) {
     if (songId === null || playlistId === null) return;
 
     const added = addSongToPlaylist(songId, playlistId);
@@ -41,7 +41,7 @@ function addToPlaylistFromMenu(songId, playlistId) {
     emit('playlist:songAddedFromMenu', { playlistId });
 }
 
-function showFileLocation() {
+export function showFileLocation() {
     if (currentContextSongId === null) return;
 
     const currentSong = SONGS_DATA.find((s) => s.id === currentContextSongId);
@@ -53,12 +53,12 @@ function showFileLocation() {
     let filePath = currentSong.url.replace('file:///', '');
     let windowsPath = filePath.replace(/\//g, '\\');
 
-    if (window.electronAPI) {
-        window.electronAPI.showFileInExplorer(windowsPath);
+    if (desktopApi.supports('files.showFileInExplorer')) {
+        desktopApi.files.showFileInExplorer(windowsPath);
     }
 }
 
-async function deleteSongFile() {
+export async function deleteSongFile() {
     if (currentContextSongId === null) return;
 
     const currentSong = SONGS_DATA.find((s) => s.id === currentContextSongId);
@@ -79,7 +79,7 @@ async function deleteSongFile() {
     let filePath = currentSong.url.replace('file:///', '');
     let windowsPath = filePath.replace(/\//g, '\\');
 
-    if (window.electronAPI && window.electronAPI.deleteFile) {
+    if (desktopApi.supports('files.deleteFile')) {
         markSongAsDeleted(currentContextSongId);
 
         const favorites = getFavorites();
@@ -105,8 +105,17 @@ async function deleteSongFile() {
 
         onSongsChanged();
         refreshCurrentViewAfterMutation();
-        window.electronAPI.deleteFile(windowsPath);
+        desktopApi.files.deleteFile(windowsPath);
     } else {
         showNotification('Delete function not available', 'error', 2000);
     }
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        deleteHistoryEntry,
+        addToPlaylistFromMenu,
+        showFileLocation,
+        deleteSongFile
+    });
 }

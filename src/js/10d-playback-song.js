@@ -1,7 +1,7 @@
 // ==============================================================================
 // PLAYBACK - SONG PLAYBACK
 // ==============================================================================
-function playSongFromQueue(queueIndex) {
+export function playSongFromQueue(queueIndex) {
     if (queueIndex < 0 || queueIndex >= playbackQueue.length) return;
 
     saveCurrentPlaybackState();
@@ -116,7 +116,7 @@ function playSongFromQueue(queueIndex) {
     }
 }
 
-function createQueueFromSongList(songList, startIndex = 0, listId = VIEWS.ALL_SONGS) {
+export function createQueueFromSongList(songList, startIndex = 0, listId = VIEWS.ALL_SONGS) {
     setQueueDisplayLimit(50);
     setPlaybackQueue(songList.map((song, idx) => ({
         song: song,
@@ -132,7 +132,7 @@ function createQueueFromSongList(songList, startIndex = 0, listId = VIEWS.ALL_SO
     }
 }
 
-function playSongFromList(songId, listId = null, clickedIndex = null) {
+export function playSongFromList(songId, listId = null, clickedIndex = null) {
     const activeListId = listId || currentView;
     setLastPlaybackListId(activeListId);
 
@@ -226,7 +226,7 @@ function playSongFromList(songId, listId = null, clickedIndex = null) {
     updatePlayingHighlight(songId, activeListId, ghostSlotIndex);
 }
 
-function playSongFromHistory(songId) {
+export function playSongFromHistory(songId) {
     const song = getSongById(songId);
     if (!song || deletedSongIds.has(song.id)) return;
 
@@ -288,7 +288,7 @@ function playAllFromCurrentView() {
     playCurrentViewFromStart();
 }
 
-function playOrResumeCurrentView() {
+export function playOrResumeCurrentView() {
     if (audioElement.src && !audioElement.paused) {
         if (typeof pausePlaybackWithFade === 'function') {
             pausePlaybackWithFade();
@@ -301,7 +301,7 @@ function playOrResumeCurrentView() {
     playAllFromCurrentView();
 }
 
-function playCurrentViewFromStart(targetListId = currentView) {
+export function playCurrentViewFromStart(targetListId = currentView) {
     saveCurrentPlaybackState();
     setQueueDisplayLimit(50);
 
@@ -400,14 +400,14 @@ function playCurrentViewFromStart(targetListId = currentView) {
     playSongFromQueue(0);
 }
 
-function isCurrentViewPlaying() {
+export function isCurrentViewPlaying() {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) return false;
     const currentItem = playbackQueue[currentQueueIndex];
     const currentListId = currentItem.listId || VIEWS.ALL_SONGS;
     return currentListId === currentView && !audioElement.paused;
 }
 
-function togglePlayAllFromCurrentView() {
+export function togglePlayAllFromCurrentView() {
     const btn = document.getElementById('subhero-play-btn');
     if (btn) temporarilySuppressTooltip(btn);
 
@@ -416,4 +416,17 @@ function togglePlayAllFromCurrentView() {
     } else {
         playAllFromCurrentView();
     }
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        playSongFromQueue,
+        createQueueFromSongList,
+        playSongFromList,
+        playSongFromHistory,
+        playOrResumeCurrentView,
+        playCurrentViewFromStart,
+        isCurrentViewPlaying,
+        togglePlayAllFromCurrentView
+    });
 }

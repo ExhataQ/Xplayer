@@ -1,7 +1,7 @@
 // ==============================================================================
 // PLAYBACK - QUEUE MANAGEMENT
 // ==============================================================================
-function updateQueueDisplay() {
+export function updateQueueDisplay() {
     const queueList = document.getElementById('queue-list');
 
     if (typeof updateTrackNextBox === 'function') {
@@ -170,13 +170,13 @@ function loadMoreQueueItems() {
 
 registerActions({ loadMoreQueueItems });
 
-function playFromQueue(queueIndex) {
+export function playFromQueue(queueIndex) {
     if (queueIndex >= 0 && queueIndex < playbackQueue.length) {
         playSongFromQueue(queueIndex);
     }
 }
 
-function removeFromQueue(queueIndex) {
+export function removeFromQueue(queueIndex) {
     if (queueIndex >= 0 && queueIndex < playbackQueue.length) {
         if (queueIndex === currentQueueIndex) {
             saveCurrentPlaybackState();
@@ -208,7 +208,7 @@ function removeFromQueue(queueIndex) {
     }
 }
 
-function cleanupPlaybackQueue() {
+export function cleanupPlaybackQueue() {
     if (playbackQueue.length > 50) {
         const keepFrom = Math.max(0, currentQueueIndex);
         setPlaybackQueue(playbackQueue.slice(keepFrom));
@@ -216,7 +216,7 @@ function cleanupPlaybackQueue() {
     }
 }
 
-function addSongToQueueNext(songId) {
+export function addSongToQueueNext(songId) {
     const song = getSongById(songId);
     if (!song || deletedSongIds.has(song.id)) return;
 
@@ -248,13 +248,13 @@ function addSongToQueueNext(songId) {
     }
 }
 
-function addToQueueNextFromMenu() {
+export function addToQueueNextFromMenu() {
     if (currentContextSongId !== null) {
         addSongToQueueNext(currentContextSongId);
     }
 }
 
-function addPlaylistToQueue(playlistId) {
+export function addPlaylistToQueue(playlistId) {
     const songs = getPlaylistSongs(playlistId);
     if (songs.length === 0) {
         showNotification('Playlist is empty', 'warning', 2000);
@@ -274,7 +274,7 @@ function addPlaylistToQueue(playlistId) {
     showNotification(`Added ${songs.length} song(s) to queue`, 'success', 2000);
 }
 
-function addAlbumToQueue(albumId) {
+export function addAlbumToQueue(albumId) {
     const songs = getAlbumSongs(albumId);
     if (songs.length === 0) {
         showNotification('Album is empty', 'warning', 2000);
@@ -294,7 +294,7 @@ function addAlbumToQueue(albumId) {
     showNotification(`Added ${songs.length} song(s) to queue`, 'success', 2000);
 }
 
-function addArtistToQueue(artistId) {
+export function addArtistToQueue(artistId) {
     const songs = getArtistSongs(artistId);
     if (songs.length === 0) {
         showNotification('Artist has no songs', 'warning', 2000);
@@ -314,7 +314,7 @@ function addArtistToQueue(artistId) {
     showNotification(`Added ${songs.length} song(s) to queue`, 'success', 2000);
 }
 
-function addSongToQueueAt(songId, insertIndex) {
+export function addSongToQueueAt(songId, insertIndex) {
     const song = getSongById(songId);
     if (!song || deletedSongIds.has(song.id)) return false;
 
@@ -342,7 +342,7 @@ function addSongToQueueAt(songId, insertIndex) {
 let gaplessPreloadedSongId = null;
 let gaplessPreloadedUrl = null;
 
-function clearGaplessPreload() {
+export function clearGaplessPreload() {
     if (!gaplessAudioElement) return;
 
     gaplessAudioElement.pause();
@@ -391,7 +391,7 @@ function preloadGaplessSong(song) {
     gaplessPreloadedUrl = song.url;
 }
 
-function prepareGaplessNextTrack() {
+export function prepareGaplessNextTrack() {
     if (!getAudioPlaybackSettings().gaplessEnabled) {
         clearGaplessPreload();
         return;
@@ -420,7 +420,7 @@ function prepareGaplessNextTrack() {
     preloadGaplessSong(nextSong);
 }
 
-function usePreloadedGaplessTrack(song) {
+export function usePreloadedGaplessTrack(song) {
     if (
         !song ||
         gaplessPreloadedSongId !== song.id ||
@@ -450,3 +450,20 @@ function usePreloadedGaplessTrack(song) {
     return true;
 }
 
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        updateQueueDisplay,
+        playFromQueue,
+        removeFromQueue,
+        cleanupPlaybackQueue,
+        addSongToQueueNext,
+        addToQueueNextFromMenu,
+        addPlaylistToQueue,
+        addAlbumToQueue,
+        addArtistToQueue,
+        addSongToQueueAt,
+        clearGaplessPreload,
+        prepareGaplessNextTrack,
+        usePreloadedGaplessTrack
+    });
+}

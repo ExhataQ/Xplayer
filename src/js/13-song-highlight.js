@@ -48,7 +48,7 @@ function getSlotIdentifier(listId, playingSongId) {
     return null;
 }
 
-function paintEqOnNumberCell(item) {
+export function paintEqOnNumberCell(item) {
     if (!item) return;
     const cell = item.querySelector('.song-number-item');
     if (!cell) return;
@@ -58,7 +58,7 @@ function paintEqOnNumberCell(item) {
     cell.setAttribute('data-song-index', idx === null ? '' : idx);
 }
 
-function unpaintEqOnNumberCell(item) {
+export function unpaintEqOnNumberCell(item) {
     if (!item) return;
     const cell = item.querySelector('.song-number-item');
     if (!cell) return;
@@ -68,7 +68,7 @@ function unpaintEqOnNumberCell(item) {
     cell.innerHTML = idx !== null && idx !== '' ? String(parseInt(idx, 10) + 1) : '0';
 }
 
-function updatePlayingHighlight(playingSongId, listId = currentView, clickedIndex = null) {
+export function updatePlayingHighlight(playingSongId, listId = currentView, clickedIndex = null) {
     document.querySelectorAll('.song-item.playing').forEach((item) => {
         item.classList.remove('playing');
         item.classList.remove('paused-song');
@@ -148,7 +148,7 @@ function updatePlayingHighlight(playingSongId, listId = currentView, clickedInde
     }
 }
 
-function applyStoredHighlight(listId) {
+export function applyStoredHighlight(listId) {
     document.querySelectorAll('.song-item.playing').forEach((item) => {
         item.classList.remove('playing');
         unpaintEqOnNumberCell(item);
@@ -192,7 +192,7 @@ function applyStoredHighlight(listId) {
     }
 }
 
-function reapplyHighlightAfterFilter(listId, filteredSongs) {
+export function reapplyHighlightAfterFilter(listId, filteredSongs) {
     document.querySelectorAll('.song-item.playing').forEach((item) => {
         item.classList.remove('playing');
         unpaintEqOnNumberCell(item);
@@ -252,7 +252,7 @@ function reapplyHighlightAfterFilter(listId, filteredSongs) {
     }
 }
 
-function applyHistoryStoredHighlight(listId) {
+export function applyHistoryStoredHighlight(listId) {
     document.querySelectorAll('.song-item.playing').forEach((item) => {
         item.classList.remove('playing');
         unpaintEqOnNumberCell(item);
@@ -281,4 +281,15 @@ function applyHistoryStoredHighlight(listId) {
     if (typeof refreshCurrentRowIndicator === 'function') {
         refreshCurrentRowIndicator();
     }
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        paintEqOnNumberCell,
+        unpaintEqOnNumberCell,
+        updatePlayingHighlight,
+        applyStoredHighlight,
+        reapplyHighlightAfterFilter,
+        applyHistoryStoredHighlight
+    });
 }

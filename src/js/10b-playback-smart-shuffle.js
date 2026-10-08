@@ -1,6 +1,7 @@
 // ==============================================================================
 // SMART SHUFFLE — ARTIST-CHAIN GENERATOR
 // ==============================================================================
+import { resetShuffle, clearShuffle, getSongDurationSeconds } from './10a-playback-shuffle.js';
 
 const SHUFFLE_LANGUAGE_NEIGHBORS = {
     'fa|ar': 0.6, 'ar|fa': 0.6,
@@ -317,9 +318,14 @@ function shuffleOrderGroupWithDurationVariety(songs) {
     return result;
 }
 
-function generateSmartShuffleJourney(songs, excludeSongId = null, sourceId = currentView) {
-    const settings = getSmartShuffleSettings();
-    let available = songs.filter((song) => song && !deletedSongIds.has(song.id) && song.id !== excludeSongId);
+export function generateSmartShuffleJourney(songs, excludeSongId = null, sourceId = currentView, deps = {}) {
+    const {
+        settings = getSmartShuffleSettings(),
+        isDeleted = (id) => deletedSongIds.has(id),
+        setSourceId = setSmartShuffleSourceId,
+        setPreviousSong = setSmartShufflePreviousSong
+    } = deps;
+    let available = songs.filter((song) => song && !isDeleted(song.id) && song.id !== excludeSongId);
 
     if (available.length < 1) return [];
     if (available.length <= 50) return null;
@@ -381,8 +387,8 @@ function generateSmartShuffleJourney(songs, excludeSongId = null, sourceId = cur
         previousTailArtist = orderedSongs.length ? orderedSongs[orderedSongs.length - 1].artist : null;
     }
 
-    setSmartShuffleSourceId(sourceId);
-    setSmartShufflePreviousSong(null);
+    setSourceId(sourceId);
+    setPreviousSong(null);
 
     // Dev diagnostic — comment out to silence the console dump.
     try {
@@ -493,7 +499,7 @@ function logSmartShuffleJourney(journeyIds, profiles, songs) {
     };
 }
 
-function resetSmartShuffle(songs = null, excludeSongId = null, sourceId = currentView) {
+export function resetSmartShuffle(songs = null, excludeSongId = null, sourceId = currentView) {
     const sourceSongs = songs || getSongsForList(sourceId);
 
     // Ensure language detection has run for songs that don't have it yet.
@@ -509,7 +515,7 @@ function resetSmartShuffle(songs = null, excludeSongId = null, sourceId = curren
     return smartShuffleJourney.length > 0;
 }
 
-function getNextSmartShuffledSong() {
+export function getNextSmartShuffledSong() {
     if (repeatFunctionalityActive && repeatMode === 2) return null;
 
     const sourceId = smartShuffleSourceId || currentView;
@@ -524,7 +530,7 @@ function getNextSmartShuffledSong() {
     return { song, listId: sourceId, ghostSlot: null };
 }
 
-function getNextShuffledSong() {
+export function getNextShuffledSong() {
     if (repeatFunctionalityActive && repeatMode === 2) return null;
 
     if (shuffleMode === 'smart') return getNextSmartShuffledSong();
@@ -569,7 +575,7 @@ function getNextShuffledSong() {
     };
 }
 
-function startSmartShuffleFromCurrentView() {
+export function startSmartShuffleFromCurrentView() {
     const songs = getSongsForList(currentView);
     if (songs.length <= 50) {
         showNotification('Smart Shuffle needs more than 50 songs in this list', 'warning', 3000);
@@ -586,3 +592,12 @@ function startSmartShuffleFromCurrentView() {
     return true;
 }
 
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        generateSmartShuffleJourney,
+        resetSmartShuffle,
+        getNextSmartShuffledSong,
+        getNextShuffledSong,
+        startSmartShuffleFromCurrentView
+    });
+}

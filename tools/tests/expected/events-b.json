@@ -147,7 +147,6 @@
         "renderFavoritesView",
         "updateHeroSongCount",
         "updateScrollbarById",
-        "refreshCurrentViewAfterMutation",
         "renderFavoritesView",
         "updateHeroSongCount",
         "updateLeftPanelCounts",

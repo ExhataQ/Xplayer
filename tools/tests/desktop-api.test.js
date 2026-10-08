@@ -170,11 +170,7 @@ test('desktopApi: with no electronAPI (browser mode) send calls do nothing and i
 });
 
 test('files other than the other agents\' no longer call window.electronAPI directly', () => {
-    // Owned by B, C or D; each swaps its own file in the step "Swap storage and API calls".
-    const notYet = new Set([
-        '16-context-menu-actions.js',
-        '15e-controls-audio-events.js'
-    ]);
+    const notYet = new Set();
     const files = [];
     (function walk(dir) {
         for (const e of fs.readdirSync(dir, { withFileTypes: true })) {

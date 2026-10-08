@@ -23,6 +23,8 @@ const { SCENARIOS, measure } = require('./helpers/call-sequence-scenarios');
 // saveToRecentlyPlayed() / clearRecentlyPlayed() in that same file. A call inside a module goes
 // straight to its own binding, so a spy on window.updateRecentCount cannot see it. It is not spied
 // any more; the recorded sequence below is the old one with those entries removed, nothing else.
+// Likewise prepareGaplessNextTrack() in 10c-playback-queue.js calls clearGaplessPreload() inside its own
+// module, so the gapless scenario lost that one entry and nothing else.
 const EXPECTED_CALL_SEQUENCES = {
     "recents: save a song while the portable Recent panel is open": [
         "renderPortableRecentlyPlayed"
@@ -89,7 +91,6 @@ const EXPECTED_CALL_SEQUENCES = {
     ],
     "playback settings: turn gapless on then off": [
         "prepareGaplessNextTrack",
-        "clearGaplessPreload",
         "clearGaplessPreload"
     ],
     "search history: clear all while the Search History view is showing": [

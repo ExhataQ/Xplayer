@@ -1,20 +1,18 @@
-let showRemainingTime = false;
-
 // ==============================================================================
 // TIME FORMATTING
 // ==============================================================================
-function formatTime(seconds) {
+export function formatTime(seconds) {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-function toggleTimeDisplay() {
+export function toggleTimeDisplay() {
     setShowRemainingTime(!showRemainingTime);
     updateTimeDisplay();
 }
 
-function updateTimeDisplay() {
+export function updateTimeDisplay() {
     if (!audioElement.duration) return;
 
     if (showRemainingTime) {
@@ -33,3 +31,10 @@ playButton.onclick = () => {
     playOrResumeCurrentView();
 };
 
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        formatTime,
+        toggleTimeDisplay,
+        updateTimeDisplay
+    });
+}

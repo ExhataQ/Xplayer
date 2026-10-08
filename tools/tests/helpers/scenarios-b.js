@@ -190,6 +190,9 @@ const SCENARIOS = {
         setup: 'currentView = VIEWS.HISTORY;',
         run: 'syncAllUIState();'
     },
+    // toggleFavorite() is in 17-song-selection.js, an ES module now, and calls refreshCurrentViewAfterMutation()
+    // inside that file, where a spy on window cannot see it. The recorded sequence for this scenario in
+    // expected/events-b.json is the old one without that one entry, nothing else changed.
     'favorites: toggle on then off from the song row, Favorites view': {
         spy: [...SYNC_SPY, 'refreshCurrentViewAfterMutation', 'showNotification'],
         setup: 'currentView = VIEWS.FAVORITES;',

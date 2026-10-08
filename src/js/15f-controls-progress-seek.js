@@ -2,7 +2,6 @@
 // PROGRESS BAR SEEKING
 // ==============================================================================
 let isSeeking = false;
-let wasPlaying = false;
 
 const progressContainer = document.querySelector('.progress-container');
 if (progressContainer) {
@@ -11,7 +10,7 @@ if (progressContainer) {
 }
 let seekAnimationId = null;
 
-function startSeek(e) {
+export function startSeek(e) {
     if (!audioElement.duration) return;
 
     isSeeking = true;
@@ -163,3 +162,8 @@ function hideProgressTooltip() {
     }
 }
 
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        startSeek
+    });
+}

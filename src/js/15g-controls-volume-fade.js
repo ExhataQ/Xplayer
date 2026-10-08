@@ -4,7 +4,7 @@
 let activeAudioFadeFrame = null;
 let pendingCrossfadeTimer = null;
 
-function cancelActiveAudioFade() {
+export function cancelActiveAudioFade() {
     if (!activeAudioFadeFrame) return;
     cancelAnimationFrame(activeAudioFadeFrame);
     activeAudioFadeFrame = null;
@@ -37,14 +37,14 @@ function getReplayGainMultiplier(song) {
     return clampVolume(gain);
 }
 
-function getTargetTrackVolume(song) {
+export function getTargetTrackVolume(song) {
     const baseVolume = Number.isFinite(window.lastVolume) ? window.lastVolume : 0.5;
     const baseLevel = clampVolume(baseVolume || 0.5);
     const gainMultiplier = getReplayGainMultiplier(song);
     return clampVolume(baseLevel * gainMultiplier);
 }
 
-function applyTrackVolume(song) {
+export function applyTrackVolume(song) {
     const userVolume = Number.isFinite(window.lastVolume) ? window.lastVolume : 0.5;
     if (userVolume <= 0) {
         audioElement.volume = 0;
@@ -86,7 +86,7 @@ function animateAudioVolume(from, to, durationMs, onComplete) {
     activeAudioFadeFrame = requestAnimationFrame(step);
 }
 
-function startFadeIn(song, durationMs) {
+export function startFadeIn(song, durationMs) {
     const settings = getAudioPlaybackSettings();
     const target = getTargetTrackVolume(song);
     const duration = settings.fadeInEnabled ? Math.max(80, durationMs || settings.fadeInDuration * 1000) : 0;
@@ -113,7 +113,7 @@ function startFadeOut(durationMs, onComplete) {
     animateAudioVolume(currentVolume, 0, duration, onComplete);
 }
 
-function pausePlaybackWithFade() {
+export function pausePlaybackWithFade() {
     if (!audioElement || audioElement.paused) return;
 
     const settings = getAudioPlaybackSettings();
@@ -133,7 +133,7 @@ function pausePlaybackWithFade() {
     });
 }
 
-function scheduleCrossfadeTransition(song) {
+export function scheduleCrossfadeTransition(song) {
     const settings = getAudioPlaybackSettings();
 
     if (!settings.crossfadeEnabled || !audioElement.src || audioElement.paused || !song) {
@@ -173,20 +173,20 @@ function scheduleCrossfadeTransition(song) {
 // cancellation (10d-playback-song.js was reaching directly into this file's raw timer
 // variable) a proper named function, so 10d calls cancelPendingCrossfade() instead of
 // poking pendingCrossfadeTimer directly. Same behavior, better encapsulation.
-function cancelPendingCrossfade() {
+export function cancelPendingCrossfade() {
     if (pendingCrossfadeTimer) {
         clearTimeout(pendingCrossfadeTimer);
         pendingCrossfadeTimer = null;
     }
 }
 
-function setVolume(e) {
+export function setVolume(e) {
     const rect = e.currentTarget.getBoundingClientRect();
     const progress = (e.clientX - rect.left) / rect.width;
     updateVolume(progress);
 }
 
-function updateVolume(percentage) {
+export function updateVolume(percentage) {
     const volume = Math.max(0, Math.min(1, percentage));
 
     // Remember the last non-zero level so unmute can restore it.
@@ -216,7 +216,7 @@ function updateVolume(percentage) {
     }
 }
 
-function toggleMute() {
+export function toggleMute() {
     const userVolume = Number.isFinite(window.lastVolume) ? window.lastVolume : 0.5;
     if (userVolume > 0) {
         window.lastVolume = userVolume;
@@ -255,3 +255,18 @@ document.addEventListener('mouseup', () => {
     }
     isDraggingVolume = false;
 });
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        cancelActiveAudioFade,
+        getTargetTrackVolume,
+        applyTrackVolume,
+        startFadeIn,
+        pausePlaybackWithFade,
+        scheduleCrossfadeTransition,
+        cancelPendingCrossfade,
+        setVolume,
+        updateVolume,
+        toggleMute
+    });
+}

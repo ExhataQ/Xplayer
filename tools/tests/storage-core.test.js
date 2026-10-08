@@ -103,8 +103,7 @@ test('only core/storage.js touches localStorage in the files the storage step co
         }
     };
     walk(JS);
-    // Files owned by the other agents still read storage directly until their own storage step.
-    const notYet = new Set(['16-context-menu-actions.js']);
+    const notYet = new Set();
     const offenders = files
         .map((f) => path.relative(JS, f).replace(/\\/g, '/'))
         .filter((rel) => rel !== 'core/storage.js' && !notYet.has(rel))

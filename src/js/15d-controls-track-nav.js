@@ -87,3 +87,5 @@ document.getElementById('prev-btn').onclick = () => {
     }
 };
 
+// Wiring only: nothing to export.
+export {};
