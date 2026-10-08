@@ -63,7 +63,7 @@ Files that still write these variables directly (for B, C and D to replace in th
 | `setSearchQuery(value)` | `searchQuery` | `00-state.js` | - | 07, 08h, 14, core/state-navigation.js |
 | `setHistoryNavigationIndex(value)` | `historyNavigationIndex` | `00-state.js` | - | 07, 15e, core/state-navigation.js |
 | `setPlaybackHistoryStack(value)` | `playbackHistoryStack` | `00-state.js` | - | 07, 15e, core/state-navigation.js |
-| `setIsNavigatingHistory(value)` | `isNavigatingHistory` | `00-state.js` | - | 07, core/state-navigation.js |
+| `setIsNavigatingHistory(value)` | `isNavigatingHistory` | `07-views.js` | - | 07, core/state-navigation.js |
 | `setLyricsPreView(value)` | `lyricsPreView` | `00-state.js` | - | 07, 15e, core/state-navigation.js |
 | `setLyricsPreScrollTop(value)` | `lyricsPreScrollTop` | `00-state.js` | - | 07, 15e, core/state-navigation.js |
 
@@ -95,9 +95,9 @@ Files that still write these variables directly (for B, C and D to replace in th
 | `setLastMouseY(value)` | `lastMouseY` | `06c-scrollbar-widget.js` | - | 04a, core/state-ui.js |
 | `setNotificationHistory(value)` | `notificationHistory` | `06j-notification-system.js` | - | 06b, core/state-ui.js |
 | `setDownloadNotifyIndex(value)` | `downloadNotifyIndex` | `06b-modals.js` | - | 06j, core/state-ui.js |
-| `setLastRightPanelStateBeforeQueue(value)` | `lastRightPanelStateBeforeQueue` | `00-state.js` | - | 08a, core/state-ui.js |
+| `setLastRightPanelStateBeforeQueue(value)` | `lastRightPanelStateBeforeQueue` | `08a-panel-layout.js` | - | 08a, core/state-ui.js |
 | `setRightPanelCollapsed(value)` | `rightPanelCollapsed` | `00-state.js` | - | 08a, core/state-ui.js |
-| `setAdvancedSettingsOpen(value)` | `advancedSettingsOpen` | `00-state.js` | - | 08e, core/state-ui.js |
+| `setAdvancedSettingsOpen(value)` | `advancedSettingsOpen` | `08e-panel-settings.js` | - | 08e, core/state-ui.js |
 | `setLeftPanelFilterMode(value)` | `leftPanelFilterMode` | `00-state.js` | - | core/state-ui.js |
 | `setLeftPanelCollapsed(value)` | `leftPanelCollapsed` | `00-state.js` | - | core/state-ui.js |
 | `setSelectionHighlights(value)` | `selectionHighlights` | `04a-ui-render-core.js` | - | 17, core/state-ui.js |

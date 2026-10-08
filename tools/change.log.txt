@@ -76,3 +76,6 @@
 
 2026-10-08
 - A (no UI change): ui/player-bar.js wraps the two song-navigation click handlers in arrow functions so 14-song-navigation.js can become a module; added setShuffleOrder and setShuffleSourceId (core/state-playback-modes.js); SETTERS.md and STORAGE.md brought up to date (A report 0017).
+
+2026-10-09
+- B-10 (Agent B), last file: 14-song-navigation.js is now an ES module (manifest "modules", after 13). navigateToCurrentArtist, navigateToCurrentSongInList and switchToViewAndScroll are exported and registered with registerLegacyGlobals (used by ui/player-bar.js, 07a-ui-actions.js, the template and 15e); the scroll helpers stay private. Names added to converted-modules.test.js. manifest.test.js 12 pass; browser tests not run here (no Playwright).

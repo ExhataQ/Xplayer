@@ -1,7 +1,7 @@
 // ==============================================================================
 // SONG NAVIGATION
 // ==============================================================================
-function navigateToCurrentArtist() {
+export function navigateToCurrentArtist() {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) return;
     const queueItem = playbackQueue[currentQueueIndex];
     const song = queueItem.song || queueItem;
@@ -13,7 +13,7 @@ function navigateToCurrentArtist() {
     openDetailView(artist.id, 'artist');
 }
 
-function navigateToCurrentSongInList() {
+export function navigateToCurrentSongInList() {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) return;
 
     const currentItem = playbackQueue[currentQueueIndex];
@@ -219,7 +219,7 @@ function scrollToSongInCurrentView(songId, listId) {
     tryScroll();
 }
 
-function switchToViewAndScroll(targetView, songIndex, songId, sourceListId) {
+export function switchToViewAndScroll(targetView, songIndex, songId, sourceListId) {
     if (targetView && targetView.startsWith('playlist-')) {
         const playlistId = targetView.replace('playlist-', '');
         const playlists = getPlaylists();
@@ -246,4 +246,12 @@ function switchToViewAndScroll(targetView, songIndex, songId, sourceListId) {
 
     switchView(targetView);
     scrollToSongInCurrentView(songId, targetView);
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        navigateToCurrentArtist,
+        navigateToCurrentSongInList,
+        switchToViewAndScroll
+    });
 }
