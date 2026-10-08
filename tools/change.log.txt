@@ -79,3 +79,4 @@
 
 2026-10-09
 - B-10 (Agent B), last file: 14-song-navigation.js is now an ES module (manifest "modules", after 13). navigateToCurrentArtist, navigateToCurrentSongInList and switchToViewAndScroll are exported and registered with registerLegacyGlobals (used by ui/player-bar.js, 07a-ui-actions.js, the template and 15e); the scroll helpers stay private. Names added to converted-modules.test.js. manifest.test.js 12 pass; browser tests not run here (no Playwright).
+- A-07b (Agent A, with B's files): repeatVisualState, repeatFunctionalityActive, queueDisplayLimit, queueDisplayPageSize, gaplessAudioElement and gaplessActiveElement moved from 00-state.js into the classic 15a0-controls-state.js (same values; they are assigned by bare name from core/state-*.js). Nothing is declared twice. SETTERS.md updated. Tests: see A report 0019.

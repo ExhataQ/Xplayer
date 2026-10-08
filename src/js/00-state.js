@@ -88,11 +88,9 @@ let currentQueueIndex = -1;
 let isShuffled = false;
 let shuffleMode = 'normal';
 let repeatMode = 0;
-let repeatVisualState = 0;
 let currentView = 'all-songs';
 let lastPlaybackListId = 'all-songs';
 let searchQuery = '';
-let repeatFunctionalityActive = false;
 let lastPlayedSong = null;
 let lastPlayedSongStartTime = 0;
 let updateExternalScrollbarFn = function () {};
@@ -104,8 +102,6 @@ let leftPanelFilterMode = 'all';
 let currentOpenFolderId = null;
 let currentOpenFolderName = '';
 let folderNavigationStack = [];
-let queueDisplayLimit = 50;
-let queueDisplayPageSize = 25;
 
 let previousRightPanelState = {
     wasActive: false,
@@ -308,11 +304,6 @@ const PAUSE_ICON_HTML = '<img src="icons/pause.svg" alt="" class="player-svg-ico
 // DOM ELEMENT REFERENCES
 // ==============================================================================
 let audioElement = document.getElementById('audio');
-
-let gaplessAudioElement = new Audio();
-gaplessAudioElement.preload = 'auto';
-
-let gaplessActiveElement = audioElement;
 
 function getActiveAudioElement() {
     return gaplessActiveElement;
