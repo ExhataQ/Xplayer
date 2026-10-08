@@ -32,11 +32,13 @@ Files that still write these variables directly (for B, C and D to replace in th
 | `setRepeatMode(value)` | `repeatMode` | `00-state.js` | - | 15b, 15c, core/state-playback-modes.js |
 | `setRepeatFunctionalityActive(value)` | `repeatFunctionalityActive` | `00-state.js` | - | 15b, 15c, core/state-playback-modes.js |
 | `setRepeatVisualState(value)` | `repeatVisualState` | `00-state.js` | - | 15b, 15c, core/state-playback-modes.js |
-| `setSmartShuffleSourceId(value)` | `smartShuffleSourceId` | `10a-playback-shuffle.js` | - | 10b, core/state-playback-modes.js |
-| `setSmartShufflePreviousSong(value)` | `smartShufflePreviousSong` | `10a-playback-shuffle.js` | - | 10b, core/state-playback-modes.js |
-| `setSmartShuffleJourney(value)` | `smartShuffleJourney` | `10a-playback-shuffle.js` | - | 10b, core/state-playback-modes.js |
-| `setSmartShuffleJourneyIndex(value)` | `smartShuffleJourneyIndex` | `10a-playback-shuffle.js` | - | 10b, core/state-playback-modes.js |
-| `setShuffleIndex(value)` | `shuffleIndex` | `10a-playback-shuffle.js` | - | 10b, core/state-playback-modes.js |
+| `setSmartShuffleSourceId(value)` | `smartShuffleSourceId` | `10a0-shuffle-state.js` | - | 10a, core/state-playback-modes.js |
+| `setSmartShufflePreviousSong(value)` | `smartShufflePreviousSong` | `10a0-shuffle-state.js` | - | 10a, core/state-playback-modes.js |
+| `setSmartShuffleJourney(value)` | `smartShuffleJourney` | `10a0-shuffle-state.js` | - | 10a, core/state-playback-modes.js |
+| `setSmartShuffleJourneyIndex(value)` | `smartShuffleJourneyIndex` | `10a0-shuffle-state.js` | - | 10a, core/state-playback-modes.js |
+| `setShuffleIndex(value)` | `shuffleIndex` | `10a0-shuffle-state.js` | - | 10a, core/state-playback-modes.js |
+| `setShuffleOrder(value)` | `shuffleOrder` | `10a0-shuffle-state.js` | - | 10a, core/state-playback-modes.js |
+| `setShuffleSourceId(value)` | `shuffleSourceId` | `10a0-shuffle-state.js` | - | 10a, core/state-playback-modes.js |
 
 ## core/state-now-playing.js
 
@@ -47,8 +49,8 @@ Files that still write these variables directly (for B, C and D to replace in th
 | `setIsManualPlay(value)` | `isManualPlay` | `00-state.js` | - | 07, 10d, 15d, core/state-now-playing.js |
 | `setIsPrevNavigation(value)` | `isPrevNavigation` | `00-state.js` | - | 07, 10d, core/state-now-playing.js |
 | `setLastPlaybackListId(value)` | `lastPlaybackListId` | `00-state.js` | - | 10d, core/state-now-playing.js |
-| `setWasPlaying(value)` | `wasPlaying` | `00-state.js` | - | 15f, core/state-now-playing.js |
-| `setShowRemainingTime(value)` | `showRemainingTime` | `00-state.js` | - | 15a, core/state-now-playing.js |
+| `setWasPlaying(value)` | `wasPlaying` | `15a0-controls-state.js` | - | core/state-now-playing.js |
+| `setShowRemainingTime(value)` | `showRemainingTime` | `15a0-controls-state.js` | - | core/state-now-playing.js |
 | `setAudioElement(value)` | `audioElement` | `00-state.js` | - | 10c, core/state-now-playing.js |
 | `setGaplessAudioElement(value)` | `gaplessAudioElement` | `00-state.js` | - | 10c, core/state-now-playing.js |
 | `setGaplessActiveElement(value)` | `gaplessActiveElement` | `00-state.js` | - | 10c, core/state-now-playing.js |

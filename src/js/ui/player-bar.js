@@ -14,7 +14,7 @@ document.getElementById('search-btn').onclick = () => {
 const playerTitle = document.getElementById('player-title');
 if (playerTitle) {
     playerTitle.style.cursor = 'pointer';
-    playerTitle.addEventListener('click', navigateToCurrentSongInList);
+    playerTitle.addEventListener('click', () => navigateToCurrentSongInList());
     playerTitle.addEventListener('contextmenu', function (e) {
         e.preventDefault();
         e.stopPropagation();
@@ -34,7 +34,7 @@ if (playerArtist && typeof initMarqueeOnHover === 'function') {
 }
 if (playerArtist) {
     playerArtist.style.cursor = 'pointer';
-    playerArtist.addEventListener('click', navigateToCurrentArtist);
+    playerArtist.addEventListener('click', () => navigateToCurrentArtist());
     playerArtist.addEventListener('contextmenu', function (e) {
         e.preventDefault();
         e.stopPropagation();

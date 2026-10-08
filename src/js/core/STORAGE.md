@@ -42,6 +42,6 @@ function saveThing(list) { storageWriteJson(STORAGE_KEYS.THING, list); }
 
 Do not use `localStorage` anywhere else; `tools/tests/storage-core.test.js` fails if a file other than `core/storage.js` does (the files of other agents are listed there until their storage step lands).
 
-## Still using `localStorage` directly (their owners swap them)
+## Direct `localStorage` use
 
-`16-context-menu-actions.js` (play history), `05a-lazy-load-main-list.js` (virtual scroll threshold), `08f-panel-extended-metadata.js` (extended metadata settings, hide lyrics), `18-lyrics-editor.js` (custom lyrics), `08a-panel-layout.js` (right panel collapsed). When one is swapped, remove it from the `notYet` list in `storage-core.test.js`.
+None. Every file that used to read or write `localStorage` (`16-context-menu-actions.js`, `05a-lazy-load-main-list.js`, `08f-panel-extended-metadata.js`, `18-lyrics-editor.js`, `08a-panel-layout.js`) now goes through `core/storage.js`, and the `notYet` list in `storage-core.test.js` is empty. Keep it that way: the test fails for any other file that mentions `localStorage`.

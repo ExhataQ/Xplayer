@@ -44,3 +44,11 @@ function setSmartShuffleJourneyIndex(value) {
 function setShuffleIndex(value) {
     shuffleIndex = value;
 }
+
+function setShuffleOrder(value) {
+    shuffleOrder = value;
+}
+
+function setShuffleSourceId(value) {
+    shuffleSourceId = value;
+}
