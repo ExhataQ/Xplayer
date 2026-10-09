@@ -88,8 +88,6 @@ function renderHistoryView() {
                 highlight: shouldHighlight,
                 listId: listId,
                 ghostSlotValue: `${listId}-${ghostSlotValue}`,
-                onClick: `playSongFromHistory(${entry.id})`,
-                onContextMenu: `event.preventDefault(); showContextMenu(event, ${entry.id})`,
                 showExtraButtons: false
             });
         })
@@ -176,7 +174,7 @@ function renderPortableRecentlyPlayed() {
                 ${renderRightPanelItem(song, {
                     title: escapeHtml(song.title),
                     artist: escapeHtml(song.artist),
-                    onClick: `playSongFromList(${song.id}, VIEWS.HISTORY)`
+                    action: ['playSongFromList', [song.id, VIEWS.HISTORY]]
                 })}`;
     });
 

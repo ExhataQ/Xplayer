@@ -164,7 +164,7 @@ describe('converted ES modules in the real page', { concurrency: false }, () => 
         }
         assert.ok(exported.length > 100, 'expected the modules to export well over 100 functions, found ' + exported.length);
         // Inline handlers are being converted to data-action, so this count only shrinks; it just proves the scan finds some.
-        assert.ok(called.size > 10, 'expected more than 10 handler functions, found ' + called.size);
+        assert.ok(called.size > 3, 'expected more than 3 handler functions, found ' + called.size);
         const { page, errors } = await openApp();
         const missing = await page.evaluate((names) => names.filter((n) => typeof window[n] !== 'function'), [...new Set([...exported, ...called])]);
         assert.deepEqual(missing, []);

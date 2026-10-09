@@ -194,15 +194,15 @@
                     <li
                         class="left-panel-item"
                         id="playlists-filter-tag"
-                        onclick="togglePlaylistsFilter()"
+                        data-action="togglePlaylistsFilter"
                         tabindex="0"
                     >
                         <span>Playlists</span>
                     </li>
-                    <li class="left-panel-item" id="artists-filter-tag" onclick="toggleArtistsFilter()" tabindex="0">
+                    <li class="left-panel-item" id="artists-filter-tag" data-action="toggleArtistsFilter" tabindex="0">
                         <span>Artists</span>
                     </li>
-                    <li class="left-panel-item" id="albums-filter-tag" onclick="toggleAlbumsFilter()" tabindex="0">
+                    <li class="left-panel-item" id="albums-filter-tag" data-action="toggleAlbumsFilter" tabindex="0">
                         <span>Albums</span>
                     </li>
                 </ul>
@@ -236,8 +236,10 @@
                         <ul class="left-panel-main-list">
                             <li
                                 class="left-panel-main-item active"
-                                onclick="switchView('all-songs')"
-                                oncontextmenu="showSpecialItemContextMenu(event, 'all-songs', 'All Songs'); return false;"
+                                data-action="switchView"
+                                data-args="[&quot;all-songs&quot;]"
+                                data-action-contextmenu="itemContextMenu"
+                                data-args-contextmenu="[&quot;$event&quot;,&quot;special&quot;,&quot;all-songs&quot;,&quot;All Songs&quot;]"
                                 data-view="all-songs"
                                 data-pin-id="all-songs"
                                 tabindex="0"
@@ -273,8 +275,10 @@
                             </li>
                             <li
                                 class="left-panel-main-item"
-                                onclick="switchView('favorites')"
-                                oncontextmenu="showSpecialItemContextMenu(event, 'favorites', 'Liked Songs'); return false;"
+                                data-action="switchView"
+                                data-args="[&quot;favorites&quot;]"
+                                data-action-contextmenu="itemContextMenu"
+                                data-args-contextmenu="[&quot;$event&quot;,&quot;special&quot;,&quot;favorites&quot;,&quot;Liked Songs&quot;]"
                                 data-view="favorites"
                                 data-pin-id="favorites"
                                 tabindex="0"
@@ -437,7 +441,7 @@
                                         <button
                                             class="subhero-more-btn"
                                             id="subhero-more-btn"
-                                            onclick="showSubheroContextMenu(event)"
+                                            data-action="showSubheroContextMenu" data-args="[&quot;$event&quot;]"
                                             title="More options"
                                         >
                                             <span class="material-symbols-outlined">more_horiz</span>
@@ -508,7 +512,7 @@
                                 >right_panel_close</span
                             >
                         </button>
-                        <span id="right-panel-header-title" onclick="switchToQueuePanel()" style="cursor: pointer"
+                        <span id="right-panel-header-title" data-action="switchToQueuePanel" style="cursor: pointer"
                             >Queue</span
                         >
                         <span
@@ -541,7 +545,7 @@
                         <div
                             class="right-panel-more-info"
                             id="right-panel-more-info"
-                            onclick="event.stopPropagation(); showRightPanelContextMenu(event)"
+                            data-action="showRightPanelContextMenu" data-args="[&quot;$event&quot;]" data-stop
                             style="
                                 display: none;
                                 cursor: pointer;
@@ -573,7 +577,7 @@
                         <div class="panel-content" id="tags-content">
                             <div class="album-art-section" id="album-art-section">
                                 <div class="album-art-container">
-                                    <img id="album-art-image" class="album-art-image" src="{{PLACEHOLDER_IMAGE}}" alt="Album artwork" onerror="this.onerror=null; this.src='{{PLACEHOLDER_IMAGE}}'" />
+                                    <img id="album-art-image" class="album-art-image" src="{{PLACEHOLDER_IMAGE}}" alt="Album artwork" data-action-error="useImagePlaceholder" />
                                 </div>
                                 <div class="tag-details" id="tag-details">
                                     <div class="track-info-header">
@@ -583,7 +587,7 @@
                                         <div class="track-info-artist" id="tag-artist" data-action="navigateToCurrentArtist">—</div>
                                     </div>
                                     <div class="track-info-box" id="track-info-box">
-                                        <div class="track-info-box-title"><span>Info</span><button class="track-info-edit-btn" id="track-info-btn" onclick="event.stopPropagation(); openMetadataEditor()" style="display: none" title="Edit metadata" aria-label="Edit metadata"><span class="material-symbols-outlined">edit</span></button></div>
+                                        <div class="track-info-box-title"><span>Info</span><button class="track-info-edit-btn" id="track-info-btn" data-action="openMetadataEditor" data-stop style="display: none" title="Edit metadata" aria-label="Edit metadata"><span class="material-symbols-outlined">edit</span></button></div>
                                         <div class="track-info-columns" id="track-info-columns" data-layout="single">
                                             <div class="track-info-row">
                                                 <span class="track-info-value" id="tag-album">—</span>
@@ -671,7 +675,7 @@
                             src="{{PLACEHOLDER_IMAGE}}"
                             alt="Album cover"
                             data-action="openTagsTab"
-                            onerror="this.onerror=null; this.src='{{PLACEHOLDER_IMAGE}}'"
+                            data-action-error="useImagePlaceholder"
                             style="cursor: pointer"
                         />
                         <div class="player-text-info">
@@ -708,7 +712,7 @@
                     </div>
                     <div class="progress-section">
                         <div class="time-display" id="current-time" data-action="toggleTimeDisplay">0:00</div>
-                        <div class="progress-container" onmousedown="startSeek(event)">
+                        <div class="progress-container" data-action-mousedown="startSeek" data-args-mousedown="[&quot;$event&quot;]">
                             <div id="progress-bar"></div>
                             <div id="progress-knob"></div>
                         </div>
@@ -735,7 +739,7 @@
                             <div class="volume-icon" id="volume-icon" data-action="toggleMute" aria-label="Volume">
                                 <i class="fas fa-volume-up"></i>
                             </div>
-                            <div id="volume-slider" onmousedown="setVolume(event)" aria-label="Volume slider">
+                            <div id="volume-slider" data-action-mousedown="setVolume" data-args-mousedown="[&quot;$event&quot;]" aria-label="Volume slider">
                                 <div id="volume-fill"></div>
                                 <div id="volume-knob"></div>
                             </div>
@@ -747,15 +751,15 @@
         </div>
 
         <!-- Extended Info Panel -->
-        <div class="extended-info-overlay" id="extended-info-overlay" onclick="closeExtendedInfoPanel()">
-            <div class="extended-info-modal" id="extended-info-content" onclick="event.stopPropagation()"></div>
+        <div class="extended-info-overlay" id="extended-info-overlay" data-action="closeExtendedInfoPanel">
+            <div class="extended-info-modal" id="extended-info-content" data-stop></div>
         </div>
 
         <!-- Fullscreen Image Viewer -->
-        <div class="image-viewer" id="image-viewer" onclick="closeImageViewer()">
-            <div class="image-viewer-content" onclick="event.stopPropagation()">
+        <div class="image-viewer" id="image-viewer" data-action="closeImageViewer">
+            <div class="image-viewer-content" data-stop>
                 <img id="viewer-image" src="" alt="Fullsize album art" draggable="false" />
-                <button class="image-viewer-close" onclick="closeImageViewer()" aria-label="Close">
+                <button class="image-viewer-close" data-action="closeImageViewer" aria-label="Close">
                     <i class="fas fa-times"></i>
                 </button>
             </div>

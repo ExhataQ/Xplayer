@@ -122,20 +122,19 @@ function buildLeftPanelItemAt(index, currentOpenFolderId) {
         ? '<span class="shortcut-indicator" title="Shortcut">&#128279;</span>'
         : '';
 
-    let onclickAttr = '';
-    if (item.type === 'playlist') onclickAttr = `openPlaylist('${item.id}')`;
-    else if (item.type === 'album') onclickAttr = `openAlbum('${item.id}')`;
-    else if (item.type === 'artist') onclickAttr = `openArtist('${item.id}')`;
-    else if (item.type === 'folder') onclickAttr = `openFolder('${item.id}')`;
-    else if (item.type === 'all-songs') onclickAttr = `switchView('${VIEWS.ALL_SONGS}')`;
-    else if (item.type === 'favorites') onclickAttr = `switchView('${VIEWS.FAVORITES}')`;
+    let itemActionAttrs = '';
+    if (item.type === 'playlist') itemActionAttrs = actionAttrs('openPlaylist', [String(item.id)]);
+    else if (item.type === 'album') itemActionAttrs = actionAttrs('openAlbum', [String(item.id)]);
+    else if (item.type === 'artist') itemActionAttrs = actionAttrs('openArtist', [String(item.id)]);
+    else if (item.type === 'folder') itemActionAttrs = actionAttrs('openFolder', [String(item.id)]);
+    else if (item.type === 'all-songs') itemActionAttrs = actionAttrs('switchView', [String(VIEWS.ALL_SONGS)]);
+    else if (item.type === 'favorites') itemActionAttrs = actionAttrs('switchView', [String(VIEWS.FAVORITES)]);
 
-    let contextMenuFn = '';
-    if (item.type === 'playlist') contextMenuFn = `showPlaylistContextMenu(event, '${item.id}')`;
-    else if (item.type === 'album') contextMenuFn = `showAlbumContextMenu(event, '${item.id}')`;
-    else if (item.type === 'artist') contextMenuFn = `showArtistContextMenu(event, '${item.id}')`;
-    else if (item.type === 'folder') contextMenuFn = `showFolderContextMenu(event, '${item.id}')`;
-    else contextMenuFn = `showSpecialItemContextMenu(event, '${item.viewId}', '${escapeHtml(item.title)}')`;
+    const contextMenuKind = ['playlist', 'album', 'artist', 'folder'].includes(item.type) ? item.type : 'special';
+    const contextMenuArgs =
+        contextMenuKind === 'special' ? [String(item.viewId), String(item.title)] : [String(item.id)];
+    itemActionAttrs +=
+        ' ' + actionAttrs('itemContextMenuPrevent', ['$event', contextMenuKind, ...contextMenuArgs], { event: 'contextmenu' });
 
     const indentPx = Math.min(item.depth || 0, 5) * 15;
     let chevronHTML = '';
@@ -143,9 +142,7 @@ function buildLeftPanelItemAt(index, currentOpenFolderId) {
         const icon = item.isExpanded ? 'expand_less' : 'expand_more';
         chevronHTML = `<button class="folder-chevron ${item.isExpanded ? 'expanded' : ''}" data-folder-key="${
             item.parentKey
-        }/${item.id}" onclick="event.stopPropagation(); toggleFolderExpandedFromUI('${item.parentKey}', '${
-            item.id
-        }')" aria-label="${
+        }/${item.id}" ${actionAttrs('toggleFolderExpandedFromUI', [String(item.parentKey), String(item.id)], { stop: true })} aria-label="${
             item.isExpanded ? 'Collapse folder' : 'Expand folder'
         }"><span class="material-symbols-outlined">${icon}</span></button>`;
     }
@@ -154,11 +151,10 @@ function buildLeftPanelItemAt(index, currentOpenFolderId) {
     const coverBtnLabel = isCoverPause ? 'Pause' : 'Play';
     const playBtnHTML = `<button class="left-panel-cover-play-btn${isCoverPause ? ' is-pause' : ''}" data-view="${
         item.viewId
-    }" onmousedown="event.stopPropagation()" aria-label="${coverBtnLabel}"></button>`;
+    }" data-stop-mousedown aria-label="${coverBtnLabel}"></button>`;
 
     return `<li class="left-panel-main-item ${activeClass} ${playingClass} ${pausedClass}" 
-            onclick="${onclickAttr}"
-            oncontextmenu="event.preventDefault(); ${contextMenuFn}; return false;"
+            ${itemActionAttrs}
             data-view="${item.viewId}"
             data-pin-id="${item.pinId}"
             data-depth="${item.depth || 0}"

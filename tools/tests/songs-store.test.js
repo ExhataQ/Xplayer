@@ -93,6 +93,61 @@ test('a lock left behind by a crashed process is cleared after it goes stale', (
     assert.deepEqual(store.readSongs(dir), SONGS);
 });
 
+// Windows can answer an exclusive create with EPERM instead of EEXIST. The error is injected so this runs on any OS.
+function withInjectedOpenError(code, onOpen, body) {
+    const real = fs.openSync;
+    let calls = 0;
+    fs.openSync = function (file, flags, ...rest) {
+        if (typeof file === 'string' && file.endsWith('songs.json.lock') && flags === 'wx') {
+            calls++;
+            if (onOpen(calls, file)) {
+                const err = new Error(code + ': injected');
+                err.code = code;
+                throw err;
+            }
+        }
+        return real.call(fs, file, flags, ...rest);
+    };
+    try {
+        body();
+    } finally {
+        fs.openSync = real;
+    }
+    return calls;
+}
+
+test('EPERM while the lock file exists is treated as contention and retried', () => {
+    const dir = tempDir();
+    const lock = path.join(dir, 'songs.json.lock');
+    fs.writeFileSync(lock, '');
+    const calls = withInjectedOpenError('EPERM', (n, file) => {
+        if (n === 2) fs.unlinkSync(file); // the holder releases; the next attempt can take the lock
+        return n <= 2;
+    }, () => store.writeSongs(dir, SONGS));
+    assert.ok(calls >= 3, 'acquisition was retried');
+    assert.deepEqual(store.readSongs(dir), SONGS);
+    assert.equal(fs.existsSync(lock), false, 'lock released');
+});
+
+test('EPERM when the lock vanished before inspection is retried', () => {
+    const dir = tempDir();
+    const calls = withInjectedOpenError('EPERM', (n) => n === 1, () => store.writeSongs(dir, SONGS));
+    assert.equal(calls, 2);
+    assert.deepEqual(store.readSongs(dir), SONGS);
+});
+
+test('EPERM with no lock file present is not retried forever', () => {
+    const dir = tempDir();
+    let calls = 0;
+    assert.throws(() => withInjectedOpenError('EPERM', () => { calls++; return true; }, () => store.writeSongs(dir, SONGS)), { code: 'EPERM' });
+    assert.ok(calls >= 2 && calls <= 10, 'bounded retries, got ' + calls);
+});
+
+test('other open errors are not swallowed', () => {
+    const dir = tempDir();
+    assert.throws(() => withInjectedOpenError('EACCES', () => true, () => store.writeSongs(dir, SONGS)), { code: 'EACCES' });
+});
+
 test('several processes adding songs at the same time lose none', async () => {
     const dir = tempDir();
     store.writeSongs(dir, []);

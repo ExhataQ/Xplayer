@@ -65,8 +65,12 @@ function renderArtistLeftPanelItems() {
     sortedArtists.forEach((artist) => {
         const artistItem = document.createElement('li');
         artistItem.className = 'left-panel-main-item artist-child-item';
-        artistItem.setAttribute('onclick', `openArtist('${artist.id}')`);
-        artistItem.setAttribute('oncontextmenu', `showArtistContextMenu(event, '${artist.id}'); return false;`);
+        applyActionAttrs(
+            artistItem,
+            actionAttrs('openArtist', [String(artist.id)]) +
+                ' ' +
+                actionAttrs('itemContextMenu', ['$event', 'artist', String(artist.id)], { event: 'contextmenu' })
+        );
         artistItem.setAttribute('data-view', artist.id);
         artistItem.setAttribute('data-pin-id', artist.id);
         artistItem.setAttribute('tabindex', '0');
@@ -85,7 +89,7 @@ function renderArtistLeftPanelItems() {
                                 ${coverContent}
                                 <button class="left-panel-cover-play-btn" data-view="${
                                     artist.id
-                                }" onmousedown="event.stopPropagation()" aria-label="Play"></button>
+                                }" data-stop-mousedown aria-label="Play"></button>
                         </div>
                         <div class="main-item-info">
                                 <span class="main-item-title">${escapeHtml(artist.name)}</span>

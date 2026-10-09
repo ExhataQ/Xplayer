@@ -897,8 +897,7 @@ export function updateOnlineLyricsPickerList() {
         .map((song) => {
             const isSelected = onlineLyricsState.pickerSelectedSongId === song.id;
             return renderRightPanelItem(song, {
-                onClick: `selectOnlineLyricsPickerSong(${song.id})`,
-                contextMenuArgs: `${song.id}`,
+                action: ['selectOnlineLyricsPickerSong', [song.id]],
                 extraClass: `online-lyrics-picker-row${isSelected ? ' selected' : ''}`
             });
         })

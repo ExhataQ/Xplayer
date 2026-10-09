@@ -19,6 +19,7 @@ const FILE_NAME = 'songs.json';
 const FORMAT_VERSION = 1;
 const LOCK_WAIT_MS = 8000;
 const LOCK_STALE_MS = 30000;
+const LOCK_EPERM_RETRIES = 5;
 
 function storePath(outputDir) {
     return path.join(outputDir, FILE_NAME);
@@ -115,15 +116,19 @@ function withLock(outputDir, work) {
     fs.mkdirSync(outputDir, { recursive: true });
     const started = Date.now();
     let fd = null;
+    let permRetries = 0;
     while (fd === null) {
         try {
             fd = fs.openSync(lock, 'wx');
         } catch (e) {
-            if (e.code !== 'EEXIST') throw e;
+            // Windows can report EPERM instead of EEXIST while another process holds or is deleting the lock.
+            if (e.code !== 'EEXIST' && e.code !== 'EPERM') throw e;
             let age = 0;
             try {
                 age = Date.now() - fs.statSync(lock).mtimeMs;
             } catch (statError) {
+                // EPERM is contention only if the lock exists. If it vanished, retry a few times, then surface the error.
+                if (e.code === 'EPERM' && (statError.code !== 'ENOENT' || ++permRetries > LOCK_EPERM_RETRIES)) throw e;
                 continue; // the lock was just released: try again
             }
             if (age > LOCK_STALE_MS) {

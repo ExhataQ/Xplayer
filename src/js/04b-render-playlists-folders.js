@@ -25,8 +25,12 @@ function renderPlaylistsView() {
     sortedPlaylists.forEach((playlist) => {
         const playlistItem = document.createElement('li');
         playlistItem.className = 'left-panel-main-item playlist-child-item';
-        playlistItem.setAttribute('onclick', `openPlaylist('${playlist.id}')`);
-        playlistItem.setAttribute('oncontextmenu', `showPlaylistContextMenu(event, '${playlist.id}'); return false;`);
+        applyActionAttrs(
+            playlistItem,
+            actionAttrs('openPlaylist', [String(playlist.id)]) +
+                ' ' +
+                actionAttrs('itemContextMenu', ['$event', 'playlist', String(playlist.id)], { event: 'contextmenu' })
+        );
         playlistItem.setAttribute('data-view', `playlist-${playlist.id}`);
         playlistItem.setAttribute('data-pin-id', `playlist-${playlist.id}`);
         playlistItem.setAttribute('tabindex', '0');
@@ -54,7 +58,7 @@ function renderPlaylistsView() {
                                 ${coverHTML}
                                 <button class="left-panel-cover-play-btn" data-view="playlist-${
                                     playlist.id
-                                }" onmousedown="event.stopPropagation()" aria-label="Play"></button>
+                                }" data-stop-mousedown aria-label="Play"></button>
                         </div>
                         <div class="main-item-info">
                                 <span class="main-item-title">${escapeHtml(playlist.name)}</span>
@@ -94,8 +98,12 @@ function renderFoldersView() {
     sortedFolders.forEach((folder) => {
         const folderItem = document.createElement('li');
         folderItem.className = 'left-panel-main-item folder-child-item';
-        folderItem.setAttribute('onclick', `openFolder('${folder.id}')`);
-        folderItem.setAttribute('oncontextmenu', `showFolderContextMenu(event, '${folder.id}'); return false;`);
+        applyActionAttrs(
+            folderItem,
+            actionAttrs('openFolder', [String(folder.id)]) +
+                ' ' +
+                actionAttrs('itemContextMenu', ['$event', 'folder', String(folder.id)], { event: 'contextmenu' })
+        );
         folderItem.setAttribute('data-view', `folder-${folder.id}`);
         folderItem.setAttribute('data-pin-id', `folder-${folder.id}`);
         folderItem.setAttribute('tabindex', '0');
@@ -198,8 +206,12 @@ function renderFolderContents(folderId) {
                                     <path d="M108 173 L108 148 Q108 130 126 130 L172 130 Q180 130 186 136 L200 150 Q206 155 214 155 L274 155 Q292 155 292 173 L292 272 Q292 290 274 290 L126 290 Q108 290 108 272 Z" fill="none" stroke="#c0c0c0" stroke-width="18" stroke-linejoin="round" stroke-linecap="round"/>
                             </svg>`;
             typeLabel = 'Folder';
-            listItem.setAttribute('onclick', `openFolder('${item.id}')`);
-            listItem.setAttribute('oncontextmenu', `showFolderContextMenu(event, '${item.id}'); return false;`);
+            applyActionAttrs(
+                listItem,
+                actionAttrs('openFolder', [String(item.id)]) +
+                    ' ' +
+                    actionAttrs('itemContextMenu', ['$event', 'folder', String(item.id)], { event: 'contextmenu' })
+            );
         } else if (item.type === 'playlist') {
             coverHTML = item.cover
                 ? `<img class="main-item-cover-img album-cover-img" src="${item.cover}" alt="" style="width: 45px; height: 45px; border-radius: 8px; object-fit: cover;">`
@@ -210,8 +222,12 @@ function renderFolderContents(folderId) {
                         <rect x="140" y="230" width="120" height="30" rx="6" fill="var(--accent)" opacity="0.4"/>
                    </svg>`;
             typeLabel = 'Playlist';
-            listItem.setAttribute('onclick', `openPlaylist('${item.id}')`);
-            listItem.setAttribute('oncontextmenu', `showPlaylistContextMenu(event, '${item.id}'); return false;`);
+            applyActionAttrs(
+                listItem,
+                actionAttrs('openPlaylist', [String(item.id)]) +
+                    ' ' +
+                    actionAttrs('itemContextMenu', ['$event', 'playlist', String(item.id)], { event: 'contextmenu' })
+            );
         } else if (item.type === 'album') {
             coverHTML = item.cover
                 ? `<img class="main-item-cover-img album-cover-img" src="${item.cover}" alt="">`
@@ -222,8 +238,12 @@ function renderFolderContents(folderId) {
                         <circle cx="200" cy="200" r="10" fill="#1a1a1a"/>
                    </svg>`;
             typeLabel = 'Album';
-            listItem.setAttribute('onclick', `openAlbum('${item.id}')`);
-            listItem.setAttribute('oncontextmenu', `showAlbumContextMenu(event, '${item.id}'); return false;`);
+            applyActionAttrs(
+                listItem,
+                actionAttrs('openAlbum', [String(item.id)]) +
+                    ' ' +
+                    actionAttrs('itemContextMenu', ['$event', 'album', String(item.id)], { event: 'contextmenu' })
+            );
         } else if (item.type === 'artist') {
             coverHTML = item.cover
                 ? `<img class="main-item-cover-img artist-cover-img" src="${item.cover}" alt="">`
@@ -233,8 +253,12 @@ function renderFolderContents(folderId) {
                         <ellipse cx="200" cy="320" rx="110" ry="45" fill="var(--accent)"/>
                    </svg>`;
             typeLabel = 'Artist';
-            listItem.setAttribute('onclick', `openArtist('${item.id}')`);
-            listItem.setAttribute('oncontextmenu', `showArtistContextMenu(event, '${item.id}'); return false;`);
+            applyActionAttrs(
+                listItem,
+                actionAttrs('openArtist', [String(item.id)]) +
+                    ' ' +
+                    actionAttrs('itemContextMenu', ['$event', 'artist', String(item.id)], { event: 'contextmenu' })
+            );
         } else if (item.type === 'special') {
             const isAllSongs = item.id === VIEWS.ALL_SONGS;
             const isFavorites = item.id === VIEWS.FAVORITES;
@@ -255,10 +279,13 @@ function renderFolderContents(folderId) {
                 </svg>`;
                 typeLabel = 'Playlist';
             }
-            listItem.setAttribute('onclick', `switchView('${item.id}')`);
-            listItem.setAttribute(
-                'oncontextmenu',
-                `showSpecialItemContextMenu(event, '${item.id}', '${item.title}'); return false;`
+            applyActionAttrs(
+                listItem,
+                actionAttrs('switchView', [String(item.id)]) +
+                    ' ' +
+                    actionAttrs('itemContextMenu', ['$event', 'special', String(item.id), String(item.title)], {
+                        event: 'contextmenu'
+                    })
             );
         }
 
@@ -278,9 +305,7 @@ function renderFolderContents(folderId) {
             const icon = item.isExpanded ? 'expand_less' : 'expand_more';
             chevronHTML = `<button class="folder-chevron ${item.isExpanded ? 'expanded' : ''}" data-folder-key="${
                 item.parentKey
-            }/${item.id}" onclick="event.stopPropagation(); toggleFolderExpandedFromUI('${item.parentKey}', '${
-                item.id
-            }')" aria-label="${
+            }/${item.id}" ${actionAttrs('toggleFolderExpandedFromUI', [String(item.parentKey), String(item.id)], { stop: true })} aria-label="${
                 item.isExpanded ? 'Collapse folder' : 'Expand folder'
             }"><span class="material-symbols-outlined">${icon}</span></button>`;
         }
@@ -291,7 +316,7 @@ function renderFolderContents(folderId) {
                                 ${coverHTML}
                                 <button class="left-panel-cover-play-btn${
                                     isPlaying && !isPaused ? ' is-pause' : ''
-                                }" data-view="${item.viewId}" onmousedown="event.stopPropagation()" aria-label="${
+                                }" data-view="${item.viewId}" data-stop-mousedown aria-label="${
             isPlaying && !isPaused ? 'Pause' : 'Play'
         }"></button>
                         </div>

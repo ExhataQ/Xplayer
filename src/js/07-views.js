@@ -70,7 +70,7 @@ function buildPlayerArtistHTML(artist) {
         .map((name) => {
             const artistId = idByName[name];
             if (!artistId) return `<span class="player-artist-name">${escapeHtml(name)}</span>`;
-            return `<span class="player-artist-name" onclick="event.stopPropagation(); openArtist('${artistId}')">${escapeHtml(
+            return `<span class="player-artist-name" ${actionAttrs('openArtist', [String(artistId)], { stop: true })}>${escapeHtml(
                 name
             )}</span>`;
         })

@@ -11,6 +11,8 @@ function initSongDragToLeftPanel() {
 
     songList.addEventListener('mousedown', (e) => {
         if (e.button !== 0) return;
+        // Buttons marked data-stop-mousedown used to stop the event before it reached this list.
+        if (e.target.closest('[data-stop-mousedown]')) return;
         const songItem = e.target.closest('.song-item');
         if (!songItem || songItem.classList.contains('lazy-skeleton')) return;
 

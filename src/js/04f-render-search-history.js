@@ -90,9 +90,7 @@ function renderSearchHistoryView() {
                 <div class="song-album">${entry.resultCount} results</div>
                 <div class="right-song-item">
                         <div class="song-duration">${timeDisplay.split(' ')[0]}</div>
-                        <div class="more-info" onclick="event.stopPropagation(); deleteSearchHistoryEntry('${
-                            entry.sessionId
-                        }')">
+                        <div class="more-info" ${actionAttrs('deleteSearchHistoryEntry', [String(entry.sessionId)], { stop: true })}>
                                 <span class="material-symbols-outlined">delete</span>
                         </div>
                 </div>

@@ -278,8 +278,6 @@ function createSongItemHTML(song, index = null, listId = null) {
         selected: isSelected,
         listId: listId,
         ghostSlotValue: ghostSlotValue,
-        onClick: `playSongFromList(${song.id}, '${listId}', ${index !== null ? index : 'null'})`,
-        onContextMenu: `event.preventDefault(); showContextMenu(event, ${song.id})`,
         showExtraButtons: true
     });
 }
@@ -295,7 +293,7 @@ function buildSongArtistHTML(song) {
         .map((name) => {
             const artistId = idByName[name];
             if (!artistId) return `<span class="song-artist-name">${escapeHtml(name)}</span>`;
-            return `<span class="song-artist-name" onclick="event.stopPropagation(); openArtist('${artistId}')" onmousedown="event.stopPropagation();">${escapeHtml(
+            return `<span class="song-artist-name" ${actionAttrs('openArtist', [String(artistId)], { stop: true })} data-stop-mousedown>${escapeHtml(
                 name
             )}</span>`;
         })
@@ -308,7 +306,7 @@ function buildSongAlbumHTML(song) {
     const album = albums.find((a) => a.name === song.album);
     const name = escapeHtml(song.album);
     if (!album) return `<span class="song-album-name">${name}</span>`;
-    return `<span class="song-album-name" onclick="event.stopPropagation(); openAlbum('${album.id}')" onmousedown="event.stopPropagation();">${name}</span>`;
+    return `<span class="song-album-name" ${actionAttrs('openAlbum', [String(album.id)], { stop: true })} data-stop-mousedown>${name}</span>`;
 }
 
 function buildSongItemHTML(config) {
@@ -319,22 +317,19 @@ function buildSongItemHTML(config) {
         selected = false,
         listId = '',
         ghostSlotValue = null,
-        onClick = '',
-        onContextMenu = '',
         showExtraButtons = true
     } = config;
 
     let numberHTML = '';
     if (index !== null) {
-        numberHTML = `<div class="song-number-item" onclick="event.stopPropagation(); handleNumberCellClick(${
-            song.id
-        }, '${listId}', ${index})" ondblclick="event.stopPropagation()" data-song-index="${index}">${
+        numberHTML = `<div class="song-number-item" ${actionAttrs('handleNumberCellClick', [song.id, String(listId), index], { stop: true })} data-stop-dblclick data-song-index="${index}">${
             index + 1
         }</div>`;
     } else {
         numberHTML = '<div class="song-number-item hidden-number" data-song-index="">0</div>';
     }
 
+    const rowIndex = index !== null ? index : null;
     const ghostSlot = ghostSlotValue || `${listId}-${index !== null ? index : ''}`;
     const isFav = isFavorite(song.id);
     const langBadge = song._detectedLanguage && song._detectedLanguage !== 'undetected'
@@ -344,17 +339,18 @@ function buildSongItemHTML(config) {
     let extraButtonsHTML = '';
     if (showExtraButtons) {
         extraButtonsHTML = `
-                <div class="song-action-buttons" ondblclick="event.stopPropagation()">
+                <div class="song-action-buttons" data-stop-dblclick>
                         <button class="add-to-queue-btn" 
-                                onclick="event.stopPropagation(); addSongToQueueNext(${song.id})"
-                                ondblclick="event.stopPropagation()"
+                                ${actionAttrs('addSongToQueueNext', [song.id], { stop: true })}
+                                data-stop-dblclick
+                                data-song-id="${song.id}"
                                 title="Add to queue"
                                 aria-label="Add to queue next">
                                 <i class="fas fa-plus"></i>
                         </button>
                         <button class="favorite-btn" 
-                                onclick="event.stopPropagation(); toggleFavorite(${song.id}, this)"
-                                ondblclick="event.stopPropagation()"
+                                ${actionAttrs('toggleFavorite', [song.id, '$this'], { stop: true })}
+                                data-stop-dblclick
                                 title="${isFav ? 'Remove from favorites' : 'Add to favorites'}"
                                 aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">
                             <i class="fas fa-heart ${isFav ? 'liked' : 'unliked'}"></i>
@@ -364,13 +360,11 @@ function buildSongItemHTML(config) {
 
     return `
     <div class="song-item ${highlight ? 'playing' : ''} ${selected ? 'selected' : ''}" 
-         onclick="selectSongItem(this, ${song.id}, '${listId}', ${index !== null ? index : 'null'}, event)"
-         ondblclick="playSongFromList(${song.id}, '${listId}', ${index !== null ? index : 'null'})"
-         oncontextmenu="${onContextMenu}"
+         ${actionAttrs('selectSongItem', ['$this', song.id, String(listId), rowIndex, '$event'])}
+         ${actionAttrs('playSongFromList', [song.id, String(listId), rowIndex], { event: 'dblclick' })}
+         ${actionAttrs('songContextMenu', ['$event', song.id], { event: 'contextmenu' })}
          tabindex="0"
-         onkeydown="if(event.key === 'Enter') playSongFromList(${song.id}, '${listId}', ${
-        index !== null ? index : 'null'
-    })"
+         ${actionAttrs('playSongFromListOnEnter', ['$event', song.id, String(listId), rowIndex], { event: 'keydown' })}
          aria-label="Play ${escapeHtmlAttr(song.title)} by ${escapeHtmlAttr(song.artist)}"
          data-song-id="${song.id}"
          data-ghost-slot="${ghostSlot}"
@@ -381,7 +375,7 @@ function buildSongItemHTML(config) {
                          src="${song.cover || PLACEHOLDER_IMAGE}" 
                          alt="Cover for ${escapeHtmlAttr(song.title)}"
                          decoding="sync"
-                         onerror="this.onerror=null; this.src=PLACEHOLDER_IMAGE">
+                         data-action-error="useImagePlaceholder">
                     <div class="song-info">
                             <div class="song-title">${escapeHtml(song.title)}</div>
                             <div class="song-artist">${buildSongArtistHTML(song)}${langBadge}</div>
@@ -391,7 +385,7 @@ function buildSongItemHTML(config) {
             <div class="right-song-item">
                     ${extraButtonsHTML}
                     <div class="song-duration">${song.duration}</div>
-                    <div class="more-info" onclick="event.stopPropagation(); ${onContextMenu}" ondblclick="event.stopPropagation()" title="More options for ${escapeHtmlAttr(song.title)}">
+                    <div class="more-info" ${actionAttrs('songContextMenu', ['$event', song.id], { stop: true })} data-stop-dblclick title="More options for ${escapeHtmlAttr(song.title)}">
                             <span class="material-symbols-outlined">more_horiz</span>
                     </div>
             </div>
@@ -399,31 +393,42 @@ function buildSongItemHTML(config) {
     `;
 }
 
+// Action names are written out so the bridge test can check each one is registered.
+const RIGHT_PANEL_ROW_ACTIONS = {
+    playFromQueue: (args) => actionAttrs('playFromQueue', args),
+    playSongFromList: (args) => actionAttrs('playSongFromList', args),
+    selectOnlineLyricsPickerSong: (args) => actionAttrs('selectOnlineLyricsPickerSong', args)
+};
+
 function renderRightPanelItem(song, config = {}) {
     const {
         isNowPlaying = false,
-        onClick = '',
-        contextMenuArgs = `${song.id}`,
+        action = null,
+        menuArgs = [song.id],
         extraClass = '',
         title = song.title || 'Unknown Title',
         artist = song.artist || 'Unknown Artist'
     } = config;
 
+    const rowAction = action ? RIGHT_PANEL_ROW_ACTIONS[action[0]](action[1] || []) : '';
+    const rowMenu = actionAttrs('rightPanelItemMenu', ['$event', ...menuArgs], { event: 'contextmenu' });
+    const moreMenu = actionAttrs('rightPanelItemMenu', ['$event', ...menuArgs], { stop: true });
+
     return `
             <div class="queue-item ${extraClass}"
-                 ${onClick ? `onclick="${onClick}"` : ''}
-                 oncontextmenu="event.preventDefault(); showContextMenu(event, ${contextMenuArgs})">
+                 ${rowAction}
+                 ${rowMenu}>
                     <img class="queue-item-cover" 
                          src="${song.cover || PLACEHOLDER_IMAGE}"
                          alt="Cover" 
-                         onerror="this.src=PLACEHOLDER_IMAGE">
+                         data-action-error="setImagePlaceholder">
                     <div class="queue-item-info">
                             <div class="queue-item-title"${
                                 isNowPlaying ? ' style="color: var(--accent); font-weight: 600;"' : ''
                             }>${escapeHtml(title)}</div>
                             <div class="queue-item-artist">${escapeHtml(artist)}</div>
                     </div>
-                    <div class="more-info" onclick="event.stopPropagation(); showContextMenu(event, ${contextMenuArgs})" title="More options for ${escapeHtmlAttr(title)}">
+                    <div class="more-info" ${moreMenu} title="More options for ${escapeHtmlAttr(title)}">
                             <span class="material-symbols-outlined">more_horiz</span>
                     </div>
             </div>`;

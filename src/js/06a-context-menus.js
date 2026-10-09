@@ -32,9 +32,7 @@ function buildFolderSubmenuHTML(itemId, itemType, mode) {
             const hasIt = f.children.some((c) => c.id === itemId && c.type === itemType);
             const check = hasIt ? '<i class="fas fa-check"></i>' : '<i class="far fa-folder"></i>';
             return `
-            <div class="context-menu-item" onclick="event.stopPropagation(); ${action}('${
-                f.id
-            }', '${itemId}', '${itemType}'); closeContextMenu();">
+            <div class="context-menu-item" ${actionAttrs('contextMenuAction', [action, String(f.id), String(itemId), String(itemType)], { stop: true })}>
                 ${check}
                 <span>${escapeHtml(f.name)}</span>
             </div>
@@ -155,13 +153,13 @@ function buildContextMenu(songId, options = {}) {
                             return sortedPlaylists
                                 .map((p) => {
                                     if (showRemoveFromCurrentPlaylist && p.id === currentPlaylistId) {
-                                        return `<div class="context-menu-item" onclick="event.stopPropagation(); removeSongFromPlaylistAndRefresh(${songId}, '${currentPlaylistId}'); closeContextMenu();">
+                                        return `<div class="context-menu-item" ${actionAttrs('contextMenuAction', ['removeSongFromPlaylistAndRefresh', songId, String(currentPlaylistId)], { stop: true })}>
                                             <i class="fas fa-trash-alt"></i>
                                             <span>${escapeHtml(p.name)} (remove)</span>
                                         </div>`;
                                     } else {
                                         const isInPlaylist = p.songs.includes(songId);
-                                        return `<div class="context-menu-item" onclick="event.stopPropagation(); addToPlaylistFromMenu(${songId}, '${p.id}'); closeContextMenu();">
+                                        return `<div class="context-menu-item" ${actionAttrs('contextMenuAction', ['addToPlaylistFromMenu', songId, String(p.id)], { stop: true })}>
                                             <i class="${isInPlaylist ? 'fas fa-check' : 'far fa-plus-square'}"></i>
                                             <span>${escapeHtml(p.name)}${isInPlaylist ? ' (added)' : ''}</span>
                                         </div>`;
@@ -268,6 +266,9 @@ function buildContextMenu(songId, options = {}) {
 // live in files that load later, so they are looked up when the item is clicked.
 const CONTEXT_MENU_ACTIONS = {
     removeSongFromPlaylistAndRefresh: (...a) => removeSongFromPlaylistAndRefresh(...a),
+    addToPlaylistFromMenu: (...a) => addToPlaylistFromMenu(...a),
+    addToFolderFromMenu: (...a) => addToFolderFromMenu(...a),
+    moveToFolderFromMenu: (...a) => moveToFolderFromMenu(...a),
     toggleFavoriteFromMenu: (...a) => toggleFavoriteFromMenu(...a),
     addToQueueNextFromMenu: (...a) => addToQueueNextFromMenu(...a),
     openLyricsEditorForSong: (...a) => openLyricsEditorForSong(...a),

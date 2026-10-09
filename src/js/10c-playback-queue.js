@@ -14,8 +14,8 @@ export function updateQueueDisplay() {
                                 <div class="queue-lables"><span>Now Playing</span></div>
                                 ${renderRightPanelItem(currentSong, {
                                     isNowPlaying: true,
-                                    onClick: `playFromQueue(${currentQueueIndex})`,
-                                    contextMenuArgs: `${currentSong.id}, {queueIndex: ${currentQueueIndex}}`
+                                    action: ['playFromQueue', [currentQueueIndex]],
+                                    menuArgs: [currentSong.id, { queueIndex: currentQueueIndex }]
                                 })}
                                 <div class="empty-queue">
                                         <i class="fas fa-infinity"></i>
@@ -52,8 +52,8 @@ export function updateQueueDisplay() {
         queueHTML += `<div class="queue-lables"><span>Now Playing</span></div>`;
         queueHTML += renderRightPanelItem(currentSong, {
             isNowPlaying: true,
-            onClick: `playFromQueue(${currentQueueIndex})`,
-            contextMenuArgs: `${currentSong.id}, {queueIndex: ${currentQueueIndex}}`
+            action: ['playFromQueue', [currentQueueIndex]],
+            menuArgs: [currentSong.id, { queueIndex: currentQueueIndex }]
         });
     }
 
@@ -68,8 +68,8 @@ export function updateQueueDisplay() {
 
             queueHTML += `
                                 ${renderRightPanelItem(song, {
-                                    onClick: `playFromQueue(${originalIndex})`,
-                                    contextMenuArgs: `${song.id}, {queueIndex: ${originalIndex}}`
+                                    action: ['playFromQueue', [originalIndex]],
+                                    menuArgs: [song.id, { queueIndex: originalIndex }]
                                 })}`;
         });
 
@@ -98,8 +98,8 @@ export function updateQueueDisplay() {
 
             queueHTML += `
                                 ${renderRightPanelItem(song, {
-                                    onClick: `playFromQueue(${originalIndex})`,
-                                    contextMenuArgs: `${song.id}, {queueIndex: ${originalIndex}}`,
+                                    action: ['playFromQueue', [originalIndex]],
+                                    menuArgs: [song.id, { queueIndex: originalIndex }],
                                     extraClass: isNext ? 'next-in-queue' : ''
                                 })}`;
         });
@@ -237,7 +237,7 @@ export function addSongToQueueNext(songId) {
 
     updateQueueDisplay();
 
-    const addButton = document.querySelector(`.add-to-queue-btn[onclick*="${songId}"]`);
+    const addButton = document.querySelector(`.add-to-queue-btn[data-song-id="${songId}"]`);
 
     if (addButton) {
         addButton.classList.add('adding');

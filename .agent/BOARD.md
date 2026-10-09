@@ -12,6 +12,7 @@ Status values: `todo`, `in progress`, `patch received`, `applied + verified`, `b
 * [x] B-08, B-09 and B-10 completed; see B report 0012 and the October 9 change log.
 * [x] C-04 through C-07 completed; see C migration commit 5bccad3. Continue D-05 and D-09 according to their dependencies.
 * [ ] Keep A-16 blocked until B-10, C-07 and D-09 are complete.
+* [ ] D-05: apply D-0010 (with the D-0011 additions, one combined patch), then D-0012 (the call sites in `10c-playback-queue.js` (B) and `19-online-lyrics.js` (C), which removes the last 3 inline handlers). After your checks, mark D-05 `applied + verified`. D-09a (read-only survey) can start at any time; D-09b to D-09i follow in order, one patch each.
 
 ## Agent A: Foundation and data
 
@@ -76,8 +77,19 @@ Status values: `todo`, `in progress`, `patch received`, `applied + verified`, `b
 | D-02 | 1     | Replace writes in `07-views`           | A-06                         | applied + verified |                             |
 | D-03 | 2     | Renderers subscribe to events          | -                            | applied + verified | First plan (D 0001 to 0004) |
 | D-04 | 2     | Remove D's own cross-subsystem calls   | -                            | applied + verified | First plan (D 0001 to 0004) |
-| D-05 | 3     | Convert inline handlers                | A-10                         | in progress        |                             |
+| D-05 | 3     | Convert inline handlers                | A-10                         | patch received     | D-0007 (slice 1), D-0010 (slice 2: 96 -> 5 inline handlers), D-0011 (add-to-queue and right-panel actions), D-0012 (B and C call sites; 0 inline handlers left in the D files) |
 | D-06 | 5     | Replace the one generic `invoke`       | A-14                         | applied + verified |                             |
 | D-07 | 4     | Theme switcher module                  | A-10                         | applied + verified |                             |
 | D-08 | 5     | Swap storage and API calls             | A-13, A-14                   | applied + verified |                             |
-| D-09 | 6     | Convert the UI shell to modules        | A-15, B-10, C-07, D-08, D-05 | todo               |                             |
+| D-09 | 6     | Convert the UI shell to modules (nine steps below) | A-15, B-10, C-07, D-08 | todo      | Plan: `.agent/PLAN.md` D-09 |
+| D-09a | 6    | Pre-flight: list globals, load-time references, runtime reassignments and listener order per D file (no edits) | A-15, B-10, C-07, D-08 | todo | |
+| D-09b | 6    | Leaf files `06c`, `06d`, `06e`, `06h`, `06j` | D-09a                     | todo               |                             |
+| D-09c | 6    | Drag and drop `06f`, `06g`             | D-09b                        | todo               |                             |
+| D-09d | 6    | `06a`, `06b`, `06k` (fix the `06b` function reassignments first; one real Electron run) | D-09c | todo |                             |
+| D-09e | 6    | Renderers `04b` to `04g`, `07a`        | D-09d                        | todo               |                             |
+| D-09f | 6    | Event subscribers `04h` to `04v` (decide the module registration rule first) | D-09e | todo |                             |
+| D-09g | 6    | `04a`                                  | D-09f, D-0012 (D-05 done)    | todo               |                             |
+| D-09h | 6    | Virtual scroll `05c`, `05a`, `05b`     | D-09g                        | todo               |                             |
+| D-09i | 6    | `07-views`, then the full smoke checklist and a second real Electron run | D-09h | todo |                             |
+
+D-05 does not have to finish before D-09a: an inline `on...=` string keeps working after its file becomes a module, because the module registers its names with `registerLegacyGlobals`. D-05 only has to finish (D-0012) before D-09g (`04a`), where the last strings are.

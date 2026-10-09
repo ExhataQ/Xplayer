@@ -280,6 +280,8 @@ function initLeftPanelDragAndDrop() {
 
     leftPanelMainList.addEventListener('mousedown', (e) => {
         if (e.button !== 0) return;
+        // Buttons marked data-stop-mousedown used to stop the event before it reached this list.
+        if (e.target.closest('[data-stop-mousedown]')) return;
         const item = e.target.closest('.left-panel-main-item');
         if (!item) return;
 

@@ -33,17 +33,17 @@ function renderAlbumsView() {
             const coverSrc = album.cover || PLACEHOLDER_IMAGE;
             return `
         <div class="song-item" 
-             onclick="openAlbum('${album.id}')"
-             oncontextmenu="event.preventDefault(); showAlbumContextMenu(event, '${album.id}')"
+             ${actionAttrs('openAlbum', [String(album.id)])}
+             ${actionAttrs('itemContextMenuPrevent', ['$event', 'album', String(album.id)], { event: 'contextmenu' })}
              tabindex="0"
-             onkeydown="if(event.key === 'Enter') openAlbum('${album.id}')"
+             ${actionAttrs('openAlbumOnEnter', ['$event', String(album.id)], { event: 'keydown' })}
              data-album-id="${album.id}">
                 <div class="left-song-item">
                         <div class="song-number">${index + 1}</div>
                         <img class="song-cover" 
                              src="${coverSrc}" 
                              alt="Cover for ${album.name}"
-                             onerror="this.src=PLACEHOLDER_IMAGE">
+                             data-action-error="setImagePlaceholder">
                         <div class="song-info">
                                 <div class="song-title">${escapeHtml(album.name)}</div>
                                 <div class="song-artist">${album.songCount} ${
@@ -54,9 +54,7 @@ function renderAlbumsView() {
                 <div class="song-album"></div>
                 <div class="right-song-item">
                         <div class="song-duration"></div>
-                        <div class="more-info" onclick="event.stopPropagation(); showAlbumContextMenu(event, '${
-                            album.id
-                        }')" title="More options">
+                        <div class="more-info" ${actionAttrs('showAlbumContextMenu', ['$event', String(album.id)], { stop: true })} title="More options">
                                 <span class="material-symbols-outlined">more_horiz</span>
                         </div>
                 </div>
@@ -131,8 +129,12 @@ function renderAlbumLeftPanelItems() {
     sortedAlbums.forEach((album) => {
         const albumItem = document.createElement('li');
         albumItem.className = 'left-panel-main-item album-child-item';
-        albumItem.setAttribute('onclick', `openAlbum('${album.id}')`);
-        albumItem.setAttribute('oncontextmenu', `showAlbumContextMenu(event, '${album.id}'); return false;`);
+        applyActionAttrs(
+            albumItem,
+            actionAttrs('openAlbum', [String(album.id)]) +
+                ' ' +
+                actionAttrs('itemContextMenu', ['$event', 'album', String(album.id)], { event: 'contextmenu' })
+        );
         albumItem.setAttribute('data-view', album.id);
         albumItem.setAttribute('data-pin-id', album.id);
         albumItem.setAttribute('tabindex', '0');
@@ -152,7 +154,7 @@ function renderAlbumLeftPanelItems() {
                                 ${coverContent}
                                 <button class="left-panel-cover-play-btn" data-view="${
                                     album.id
-                                }" onmousedown="event.stopPropagation()" aria-label="Play"></button>
+                                }" data-stop-mousedown aria-label="Play"></button>
                         </div>
                         <div class="main-item-info">
                                 <span class="main-item-title">${escapeHtml(album.name)}</span>

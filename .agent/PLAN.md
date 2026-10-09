@@ -417,8 +417,19 @@ Each step is sized for one session or less. The IDs are used in reports and on t
   - Files: `05a`, `06b`, `06k`
   - Done when: `grep` finds no direct `localStorage` or `electronAPI` in D's files.
   - Needs: A-13, A-14
-- [ ] **D-09** (Phase 6) **Convert the UI shell to modules.** Convert `06*` first, then `04b`–`04g`, then `04a`, `05a`/`05b`/`05c`, and `07` last. Import/export edits only, no logic edits. Run `scroll.test.js` and the placeholder checks after each file.
-  - Files: D's files, `src/manifest.json` (one-line inserts)
+- [ ] **D-09** (Phase 6) **Convert the UI shell to modules.** Done as nine small patches, one report each, in this order. Every patch: export the functions, register the names classic code or inline handlers still use with a guarded `registerLegacyGlobals`, move the file from `"js"` to `"modules"` (one-line manifest edit), no logic edits. After each patch run `scroll.test.js`, `ui-handlers.test.js`, `converted-modules.test.js`, `manifest.test.js` and `node tools/event-audit.js --strict`; after each group run the full suite and record the `dep-map.js` numbers. Add a sabotage check (remove one registration, confirm a test fails) as in reports 0007 and 0008.
+  - **D-09a** Pre-flight, no edits. For every D file list: top-level `let`/`const`/`var` that other files read or assign by bare name, load-time references (`dep-map.js`), `window[` and `window.x =` uses, functions reassigned at run time (`name = function`), and listeners registered while loading (with their order relative to other files). Known so far: the `06b` reassignments (D-09d) and `window.scrollbarInstances` in `06c`. Write the result into the report; later steps use it.
+  - **D-09b** Leaf files: `06c`, `06d`, `06e`, `06h`, `06j`.
+  - **D-09c** Drag and drop: `06f`, `06g`. Keep the `mousedown`/drag listener order.
+  - **D-09d** `06a`, `06b`, `06k`. One real Electron run after this step (file:// module loading, keyboard shortcuts, modals). `06b` reassigns its own functions while a dialog is open (`closePlaylistModal = function ...` in four dialogs, `closeAddLinkModal = function ...` in the link dialog) and creates and deletes `window.handleEditPlaylistCover` and `window._editPlaylistTempCover`. In a module, `registerLegacyGlobals` would keep the original function on `window` and drop the wrapper, so first turn each wrapper into a module-level variable or a named step that the close function calls (a small, tested change on its own), then convert.
+  - **D-09e** Renderers `04b` to `04g` and `07a`.
+  - **D-09f** Event subscribers `04h` to `04v`. First decide the registration rule for modules (`EVENTS.md` rule 5 says to revisit it); keep subscription order.
+  - **D-09g** `04a` (keep its capture listeners in the same order relative to the others). Needs D-05 finished (D-0012), because the last three inline handlers are in this file.
+  - **D-09h** Virtual scroll: `05c`, then `05a`, then `05b`. Import/export edits only; run the placeholder checks and `scroll.test.js` after each file.
+  - **D-09i** `07-views` last, then the full smoke checklist and a second real Electron run.
+  - Not in D-09: `00-state`, `01-sizes`, `02-ghost-list`, `03j` and the other classic files that hold top-level `let`/`const`; they flip together in A-16.
+  - Expect: pinned call-sequence baselines in `tools/tests/expected/` lose the spied names for calls a module makes to its own functions (as in A-15); list each removed name in the report.
+  - Files: D's files, `src/manifest.json` (one-line moves)
   - Done when: `scroll.test.js`, `search-ui.test.js`, `view-switch-song-list-cleanup.test.js` and the full smoke checklist pass.
   - Needs: A-15, B-10, C-07, D-08, D-05
 

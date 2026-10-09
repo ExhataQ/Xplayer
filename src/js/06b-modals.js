@@ -5,6 +5,16 @@
 let downloadProgressActive = false;
 let downloadNotifyIndex = -1;
 
+// An overlay closes its dialog only when the click lands on the overlay itself. The dialog sits
+// inside the overlay and marks itself data-stop, which keeps the click from the page-level
+// listeners, but the overlay's own listener still sees clicks that bubble up from the dialog.
+function closeOnOverlayClick(overlay, closeFunction) {
+    if (typeof closeFunction !== 'function') return null;
+    return function (event) {
+        if (event.target === overlay) closeFunction(event);
+    };
+}
+
 function createModal(modalClassName, overlayClassName, closeFunction) {
     const existingModal = document.querySelector(`.${modalClassName}`);
     const existingOverlay = document.querySelector(`.${overlayClassName}`);
@@ -13,7 +23,7 @@ function createModal(modalClassName, overlayClassName, closeFunction) {
 
     const overlay = document.createElement('div');
     overlay.className = overlayClassName;
-    overlay.onclick = closeFunction;
+    overlay.onclick = closeOnOverlayClick(overlay, closeFunction);
 
     const modal = document.createElement('div');
     modal.className = modalClassName;
@@ -99,11 +109,11 @@ function showSongMetadataModal(songId) {
 
     const overlay = document.createElement('div');
     overlay.className = 'song-metadata-modal-overlay';
-    overlay.onclick = closeSongMetadataModal;
+    overlay.onclick = closeOnOverlayClick(overlay, closeSongMetadataModal);
 
     const modal = document.createElement('div');
     modal.className = 'song-metadata-modal';
-    modal.onclick = (event) => event.stopPropagation();
+    modal.setAttribute('data-stop', '');
     modal.innerHTML = `
         <div class="song-metadata-modal-header">
             <h3>Song metadata</h3>
@@ -143,7 +153,7 @@ function showConfirmDialog(options) {
             resolve(false);
             closeConfirmDialog();
         });
-        modal.onclick = (e) => e.stopPropagation();
+        modal.setAttribute('data-stop', '');
 
         if (typeof syncEditorState !== 'undefined' && syncEditorState && syncEditorState.open) {
             overlay.style.zIndex = '100060';
@@ -211,16 +221,16 @@ function showConfirmDialog(options) {
 
 function showCreatePlaylistDialog() {
     const { modal, overlay } = createModal('playlist-modal', 'playlist-modal-overlay', closePlaylistModal);
-    modal.onclick = (e) => e.stopPropagation();
+    modal.setAttribute('data-stop', '');
 
     modal.innerHTML = `
         <h3 class="playlist-modal-title">Create New Playlist</h3>
         <input type="text" id="playlist-name-input" class="playlist-modal-input" placeholder="Playlist name">
         <div class="playlist-modal-buttons">
-                <button onclick="closePlaylistModal()" class="playlist-modal-cancel-btn">
+                <button data-action="closePlaylistModal" class="playlist-modal-cancel-btn">
                         Cancel
                 </button>
-                <button onclick="confirmCreatePlaylist()" class="playlist-modal-create-btn">
+                <button data-action="confirmCreatePlaylist" class="playlist-modal-create-btn">
                         Create
                 </button>
         </div>
@@ -292,12 +302,12 @@ function showEditPlaylistDialog(playlistId) {
     if (!playlist) return;
 
     const { modal, overlay } = createModal('playlist-modal', 'playlist-modal-overlay', closePlaylistModal);
-    modal.onclick = (e) => e.stopPropagation();
+    modal.setAttribute('data-stop', '');
 
     modal.innerHTML = `
         <h3 class="playlist-modal-title">Edit Playlist</h3>
         <div style="display: flex; align-items: center; gap: 16px; margin: 15px 0;">
-                <div style="width: 100px; height: 100px; border-radius: 8px; overflow: hidden; background: var(--bg-card); flex-shrink: 0; position: relative; cursor: pointer;" id="edit-playlist-cover-preview" onclick="document.getElementById('edit-playlist-cover-input').click()">
+                <div style="width: 100px; height: 100px; border-radius: 8px; overflow: hidden; background: var(--bg-card); flex-shrink: 0; position: relative; cursor: pointer;" id="edit-playlist-cover-preview" data-action="pickEditPlaylistCover">
                         ${
                             playlist.cover
                                 ? `<img src="${escapeHtmlAttr(playlist.cover)}" style="width: 100%; height: 100%; object-fit: cover;">`
@@ -313,12 +323,12 @@ function showEditPlaylistDialog(playlistId) {
                         )}" placeholder="Playlist name" style="margin: 0;">
                 </div>
         </div>
-        <input type="file" id="edit-playlist-cover-input" accept="image/png, image/jpeg, image/jpg, image/webp" style="display: none;" onchange="handleEditPlaylistCover(this)">
+        <input type="file" id="edit-playlist-cover-input" accept="image/png, image/jpeg, image/jpg, image/webp" style="display: none;" data-action-change="handleEditPlaylistCover" data-args-change="[&quot;$this&quot;]">
         <div class="playlist-modal-buttons">
-                <button onclick="closePlaylistModal()" class="playlist-modal-cancel-btn">
+                <button data-action="closePlaylistModal" class="playlist-modal-cancel-btn">
                         Cancel
                 </button>
-                <button onclick="confirmEditPlaylist('${playlistId}')" class="playlist-modal-create-btn">
+                <button ${actionAttrs('confirmEditPlaylist', [String(playlistId)])} class="playlist-modal-create-btn">
                         Save
                 </button>
         </div>
@@ -409,16 +419,16 @@ function confirmEditPlaylist(playlistId) {
 
 function showCreateFolderDialog() {
     const { modal, overlay } = createModal('playlist-modal', 'playlist-modal-overlay', closePlaylistModal);
-    modal.onclick = (e) => e.stopPropagation();
+    modal.setAttribute('data-stop', '');
 
     modal.innerHTML = `
         <h3 class="playlist-modal-title">Create New Folder</h3>
         <input type="text" id="folder-name-input" class="playlist-modal-input" placeholder="Folder name">
         <div class="playlist-modal-buttons">
-                <button onclick="closePlaylistModal()" class="playlist-modal-cancel-btn">
+                <button data-action="closePlaylistModal" class="playlist-modal-cancel-btn">
                         Cancel
                 </button>
-                <button onclick="confirmCreateFolder()" class="playlist-modal-create-btn">
+                <button data-action="confirmCreateFolder" class="playlist-modal-create-btn">
                         Create
                 </button>
         </div>
@@ -492,7 +502,7 @@ function showEditFolderDialog(folderId) {
     if (!folder) return;
 
     const { modal, overlay } = createModal('playlist-modal', 'playlist-modal-overlay', closePlaylistModal);
-    modal.onclick = (e) => e.stopPropagation();
+    modal.setAttribute('data-stop', '');
 
     modal.innerHTML = `
         <h3 class="playlist-modal-title">Rename Folder</h3>
@@ -500,10 +510,10 @@ function showEditFolderDialog(folderId) {
             folder.name
         )}" placeholder="Folder name">
         <div class="playlist-modal-buttons">
-                <button onclick="closePlaylistModal()" class="playlist-modal-cancel-btn">
+                <button data-action="closePlaylistModal" class="playlist-modal-cancel-btn">
                         Cancel
                 </button>
-                <button onclick="confirmEditFolder('${folderId}')" class="playlist-modal-create-btn">
+                <button ${actionAttrs('confirmEditFolder', [String(folderId)])} class="playlist-modal-create-btn">
                         Save
                 </button>
         </div>
@@ -571,15 +581,15 @@ function confirmEditFolder(folderId) {
 
 function showCreateItemDialog() {
     const { modal, overlay } = createModal('playlist-modal', 'playlist-modal-overlay', closeCreateItemModal);
-    modal.onclick = (e) => e.stopPropagation();
+    modal.setAttribute('data-stop', '');
 
     modal.innerHTML = `
         <h3 class="playlist-modal-title">Create New</h3>
         <div class="playlist-modal-buttons" style="flex-direction: column; gap: 8px;">
-                <button onclick="closeCreateItemModal(); showCreatePlaylistDialog();" class="playlist-modal-create-btn" style="width: 100%;">
+                <button data-action="createItemChoice" data-args="[&quot;playlist&quot;]" class="playlist-modal-create-btn" style="width: 100%;">
                         <i class="fas fa-music"></i> Playlist
                 </button>
-                <button onclick="closeCreateItemModal(); showCreateFolderDialog();" class="playlist-modal-cancel-btn" style="width: 100%;">
+                <button data-action="createItemChoice" data-args="[&quot;folder&quot;]" class="playlist-modal-cancel-btn" style="width: 100%;">
                         <i class="fas fa-folder"></i> Folder
                 </button>
         </div>
@@ -602,19 +612,19 @@ function showCreateItemDialog() {
 
 function showAddLinkDialog() {
     const { modal, overlay } = createModal('playlist-modal', 'playlist-modal-overlay', closeAddLinkModal);
-    modal.onclick = (e) => e.stopPropagation();
+    modal.setAttribute('data-stop', '');
 
     modal.innerHTML = `
         <h3 class="playlist-modal-title">Play from URL</h3>
         <input type="text" id="link-url-input" class="playlist-modal-input" placeholder="Paste URL (e.g. https://example.com/song.mp3)">
         <div class="playlist-modal-buttons" id="link-modal-buttons">
-                <button onclick="closeAddLinkModal()" class="playlist-modal-cancel-btn">
+                <button data-action="closeAddLinkModal" class="playlist-modal-cancel-btn">
                         Cancel
                 </button>
-                <button onclick="playFromUrl(false)" class="playlist-modal-cancel-btn">
+                <button data-action="playFromUrl" data-args="[false]" class="playlist-modal-cancel-btn">
                         Stream Only
                 </button>
-                <button onclick="playFromUrl(true)" class="playlist-modal-create-btn">
+                <button data-action="playFromUrl" data-args="[true]" class="playlist-modal-create-btn">
                         Download & Stream
                 </button>
         </div>
@@ -803,7 +813,7 @@ function showPlayedDataModal(songId) {
     const totalSecs = totalDuration % 60;
 
     const { modal, overlay } = createModal('playlist-modal', 'playlist-modal-overlay', closePlayedDataModal);
-    modal.onclick = (e) => e.stopPropagation();
+    modal.setAttribute('data-stop', '');
 
     let playsListHTML = '';
     if (songPlays.length === 0) {
@@ -843,7 +853,7 @@ function showPlayedDataModal(songId) {
                 ${playsListHTML}
         </div>
         <div class="playlist-modal-buttons">
-                <button onclick="closePlayedDataModal()" class="playlist-modal-cancel-btn">
+                <button data-action="closePlayedDataModal" class="playlist-modal-cancel-btn">
                         Close
                 </button>
         </div>
@@ -869,7 +879,7 @@ function showPlayedDataModal(songId) {
 function showWelcomeDialog() {
     if (SONGS_DATA.length > 0) return;
     const { modal, overlay } = createModal('playlist-modal', 'playlist-modal-overlay', null);
-    modal.onclick = (e) => e.stopPropagation();
+    modal.setAttribute('data-stop', '');
     overlay.style.pointerEvents = 'none';
     modal.style.pointerEvents = 'all';
 

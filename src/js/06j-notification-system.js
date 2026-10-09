@@ -257,7 +257,7 @@ function renderNotificationPanel() {
                 ${
                     notif.isDownloadProgress || notif.isCoverProgress
                         ? ''
-                        : `<button class="notification-item-close" onclick="event.stopPropagation(); removeNotificationItem(${index})" title="Dismiss">
+                        : `<button class="notification-item-close" ${actionAttrs('removeNotificationItem', [index], { stop: true })} title="Dismiss">
                     <i class="fas fa-times"></i>
                 </button>`
                 }
