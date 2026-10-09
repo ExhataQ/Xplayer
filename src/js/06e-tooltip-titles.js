@@ -53,3 +53,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 });
+
+// Nothing to register: this file only adds a DOMContentLoaded listener. The empty export makes it a module.
+export {};

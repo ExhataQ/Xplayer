@@ -2,7 +2,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { loadPlaywright, launch, buildApp } = require('./helpers/app-fixture');
+const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 
 const pw = loadPlaywright();
 
@@ -25,8 +25,7 @@ describe('playback settings and transitions', { concurrency: false }, () => {
 
     async function openPage() {
         const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });
-        await page.goto('file://' + path.join(dir, 'index.html').replace(/\\/g, '/'));
-        await page.waitForTimeout(900);
+        await gotoApp(page, dir);
         return page;
     }
 

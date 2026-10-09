@@ -7,7 +7,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { loadPlaywright, launch, buildApp } = require('./helpers/app-fixture');
+const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 
 // What the file really contains, INCLUDING fields that are hidden until "More metadata tags" is opened.
 const DISK = {
@@ -38,8 +38,7 @@ describe('metadata editor UI', { concurrency: false }, () => {
         const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e)));
-        await page.goto('file://' + path.join(dir, 'index.html').replace(/\\/g, '/'));
-        await page.waitForTimeout(900);
+        await gotoApp(page, dir);
         await page.evaluate(
             ([disk, readResult]) => {
                 window.__saved = [];
@@ -75,10 +74,8 @@ describe('metadata editor UI', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page, errors } = await openEditor();
         await page.evaluate('openMetadataEditor()');
-        await page.waitForTimeout(400);
         await type(page, 'album', 'Jazz (Remastered)');
         await page.evaluate('saveMetadataEditor()');
-        await page.waitForTimeout(300);
         const sent = await page.evaluate('window.__saved[0].metadata');
         assert.deepEqual(sent, { album: 'Jazz (Remastered)' });
         assert.deepEqual(errors, []);
@@ -89,11 +86,9 @@ describe('metadata editor UI', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page } = await openEditor();
         await page.evaluate('openMetadataEditor()');
-        await page.waitForTimeout(400);
         await type(page, 'album', 'temp');
         await type(page, 'album', 'Jazz'); // typed, then put back
         await page.evaluate('saveMetadataEditor()');
-        await page.waitForTimeout(300);
         assert.equal(await page.evaluate('window.__saved.length'), 0, 'a net-zero edit must not touch the file');
         await page.close();
     });
@@ -102,10 +97,8 @@ describe('metadata editor UI', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page } = await openEditor();
         await page.evaluate('openMetadataEditor()');
-        await page.waitForTimeout(400);
         await type(page, 'label', '');
         await page.evaluate('saveMetadataEditor()');
-        await page.waitForTimeout(300);
         assert.deepEqual(await page.evaluate('window.__saved[0].metadata'), { label: '' });
         await page.close();
     });
@@ -114,7 +107,6 @@ describe('metadata editor UI', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page } = await openEditor();
         await page.evaluate('openMetadataEditor()');
-        await page.waitForTimeout(400);
         assert.equal(await page.evaluate(`document.querySelector('[data-metadata-key="title"]').value`), DISK.title);
         assert.equal(await page.evaluate(`document.querySelector('[data-metadata-key="track"]').value`), '7');
         await page.close();
@@ -124,11 +116,11 @@ describe('metadata editor UI', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page } = await openEditor();
         await page.evaluate('window.__gateReads = true; void openMetadataEditor()');
-        await page.waitForTimeout(300);
+        await page.waitForFunction(() => document.querySelector('[data-metadata-key="title"]')?.disabled === true);
         const locked = await page.evaluate(`({ titleDisabled: document.querySelector('[data-metadata-key="title"]').disabled, saveDisabled: document.getElementById('metadata-editor-save').disabled })`);
         assert.deepEqual(locked, { titleDisabled: true, saveDisabled: true });
         await page.evaluate('window.__releaseRead()');
-        await page.waitForTimeout(300);
+        await page.waitForFunction(() => document.querySelector('[data-metadata-key="title"]')?.disabled === false);
         assert.equal(await page.evaluate(`document.querySelector('[data-metadata-key="title"]').disabled`), false);
         await page.close();
     });
@@ -137,7 +129,6 @@ describe('metadata editor UI', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page } = await openEditor({ success: false, error: 'Python runtime not found' });
         await page.evaluate('openMetadataEditor()');
-        await page.waitForTimeout(400);
         assert.equal(await page.evaluate(`document.querySelector('[data-metadata-key="title"]')`), null, 'no editable form should be shown');
         assert.match(await page.evaluate(`document.getElementById('metadata-editor-content').textContent`), /Python runtime not found/);
         assert.equal(await page.evaluate('window.__saved.length'), 0);
@@ -148,14 +139,11 @@ describe('metadata editor UI', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page } = await openEditor();
         await page.evaluate('openMetadataEditor()');
-        await page.waitForTimeout(400);
         await type(page, 'title', 'My unsaved edit');
         await page.evaluate('toggleMetadataMore()');
-        await page.waitForTimeout(300);
         assert.equal(await page.evaluate(`document.querySelector('[data-metadata-key="title"]').value`), 'My unsaved edit');
         assert.equal(await page.evaluate(`document.querySelector('[data-metadata-key="copyright"]').value`), '(c) 1978 EMI', 'hidden field should now show the file value');
         await page.evaluate('saveMetadataEditor()');
-        await page.waitForTimeout(300);
         assert.deepEqual(await page.evaluate('window.__saved[0].metadata'), { title: 'My unsaved edit' });
         await page.close();
     });
@@ -164,12 +152,10 @@ describe('metadata editor UI', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page } = await openEditor();
         await page.evaluate('openMetadataEditor()');
-        await page.waitForTimeout(400);
         await type(page, 'album', 'EDIT FOR SONG 1');
         const before = await page.evaluate('[SONGS_DATA[0].album, SONGS_DATA[1].album]');
         await page.evaluate('currentQueueIndex = 1'); // next track starts while the editor is open
         await page.evaluate('saveMetadataEditor()');
-        await page.waitForTimeout(300);
         assert.equal(await page.evaluate('window.__saved[0].fileUrl'), 'file:///music/1.mp3');
         assert.equal(await page.evaluate('SONGS_DATA[0].album'), 'EDIT FOR SONG 1');
         assert.equal(await page.evaluate('SONGS_DATA[1].album'), before[1], 'the song that is playing now must not receive the edit');
@@ -180,9 +166,7 @@ describe('metadata editor UI', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page } = await openEditor();
         await page.evaluate('openMetadataEditor()');
-        await page.waitForTimeout(400);
         await page.evaluate('toggleMetadataMore()');
-        await page.waitForTimeout(300);
         await page.evaluate(() => setMetadataFields({ title: 'Imported title', track: '', trackTotal: '', bpm: '', copyright: '', composer: [], conductor: '' }));
         const v = await page.evaluate(`({ title: document.querySelector('[data-metadata-key="title"]').value, track: document.querySelector('[data-metadata-key="track"]').value, bpm: document.querySelector('[data-metadata-key="bpm"]').value, copyright: document.querySelector('[data-metadata-key="copyright"]').value })`);
         assert.deepEqual(v, { title: 'Imported title', track: '7', bpm: '156', copyright: '(c) 1978 EMI' });
@@ -193,7 +177,6 @@ describe('metadata editor UI', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page } = await openEditor();
         await page.evaluate('openMetadataEditor()');
-        await page.waitForTimeout(400);
         await type(page, 'title', 'Only the title');
         const changes = await page.evaluate('metadataEditorChanges()');
         assert.deepEqual(Object.keys(changes), ['title'], 'artist "Earth, Wind & Fire" must not appear in the patch');

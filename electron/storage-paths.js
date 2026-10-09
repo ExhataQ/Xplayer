@@ -70,4 +70,11 @@ function configPath(key) {
     return target;
 }
 
-module.exports = { CONFIG_FILES, getConfigDir, setConfigDir, configPath };
+// Where the built page (music_player.html), player.js, songs.json, covers and the taskbar icons live.
+// MUSIC_PLAYER_OUTPUT_DIR replaces the default folder next to the code, so a test can run the app against a
+// throwaway library. Read on every call; an unset or empty variable means the default.
+function getOutputDir() {
+    return process.env.MUSIC_PLAYER_OUTPUT_DIR || path.join(__dirname, 'MusicPlayerOutput');
+}
+
+module.exports = { CONFIG_FILES, getConfigDir, setConfigDir, configPath, getOutputDir };

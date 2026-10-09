@@ -10,7 +10,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { loadPlaywright, launch, buildApp } = require('./helpers/app-fixture');
+const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
 const JS_DIR = path.join(ROOT, 'src', 'js');
@@ -84,8 +84,7 @@ describe('legacy bridge in the real page', { concurrency: false }, () => {
         const consoleErrors = [];
         page.on('pageerror', (e) => errors.push(String(e)));
         page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
-        await page.goto('file://' + path.join(dir, 'index.html').replace(/\\/g, '/'));
-        await page.waitForTimeout(700);
+        await gotoApp(page, dir);
         return { page, errors, consoleErrors };
     }
 

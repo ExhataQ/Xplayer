@@ -1,7 +1,7 @@
 // ==============================================================================
 // FULLSCREEN IMAGE VIEWER
 // ==============================================================================
-function openImageViewer() {
+export function openImageViewer() {
     const viewer = document.getElementById('image-viewer');
     const viewerImage = document.getElementById('viewer-image');
     const albumArt = document.getElementById('album-art-image');
@@ -117,7 +117,7 @@ function deactivateZoomLens() {
     }
 }
 
-function closeImageViewer() {
+export function closeImageViewer() {
     deactivateZoomLens();
     const viewer = document.getElementById('image-viewer');
     viewer.classList.add('closing');
@@ -133,4 +133,11 @@ function imageViewerKeyHandler(e) {
     if (e.key === 'Escape') {
         closeImageViewer();
     }
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        openImageViewer,
+        closeImageViewer
+    });
 }

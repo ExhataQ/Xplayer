@@ -29,11 +29,11 @@ const { searchLyrics, downloadLyricsFile } = require('./online-lyrics');
 const { getAudioMetadata, saveAudioMetadata, saveAudioCover } = require('./metadata-editor');
 const { searchOnlineMetadata, getOnlineMetadata } = require('./online-metadata');
 const songsStore = require('./songs-store');
-const { configPath: settingsFile } = require('./storage-paths');
+const { configPath: settingsFile, getOutputDir } = require('./storage-paths');
 const checks = require('./ipc-checks');
 
-const thumbarIconPath = path.join(__dirname, 'MusicPlayerOutput', 'icons');
-const OUTPUT_DIR = path.join(__dirname, 'MusicPlayerOutput');
+const thumbarIconPath = path.join(getOutputDir(), 'icons');
+const OUTPUT_DIR = getOutputDir();
 
 
 function updateDeployedSongMetadata(fileUrl, metadata) {
@@ -134,7 +134,7 @@ ipcMain.handle('import-audio-metadata-json', async () => {
 });
 
 ipcMain.handle('import-dropped-files', async (event, filePaths, targetView) => {
-    const outputDir = path.join(__dirname, 'MusicPlayerOutput');
+    const outputDir = getOutputDir();
     const audioPaths = checks.stringList(filePaths).filter(checks.isAudioPath);
     if (audioPaths.length === 0) return { success: false, error: 'No supported audio files' };
     return scanDroppedFiles(audioPaths, outputDir);
@@ -157,7 +157,7 @@ ipcMain.handle('download-and-scan', async (event, url, isTemp) => {
 
     if (!result.success) return result;
 
-    const outputDir = path.join(__dirname, 'MusicPlayerOutput');
+    const outputDir = getOutputDir();
     const scanResult = await scanDownloadedFile(downloadFolder, outputDir, result.filePath, isTemp);
     return scanResult;
 });
@@ -225,7 +225,7 @@ ipcMain.handle('rebuild-from-folders', async () => {
     const configPath = settingsFile('foldersConfig');
     const folders = getMusicFolders(configPath);
 
-    const outputDir = path.join(__dirname, 'MusicPlayerOutput');
+    const outputDir = getOutputDir();
     showLoadingWindow(mainWindow);
     updateLoadingProgress(0, 'Starting scan...', '');
 
@@ -270,7 +270,7 @@ ipcMain.handle('change-folder', async () => {
     }
 
     const selectedFolder = result.filePaths[0];
-    const outputDir = path.join(__dirname, 'MusicPlayerOutput');
+    const outputDir = getOutputDir();
 
     showLoadingWindow(mainWindow);
     updateLoadingProgress(0, 'Starting scan...', '');
@@ -486,7 +486,7 @@ app.whenReady().then(async () => {
         showLoadingWindow(mainWindow);
         updateLoadingProgress(0, 'Starting scan...', '');
 
-        const outputDir = path.join(__dirname, 'MusicPlayerOutput');
+        const outputDir = getOutputDir();
         try {
         await scanFolder(selectedFolder, outputDir, {
             onStdoutProgress: (percent) => updateLoadingProgress(percent, 'Scanning...', ''),

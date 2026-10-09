@@ -536,7 +536,6 @@ function renderSongsList(songs, listId = VIEWS.ALL_SONGS) {
 let hoverLayer = null;
 let activeHighlightEl = null;
 let selectionHighlightLayer = null;
-let hoveredSongIndex = -1;
 let activeSongSlot = null;
 let hoveredRowEl = null;
 const ROW_EDGE_INSET = 25;
@@ -809,10 +808,7 @@ function updateHoverHighlightAfterScroll() {
 // ==============================================================================
 // SELECTION SYSTEM
 // ==============================================================================
-let selectedSongId = null;
 let selectedSongIds = new Set();
-let lastSelectedIndex = null;
-let selectionHighlights = [];
 
 document.addEventListener('keydown', function (e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'a') {

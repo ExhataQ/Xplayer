@@ -3,7 +3,6 @@
 // ==============================================================================
 
 let downloadProgressActive = false;
-let downloadNotifyIndex = -1;
 
 // An overlay closes its dialog only when the click lands on the overlay itself. The dialog sits
 // inside the overlay and marks itself data-stop, which keeps the click from the page-level

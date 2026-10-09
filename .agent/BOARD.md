@@ -13,6 +13,8 @@ Status values: `todo`, `in progress`, `patch received`, `applied + verified`, `b
 * [x] C-04 through C-07 completed; see C migration commit 5bccad3. Continue D-05 and D-09 according to their dependencies.
 * [ ] Keep A-16 blocked until B-10, C-07 and D-09 are complete.
 * [ ] D-05: apply D-0010 (with the D-0011 additions, one combined patch), then D-0012 (the call sites in `10c-playback-queue.js` (B) and `19-online-lyrics.js` (C), which removes the last 3 inline handlers). After your checks, mark D-05 `applied + verified`. D-09a (read-only survey) can start at any time; D-09b to D-09i follow in order, one patch each.
+* [ ] Investigate and resolve the 21 ESLint errors; standard lint currently exits 0 despite reporting errors. See the October 10 verification output. This does not block continuing D-09 unless a later change touches an affected area.
+* [ ] Complete the remaining Electron/Playwright smoke checks and `tools/smoke-checklist.md`. Do not mark runtime verification complete until the real Electron run has been performed.
 
 ## Agent A: Foundation and data
 
@@ -77,13 +79,13 @@ Status values: `todo`, `in progress`, `patch received`, `applied + verified`, `b
 | D-02 | 1     | Replace writes in `07-views`           | A-06                         | applied + verified |                             |
 | D-03 | 2     | Renderers subscribe to events          | -                            | applied + verified | First plan (D 0001 to 0004) |
 | D-04 | 2     | Remove D's own cross-subsystem calls   | -                            | applied + verified | First plan (D 0001 to 0004) |
-| D-05 | 3     | Convert inline handlers                | A-10                         | patch received     | D-0007 (slice 1), D-0010 (slice 2: 96 -> 5 inline handlers), D-0011 (add-to-queue and right-panel actions), D-0012 (B and C call sites; 0 inline handlers left in the D files) |
+| D-05 | 3     | Convert inline handlers                | A-10                         | applied + verified | D-0007 (slice 1), D-0010 (slice 2: 96 -> 5 inline handlers), D-0011 (add-to-queue and right-panel actions), D-0012 (B and C call sites; 0 inline handlers left in the D files) |
 | D-06 | 5     | Replace the one generic `invoke`       | A-14                         | applied + verified |                             |
 | D-07 | 4     | Theme switcher module                  | A-10                         | applied + verified |                             |
 | D-08 | 5     | Swap storage and API calls             | A-13, A-14                   | applied + verified |                             |
-| D-09 | 6     | Convert the UI shell to modules (nine steps below) | A-15, B-10, C-07, D-08 | todo      | Plan: `.agent/PLAN.md` D-09 |
-| D-09a | 6    | Pre-flight: list globals, load-time references, runtime reassignments and listener order per D file (no edits) | A-15, B-10, C-07, D-08 | todo | |
-| D-09b | 6    | Leaf files `06c`, `06d`, `06e`, `06h`, `06j` | D-09a                     | todo               |                             |
+| D-09  | 6 | Convert the UI shell to modules (nine steps below) | A-15, B-10, C-07, D-08 | in progress | Combined D-0013–D-0015 and test-speedup patch; 317 passed, 0 failed, 2 skipped; lint has 21 errors |
+| D-09a | 6 | Pre-flight: list globals, load-time references, runtime reassignments and listener order per D file (no edits) | A-15, B-10, C-07, D-08 | applied + verified | D report 0013; survey files added |
+| D-09b | 6 | Leaf files `06c`, `06d`, `06e`, `06h`, `06j` | D-09a | patch received | D report 0014 and D-0015; test suite passed, lint errors outstanding |
 | D-09c | 6    | Drag and drop `06f`, `06g`             | D-09b                        | todo               |                             |
 | D-09d | 6    | `06a`, `06b`, `06k` (fix the `06b` function reassignments first; one real Electron run) | D-09c | todo |                             |
 | D-09e | 6    | Renderers `04b` to `04g`, `07a`        | D-09d                        | todo               |                             |

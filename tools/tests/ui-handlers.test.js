@@ -10,7 +10,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { loadPlaywright, launch, buildApp } = require('./helpers/app-fixture');
+const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
 
@@ -64,8 +64,7 @@ describe('converted UI controls behave like the inline handlers did (real page)'
         const page = await browser.newPage();
         const errors = [];
         page.on('pageerror', (e) => errors.push(e.message));
-        await page.goto('file://' + path.join(dir, 'index.html'));
-        await page.waitForTimeout(500);
+        await gotoApp(page, dir);
         return { page, errors };
     }
 

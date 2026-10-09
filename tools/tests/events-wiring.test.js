@@ -11,7 +11,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { loadPlaywright, launch, buildApp } = require('./helpers/app-fixture');
+const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 const { SCENARIOS, measure } = require('./helpers/call-sequence-scenarios');
 
 // Call sequences measured on the code as it was BEFORE the event-bus conversion (see
@@ -202,8 +202,7 @@ describe('event bus: core emits, UI subscribers react', { concurrency: false }, 
         const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e)));
-        await page.goto('file://' + path.join(dir, 'index.html').replace(/\\/g, '/'));
-        await page.waitForTimeout(900);
+        await gotoApp(page, dir);
         // Record every notification the UI shows, so tests can assert on them.
         await page.evaluate(() => {
             window.__notes = [];

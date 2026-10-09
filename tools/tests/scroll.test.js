@@ -15,10 +15,10 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { renderTemplate } = require('./helpers/render-template');
+const { launch: launchShared, gotoApp } = require('./helpers/app-fixture');
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
 const VIEWPORT = { width: 1500, height: 900 };
-const BROWSER_LAUNCH_TIMEOUT_MS = 2500;
 
 // ---------------------------------------------------------------------------
 // Load Playwright from wherever it is installed.
@@ -89,8 +89,7 @@ async function openPage(browser, dir) {
     const page = await browser.newPage({ viewport: VIEWPORT });
     const errors = [];
     page.on('pageerror', (e) => errors.push(String(e)));
-    await page.goto('file://' + path.join(dir, 'index.html').replace(/\\/g, '/'));
-    await page.waitForTimeout(1200);
+    await gotoApp(page, dir);
     page.__errors = errors;
     return page;
 }
@@ -189,20 +188,8 @@ function mulberry32(a) {
 // ---------------------------------------------------------------------------
 const pw = loadPlaywright();
 
-async function launch() {
-    if (!pw) return null;
-    for (const opts of [{}, { channel: 'msedge' }, { channel: 'chrome' }]) {
-        try {
-            return await pw.chromium.launch({
-                args: ['--allow-file-access-from-files'],
-                timeout: BROWSER_LAUNCH_TIMEOUT_MS,
-                ...opts
-            });
-        } catch (_) {
-            /* try next */
-        }
-    }
-    return null;
+function launch() {
+    return launchShared(pw);
 }
 
 describe('song list virtual scrolling', { concurrency: false }, () => {

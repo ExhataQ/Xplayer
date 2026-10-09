@@ -21,20 +21,114 @@ function loadPlaywright() {
     return null;
 }
 
+const BROWSER_OPTIONS = [{}, { channel: 'msedge' }, { channel: 'chrome' }];
+
+// Every browser test file is its own process, so each one used to repeat the whole fallback (a failed
+// launch can take several seconds). tools/tests/run.js sets XPLAYER_TEST_RUN_ID for one run; the files of
+// that run share what the first one found. Without the variable (a single file started by hand) nothing is cached.
+function launchCacheFile() {
+    const id = process.env.XPLAYER_TEST_RUN_ID;
+    return id ? path.join(os.tmpdir(), `xplayer-browser-${id}.json`) : null;
+}
+
+function readLaunchCache() {
+    const file = launchCacheFile();
+    if (!file) return null;
+    try {
+        return JSON.parse(fs.readFileSync(file, 'utf8'));
+    } catch (_) {
+        return null;
+    }
+}
+
+function writeLaunchCache(value) {
+    const file = launchCacheFile();
+    if (!file) return;
+    try {
+        fs.writeFileSync(file, JSON.stringify(value));
+    } catch (_) {
+        /* the cache only saves time */
+    }
+}
+
 async function launch(pw) {
     if (!pw) return null;
-    for (const opts of [{}, { channel: 'msedge' }, { channel: 'chrome' }]) {
+    const cached = readLaunchCache();
+    const order = BROWSER_OPTIONS.map((_, i) => i);
+    if (cached && Number.isInteger(cached.index)) order.sort((a, b) => (a === cached.index ? -1 : b === cached.index ? 1 : a - b));
+    for (const i of order) {
         try {
-            return await pw.chromium.launch({
+            const browser = await pw.chromium.launch({
                 args: ['--allow-file-access-from-files'],
                 timeout: BROWSER_LAUNCH_TIMEOUT_MS,
-                ...opts
+                ...BROWSER_OPTIONS[i]
             });
+            writeLaunchCache({ available: true, index: i });
+            return browser;
         } catch (_) {
             /* next */
         }
     }
+    // A total failure is deliberately NOT cached: a one-off failure must not skip every later browser file.
     return null;
+}
+
+// Counts the app's own pending setTimeout calls that are shorter than 900 ms (cleared ones do not count).
+// Runs inside the page before any app script. The 900 ms limit is the longest fixed wait the tests used
+// to rely on: a timer longer than that was never waited for.
+function trackStartupTimers() {
+    const pending = new Map();
+    const byHandle = new Map();
+    let nextId = 0;
+    const realSet = window.setTimeout.bind(window);
+    const realClear = window.clearTimeout.bind(window);
+    window.setTimeout = (fn, ms, ...args) => {
+        if (typeof fn !== 'function') return realSet(fn, ms, ...args);
+        const id = ++nextId;
+        pending.set(id, Number(ms) || 0);
+        const handle = realSet(
+            (...a) => {
+                pending.delete(id);
+                byHandle.delete(handle);
+                return fn(...a);
+            },
+            ms,
+            ...args
+        );
+        byHandle.set(handle, id);
+        return handle;
+    };
+    window.clearTimeout = (handle) => {
+        if (byHandle.has(handle)) {
+            pending.delete(byHandle.get(handle));
+            byHandle.delete(handle);
+        }
+        return realClear(handle);
+    };
+    window.__pendingStartupTimers = () => [...pending.values()].filter((ms) => ms < 900).length;
+}
+
+// Resolves when the page has finished loading, fonts are ready and no short app timer is pending for two
+// frames in a row. maxMs keeps the old behaviour as a ceiling: after that it simply continues.
+async function waitForAppSettled(page, maxMs = 3000) {
+    await page.evaluate(async (limit) => {
+        const start = performance.now();
+        if (document.readyState !== 'complete') await new Promise((r) => window.addEventListener('load', r, { once: true }));
+        await document.fonts.ready;
+        let quietFrames = 0;
+        while (quietFrames < 2 && performance.now() - start < limit) {
+            await new Promise((r) => requestAnimationFrame(r));
+            const pending = typeof window.__pendingStartupTimers === 'function' ? window.__pendingStartupTimers() : 0;
+            quietFrames = pending === 0 ? quietFrames + 1 : 0;
+        }
+    }, maxMs);
+}
+
+// Opens the built fixture app and waits until its start-up has settled (replaces goto + waitForTimeout(N)).
+async function gotoApp(page, dir, { maxMs } = {}) {
+    await page.addInitScript(trackStartupTimers);
+    await page.goto('file://' + path.join(dir, 'index.html').replace(/\\/g, '/'));
+    await waitForAppSettled(page, maxMs);
 }
 
 function buildApp(songCount = 50) {
@@ -58,4 +152,4 @@ function buildApp(songCount = 50) {
     return out;
 }
 
-module.exports = { ROOT, loadPlaywright, launch, buildApp };
+module.exports = { ROOT, loadPlaywright, launch, buildApp, gotoApp, waitForAppSettled, launchCacheFile };

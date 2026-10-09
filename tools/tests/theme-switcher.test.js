@@ -12,7 +12,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
-const { loadPlaywright, launch, buildApp } = require('./helpers/app-fixture');
+const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
 const MODULE_URL = pathToFileURL(path.join(ROOT, 'src/js/06i-theme-switcher.js')).href;
@@ -129,8 +129,7 @@ describe('theme switching in the real page', () => {
         const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e)));
-        await page.goto('file://' + path.join(dir, 'index.html').replace(/\\/g, '/'));
-        await page.waitForTimeout(900);
+        await gotoApp(page, dir);
         const out = await page.evaluate(async () => {
             const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
             const registered = typeof window.initThemeButtons;

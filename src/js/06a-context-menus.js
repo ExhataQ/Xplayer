@@ -2,8 +2,6 @@
 // CONTEXT MENU STATE
 // ==============================================================================
 let activeContextMenu = null;
-let activeContextMenuSlot = null;
-let currentContextSongId = null;
 let currentContextPlaylistId = null;
 let contextMenuMouseDownOutside = false;
 

@@ -21,7 +21,7 @@ function snapVirtualScrollThreshold(value) {
     return snapped;
 }
 
-let VIRTUAL_SCROLL_THRESHOLD = (function () {
+VIRTUAL_SCROLL_THRESHOLD = (function () {
     const saved = storageRead(STORAGE_KEYS.VIRTUAL_SCROLL_THRESHOLD);
     const parsed = parseInt(saved, 10);
     if (!isNaN(parsed) && parsed >= MIN_VIRTUAL_SCROLL_THRESHOLD && parsed <= MAX_VIRTUAL_SCROLL_THRESHOLD) {

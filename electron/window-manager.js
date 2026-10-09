@@ -2,8 +2,8 @@ const { BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-const { configPath: settingsFile } = require('./storage-paths');
-const thumbarIconPath = path.join(__dirname, 'MusicPlayerOutput', 'icons');
+const { configPath: settingsFile, getOutputDir } = require('./storage-paths');
+const thumbarIconPath = path.join(getOutputDir(), 'icons');
 
 function loadWindowState() {
     try {
@@ -73,7 +73,7 @@ function createWindow() {
         }
     });
 
-    mainWindow.loadFile(path.join(__dirname, 'MusicPlayerOutput', 'music_player.html'));
+    mainWindow.loadFile(path.join(getOutputDir(), 'music_player.html'));
 
     mainWindow.setThumbarButtons([
         {

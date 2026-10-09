@@ -90,3 +90,6 @@
 
 2026-10-09
 - D-05 (Agent D), last part: 10c-playback-queue.js (4 calls) and 19-online-lyrics.js (1 call) pass `action` / `menuArgs` to renderRightPanelItem instead of onClick / contextMenuArgs strings (B and C call sites, same behavior); the string path is removed from 04a-ui-render-core.js. No inline on...= handler is left in the D files (ceilings 0). ui-handlers.test.js follows.
+
+2026-10-09
+- Agent D (D-09a, no code change): pre-flight survey of the 34 classic D files for the module conversion. Report 0013 and raw data (.agent/reports/D/0013-d09a-survey.json). Findings: 13 shared live `let`s that other files or A's setters assign (decision needed), an implicit global in 06c, two load-time uses of 06h/06k in ui/player-bar.js, and one listener-order change (06e).

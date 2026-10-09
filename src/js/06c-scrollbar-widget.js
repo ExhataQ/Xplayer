@@ -2,7 +2,7 @@
 // EXTERNAL SCROLLBAR FUNCTIONALITY
 // ==============================================================================
 
-function updateScrollbarById(contentId) {
+export function updateScrollbarById(contentId) {
     setTimeout(() => {
         if (!window.scrollbarInstances) return;
         const scrollbarInstance = window.scrollbarInstances.find((instance) => instance.content?.id === contentId);
@@ -25,8 +25,6 @@ window.addEventListener('beforeunload', function () {
     }
 });
 
-let lastMouseX = 0;
-let lastMouseY = 0;
 
 document.addEventListener(
     'mousemove',
@@ -37,7 +35,7 @@ document.addEventListener(
     { passive: true, capture: true }
 );
 
-function initExternalScrollbar(contentId, scrollbarId, thumbId) {
+export function initExternalScrollbar(contentId, scrollbarId, thumbId) {
     const content = document.getElementById(contentId);
     const externalScrollbar = document.getElementById(scrollbarId);
     const scrollbarThumb = document.getElementById(thumbId);
@@ -82,7 +80,8 @@ function initExternalScrollbar(contentId, scrollbarId, thumbId) {
     }
 
     if (contentId === 'main-content') {
-        updateExternalScrollbar = updateScrollbar;
+        // No file declares updateExternalScrollbar; other files find it on window (typeof guards).
+        window.updateExternalScrollbar = updateScrollbar;
     }
 
     content.addEventListener('scroll', scheduleScrollbarUpdate);
@@ -326,5 +325,12 @@ function initExternalScrollbar(contentId, scrollbarId, thumbId) {
 
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
+    });
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        updateScrollbarById,
+        initExternalScrollbar
     });
 }

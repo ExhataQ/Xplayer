@@ -1,6 +1,6 @@
 # Setters (core/state-*.js)
 
-One setter per global that another file used to assign directly. The variable stays declared in its original file; the setter assigns it (and, for three of them, emits an event).
+One setter per global that another file used to assign directly. The variable stays declared in its original file (the UI variables that D's files used to declare are in `04a0-ui-state.js`); the setter assigns it (and, for three of them, emits an event).
 
 **Rules**
 

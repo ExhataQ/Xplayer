@@ -13,7 +13,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { loadPlaywright, launch, buildApp } = require('./helpers/app-fixture');
+const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
 const JS = path.join(ROOT, 'src', 'js');
@@ -51,7 +51,6 @@ describe('D files: the swapped calls behave as before (real page)', () => {
         if (dir) fs.rmSync(dir, { recursive: true, force: true });
     });
 
-    const URL_ = () => 'file://' + path.join(dir, 'index.html').replace(/\\/g, '/');
 
     // A page whose electronAPI records every call (name and arguments) and answers from `answers`.
     async function openPage(initScript) {
@@ -59,8 +58,7 @@ describe('D files: the swapped calls behave as before (real page)', () => {
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e)));
         if (initScript) await page.addInitScript(initScript);
-        await page.goto(URL_());
-        await page.waitForTimeout(800);
+        await gotoApp(page, dir);
         await page.evaluate(() => {
             window.__calls = [];
             window.__answers = {};

@@ -1,0 +1,4048 @@
+{
+ "04a-ui-render-core.js": {
+  "file": "04a-ui-render-core.js",
+  "lines": 1081,
+  "decls": {
+   "fn": [
+    "updateHeroSongCount",
+    "updateHeroSection",
+    "showHeroClearButton",
+    "showHeroSection",
+    "setupHeroSection",
+    "showTracklistHeader",
+    "updateHeroCover",
+    "collectAllLeftPanelItems",
+    "createSongItemHTML",
+    "buildSongArtistHTML",
+    "buildSongAlbumHTML",
+    "buildSongItemHTML",
+    "renderRightPanelItem",
+    "renderSongsList",
+    "scheduleHoverHighlightUpdate",
+    "createHighlightDiv",
+    "getItemPosition",
+    "initHoverLayer",
+    "handleHoverMouseMove",
+    "updateHoverHighlight",
+    "handleHoverMouseLeave",
+    "hideHoverHighlight",
+    "updateHoverHighlightAfterScroll",
+    "selectSongItem",
+    "clearAllSelections",
+    "reapplySelectionAfterFilter",
+    "getSongIndexById",
+    "updateSelectionHighlight",
+    "updateActiveHighlight",
+    "renderLeftPanelMainList"
+   ],
+   "let": [
+    "hoverLayer",
+    "activeHighlightEl",
+    "selectionHighlightLayer",
+    "hoveredSongIndex",
+    "activeSongSlot",
+    "hoveredRowEl",
+    "hoverHighlightThrottleTimer",
+    "hoverHighlightTrailingPending",
+    "selectedSongId",
+    "selectedSongIds",
+    "lastSelectedIndex",
+    "selectionHighlights"
+   ],
+   "const": [
+    "RIGHT_PANEL_ROW_ACTIONS",
+    "ROW_EDGE_INSET",
+    "HOVER_SCROLL_THROTTLE_MS"
+   ],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [
+   {
+    "name": "RIGHT_PANEL_ROW_ACTIONS",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "hoverLayer",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 1,
+    "tests": []
+   },
+   {
+    "name": "activeHighlightEl",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 1,
+    "tests": []
+   },
+   {
+    "name": "selectionHighlightLayer",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 1,
+    "tests": []
+   },
+   {
+    "name": "hoveredSongIndex",
+    "kind": "let",
+    "consumers": [
+     "core/state-ui.js"
+    ],
+    "writers": [
+     "core/state-ui.js"
+    ],
+    "selfWrites": 13,
+    "tests": [
+     "setters.test.js"
+    ]
+   },
+   {
+    "name": "activeSongSlot",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 1,
+    "tests": []
+   },
+   {
+    "name": "hoveredRowEl",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 4,
+    "tests": []
+   },
+   {
+    "name": "ROW_EDGE_INSET",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "HOVER_SCROLL_THROTTLE_MS",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "hoverHighlightThrottleTimer",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 3,
+    "tests": []
+   },
+   {
+    "name": "hoverHighlightTrailingPending",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 3,
+    "tests": []
+   },
+   {
+    "name": "selectedSongId",
+    "kind": "let",
+    "consumers": [
+     "05a-lazy-load-main-list.js",
+     "06k-keyboard-shortcuts.js",
+     "core/state-ui.js",
+     "17-song-selection.js"
+    ],
+    "writers": [
+     "core/state-ui.js"
+    ],
+    "selfWrites": 7,
+    "tests": []
+   },
+   {
+    "name": "selectedSongIds",
+    "kind": "let",
+    "consumers": [
+     "05a-lazy-load-main-list.js",
+     "06a-context-menus.js",
+     "06f-drag-drop-songs.js",
+     "06k-keyboard-shortcuts.js",
+     "17-song-selection.js"
+    ],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": [
+     "lyrics-panel-handlers.test.js",
+     "playback-handlers.test.js",
+     "ui-storage-api.test.js"
+    ]
+   },
+   {
+    "name": "lastSelectedIndex",
+    "kind": "let",
+    "consumers": [
+     "core/state-ui.js"
+    ],
+    "writers": [
+     "core/state-ui.js"
+    ],
+    "selfWrites": 8,
+    "tests": []
+   },
+   {
+    "name": "selectionHighlights",
+    "kind": "let",
+    "consumers": [
+     "core/state-ui.js",
+     "17-song-selection.js"
+    ],
+    "writers": [
+     "core/state-ui.js"
+    ],
+    "selfWrites": 2,
+    "tests": []
+   }
+  ],
+  "fnShared": [
+   {
+    "name": "updateHeroSongCount",
+    "consumers": [
+     "04p-playback-events.js",
+     "99-player.js"
+    ],
+    "tests": [
+     "expected/events-b.json",
+     "helpers/scenarios-b.js"
+    ]
+   },
+   {
+    "name": "updateHeroSection",
+    "consumers": [
+     "04b-render-playlists-folders.js",
+     "04c-render-albums.js",
+     "04d-render-artists.js",
+     "04e-render-favorites-history.js",
+     "04h-recents-history-events.js"
+    ],
+    "tests": [
+     "events-wiring.test.js",
+     "helpers/call-sequence-scenarios.js"
+    ]
+   },
+   {
+    "name": "showHeroClearButton",
+    "consumers": [
+     "04e-render-favorites-history.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "showHeroSection",
+    "consumers": [
+     "04b-render-playlists-folders.js",
+     "04c-render-albums.js",
+     "04d-render-artists.js",
+     "04e-render-favorites-history.js",
+     "04h-recents-history-events.js",
+     "04f-render-search-history.js",
+     "07-views.js",
+     "08e-panel-settings.js"
+    ],
+    "tests": [
+     "events-wiring.test.js",
+     "helpers/call-sequence-scenarios.js"
+    ]
+   },
+   {
+    "name": "setupHeroSection",
+    "consumers": [
+     "04i-library-rebuild-events.js",
+     "06b-modals.js",
+     "07-views.js",
+     "04u-search-events.js",
+     "99-player.js",
+     "09-folders-playlists.js"
+    ],
+    "tests": [
+     "events-wiring.test.js",
+     "expected/events-a.json",
+     "expected/events-c.json",
+     "helpers/call-sequence-scenarios.js",
+     "helpers/scenarios-a.js",
+     "helpers/scenarios-c.js"
+    ]
+   },
+   {
+    "name": "showTracklistHeader",
+    "consumers": [
+     "04b-render-playlists-folders.js",
+     "04c-render-albums.js",
+     "04d-render-artists.js",
+     "04f-render-search-history.js",
+     "07-views.js",
+     "08e-panel-settings.js",
+     "99-player.js",
+     "08h-panel-search.js"
+    ],
+    "tests": [
+     "expected/events-c.json",
+     "helpers/scenarios-c.js"
+    ]
+   },
+   {
+    "name": "updateHeroCover",
+    "consumers": [
+     "04b-render-playlists-folders.js",
+     "04c-render-albums.js",
+     "04d-render-artists.js",
+     "04e-render-favorites-history.js",
+     "06b-modals.js",
+     "07-views.js",
+     "08e-panel-settings.js",
+     "04u-search-events.js",
+     "99-player.js",
+     "09-folders-playlists.js"
+    ],
+    "tests": [
+     "expected/events-c.json",
+     "helpers/scenarios-c.js"
+    ]
+   },
+   {
+    "name": "collectAllLeftPanelItems",
+    "consumers": [
+     "05b-lazy-load-left-panel.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "createSongItemHTML",
+    "consumers": [
+     "04e-render-favorites-history.js",
+     "05a-lazy-load-main-list.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "buildSongArtistHTML",
+    "consumers": [
+     "19-online-lyrics.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "buildSongAlbumHTML",
+    "consumers": [
+     "19-online-lyrics.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "buildSongItemHTML",
+    "consumers": [
+     "04e-render-favorites-history.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "renderRightPanelItem",
+    "consumers": [
+     "04e-render-favorites-history.js",
+     "10c-playback-queue.js",
+     "19-online-lyrics.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "renderSongsList",
+    "consumers": [
+     "04b-render-playlists-folders.js",
+     "04c-render-albums.js",
+     "04d-render-artists.js",
+     "04e-render-favorites-history.js",
+     "04i-library-rebuild-events.js",
+     "05a-lazy-load-main-list.js",
+     "06b-modals.js",
+     "07-views.js",
+     "04p-playback-events.js",
+     "04u-search-events.js",
+     "99-player.js"
+    ],
+    "tests": [
+     "events-wiring.test.js",
+     "expected/events-a.json",
+     "expected/events-b.json",
+     "expected/events-c.json",
+     "helpers/call-sequence-scenarios.js",
+     "helpers/scenarios-a.js",
+     "helpers/scenarios-b.js",
+     "helpers/scenarios-c.js",
+     "view-switch-song-list-cleanup.test.js"
+    ]
+   },
+   {
+    "name": "scheduleHoverHighlightUpdate",
+    "consumers": [
+     "05a-lazy-load-main-list.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "hideHoverHighlight",
+    "consumers": [
+     "05a-lazy-load-main-list.js",
+     "06c-scrollbar-widget.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "updateHoverHighlightAfterScroll",
+    "consumers": [
+     "13-song-highlight.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "selectSongItem",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "clearAllSelections",
+    "consumers": [
+     "06a-context-menus.js",
+     "06k-keyboard-shortcuts.js",
+     "07-views.js",
+     "08e-panel-settings.js",
+     "09-folders-playlists.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "reapplySelectionAfterFilter",
+    "consumers": [
+     "07-views.js",
+     "04u-search-events.js"
+    ],
+    "tests": [
+     "expected/events-c.json",
+     "helpers/scenarios-c.js"
+    ]
+   },
+   {
+    "name": "updateSelectionHighlight",
+    "consumers": [
+     "05a-lazy-load-main-list.js",
+     "13-song-highlight.js",
+     "17-song-selection.js"
+    ],
+    "tests": [
+     "expected/events-b.json",
+     "helpers/scenarios-b.js"
+    ]
+   },
+   {
+    "name": "updateActiveHighlight",
+    "consumers": [
+     "08e-panel-settings.js",
+     "13-song-highlight.js",
+     "17-song-selection.js"
+    ],
+    "tests": [
+     "expected/events-b.json",
+     "helpers/scenarios-b.js"
+    ]
+   },
+   {
+    "name": "renderLeftPanelMainList",
+    "consumers": [
+     "04b-render-playlists-folders.js",
+     "04c-render-albums.js",
+     "04d-render-artists.js",
+     "04i-library-rebuild-events.js",
+     "04j-pinned-items-events.js",
+     "04k-playlists-events.js",
+     "04n-import-export-events.js",
+     "04o-folders-events.js",
+     "06a-context-menus.js",
+     "06b-modals.js",
+     "06f-drag-drop-songs.js",
+     "06g-drag-drop-left-panel.js",
+     "04u-search-events.js",
+     "99-player.js",
+     "09-folders-playlists.js",
+     "ui/filters.js"
+    ],
+    "tests": [
+     "events-wiring.test.js",
+     "expected/events-a.json",
+     "expected/events-c.json",
+     "helpers/call-sequence-scenarios.js",
+     "helpers/scenarios-a.js",
+     "helpers/scenarios-c.js"
+    ]
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [
+   {
+    "line": 817,
+    "type": "ExpressionStatement",
+    "head": "document.addEventListener('keydown', function (e) {"
+   }
+  ],
+  "windowUses": [
+   {
+    "line": 646,
+    "key": "addEventListener"
+   }
+  ],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [],
+  "listeners": [
+   {
+    "line": 817,
+    "call": "document.addEventListener('keydown', function (e) {\r"
+   }
+  ],
+  "domReady": []
+ },
+ "04b-render-playlists-folders.js": {
+  "file": "04b-render-playlists-folders.js",
+  "lines": 402,
+  "decls": {
+   "fn": [
+    "renderPlaylistsView",
+    "renderFoldersView",
+    "renderFolderContents",
+    "renderPlaylistDetailView"
+   ],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [
+   {
+    "name": "renderPlaylistsView",
+    "consumers": [
+     "04i-library-rebuild-events.js",
+     "04j-pinned-items-events.js",
+     "04k-playlists-events.js",
+     "04n-import-export-events.js",
+     "06b-modals.js",
+     "04p-playback-events.js",
+     "99-player.js",
+     "09-folders-playlists.js",
+     "ui/filters.js"
+    ],
+    "tests": [
+     "events-wiring.test.js",
+     "expected/events-a.json",
+     "expected/events-b.json",
+     "helpers/call-sequence-scenarios.js",
+     "helpers/scenarios-a.js",
+     "helpers/scenarios-b.js"
+    ]
+   },
+   {
+    "name": "renderFoldersView",
+    "consumers": [
+     "04n-import-export-events.js",
+     "04o-folders-events.js",
+     "06a-context-menus.js",
+     "06b-modals.js",
+     "06g-drag-drop-left-panel.js",
+     "04p-playback-events.js",
+     "99-player.js",
+     "09-folders-playlists.js",
+     "ui/filters.js"
+    ],
+    "tests": [
+     "events-wiring.test.js",
+     "expected/events-a.json",
+     "expected/events-b.json",
+     "helpers/call-sequence-scenarios.js",
+     "helpers/scenarios-a.js",
+     "helpers/scenarios-b.js"
+    ]
+   },
+   {
+    "name": "renderFolderContents",
+    "consumers": [
+     "04a-ui-render-core.js",
+     "04j-pinned-items-events.js",
+     "06a-context-menus.js",
+     "06b-modals.js",
+     "06g-drag-drop-left-panel.js",
+     "09-folders-playlists.js",
+     "ui/filters.js"
+    ],
+    "tests": [
+     "helpers/call-sequence-scenarios.js"
+    ]
+   },
+   {
+    "name": "renderPlaylistDetailView",
+    "consumers": [
+     "04k-playlists-events.js",
+     "06f-drag-drop-songs.js",
+     "04p-playback-events.js",
+     "09-folders-playlists.js"
+    ],
+    "tests": [
+     "expected/events-a.json",
+     "expected/events-b.json",
+     "helpers/scenarios-a.js",
+     "helpers/scenarios-b.js"
+    ]
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [],
+  "listeners": [],
+  "domReady": []
+ },
+ "04c-render-albums.js": {
+  "file": "04c-render-albums.js",
+  "lines": 179,
+  "decls": {
+   "fn": [
+    "renderAlbumsView",
+    "renderAlbumDetailView",
+    "renderAlbumLeftPanelItems"
+   ],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [
+   {
+    "name": "renderAlbumsView",
+    "consumers": [
+     "07-views.js"
+    ],
+    "tests": [
+     "view-switch-song-list-cleanup.test.js"
+    ]
+   },
+   {
+    "name": "renderAlbumDetailView",
+    "consumers": [
+     "07-views.js",
+     "04p-playback-events.js"
+    ],
+    "tests": [
+     "expected/events-b.json",
+     "helpers/scenarios-b.js"
+    ]
+   },
+   {
+    "name": "renderAlbumLeftPanelItems",
+    "consumers": [
+     "04i-library-rebuild-events.js",
+     "04j-pinned-items-events.js",
+     "06b-modals.js",
+     "07-views.js",
+     "04p-playback-events.js",
+     "99-player.js",
+     "09-folders-playlists.js",
+     "ui/filters.js"
+    ],
+    "tests": [
+     "events-wiring.test.js",
+     "expected/events-a.json",
+     "expected/events-b.json",
+     "helpers/call-sequence-scenarios.js",
+     "helpers/scenarios-a.js",
+     "helpers/scenarios-b.js"
+    ]
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [],
+  "listeners": [],
+  "domReady": []
+ },
+ "04d-render-artists.js": {
+  "file": "04d-render-artists.js",
+  "lines": 114,
+  "decls": {
+   "fn": [
+    "renderArtistDetailView",
+    "renderArtistLeftPanelItems"
+   ],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [
+   {
+    "name": "renderArtistDetailView",
+    "consumers": [
+     "07-views.js",
+     "04p-playback-events.js"
+    ],
+    "tests": [
+     "expected/events-b.json",
+     "helpers/scenarios-b.js"
+    ]
+   },
+   {
+    "name": "renderArtistLeftPanelItems",
+    "consumers": [
+     "04i-library-rebuild-events.js",
+     "04j-pinned-items-events.js",
+     "06b-modals.js",
+     "04p-playback-events.js",
+     "99-player.js",
+     "09-folders-playlists.js",
+     "ui/filters.js"
+    ],
+    "tests": [
+     "events-wiring.test.js",
+     "expected/events-a.json",
+     "expected/events-b.json",
+     "helpers/call-sequence-scenarios.js",
+     "helpers/scenarios-a.js",
+     "helpers/scenarios-b.js"
+    ]
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [],
+  "listeners": [],
+  "domReady": []
+ },
+ "04e-render-favorites-history.js": {
+  "file": "04e-render-favorites-history.js",
+  "lines": 192,
+  "decls": {
+   "fn": [
+    "renderFavoritesView",
+    "renderHistoryView",
+    "renderRecentlyPlayed",
+    "renderPortableRecentlyPlayed"
+   ],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [
+   {
+    "name": "renderFavoritesView",
+    "consumers": [
+     "07-views.js",
+     "04p-playback-events.js"
+    ],
+    "tests": [
+     "expected/events-b.json",
+     "helpers/scenarios-b.js"
+    ]
+   },
+   {
+    "name": "renderHistoryView",
+    "consumers": [
+     "04h-recents-history-events.js",
+     "07-views.js",
+     "04p-playback-events.js"
+    ],
+    "tests": [
+     "events-wiring.test.js",
+     "expected/events-b.json",
+     "helpers/call-sequence-scenarios.js",
+     "helpers/scenarios-b.js"
+    ]
+   },
+   {
+    "name": "renderRecentlyPlayed",
+    "consumers": [
+     "04h-recents-history-events.js",
+     "04p-playback-events.js"
+    ],
+    "tests": [
+     "events-wiring.test.js",
+     "expected/events-b.json",
+     "helpers/call-sequence-scenarios.js",
+     "helpers/scenarios-b.js",
+     "search-ui.test.js",
+     "view-switch-song-list-cleanup.test.js"
+    ]
+   },
+   {
+    "name": "renderPortableRecentlyPlayed",
+    "consumers": [
+     "04h-recents-history-events.js",
+     "04p-playback-events.js",
+     "04v-right-panel-events.js"
+    ],
+    "tests": [
+     "events-wiring.test.js",
+     "expected/events-b.json",
+     "expected/events-c.json",
+     "helpers/call-sequence-scenarios.js",
+     "helpers/scenarios-b.js",
+     "helpers/scenarios-c.js"
+    ]
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [],
+  "listeners": [],
+  "domReady": []
+ },
+ "04h-recents-history-events.js": {
+  "file": "04h-recents-history-events.js",
+  "lines": 61,
+  "decls": {
+   "fn": [],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [],
+  "fnTests": [],
+  "topLevel": [
+   {
+    "line": 13,
+    "type": "ExpressionStatement",
+    "head": "on('recents:count-changed', (e) => {"
+   },
+   {
+    "line": 20,
+    "type": "ExpressionStatement",
+    "head": "on('recents:added', () => {"
+   },
+   {
+    "line": 27,
+    "type": "ExpressionStatement",
+    "head": "on('recents:cleared', () => {"
+   },
+   {
+    "line": 41,
+    "type": "ExpressionStatement",
+    "head": "on('history:added', () => {"
+   },
+   {
+    "line": 47,
+    "type": "ExpressionStatement",
+    "head": "on('history:cleared', () => {"
+   }
+  ],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [
+   {
+    "name": "on",
+    "owner": "00b-events.js",
+    "forward": false
+   }
+  ],
+  "listeners": [
+   {
+    "line": 13,
+    "call": "on('recents:count-changed', (e) => {\r"
+   },
+   {
+    "line": 20,
+    "call": "on('recents:added', () => {\r"
+   },
+   {
+    "line": 27,
+    "call": "on('recents:cleared', () => {\r"
+   },
+   {
+    "line": 41,
+    "call": "on('history:added', () => {\r"
+   },
+   {
+    "line": 47,
+    "call": "on('history:cleared', () => {\r"
+   }
+  ],
+  "domReady": []
+ },
+ "04f-render-search-history.js": {
+  "file": "04f-render-search-history.js",
+  "lines": 126,
+  "decls": {
+   "fn": [
+    "renderSearchHistoryView"
+   ],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [
+   {
+    "name": "renderSearchHistoryView",
+    "consumers": [
+     "04l-search-history-events.js",
+     "07-views.js"
+    ],
+    "tests": [
+     "events-wiring.test.js",
+     "helpers/call-sequence-scenarios.js",
+     "ui-handlers.test.js",
+     "view-switch-song-list-cleanup.test.js"
+    ]
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [],
+  "listeners": [],
+  "domReady": []
+ },
+ "04g-render-lyrics-view.js": {
+  "file": "04g-render-lyrics-view.js",
+  "lines": 215,
+  "decls": {
+   "fn": [
+    "renderLyricsView",
+    "teardownLyricsView"
+   ],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [
+   {
+    "name": "renderLyricsView",
+    "consumers": [
+     "07-views.js",
+     "04t-lyrics-events.js"
+    ],
+    "tests": [
+     "expected/events-c.json",
+     "helpers/scenarios-c.js",
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "teardownLyricsView",
+    "consumers": [
+     "07-views.js",
+     "08e-panel-settings.js",
+     "09-folders-playlists.js",
+     "15e-controls-audio-events.js"
+    ],
+    "tests": []
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [],
+  "listeners": [],
+  "domReady": []
+ },
+ "04i-library-rebuild-events.js": {
+  "file": "04i-library-rebuild-events.js",
+  "lines": 44,
+  "decls": {
+   "fn": [],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [],
+  "fnTests": [],
+  "topLevel": [
+   {
+    "line": 10,
+    "type": "ExpressionStatement",
+    "head": "on('library:rebuilt', () => {"
+   },
+   {
+    "line": 39,
+    "type": "ExpressionStatement",
+    "head": "on('covers:scanCompleted', () => {"
+   }
+  ],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [
+   {
+    "name": "on",
+    "owner": "00b-events.js",
+    "forward": false
+   }
+  ],
+  "listeners": [
+   {
+    "line": 10,
+    "call": "on('library:rebuilt', () => {\r"
+   },
+   {
+    "line": 39,
+    "call": "on('covers:scanCompleted', () => {\r"
+   }
+  ],
+  "domReady": []
+ },
+ "04j-pinned-items-events.js": {
+  "file": "04j-pinned-items-events.js",
+  "lines": 63,
+  "decls": {
+   "fn": [],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [],
+  "fnTests": [],
+  "topLevel": [
+   {
+    "line": 9,
+    "type": "ExpressionStatement",
+    "head": "on('pinned:changed', (e) => {"
+   },
+   {
+    "line": 25,
+    "type": "ExpressionStatement",
+    "head": "on('playedOrder:changed', () => {"
+   },
+   {
+    "line": 47,
+    "type": "ExpressionStatement",
+    "head": "on('folderPin:changed', (e) => {"
+   }
+  ],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [
+   {
+    "name": "on",
+    "owner": "00b-events.js",
+    "forward": false
+   }
+  ],
+  "listeners": [
+   {
+    "line": 9,
+    "call": "on('pinned:changed', (e) => {\r"
+   },
+   {
+    "line": 25,
+    "call": "on('playedOrder:changed', () => {\r"
+   },
+   {
+    "line": 47,
+    "call": "on('folderPin:changed', (e) => {\r"
+   }
+  ],
+  "domReady": []
+ },
+ "04k-playlists-events.js": {
+  "file": "04k-playlists-events.js",
+  "lines": 62,
+  "decls": {
+   "fn": [],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [],
+  "fnTests": [],
+  "topLevel": [
+   {
+    "line": 11,
+    "type": "ExpressionStatement",
+    "head": "on('playlist:listChanged', () => {"
+   },
+   {
+    "line": 29,
+    "type": "ExpressionStatement",
+    "head": "on('playlist:deleted', (e) => {"
+   },
+   {
+    "line": 36,
+    "type": "ExpressionStatement",
+    "head": "on('playlist:songCountChanged', (e) => {"
+   },
+   {
+    "line": 49,
+    "type": "ExpressionStatement",
+    "head": "on('playlist:songRemovedFromView', (e) => {"
+   }
+  ],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [
+   {
+    "name": "on",
+    "owner": "00b-events.js",
+    "forward": false
+   }
+  ],
+  "listeners": [
+   {
+    "line": 11,
+    "call": "on('playlist:listChanged', () => {\r"
+   },
+   {
+    "line": 29,
+    "call": "on('playlist:deleted', (e) => {\r"
+   },
+   {
+    "line": 36,
+    "call": "on('playlist:songCountChanged', (e) => {\r"
+   },
+   {
+    "line": 49,
+    "call": "on('playlist:songRemovedFromView', (e) => {\r"
+   }
+  ],
+  "domReady": []
+ },
+ "04l-search-history-events.js": {
+  "file": "04l-search-history-events.js",
+  "lines": 22,
+  "decls": {
+   "fn": [],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [],
+  "fnTests": [],
+  "topLevel": [
+   {
+    "line": 7,
+    "type": "ExpressionStatement",
+    "head": "on('searchHistory:cleared', () => {"
+   },
+   {
+    "line": 15,
+    "type": "ExpressionStatement",
+    "head": "on('searchHistory:entryDeleted', () => {"
+   }
+  ],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [
+   {
+    "name": "on",
+    "owner": "00b-events.js",
+    "forward": false
+   }
+  ],
+  "listeners": [
+   {
+    "line": 7,
+    "call": "on('searchHistory:cleared', () => {\r"
+   },
+   {
+    "line": 15,
+    "call": "on('searchHistory:entryDeleted', () => {\r"
+   }
+  ],
+  "domReady": []
+ },
+ "04m-playback-settings-events.js": {
+  "file": "04m-playback-settings-events.js",
+  "lines": 20,
+  "decls": {
+   "fn": [],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [],
+  "fnTests": [],
+  "topLevel": [
+   {
+    "line": 11,
+    "type": "ExpressionStatement",
+    "head": "on('playbackSetting:changed', (e) => {"
+   }
+  ],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [
+   {
+    "name": "on",
+    "owner": "00b-events.js",
+    "forward": false
+   }
+  ],
+  "listeners": [
+   {
+    "line": 11,
+    "call": "on('playbackSetting:changed', (e) => {\r"
+   }
+  ],
+  "domReady": []
+ },
+ "04n-import-export-events.js": {
+  "file": "04n-import-export-events.js",
+  "lines": 15,
+  "decls": {
+   "fn": [],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [],
+  "fnTests": [],
+  "topLevel": [
+   {
+    "line": 8,
+    "type": "ExpressionStatement",
+    "head": "on('data:imported', () => {"
+   }
+  ],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [
+   {
+    "name": "on",
+    "owner": "00b-events.js",
+    "forward": false
+   }
+  ],
+  "listeners": [
+   {
+    "line": 8,
+    "call": "on('data:imported', () => {\r"
+   }
+  ],
+  "domReady": []
+ },
+ "04o-folders-events.js": {
+  "file": "04o-folders-events.js",
+  "lines": 23,
+  "decls": {
+   "fn": [],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [],
+  "fnTests": [],
+  "topLevel": [
+   {
+    "line": 8,
+    "type": "ExpressionStatement",
+    "head": "on('folder:listChanged', () => {"
+   }
+  ],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [
+   {
+    "name": "on",
+    "owner": "00b-events.js",
+    "forward": false
+   }
+  ],
+  "listeners": [
+   {
+    "line": 8,
+    "call": "on('folder:listChanged', () => {\r"
+   }
+  ],
+  "domReady": []
+ },
+ "05a-lazy-load-main-list.js": {
+  "file": "05a-lazy-load-main-list.js",
+  "lines": 728,
+  "decls": {
+   "fn": [
+    "snapVirtualScrollThreshold",
+    "setVirtualScrollThreshold",
+    "shouldUseVirtualScroll",
+    "computeVirtualWindow",
+    "createVirtualSpacer",
+    "rebuildVirtualWindow",
+    "appendVirtualBottomSpacer",
+    "attachRafScroll",
+    "createVirtualRowElement",
+    "positionVirtualRow",
+    "setVirtualListHeight",
+    "preloadCover",
+    "prewarmSongCovers",
+    "buildSongItemAt",
+    "buildPlaceholderHTML",
+    "renderVisibleItems",
+    "syncPlaceholdersForJump",
+    "attachWheelPlaceholderSync",
+    "scheduleVirtualScrollHighlightUpdate",
+    "runVirtualScrollHighlightUpdate",
+    "scheduleVirtualScrollSettle",
+    "initLazyLoading",
+    "renderVirtualScrollImmediate",
+    "scheduleThumbHoldSettle",
+    "settleVirtualScrollAfterThumbRelease",
+    "teardownLazyLoading",
+    "getLazyState",
+    "reapplySelectionState"
+   ],
+   "let": [
+    "VIRTUAL_SCROLL_THRESHOLD",
+    "virtualScrollState",
+    "virtualScrollHighlightThrottleTimer",
+    "virtualScrollHighlightTrailingPending",
+    "virtualScrollHighlightTrailingListId"
+   ],
+   "const": [
+    "DEFAULT_VIRTUAL_SCROLL_THRESHOLD",
+    "MIN_VIRTUAL_SCROLL_THRESHOLD",
+    "MAX_VIRTUAL_SCROLL_THRESHOLD",
+    "LOW_STEP_LIMIT",
+    "LOW_STEP",
+    "HIGH_STEP",
+    "ITEM_HEIGHT",
+    "OVERSCAN_COUNT",
+    "COVER_PRELOAD_LIMIT",
+    "COVER_PREWARM_MARGIN",
+    "coverPreloadCache",
+    "VIRTUAL_SCROLL_HIGHLIGHT_THROTTLE_MS",
+    "VIRTUAL_SCROLL_SETTLE_MS",
+    "THUMB_HOLD_SETTLE_MS"
+   ],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [
+   {
+    "name": "DEFAULT_VIRTUAL_SCROLL_THRESHOLD",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": [
+     "ui-storage-api.test.js"
+    ]
+   },
+   {
+    "name": "MIN_VIRTUAL_SCROLL_THRESHOLD",
+    "kind": "const",
+    "consumers": [
+     "08e-panel-settings.js"
+    ],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "MAX_VIRTUAL_SCROLL_THRESHOLD",
+    "kind": "const",
+    "consumers": [
+     "08e-panel-settings.js"
+    ],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "LOW_STEP_LIMIT",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "LOW_STEP",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "HIGH_STEP",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "VIRTUAL_SCROLL_THRESHOLD",
+    "kind": "let",
+    "consumers": [
+     "08e-panel-settings.js"
+    ],
+    "writers": [],
+    "selfWrites": 1,
+    "tests": [
+     "ui-storage-api.test.js",
+     "view-switch-song-list-cleanup.test.js"
+    ]
+   },
+   {
+    "name": "ITEM_HEIGHT",
+    "kind": "const",
+    "consumers": [
+     "05c-lazy-load-smart-lyrics.js",
+     "14-song-navigation.js"
+    ],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": [
+     "scroll.test.js",
+     "view-switch-song-list-cleanup.test.js"
+    ]
+   },
+   {
+    "name": "OVERSCAN_COUNT",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "COVER_PRELOAD_LIMIT",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "COVER_PREWARM_MARGIN",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "coverPreloadCache",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "virtualScrollState",
+    "kind": "let",
+    "consumers": [
+     "04a-ui-render-core.js",
+     "07-views.js",
+     "04p-playback-events.js",
+     "14-song-navigation.js"
+    ],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": [
+     "scroll.test.js",
+     "view-switch-song-list-cleanup.test.js"
+    ]
+   },
+   {
+    "name": "VIRTUAL_SCROLL_HIGHLIGHT_THROTTLE_MS",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "virtualScrollHighlightThrottleTimer",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 2,
+    "tests": []
+   },
+   {
+    "name": "virtualScrollHighlightTrailingPending",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 2,
+    "tests": []
+   },
+   {
+    "name": "virtualScrollHighlightTrailingListId",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 1,
+    "tests": []
+   },
+   {
+    "name": "VIRTUAL_SCROLL_SETTLE_MS",
+    "kind": "const",
+    "consumers": [
+     "05b-lazy-load-left-panel.js"
+    ],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "THUMB_HOLD_SETTLE_MS",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   }
+  ],
+  "fnShared": [
+   {
+    "name": "snapVirtualScrollThreshold",
+    "consumers": [
+     "08e-panel-settings.js"
+    ],
+    "tests": [
+     "ui-storage-api.test.js"
+    ]
+   },
+   {
+    "name": "setVirtualScrollThreshold",
+    "consumers": [
+     "08e-panel-settings.js"
+    ],
+    "tests": [
+     "scroll.test.js",
+     "ui-storage-api.test.js"
+    ]
+   },
+   {
+    "name": "shouldUseVirtualScroll",
+    "consumers": [
+     "04a-ui-render-core.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "computeVirtualWindow",
+    "consumers": [
+     "05b-lazy-load-left-panel.js",
+     "05c-lazy-load-smart-lyrics.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "rebuildVirtualWindow",
+    "consumers": [
+     "05b-lazy-load-left-panel.js",
+     "05c-lazy-load-smart-lyrics.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "appendVirtualBottomSpacer",
+    "consumers": [
+     "05b-lazy-load-left-panel.js",
+     "05c-lazy-load-smart-lyrics.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "attachRafScroll",
+    "consumers": [
+     "05b-lazy-load-left-panel.js",
+     "05c-lazy-load-smart-lyrics.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "preloadCover",
+    "consumers": [
+     "03k-cover-sync.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "renderVisibleItems",
+    "consumers": [
+     "04a-ui-render-core.js",
+     "14-song-navigation.js"
+    ],
+    "tests": [
+     "scroll.test.js"
+    ]
+   },
+   {
+    "name": "syncPlaceholdersForJump",
+    "consumers": [
+     "06c-scrollbar-widget.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "attachWheelPlaceholderSync",
+    "consumers": [
+     "05b-lazy-load-left-panel.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "initLazyLoading",
+    "consumers": [
+     "04a-ui-render-core.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "renderVirtualScrollImmediate",
+    "consumers": [
+     "07-views.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "scheduleThumbHoldSettle",
+    "consumers": [
+     "06c-scrollbar-widget.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "settleVirtualScrollAfterThumbRelease",
+    "consumers": [
+     "06c-scrollbar-widget.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "teardownLazyLoading",
+    "consumers": [
+     "04a-ui-render-core.js",
+     "04b-render-playlists-folders.js",
+     "04c-render-albums.js",
+     "04d-render-artists.js",
+     "04e-render-favorites-history.js",
+     "04f-render-search-history.js",
+     "07-views.js",
+     "08e-panel-settings.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "reapplySelectionState",
+    "consumers": [
+     "04p-playback-events.js"
+    ],
+    "tests": [
+     "expected/events-b.json",
+     "helpers/scenarios-b.js"
+    ]
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [],
+  "listeners": [],
+  "domReady": []
+ },
+ "05b-lazy-load-left-panel.js": {
+  "file": "05b-lazy-load-left-panel.js",
+  "lines": 350,
+  "decls": {
+   "fn": [
+    "buildLeftPanelItemAt",
+    "buildLeftPanelPlaceholderHTML",
+    "renderLeftPanelVisibleItems",
+    "initLeftPanelLazyLoading",
+    "teardownLeftPanelLazyLoading",
+    "refreshLeftPanelLazy",
+    "getLeftPanelItemsArray"
+   ],
+   "let": [
+    "leftPanelVirtualState"
+   ],
+   "const": [
+    "LEFT_ITEM_HEIGHT",
+    "LEFT_OVERSCAN_COUNT"
+   ],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [
+   {
+    "name": "LEFT_ITEM_HEIGHT",
+    "kind": "const",
+    "consumers": [
+     "05a-lazy-load-main-list.js"
+    ],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": [
+     "scroll.test.js"
+    ]
+   },
+   {
+    "name": "LEFT_OVERSCAN_COUNT",
+    "kind": "const",
+    "consumers": [
+     "05a-lazy-load-main-list.js"
+    ],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "leftPanelVirtualState",
+    "kind": "let",
+    "consumers": [
+     "04a-ui-render-core.js",
+     "04j-pinned-items-events.js",
+     "04k-playlists-events.js",
+     "04o-folders-events.js",
+     "05a-lazy-load-main-list.js",
+     "06g-drag-drop-left-panel.js",
+     "04p-playback-events.js",
+     "03k-cover-sync.js",
+     "09-folders-playlists.js",
+     "17-song-selection.js"
+    ],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": [
+     "helpers/scenarios-b.js",
+     "scroll.test.js"
+    ]
+   }
+  ],
+  "fnShared": [
+   {
+    "name": "renderLeftPanelVisibleItems",
+    "consumers": [
+     "04j-pinned-items-events.js",
+     "04k-playlists-events.js",
+     "04o-folders-events.js",
+     "05a-lazy-load-main-list.js",
+     "06g-drag-drop-left-panel.js",
+     "04p-playback-events.js",
+     "09-folders-playlists.js"
+    ],
+    "tests": [
+     "events-wiring.test.js",
+     "expected/events-a.json",
+     "expected/events-b.json",
+     "helpers/call-sequence-scenarios.js",
+     "helpers/scenarios-a.js",
+     "helpers/scenarios-b.js"
+    ]
+   },
+   {
+    "name": "initLeftPanelLazyLoading",
+    "consumers": [
+     "04a-ui-render-core.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "teardownLeftPanelLazyLoading",
+    "consumers": [
+     "04b-render-playlists-folders.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "refreshLeftPanelLazy",
+    "consumers": [
+     "04a-ui-render-core.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "getLeftPanelItemsArray",
+    "consumers": [
+     "04j-pinned-items-events.js",
+     "04k-playlists-events.js",
+     "04o-folders-events.js",
+     "06g-drag-drop-left-panel.js",
+     "04p-playback-events.js",
+     "09-folders-playlists.js"
+    ],
+    "tests": []
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [],
+  "listeners": [],
+  "domReady": []
+ },
+ "05c-lazy-load-smart-lyrics.js": {
+  "file": "05c-lazy-load-smart-lyrics.js",
+  "lines": 131,
+  "decls": {
+   "fn": [
+    "buildSmartLyricsRowAt",
+    "renderSmartLyricsVisibleItems",
+    "initSmartLyricsVirtualScroll",
+    "teardownSmartLyricsVirtualScroll",
+    "refreshSmartLyricsVirtualScroll"
+   ],
+   "let": [
+    "smartLyricsVirtualState"
+   ],
+   "const": [
+    "SMART_LYRICS_ITEM_HEIGHT",
+    "SMART_LYRICS_OVERSCAN_COUNT"
+   ],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [
+   {
+    "name": "SMART_LYRICS_ITEM_HEIGHT",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": [
+     "scroll.test.js"
+    ]
+   },
+   {
+    "name": "SMART_LYRICS_OVERSCAN_COUNT",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "smartLyricsVirtualState",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   }
+  ],
+  "fnShared": [
+   {
+    "name": "teardownSmartLyricsVirtualScroll",
+    "consumers": [
+     "07-views.js",
+     "19-online-lyrics.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "refreshSmartLyricsVirtualScroll",
+    "consumers": [
+     "19-online-lyrics.js"
+    ],
+    "tests": [
+     "scroll.test.js"
+    ]
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [
+   {
+    "name": "ITEM_HEIGHT",
+    "owner": "05a-lazy-load-main-list.js",
+    "forward": false
+   }
+  ],
+  "listeners": [],
+  "domReady": []
+ },
+ "06a-context-menus.js": {
+  "file": "06a-context-menus.js",
+  "lines": 1002,
+  "decls": {
+   "fn": [
+    "buildFolderSubmenuHTML",
+    "addToFolderFromMenu",
+    "moveToFolderFromMenu",
+    "removeFromFolderFromMenu",
+    "buildContextMenu",
+    "contextMenuAction",
+    "contextMenuPinItem",
+    "contextMenuPlayArtist",
+    "contextMenuPlayAlbum",
+    "contextMenuPlayPlaylist",
+    "contextMenuPlayView",
+    "showContextMenu",
+    "closeContextMenu",
+    "positionSubmenus",
+    "getContainingFolderIdFromEvent",
+    "showLeftPanelItemContextMenu",
+    "showSpecialItemContextMenu",
+    "showPlaylistContextMenu",
+    "showFolderContextMenu",
+    "showAlbumContextMenu",
+    "showArtistContextMenu",
+    "getViewItemType",
+    "showSubheroContextMenu"
+   ],
+   "let": [
+    "activeContextMenu",
+    "activeContextMenuSlot",
+    "currentContextSongId",
+    "currentContextPlaylistId",
+    "contextMenuMouseDownOutside"
+   ],
+   "const": [
+    "CONTEXT_MENU_TYPE_LABELS",
+    "CONTEXT_MENU_ACTIONS"
+   ],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [
+   {
+    "name": "activeContextMenu",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 5,
+    "tests": []
+   },
+   {
+    "name": "activeContextMenuSlot",
+    "kind": "let",
+    "consumers": [
+     "16-context-menu-actions.js"
+    ],
+    "writers": [],
+    "selfWrites": 2,
+    "tests": [
+     "helpers/scenarios-b.js",
+     "playback-modules.test.js"
+    ]
+   },
+   {
+    "name": "currentContextSongId",
+    "kind": "let",
+    "consumers": [
+     "10c-playback-queue.js",
+     "16-context-menu-actions.js",
+     "17-song-selection.js"
+    ],
+    "writers": [],
+    "selfWrites": 2,
+    "tests": [
+     "helpers/scenarios-b.js",
+     "playback-modules.test.js"
+    ]
+   },
+   {
+    "name": "currentContextPlaylistId",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 1,
+    "tests": []
+   },
+   {
+    "name": "contextMenuMouseDownOutside",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 3,
+    "tests": []
+   },
+   {
+    "name": "CONTEXT_MENU_TYPE_LABELS",
+    "kind": "const",
+    "consumers": [
+     "06g-drag-drop-left-panel.js"
+    ],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "CONTEXT_MENU_ACTIONS",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   }
+  ],
+  "fnShared": [
+   {
+    "name": "showContextMenu",
+    "consumers": [
+     "07a-ui-actions.js",
+     "ui/player-bar.js",
+     "08b-panel-album-art.js",
+     "08d-panel-right-tabs.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "closeContextMenu",
+    "consumers": [],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "showLeftPanelItemContextMenu",
+    "consumers": [],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "showSpecialItemContextMenu",
+    "consumers": [
+     "07a-ui-actions.js",
+     "08d-panel-right-tabs.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "showPlaylistContextMenu",
+    "consumers": [
+     "07a-ui-actions.js",
+     "08d-panel-right-tabs.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "showFolderContextMenu",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "showAlbumContextMenu",
+    "consumers": [
+     "07a-ui-actions.js",
+     "08d-panel-right-tabs.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "showArtistContextMenu",
+    "consumers": [
+     "07a-ui-actions.js",
+     "08d-panel-right-tabs.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "showSubheroContextMenu",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [
+   {
+    "line": 328,
+    "type": "ExpressionStatement",
+    "head": "registerActions({"
+   },
+   {
+    "line": 935,
+    "type": "ExpressionStatement",
+    "head": "document.addEventListener('keydown', function (e) {"
+   },
+   {
+    "line": 945,
+    "type": "ExpressionStatement",
+    "head": "document.addEventListener('mousedown', function (event) {"
+   },
+   {
+    "line": 952,
+    "type": "ExpressionStatement",
+    "head": "document.addEventListener('click', function (event) {"
+   },
+   {
+    "line": 971,
+    "type": "ExpressionStatement",
+    "head": "window.addEventListener('resize', function () {"
+   }
+  ],
+  "windowUses": [
+   {
+    "line": 399,
+    "key": "innerWidth"
+   },
+   {
+    "line": 400,
+    "key": "innerHeight"
+   },
+   {
+    "line": 465,
+    "key": "innerWidth"
+   },
+   {
+    "line": 466,
+    "key": "innerHeight"
+   },
+   {
+    "line": 652,
+    "key": "innerWidth"
+   },
+   {
+    "line": 653,
+    "key": "innerHeight"
+   },
+   {
+    "line": 791,
+    "key": "innerWidth"
+   },
+   {
+    "line": 792,
+    "key": "innerHeight"
+   },
+   {
+    "line": 891,
+    "key": "innerWidth"
+   },
+   {
+    "line": 892,
+    "key": "innerHeight"
+   },
+   {
+    "line": 971,
+    "key": "addEventListener"
+   },
+   {
+    "line": 976,
+    "key": "innerWidth"
+   },
+   {
+    "line": 977,
+    "key": "innerHeight"
+   }
+  ],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [],
+  "listeners": [
+   {
+    "line": 328,
+    "call": "registerActions({\r"
+   },
+   {
+    "line": 935,
+    "call": "document.addEventListener('keydown', function (e) {\r"
+   },
+   {
+    "line": 945,
+    "call": "document.addEventListener('mousedown', function (event) {\r"
+   },
+   {
+    "line": 952,
+    "call": "document.addEventListener('click', function (event) {\r"
+   },
+   {
+    "line": 971,
+    "call": "window.addEventListener('resize', function () {\r"
+   }
+  ],
+  "domReady": []
+ },
+ "06b-modals.js": {
+  "file": "06b-modals.js",
+  "lines": 933,
+  "decls": {
+   "fn": [
+    "closeOnOverlayClick",
+    "createModal",
+    "closePlaylistModal",
+    "closeAddLinkModal",
+    "closeCreateItemModal",
+    "closePlayedDataModal",
+    "closeSongMetadataModal",
+    "showSongMetadataModal",
+    "showConfirmDialog",
+    "showCreatePlaylistDialog",
+    "confirmCreatePlaylist",
+    "showEditPlaylistDialog",
+    "confirmEditPlaylist",
+    "showCreateFolderDialog",
+    "confirmCreateFolder",
+    "showEditFolderDialog",
+    "confirmEditFolder",
+    "showCreateItemDialog",
+    "showAddLinkDialog",
+    "playFromUrl",
+    "showDownloadNotification",
+    "updateDownloadNotification",
+    "removeDownloadNotification",
+    "showPlayedDataModal",
+    "showWelcomeDialog",
+    "addSongToQueueAndPlay"
+   ],
+   "let": [
+    "downloadProgressActive",
+    "downloadNotifyIndex"
+   ],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [
+   {
+    "name": "downloadProgressActive",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 4,
+    "tests": []
+   },
+   {
+    "name": "downloadNotifyIndex",
+    "kind": "let",
+    "consumers": [
+     "06j-notification-system.js",
+     "core/state-ui.js"
+    ],
+    "writers": [
+     "core/state-ui.js"
+    ],
+    "selfWrites": 3,
+    "tests": []
+   }
+  ],
+  "fnShared": [
+   {
+    "name": "createModal",
+    "consumers": [
+     "03l-import-export.js",
+     "15b-controls-shuffle-btn.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "closePlaylistModal",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "closeAddLinkModal",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "closeCreateItemModal",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "closePlayedDataModal",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "showSongMetadataModal",
+    "consumers": [
+     "06a-context-menus.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "showConfirmDialog",
+    "consumers": [
+     "08e-panel-settings.js",
+     "11c-sync-editor-shell.js",
+     "03c-playlists.js",
+     "03e-recents-history.js",
+     "03i-search-history.js",
+     "03m-library-folder-render.js",
+     "09-folders-playlists.js",
+     "16-context-menu-actions.js",
+     "11e-sync-editor-line-edit.js",
+     "11f-sync-editor-volume-save.js",
+     "18-lyrics-editor.js",
+     "08g-panel-saved-lyrics.js"
+    ],
+    "tests": [
+     "helpers/call-sequence-scenarios.js",
+     "helpers/scenarios-a.js",
+     "helpers/scenarios-c.js",
+     "playback-modules.test.js"
+    ]
+   },
+   {
+    "name": "showCreatePlaylistDialog",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "confirmCreatePlaylist",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "showEditPlaylistDialog",
+    "consumers": [
+     "06a-context-menus.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "confirmEditPlaylist",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "showCreateFolderDialog",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "confirmCreateFolder",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "showEditFolderDialog",
+    "consumers": [
+     "06a-context-menus.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "confirmEditFolder",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "showCreateItemDialog",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "showAddLinkDialog",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js",
+     "ui-storage-api.test.js"
+    ]
+   },
+   {
+    "name": "playFromUrl",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js",
+     "ui-storage-api.test.js"
+    ]
+   },
+   {
+    "name": "showPlayedDataModal",
+    "consumers": [
+     "06a-context-menus.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "showWelcomeDialog",
+    "consumers": [],
+    "tests": [
+     "ui-storage-api.test.js"
+    ]
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [],
+  "windowUses": [
+   {
+    "line": 341,
+    "key": "_editPlaylistTempCover"
+   },
+   {
+    "line": 343,
+    "key": "handleEditPlaylistCover"
+   },
+   {
+    "line": 348,
+    "key": "_editPlaylistTempCover"
+   },
+   {
+    "line": 370,
+    "key": "handleEditPlaylistCover"
+   },
+   {
+    "line": 371,
+    "key": "_editPlaylistTempCover"
+   },
+   {
+    "line": 400,
+    "key": "_editPlaylistTempCover"
+   },
+   {
+    "line": 401,
+    "key": "_editPlaylistTempCover"
+   }
+  ],
+  "reassigned": [
+   {
+    "name": "closePlaylistModal",
+    "owner": "06b-modals.js",
+    "line": 262,
+    "inFunction": true
+   },
+   {
+    "name": "closePlaylistModal",
+    "owner": "06b-modals.js",
+    "line": 375,
+    "inFunction": true
+   },
+   {
+    "name": "closePlaylistModal",
+    "owner": "06b-modals.js",
+    "line": 460,
+    "inFunction": true
+   },
+   {
+    "name": "closePlaylistModal",
+    "owner": "06b-modals.js",
+    "line": 541,
+    "inFunction": true
+   },
+   {
+    "name": "closeAddLinkModal",
+    "owner": "06b-modals.js",
+    "line": 652,
+    "inFunction": true
+   }
+  ],
+  "implicitGlobals": [],
+  "loadTime": [],
+  "listeners": [],
+  "domReady": []
+ },
+ "06c-scrollbar-widget.js": {
+  "file": "06c-scrollbar-widget.js",
+  "lines": 331,
+  "decls": {
+   "fn": [
+    "updateScrollbarById",
+    "initExternalScrollbar"
+   ],
+   "let": [
+    "lastMouseX",
+    "lastMouseY"
+   ],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [
+   {
+    "name": "lastMouseX",
+    "kind": "let",
+    "consumers": [
+     "04a-ui-render-core.js",
+     "core/state-ui.js"
+    ],
+    "writers": [
+     "core/state-ui.js"
+    ],
+    "selfWrites": 1,
+    "tests": []
+   },
+   {
+    "name": "lastMouseY",
+    "kind": "let",
+    "consumers": [
+     "04a-ui-render-core.js",
+     "core/state-ui.js",
+     "13-song-highlight.js"
+    ],
+    "writers": [
+     "core/state-ui.js"
+    ],
+    "selfWrites": 1,
+    "tests": []
+   }
+  ],
+  "fnShared": [
+   {
+    "name": "updateScrollbarById",
+    "consumers": [
+     "04b-render-playlists-folders.js",
+     "04c-render-albums.js",
+     "04d-render-artists.js",
+     "04e-render-favorites-history.js",
+     "04j-pinned-items-events.js",
+     "04k-playlists-events.js",
+     "04o-folders-events.js",
+     "05b-lazy-load-left-panel.js",
+     "06a-context-menus.js",
+     "06b-modals.js",
+     "06g-drag-drop-left-panel.js",
+     "08a-panel-layout.js",
+     "04p-playback-events.js",
+     "09-folders-playlists.js",
+     "10c-playback-queue.js",
+     "ui/layout.js",
+     "19-online-lyrics.js",
+     "08c-panel-track-lyrics.js",
+     "08d-panel-right-tabs.js",
+     "08h-panel-search.js"
+    ],
+    "tests": [
+     "events-wiring.test.js",
+     "expected/events-a.json",
+     "expected/events-b.json",
+     "expected/events-c.json",
+     "helpers/call-sequence-scenarios.js",
+     "helpers/scenarios-a.js",
+     "helpers/scenarios-b.js",
+     "helpers/scenarios-c.js"
+    ]
+   },
+   {
+    "name": "initExternalScrollbar",
+    "consumers": [
+     "99-player.js",
+     "19-online-lyrics.js",
+     "08c-panel-track-lyrics.js"
+    ],
+    "tests": []
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [
+   {
+    "line": 15,
+    "type": "ExpressionStatement",
+    "head": "window.addEventListener('beforeunload', function () {"
+   },
+   {
+    "line": 31,
+    "type": "ExpressionStatement",
+    "head": "document.addEventListener("
+   }
+  ],
+  "windowUses": [
+   {
+    "line": 7,
+    "key": "scrollbarInstances"
+   },
+   {
+    "line": 8,
+    "key": "scrollbarInstances"
+   },
+   {
+    "line": 15,
+    "key": "addEventListener"
+   },
+   {
+    "line": 16,
+    "key": "scrollbarInstances"
+   },
+   {
+    "line": 17,
+    "key": "scrollbarInstances"
+   },
+   {
+    "line": 22,
+    "key": "removeEventListener"
+   },
+   {
+    "line": 90,
+    "key": "addEventListener"
+   },
+   {
+    "line": 151,
+    "key": "scrollbarInstances"
+   },
+   {
+    "line": 152,
+    "key": "scrollbarInstances"
+   },
+   {
+    "line": 154,
+    "key": "scrollbarInstances"
+   }
+  ],
+  "reassigned": [],
+  "implicitGlobals": [
+   {
+    "name": "updateExternalScrollbar",
+    "line": 85
+   }
+  ],
+  "loadTime": [],
+  "listeners": [
+   {
+    "line": 15,
+    "call": "window.addEventListener('beforeunload', function () {\r"
+   },
+   {
+    "line": 31,
+    "call": "document.addEventListener(\r"
+   }
+  ],
+  "domReady": []
+ },
+ "06d-tooltip-system.js": {
+  "file": "06d-tooltip-system.js",
+  "lines": 119,
+  "decls": {
+   "fn": [
+    "showTooltipNow",
+    "temporarilySuppressTooltip",
+    "createTooltipElement",
+    "positionTooltip"
+   ],
+   "let": [
+    "tooltip"
+   ],
+   "const": [
+    "scheduleTooltipShow"
+   ],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [
+   {
+    "name": "tooltip",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 1,
+    "tests": []
+   },
+   {
+    "name": "scheduleTooltipShow",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   }
+  ],
+  "fnShared": [
+   {
+    "name": "temporarilySuppressTooltip",
+    "consumers": [
+     "06a-context-menus.js",
+     "08a-panel-layout.js",
+     "99-player.js",
+     "10d-playback-song.js",
+     "15a-controls-time-play.js",
+     "15b-controls-shuffle-btn.js",
+     "15c-controls-repeat-btn.js",
+     "15d-controls-track-nav.js",
+     "08d-panel-right-tabs.js"
+    ],
+    "tests": []
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [
+   {
+    "line": 73,
+    "type": "ExpressionStatement",
+    "head": "document.addEventListener('mouseover', function (e) {"
+   },
+   {
+    "line": 114,
+    "type": "ExpressionStatement",
+    "head": "document.addEventListener('click', function () {"
+   }
+  ],
+  "windowUses": [
+   {
+    "line": 58,
+    "key": "innerWidth"
+   },
+   {
+    "line": 59,
+    "key": "innerWidth"
+   }
+  ],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [
+   {
+    "name": "debounce",
+    "owner": "00-state.js",
+    "forward": false
+   }
+  ],
+  "listeners": [
+   {
+    "line": 73,
+    "call": "document.addEventListener('mouseover', function (e) {\r"
+   },
+   {
+    "line": 114,
+    "call": "document.addEventListener('click', function () {\r"
+   }
+  ],
+  "domReady": []
+ },
+ "06e-tooltip-titles.js": {
+  "file": "06e-tooltip-titles.js",
+  "lines": 56,
+  "decls": {
+   "fn": [],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [],
+  "fnTests": [],
+  "topLevel": [
+   {
+    "line": 4,
+    "type": "ExpressionStatement",
+    "head": "document.addEventListener('DOMContentLoaded', function () {"
+   }
+  ],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [],
+  "listeners": [
+   {
+    "line": 4,
+    "call": "document.addEventListener('DOMContentLoaded', function () {\r"
+   }
+  ],
+  "domReady": [
+   {
+    "line": 4,
+    "target": "document.addEventListener"
+   }
+  ]
+ },
+ "06f-drag-drop-songs.js": {
+  "file": "06f-drag-drop-songs.js",
+  "lines": 335,
+  "decls": {
+   "fn": [
+    "initSongDragToLeftPanel"
+   ],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [
+   {
+    "name": "initSongDragToLeftPanel",
+    "consumers": [
+     "99-player.js"
+    ],
+    "tests": []
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [],
+  "windowUses": [
+   {
+    "line": 304,
+    "key": "removeEventListener"
+   },
+   {
+    "line": 330,
+    "key": "addEventListener"
+   }
+  ],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [],
+  "listeners": [],
+  "domReady": []
+ },
+ "06g-drag-drop-left-panel.js": {
+  "file": "06g-drag-drop-left-panel.js",
+  "lines": 397,
+  "decls": {
+   "fn": [
+    "initLeftPanelDragAndDrop"
+   ],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [
+   {
+    "name": "initLeftPanelDragAndDrop",
+    "consumers": [
+     "99-player.js"
+    ],
+    "tests": []
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [],
+  "windowUses": [
+   {
+    "line": 354,
+    "key": "removeEventListener"
+   },
+   {
+    "line": 392,
+    "key": "addEventListener"
+   }
+  ],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [],
+  "listeners": [],
+  "domReady": []
+ },
+ "06h-fullscreen-viewer.js": {
+  "file": "06h-fullscreen-viewer.js",
+  "lines": 137,
+  "decls": {
+   "fn": [
+    "openImageViewer",
+    "initZoomLens",
+    "deactivateZoomLens",
+    "closeImageViewer",
+    "imageViewerKeyHandler"
+   ],
+   "let": [
+    "zoomLens",
+    "lensActive",
+    "viewerMouseX",
+    "viewerMouseY"
+   ],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [
+   {
+    "name": "zoomLens",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 1,
+    "tests": []
+   },
+   {
+    "name": "lensActive",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 2,
+    "tests": []
+   },
+   {
+    "name": "viewerMouseX",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 1,
+    "tests": []
+   },
+   {
+    "name": "viewerMouseY",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 1,
+    "tests": []
+   }
+  ],
+  "fnShared": [
+   {
+    "name": "openImageViewer",
+    "consumers": [
+     "ui/player-bar.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "closeImageViewer",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "ui-handlers.test.js"
+    ]
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [],
+  "listeners": [],
+  "domReady": []
+ },
+ "06j-notification-system.js": {
+  "file": "06j-notification-system.js",
+  "lines": 268,
+  "decls": {
+   "fn": [
+    "showNotification",
+    "showCoverProgressNotification",
+    "completeCoverProgressNotification",
+    "toggleNotificationPanel",
+    "closeNotificationPanel",
+    "clearAllNotifications",
+    "removeNotificationItem",
+    "updateNotificationBadge",
+    "renderNotificationPanel"
+   ],
+   "let": [
+    "coverNotifyIndex",
+    "notificationPanelOpen",
+    "notificationHistory"
+   ],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [
+   {
+    "name": "coverNotifyIndex",
+    "kind": "let",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 3,
+    "tests": []
+   },
+   {
+    "name": "notificationPanelOpen",
+    "kind": "let",
+    "consumers": [
+     "06a-context-menus.js",
+     "06b-modals.js"
+    ],
+    "writers": [],
+    "selfWrites": 2,
+    "tests": []
+   },
+   {
+    "name": "notificationHistory",
+    "kind": "let",
+    "consumers": [
+     "06b-modals.js",
+     "core/state-ui.js"
+    ],
+    "writers": [
+     "core/state-ui.js"
+    ],
+    "selfWrites": 3,
+    "tests": []
+   }
+  ],
+  "fnShared": [
+   {
+    "name": "showNotification",
+    "consumers": [
+     "03j-library-locations.js",
+     "04h-recents-history-events.js",
+     "04j-pinned-items-events.js",
+     "04k-playlists-events.js",
+     "04l-search-history-events.js",
+     "04n-import-export-events.js",
+     "06a-context-menus.js",
+     "06b-modals.js",
+     "06f-drag-drop-songs.js",
+     "06g-drag-drop-left-panel.js",
+     "08e-panel-settings.js",
+     "11c-sync-editor-shell.js",
+     "99-player.js",
+     "03l-import-export.js",
+     "03m-library-folder-render.js",
+     "09-folders-playlists.js",
+     "10b-playback-smart-shuffle.js",
+     "10c-playback-queue.js",
+     "10d-playback-song.js",
+     "16-context-menu-actions.js",
+     "17-song-selection.js",
+     "library/import-dropped.js",
+     "11b-lyrics-import.js",
+     "11d-sync-editor-lines.js",
+     "11e-sync-editor-line-edit.js",
+     "11f-sync-editor-volume-save.js",
+     "11g-sync-editor-line-actions.js",
+     "18-lyrics-editor.js",
+     "19-online-lyrics.js",
+     "20-metadata-editor.js",
+     "08g-panel-saved-lyrics.js"
+    ],
+    "tests": [
+     "events-wiring.test.js",
+     "expected/events-a.json",
+     "expected/events-b.json",
+     "expected/events-c.json",
+     "helpers/call-sequence-scenarios.js",
+     "helpers/scenarios-a.js",
+     "helpers/scenarios-b.js",
+     "helpers/scenarios-c.js"
+    ]
+   },
+   {
+    "name": "showCoverProgressNotification",
+    "consumers": [
+     "03k-cover-sync.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "completeCoverProgressNotification",
+    "consumers": [
+     "03k-cover-sync.js"
+    ],
+    "tests": [
+     "expected/events-a.json",
+     "helpers/scenarios-a.js"
+    ]
+   },
+   {
+    "name": "toggleNotificationPanel",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "closeNotificationPanel",
+    "consumers": [
+     "06a-context-menus.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "clearAllNotifications",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "removeNotificationItem",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "renderNotificationPanel",
+    "consumers": [
+     "06b-modals.js"
+    ],
+    "tests": []
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [],
+  "windowUses": [
+   {
+    "line": 94,
+    "key": "innerWidth"
+   }
+  ],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [],
+  "listeners": [],
+  "domReady": []
+ },
+ "06k-keyboard-shortcuts.js": {
+  "file": "06k-keyboard-shortcuts.js",
+  "lines": 403,
+  "decls": {
+   "fn": [
+    "initMarqueeOnHover"
+   ],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [
+   {
+    "name": "initMarqueeOnHover",
+    "consumers": [
+     "ui/player-bar.js"
+    ],
+    "tests": []
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [
+   {
+    "line": 4,
+    "type": "ExpressionStatement",
+    "head": "document.addEventListener('keydown', function (e) {"
+   },
+   {
+    "line": 208,
+    "type": "ExpressionStatement",
+    "head": "document.addEventListener('mousedown', function (e) {"
+   }
+  ],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [],
+  "listeners": [
+   {
+    "line": 4,
+    "call": "document.addEventListener('keydown', function (e) {\r"
+   },
+   {
+    "line": 208,
+    "call": "document.addEventListener('mousedown', function (e) {\r"
+   }
+  ],
+  "domReady": []
+ },
+ "07-views.js": {
+  "file": "07-views.js",
+  "lines": 1139,
+  "decls": {
+   "fn": [
+    "getCurrentViewLabel",
+    "formatArtistNames",
+    "buildPlayerArtistHTML",
+    "resetViewScroll",
+    "resetLeftPanelActiveState",
+    "activateLeftPanelItem",
+    "refreshUIAfterViewSwitch",
+    "refreshSongCovers",
+    "finalizeViewSwitch",
+    "refreshCurrentView",
+    "updateAllCounts",
+    "getCurrentViewDisplayName",
+    "setSubheroVisibility",
+    "updateSubheroPlayButton",
+    "updateSubheroShuffleButton",
+    "toggleShuffleFromSubhero",
+    "isViewCurrentlyPlaying",
+    "getSongsForPrefixedList",
+    "getSongsForList",
+    "getSongCountForList",
+    "pushToHistoryStack",
+    "pushViewToHistory",
+    "canGoBack",
+    "canGoForward",
+    "goBack",
+    "goForward",
+    "updateNavigationButtons",
+    "openDetailView",
+    "openAlbum",
+    "openArtist",
+    "switchToLyrics",
+    "switchView",
+    "switchToHistoryFromSettings",
+    "switchToSearchHistoryFromSettings",
+    "handleHeroClear",
+    "openSearchHistoryChild"
+   ],
+   "let": [
+    "isNavigatingHistory"
+   ],
+   "const": [
+    "VIEWS",
+    "viewConfigs",
+    "viewHandlers",
+    "listProviders"
+   ],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [
+   {
+    "name": "isNavigatingHistory",
+    "kind": "let",
+    "consumers": [
+     "core/state-navigation.js"
+    ],
+    "writers": [
+     "core/state-navigation.js"
+    ],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "VIEWS",
+    "kind": "const",
+    "consumers": [
+     "02-ghost-list.js",
+     "03j-library-locations.js",
+     "04a-ui-render-core.js",
+     "04b-render-playlists-folders.js",
+     "04c-render-albums.js",
+     "04d-render-artists.js",
+     "04e-render-favorites-history.js",
+     "04h-recents-history-events.js",
+     "04i-library-rebuild-events.js",
+     "04l-search-history-events.js",
+     "05a-lazy-load-main-list.js",
+     "05b-lazy-load-left-panel.js",
+     "06a-context-menus.js",
+     "06b-modals.js",
+     "06f-drag-drop-songs.js",
+     "06g-drag-drop-left-panel.js",
+     "06k-keyboard-shortcuts.js",
+     "08e-panel-settings.js",
+     "04p-playback-events.js",
+     "04u-search-events.js",
+     "99-player.js",
+     "03c-playlists.js",
+     "03e-recents-history.js",
+     "03g-pinned-items.js",
+     "03h-folders.js",
+     "09-folders-playlists.js",
+     "10d-playback-song.js",
+     "13-song-highlight.js",
+     "14-song-navigation.js",
+     "15e-controls-audio-events.js",
+     "16-context-menu-actions.js",
+     "17-song-selection.js",
+     "11a-lrc-parser-display.js",
+     "11b-lyrics-import.js",
+     "11f-sync-editor-volume-save.js",
+     "18-lyrics-editor.js",
+     "19-online-lyrics.js",
+     "08b-panel-album-art.js",
+     "08d-panel-right-tabs.js",
+     "08g-panel-saved-lyrics.js",
+     "08h-panel-search.js"
+    ],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": [
+     "helpers/call-sequence-scenarios.js",
+     "helpers/scenarios-a.js",
+     "helpers/scenarios-b.js",
+     "helpers/scenarios-c.js",
+     "lyrics-panel-handlers.test.js",
+     "playback-handlers.test.js",
+     "playback-modules.test.js",
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "viewConfigs",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "viewHandlers",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   },
+   {
+    "name": "listProviders",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": [
+     "search-ui.test.js"
+    ]
+   }
+  ],
+  "fnShared": [
+   {
+    "name": "buildPlayerArtistHTML",
+    "consumers": [
+     "10d-playback-song.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "resetViewScroll",
+    "consumers": [
+     "08e-panel-settings.js",
+     "09-folders-playlists.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "resetLeftPanelActiveState",
+    "consumers": [
+     "08e-panel-settings.js",
+     "09-folders-playlists.js",
+     "08h-panel-search.js"
+    ],
+    "tests": [
+     "expected/events-c.json",
+     "helpers/scenarios-c.js"
+    ]
+   },
+   {
+    "name": "activateLeftPanelItem",
+    "consumers": [
+     "09-folders-playlists.js",
+     "08h-panel-search.js"
+    ],
+    "tests": [
+     "helpers/scenarios-c.js"
+    ]
+   },
+   {
+    "name": "refreshCurrentView",
+    "consumers": [
+     "04p-playback-events.js"
+    ],
+    "tests": [
+     "expected/events-b.json",
+     "helpers/scenarios-b.js"
+    ]
+   },
+   {
+    "name": "updateAllCounts",
+    "consumers": [
+     "04i-library-rebuild-events.js",
+     "06b-modals.js",
+     "04p-playback-events.js"
+    ],
+    "tests": [
+     "events-wiring.test.js",
+     "expected/events-a.json",
+     "expected/events-b.json",
+     "helpers/call-sequence-scenarios.js",
+     "helpers/scenarios-a.js",
+     "helpers/scenarios-b.js"
+    ]
+   },
+   {
+    "name": "getCurrentViewDisplayName",
+    "consumers": [
+     "06a-context-menus.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "setSubheroVisibility",
+    "consumers": [
+     "08e-panel-settings.js",
+     "09-folders-playlists.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "updateSubheroPlayButton",
+    "consumers": [
+     "04p-playback-events.js",
+     "09-folders-playlists.js"
+    ],
+    "tests": [
+     "expected/events-b.json",
+     "helpers/scenarios-b.js"
+    ]
+   },
+   {
+    "name": "updateSubheroShuffleButton",
+    "consumers": [
+     "04p-playback-events.js",
+     "99-player.js"
+    ],
+    "tests": [
+     "expected/events-b.json",
+     "helpers/scenarios-b.js"
+    ]
+   },
+   {
+    "name": "toggleShuffleFromSubhero",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "isViewCurrentlyPlaying",
+    "consumers": [
+     "09-folders-playlists.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "getSongsForList",
+    "consumers": [
+     "04a-ui-render-core.js",
+     "04i-library-rebuild-events.js",
+     "05a-lazy-load-main-list.js",
+     "04p-playback-events.js",
+     "09-folders-playlists.js",
+     "10a-playback-shuffle.js",
+     "10b-playback-smart-shuffle.js",
+     "10d-playback-song.js",
+     "15b-controls-shuffle-btn.js",
+     "15c-controls-repeat-btn.js",
+     "15e-controls-audio-events.js",
+     "08h-panel-search.js"
+    ],
+    "tests": [
+     "helpers/scenarios-b.js",
+     "playback-modules.test.js"
+    ]
+   },
+   {
+    "name": "pushToHistoryStack",
+    "consumers": [
+     "10d-playback-song.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "pushViewToHistory",
+    "consumers": [
+     "08e-panel-settings.js",
+     "09-folders-playlists.js",
+     "14-song-navigation.js",
+     "08h-panel-search.js"
+    ],
+    "tests": [
+     "expected/events-c.json",
+     "helpers/scenarios-c.js"
+    ]
+   },
+   {
+    "name": "canGoBack",
+    "consumers": [
+     "06k-keyboard-shortcuts.js",
+     "19-online-lyrics.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "canGoForward",
+    "consumers": [
+     "06k-keyboard-shortcuts.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "goBack",
+    "consumers": [
+     "06k-keyboard-shortcuts.js",
+     "07a-ui-actions.js",
+     "19-online-lyrics.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "goForward",
+    "consumers": [
+     "06k-keyboard-shortcuts.js",
+     "07a-ui-actions.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "updateNavigationButtons",
+    "consumers": [
+     "99-player.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "openDetailView",
+    "consumers": [
+     "09-folders-playlists.js",
+     "14-song-navigation.js",
+     "08d-panel-right-tabs.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "openAlbum",
+    "consumers": [
+     "06a-context-menus.js",
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "scroll.test.js",
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "openArtist",
+    "consumers": [
+     "06a-context-menus.js",
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "scroll.test.js",
+     "ui-handlers.test.js"
+    ]
+   },
+   {
+    "name": "switchToLyrics",
+    "consumers": [
+     "06k-keyboard-shortcuts.js",
+     "07a-ui-actions.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "switchView",
+    "consumers": [
+     "04b-render-playlists-folders.js",
+     "04c-render-albums.js",
+     "04d-render-artists.js",
+     "06a-context-menus.js",
+     "08e-panel-settings.js",
+     "03c-playlists.js",
+     "03h-folders.js",
+     "09-folders-playlists.js",
+     "14-song-navigation.js",
+     "15e-controls-audio-events.js",
+     "19-online-lyrics.js",
+     "08d-panel-right-tabs.js"
+    ],
+    "tests": [
+     "events-wiring.test.js",
+     "helpers/call-sequence-scenarios.js",
+     "legacy-bridge.test.js",
+     "ui-handlers.test.js",
+     "view-switch-song-list-cleanup.test.js"
+    ]
+   },
+   {
+    "name": "switchToHistoryFromSettings",
+    "consumers": [
+     "08e-panel-settings.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "switchToSearchHistoryFromSettings",
+    "consumers": [
+     "08e-panel-settings.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "handleHeroClear",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": []
+   },
+   {
+    "name": "openSearchHistoryChild",
+    "consumers": [
+     "07a-ui-actions.js"
+    ],
+    "tests": [
+     "search-ui.test.js",
+     "ui-handlers.test.js"
+    ]
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [],
+  "listeners": [],
+  "domReady": []
+ },
+ "07a-ui-actions.js": {
+  "file": "07a-ui-actions.js",
+  "lines": 333,
+  "decls": {
+   "fn": [
+    "applyActionAttrs"
+   ],
+   "let": [],
+   "const": [
+    "ITEM_CONTEXT_MENUS"
+   ],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [
+   {
+    "name": "ITEM_CONTEXT_MENUS",
+    "kind": "const",
+    "consumers": [],
+    "writers": [],
+    "selfWrites": 0,
+    "tests": []
+   }
+  ],
+  "fnShared": [
+   {
+    "name": "applyActionAttrs",
+    "consumers": [
+     "04b-render-playlists-folders.js",
+     "04c-render-albums.js",
+     "04d-render-artists.js"
+    ],
+    "tests": []
+   }
+  ],
+  "fnTests": [],
+  "topLevel": [
+   {
+    "line": 10,
+    "type": "ExpressionStatement",
+    "head": "registerActions({"
+   },
+   {
+    "line": 179,
+    "type": "ExpressionStatement",
+    "head": "registerActions({"
+   },
+   {
+    "line": 295,
+    "type": "ExpressionStatement",
+    "head": "registerActions({"
+   }
+  ],
+  "windowUses": [
+   {
+    "line": 306,
+    "key": "handleEditPlaylistCover"
+   }
+  ],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [],
+  "listeners": [
+   {
+    "line": 10,
+    "call": "registerActions({\r"
+   },
+   {
+    "line": 179,
+    "call": "registerActions({\r"
+   },
+   {
+    "line": 295,
+    "call": "registerActions({\r"
+   }
+  ],
+  "domReady": []
+ },
+ "04p-playback-events.js": {
+  "file": "04p-playback-events.js",
+  "lines": 151,
+  "decls": {
+   "fn": [],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [],
+  "fnTests": [],
+  "topLevel": [
+   {
+    "line": 9,
+    "type": "ExpressionStatement",
+    "head": "on('playback:stateChanged', (e) => {"
+   },
+   {
+    "line": 13,
+    "type": "ExpressionStatement",
+    "head": "on('playback:recentViewChanged', () => {"
+   },
+   {
+    "line": 19,
+    "type": "ExpressionStatement",
+    "head": "on('playback:recentPanelChanged', () => {"
+   },
+   {
+    "line": 26,
+    "type": "ExpressionStatement",
+    "head": "on('shuffle:changed', () => {"
+   },
+   {
+    "line": 32,
+    "type": "ExpressionStatement",
+    "head": "on('shuffle:listChanged', (e) => {"
+   },
+   {
+    "line": 43,
+    "type": "ExpressionStatement",
+    "head": "on('repeat:listChanged', () => {"
+   },
+   {
+    "line": 55,
+    "type": "ExpressionStatement",
+    "head": "on('queue:songsChanged', () => {"
+   },
+   {
+    "line": 69,
+    "type": "ExpressionStatement",
+    "head": "on('favorites:changed', () => {"
+   },
+   {
+    "line": 92,
+    "type": "ExpressionStatement",
+    "head": "on('songs:changed', () => {"
+   },
+   {
+    "line": 105,
+    "type": "ExpressionStatement",
+    "head": "on('viewSongs:changed', (e) => {"
+   },
+   {
+    "line": 137,
+    "type": "ExpressionStatement",
+    "head": "on('leftPanelCounts:changed', () => {"
+   },
+   {
+    "line": 145,
+    "type": "ExpressionStatement",
+    "head": "on('playlist:songAddedFromMenu', (e) => {"
+   }
+  ],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [
+   {
+    "name": "on",
+    "owner": "00b-events.js",
+    "forward": false
+   }
+  ],
+  "listeners": [
+   {
+    "line": 9,
+    "call": "on('playback:stateChanged', (e) => {\r"
+   },
+   {
+    "line": 13,
+    "call": "on('playback:recentViewChanged', () => {\r"
+   },
+   {
+    "line": 19,
+    "call": "on('playback:recentPanelChanged', () => {\r"
+   },
+   {
+    "line": 26,
+    "call": "on('shuffle:changed', () => {\r"
+   },
+   {
+    "line": 32,
+    "call": "on('shuffle:listChanged', (e) => {\r"
+   },
+   {
+    "line": 43,
+    "call": "on('repeat:listChanged', () => {\r"
+   },
+   {
+    "line": 55,
+    "call": "on('queue:songsChanged', () => {\r"
+   },
+   {
+    "line": 69,
+    "call": "on('favorites:changed', () => {\r"
+   },
+   {
+    "line": 92,
+    "call": "on('songs:changed', () => {\r"
+   },
+   {
+    "line": 105,
+    "call": "on('viewSongs:changed', (e) => {\r"
+   },
+   {
+    "line": 137,
+    "call": "on('leftPanelCounts:changed', () => {\r"
+   },
+   {
+    "line": 145,
+    "call": "on('playlist:songAddedFromMenu', (e) => {\r"
+   }
+  ],
+  "domReady": []
+ },
+ "04t-lyrics-events.js": {
+  "file": "04t-lyrics-events.js",
+  "lines": 12,
+  "decls": {
+   "fn": [],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [],
+  "fnTests": [],
+  "topLevel": [
+   {
+    "line": 9,
+    "type": "ExpressionStatement",
+    "head": "on('lyrics:changed', () => {"
+   }
+  ],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [
+   {
+    "name": "on",
+    "owner": "00b-events.js",
+    "forward": false
+   }
+  ],
+  "listeners": [
+   {
+    "line": 9,
+    "call": "on('lyrics:changed', () => {\r"
+   }
+  ],
+  "domReady": []
+ },
+ "04u-search-events.js": {
+  "file": "04u-search-events.js",
+  "lines": 28,
+  "decls": {
+   "fn": [],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [],
+  "fnTests": [],
+  "topLevel": [
+   {
+    "line": 10,
+    "type": "ExpressionStatement",
+    "head": "on('search:resultsChanged', (e) => {"
+   },
+   {
+    "line": 18,
+    "type": "ExpressionStatement",
+    "head": "on('search:summaryChanged', (e) => {"
+   },
+   {
+    "line": 25,
+    "type": "ExpressionStatement",
+    "head": "on('leftPanelSearch:cleared', () => {"
+   }
+  ],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [
+   {
+    "name": "on",
+    "owner": "00b-events.js",
+    "forward": false
+   }
+  ],
+  "listeners": [
+   {
+    "line": 10,
+    "call": "on('search:resultsChanged', (e) => {\r"
+   },
+   {
+    "line": 18,
+    "call": "on('search:summaryChanged', (e) => {\r"
+   },
+   {
+    "line": 25,
+    "call": "on('leftPanelSearch:cleared', () => {\r"
+   }
+  ],
+  "domReady": []
+ },
+ "04v-right-panel-events.js": {
+  "file": "04v-right-panel-events.js",
+  "lines": 13,
+  "decls": {
+   "fn": [],
+   "let": [],
+   "const": [],
+   "var": [],
+   "class": []
+  },
+  "stateShared": [],
+  "fnShared": [],
+  "fnTests": [],
+  "topLevel": [
+   {
+    "line": 8,
+    "type": "ExpressionStatement",
+    "head": "on('rightPanel:tabChanged', (e) => {"
+   }
+  ],
+  "windowUses": [],
+  "reassigned": [],
+  "implicitGlobals": [],
+  "loadTime": [
+   {
+    "name": "on",
+    "owner": "00b-events.js",
+    "forward": false
+   }
+  ],
+  "listeners": [
+   {
+    "line": 8,
+    "call": "on('rightPanel:tabChanged', (e) => {\r"
+   }
+  ],
+  "domReady": []
+ }
+}

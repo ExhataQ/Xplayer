@@ -63,7 +63,7 @@ if (playerCover) {
 const albumArtImage = document.getElementById('album-art-image');
 if (albumArtImage) {
     albumArtImage.style.cursor = 'pointer';
-    albumArtImage.addEventListener('click', openImageViewer);
+    albumArtImage.addEventListener('click', () => openImageViewer());
     albumArtImage.addEventListener('contextmenu', function (e) {
         e.preventDefault();
         e.stopPropagation();

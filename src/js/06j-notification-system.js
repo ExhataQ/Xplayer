@@ -1,7 +1,7 @@
 // ==============================================================================
 // NOTIFICATION SYSTEM
 // ==============================================================================
-function showNotification(message, type = 'success', duration) {
+export function showNotification(message, type = 'success', duration) {
     notificationHistory.unshift({
         message: message,
         type: type,
@@ -28,7 +28,7 @@ function showNotification(message, type = 'success', duration) {
 
 let coverNotifyIndex = -1;
 
-function showCoverProgressNotification(processed, total, found) {
+export function showCoverProgressNotification(processed, total, found) {
     const pct = total > 0 ? Math.round((processed / total) * 100) : 0;
     const message = `🖼️ Finding album art... ${found} found · ${processed}/${total} scanned`;
 
@@ -55,7 +55,7 @@ function showCoverProgressNotification(processed, total, found) {
     renderNotificationPanel();
 }
 
-function completeCoverProgressNotification() {
+export function completeCoverProgressNotification() {
     if (coverNotifyIndex !== -1 && notificationHistory[coverNotifyIndex]) {
         notificationHistory[coverNotifyIndex].isCoverProgress = false;
         notificationHistory[coverNotifyIndex].message = '🖼️ Album art finished loading';
@@ -77,10 +77,8 @@ function completeCoverProgressNotification() {
     }
 }
 
-let notificationPanelOpen = false;
-let notificationHistory = [];
 
-function toggleNotificationPanel() {
+export function toggleNotificationPanel() {
     const panel = getCachedEl('notification-panel');
     const btn = getCachedEl('notification-panel-btn');
 
@@ -141,7 +139,7 @@ function toggleNotificationPanel() {
     }
 }
 
-function closeNotificationPanel() {
+export function closeNotificationPanel() {
     const panel = getCachedEl('notification-panel');
     const btn = getCachedEl('notification-panel-btn');
 
@@ -151,7 +149,7 @@ function closeNotificationPanel() {
     document.body.classList.remove('suppress-tooltips');
 }
 
-function clearAllNotifications() {
+export function clearAllNotifications() {
     notificationHistory = [];
     setDownloadNotifyIndex(-1);
     renderNotificationPanel();
@@ -165,7 +163,7 @@ function clearAllNotifications() {
     }
 }
 
-function removeNotificationItem(index) {
+export function removeNotificationItem(index) {
     if (notificationHistory[index] && notificationHistory[index].isDownloadProgress) {
         setDownloadNotifyIndex(-1);
     } else if (downloadNotifyIndex > index) {
@@ -194,7 +192,7 @@ function updateNotificationBadge() {
     }
 }
 
-function renderNotificationPanel() {
+export function renderNotificationPanel() {
     const list = document.getElementById('notification-panel-list');
     if (!list) return;
 
@@ -264,4 +262,17 @@ function renderNotificationPanel() {
             </div>`;
         })
         .join('');
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        showNotification,
+        showCoverProgressNotification,
+        completeCoverProgressNotification,
+        toggleNotificationPanel,
+        closeNotificationPanel,
+        clearAllNotifications,
+        removeNotificationItem,
+        renderNotificationPanel
+    });
 }

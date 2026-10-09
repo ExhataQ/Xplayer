@@ -2,6 +2,8 @@
   "devDependencies": {
     "acorn": "^8.18.0",
     "acorn-walk": "^8.3.5",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0",
     "playwright": "^1.63.0"
   },
   "name": "source",
@@ -9,7 +11,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node tools/tests/run.js",
+    "test:unit": "node tools/tests/run.js unit",
+    "test:browser": "node tools/tests/run.js browser",
+    "test:list": "node tools/tests/run.js --list",
+    "test:timing": "node tools/tests/run.js --timing",
+    "lint": "node tools/lint.js",
+    "lint:strict": "node tools/lint.js --strict"
   },
   "repository": {
     "type": "git",

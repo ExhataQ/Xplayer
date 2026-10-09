@@ -4,7 +4,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { loadPlaywright, launch, buildApp } = require('./helpers/app-fixture');
+const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 
 const pw = loadPlaywright();
 const TEST_OPTIONS = { timeout: 30000 };
@@ -26,8 +26,7 @@ describe('search and recents in the UI', { concurrency: false }, () => {
         const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e)));
-        await page.goto('file://' + path.join(dir, 'index.html').replace(/\\/g, '/'));
-        await page.waitForTimeout(900);
+        await gotoApp(page, dir);
         return { page, errors };
     }
     const typeSearch = async (page, text) => {

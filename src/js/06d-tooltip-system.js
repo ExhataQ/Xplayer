@@ -16,7 +16,7 @@ function showTooltipNow(target, titleText) {
 }
 const scheduleTooltipShow = debounce(showTooltipNow, 300);
 
-function temporarilySuppressTooltip(element, duration = 200) {
+export function temporarilySuppressTooltip(element, duration = 200) {
     if (!element) return;
 
     if (tooltip) {
@@ -116,3 +116,9 @@ document.addEventListener('click', function () {
         tooltip.style.opacity = '0';
     }
 });
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        temporarilySuppressTooltip
+    });
+}

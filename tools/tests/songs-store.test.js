@@ -6,7 +6,7 @@ const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 const store = require('../../electron/songs-store');
-const { loadPlaywright, launch, buildApp } = require('./helpers/app-fixture');
+const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 
 function tempDir() {
     return fs.mkdtempSync(path.join(os.tmpdir(), 'songs-store-'));
@@ -203,8 +203,7 @@ describe('the page takes its song list from the main process', { concurrency: fa
             // The fixture installs its own stub later; this getter keeps ours in place.
             Object.defineProperty(window, 'electronAPI', { get: () => fake, set: () => {}, configurable: true });
         }, startupSongs);
-        await page.goto('file://' + path.join(dir, 'index.html').replace(/\\/g, '/'));
-        await page.waitForTimeout(800);
+        await gotoApp(page, dir);
         return { page, errors };
     }
 

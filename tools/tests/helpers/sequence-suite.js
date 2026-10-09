@@ -18,11 +18,15 @@
 //   4. Run the suite normally. It must reproduce the recorded sequence exactly.
 //
 // Needs playwright + a browser; skips itself if missing (see scroll.test.js for setup).
+//
+// Every scenario gets its own fresh page, so scenarios do not share state. They run one after the other by
+// default. SEQUENCE_PAGES=<n> runs up to n at once (useful on a machine with spare cores; the recorded
+// sequences must not change - if one does, run with 1 to see whether the load, not the code, caused it).
 
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
-const { loadPlaywright, launch, buildApp } = require('./app-fixture');
+const { loadPlaywright, launch, buildApp, gotoApp } = require('./app-fixture');
 const { measure } = require('./call-sequence-scenarios');
 
 function defineSequenceSuite({ title, scenarios, expectedFile }) {
@@ -46,9 +50,32 @@ function defineSequenceSuite({ title, scenarios, expectedFile }) {
             const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
             const errors = [];
             page.on('pageerror', (e) => errors.push(String(e)));
-            await page.goto('file://' + require('path').join(dir, 'index.html').replace(/\\/g, '/'));
-            await page.waitForTimeout(900);
+            await gotoApp(page, dir);
             return { page, errors };
+        }
+
+        async function runScenario(name) {
+            const { page, errors } = await openApp();
+            try {
+                const calls = await measure(page, scenarios[name]);
+                return { name, calls, errors };
+            } finally {
+                await page.close();
+            }
+        }
+
+        async function runAll(names) {
+            const results = new Array(names.length);
+            let next = 0;
+            const worker = async () => {
+                while (next < names.length) {
+                    const i = next++;
+                    results[i] = await runScenario(names[i]);
+                }
+            };
+            const width = Math.max(1, Math.min(names.length, Number(process.env.SEQUENCE_PAGES) || 1));
+            await Promise.all(Array.from({ length: width }, worker));
+            return results;
         }
 
         const names = Object.keys(scenarios);
@@ -59,11 +86,9 @@ function defineSequenceSuite({ title, scenarios, expectedFile }) {
             if (names.length === 0) return; // nothing converted in this suite yet
             const expected = JSON.parse(fs.readFileSync(expectedFile, 'utf8'));
             let changed = false;
-            for (const name of names) {
-                const { page, errors } = await openApp();
-                const calls = await measure(page, scenarios[name]);
+            const results = await runAll(names);
+            for (const { name, calls, errors } of results) {
                 assert.deepEqual(errors, [], `${name}: page errors`);
-                await page.close();
                 if (baseline) {
                     if (name in expected && baseline !== 'force') {
                         assert.deepEqual(calls, expected[name], `${name}: already recorded and different - the baseline must come from the unconverted code (EVENT_BASELINE=force to re-record)`);

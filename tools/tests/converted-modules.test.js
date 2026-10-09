@@ -10,7 +10,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { loadPlaywright, launch, buildApp } = require('./helpers/app-fixture');
+const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'manifest.json'), 'utf8'));
@@ -18,7 +18,7 @@ const pw = loadPlaywright();
 
 // Every name that classic scripts use from a converted file (see `node tools/dep-map.js uses <name>`).
 const REGISTERED = {
-    functions: ['normalizeIdList', 'normalizeStringList', 'normalizeObjectList', 'normalizePlaylists', 'normalizeFolders', 'normalizePinnedMap', 'normalizeSettings', 'normalizePanelWidths', 'storageRead', 'storageWrite', 'storageRemove', 'storageReadBool', 'storageWriteBool', 'storageReadJson', 'storageWriteJson', 'addToRecentList', 'getRecentlyPlayedSongs', 'getRecentCount', 'normalizeSearchText', 'searchSongs', 'getSearchResults', 'initThemeButtons', 'parseLrcLine', 'parseLRC', 'extractDominantColor', 'applyViewColorFromCover', 'detectLanguageFromText', 'detectSongLanguage', 'analyzeAllSongsLanguages', 'smartShuffleLanguagePrepass', 'ensureShuffleLanguages', 'shuffleArray', 'createShuffleOrder', 'resetShuffle', 'clearShuffle', 'getSongDurationSeconds', 'generateSmartShuffleJourney', 'resetSmartShuffle', 'getNextSmartShuffledSong', 'getNextShuffledSong', 'startSmartShuffleFromCurrentView', 'updateQueueDisplay', 'removeFromQueue', 'cleanupPlaybackQueue', 'addToQueueNextFromMenu', 'addPlaylistToQueue', 'addAlbumToQueue', 'addArtistToQueue', 'addSongToQueueAt', 'clearGaplessPreload', 'prepareGaplessNextTrack', 'usePreloadedGaplessTrack', 'playSongFromQueue', 'createQueueFromSongList', 'playSongFromList', 'playOrResumeCurrentView', 'playCurrentViewFromStart', 'isCurrentViewPlaying', 'togglePlayAllFromCurrentView', 'paintEqOnNumberCell', 'unpaintEqOnNumberCell', 'navigateToCurrentArtist', 'navigateToCurrentSongInList', 'switchToViewAndScroll', 'updatePlayingHighlight', 'applyStoredHighlight', 'reapplyHighlightAfterFilter', 'applyHistoryStoredHighlight', 'formatTime', 'toggleTimeDisplay', 'updateTimeDisplay', 'refreshCurrentRowIndicator', 'cancelActiveAudioFade', 'getTargetTrackVolume', 'startFadeIn', 'pausePlaybackWithFade', 'scheduleCrossfadeTransition', 'cancelPendingCrossfade', 'updateVolume', 'toggleMute', 'deleteHistoryEntry', 'showFileLocation', 'deleteSongFile', 'updateLeftPanelCounts', 'syncAllUIState', 'onSongsChanged', 'refreshCurrentViewAfterMutation', 'toggleFavoriteFromMenu'],
+    functions: ['normalizeIdList', 'normalizeStringList', 'normalizeObjectList', 'normalizePlaylists', 'normalizeFolders', 'normalizePinnedMap', 'normalizeSettings', 'normalizePanelWidths', 'storageRead', 'storageWrite', 'storageRemove', 'storageReadBool', 'storageWriteBool', 'storageReadJson', 'storageWriteJson', 'addToRecentList', 'getRecentlyPlayedSongs', 'getRecentCount', 'normalizeSearchText', 'searchSongs', 'getSearchResults', 'initThemeButtons', 'updateScrollbarById', 'initExternalScrollbar', 'temporarilySuppressTooltip', 'openImageViewer', 'closeImageViewer', 'showNotification', 'showCoverProgressNotification', 'completeCoverProgressNotification', 'toggleNotificationPanel', 'closeNotificationPanel', 'clearAllNotifications', 'removeNotificationItem', 'renderNotificationPanel', 'parseLrcLine', 'parseLRC', 'extractDominantColor', 'applyViewColorFromCover', 'detectLanguageFromText', 'detectSongLanguage', 'analyzeAllSongsLanguages', 'smartShuffleLanguagePrepass', 'ensureShuffleLanguages', 'shuffleArray', 'createShuffleOrder', 'resetShuffle', 'clearShuffle', 'getSongDurationSeconds', 'generateSmartShuffleJourney', 'resetSmartShuffle', 'getNextSmartShuffledSong', 'getNextShuffledSong', 'startSmartShuffleFromCurrentView', 'updateQueueDisplay', 'removeFromQueue', 'cleanupPlaybackQueue', 'addToQueueNextFromMenu', 'addPlaylistToQueue', 'addAlbumToQueue', 'addArtistToQueue', 'addSongToQueueAt', 'clearGaplessPreload', 'prepareGaplessNextTrack', 'usePreloadedGaplessTrack', 'playSongFromQueue', 'createQueueFromSongList', 'playSongFromList', 'playOrResumeCurrentView', 'playCurrentViewFromStart', 'isCurrentViewPlaying', 'togglePlayAllFromCurrentView', 'paintEqOnNumberCell', 'unpaintEqOnNumberCell', 'navigateToCurrentArtist', 'navigateToCurrentSongInList', 'switchToViewAndScroll', 'updatePlayingHighlight', 'applyStoredHighlight', 'reapplyHighlightAfterFilter', 'applyHistoryStoredHighlight', 'formatTime', 'toggleTimeDisplay', 'updateTimeDisplay', 'refreshCurrentRowIndicator', 'cancelActiveAudioFade', 'getTargetTrackVolume', 'startFadeIn', 'pausePlaybackWithFade', 'scheduleCrossfadeTransition', 'cancelPendingCrossfade', 'updateVolume', 'toggleMute', 'deleteHistoryEntry', 'showFileLocation', 'deleteSongFile', 'updateLeftPanelCounts', 'syncAllUIState', 'onSongsChanged', 'refreshCurrentViewAfterMutation', 'toggleFavoriteFromMenu'],
     constants: { MAX_RECENT_SONGS: 50, MAX_HISTORY_ENTRIES: 500, MAX_SEARCH_HISTORY: 20 }
 };
 
@@ -40,8 +40,7 @@ describe('converted ES modules in the real page', { concurrency: false }, () => 
         const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e)));
-        await page.goto('file://' + path.join(dir, 'index.html').replace(/\\/g, '/'));
-        await page.waitForTimeout(900);
+        await gotoApp(page, dir);
         return { page, errors };
     }
 
@@ -113,8 +112,7 @@ describe('converted ES modules in the real page', { concurrency: false }, () => 
             localStorage.setItem('minimizeOnClose', 'true');
             localStorage.setItem('smartShuffleSettings', '{"journeySize":"lots","replayGainLimiter":false}');
         });
-        await page.goto('file://' + path.join(dir, 'index.html').replace(/\\/g, '/'));
-        await page.waitForTimeout(900);
+        await gotoApp(page, dir);
         const out = await page.evaluate(() => ({
             favorites: getFavorites(),
             playlists: getPlaylists(),

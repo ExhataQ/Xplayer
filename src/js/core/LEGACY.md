@@ -82,4 +82,4 @@ So a typo, or a forgotten `registerActions`, fails the test instead of being a b
 
 ## Status
 
-No inline handler has been converted yet; the bridge exists and is tested. About 300 inline handlers remain (`onclick` 247, `onchange` 20, `onmousedown` 13, `oninput` 10, `oncontextmenu` 9, `onerror` 7 plus 5 in the template, `ondblclick` 7, `onkeydown` 3, `onblur` 2). The conversion order and owners are in `.agent/PLAN.md` (B-07, C-04, D-05).
+The inline handlers in the D, B and C files have been converted to `data-action` (D-05, B-07, C-04). A few remain in A's files (`03l`, `03m`, `09`) and one string in `08d`. The conversion order and owners are in `.agent/PLAN.md`. D files that become modules (D-09) register the names classic code still calls with `registerLegacyGlobals`.
