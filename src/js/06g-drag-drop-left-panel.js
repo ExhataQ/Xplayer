@@ -1,7 +1,7 @@
 // ==============================================================================
 // DRAG & DROP - LEFT PANEL ITEMS
 // ==============================================================================
-function initLeftPanelDragAndDrop() {
+export function initLeftPanelDragAndDrop() {
     const leftPanelMainList = document.querySelector('.left-panel-main-list');
     if (!leftPanelMainList) return;
 
@@ -392,5 +392,11 @@ function initLeftPanelDragAndDrop() {
         window.addEventListener('blur', onBlurCleanupLeft, {
             once: true
         });
+    });
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        initLeftPanelDragAndDrop
     });
 }

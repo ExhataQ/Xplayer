@@ -1,7 +1,7 @@
 // ==============================================================================
 // DRAG & DROP - SONGS TO LEFT PANEL / QUEUE
 // ==============================================================================
-function initSongDragToLeftPanel() {
+export function initSongDragToLeftPanel() {
     const songList = document.getElementById('song-list');
     if (!songList) return;
 
@@ -173,14 +173,12 @@ function initSongDragToLeftPanel() {
                             showNotification(`Added ${addedCount} item(s) to Liked Songs`, 'heart', 2000);
                         }
                     } else if (targetView && targetView.startsWith('folder-')) {
-                        const folderId = targetView.replace('folder-', '');
                         showNotification(
                             'Songs cannot be added directly to folders. Drag a playlist instead.',
                             'warning',
                             3000
                         );
                     } else if (targetPinId && targetPinId.startsWith('folder-')) {
-                        const folderId = targetPinId.replace('folder-', '');
                         showNotification(
                             'Songs cannot be added directly to folders. Drag a playlist instead.',
                             'warning',
@@ -330,5 +328,11 @@ function initSongDragToLeftPanel() {
         window.addEventListener('blur', onBlurCleanup, {
             once: true
         });
+    });
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        initSongDragToLeftPanel
     });
 }
