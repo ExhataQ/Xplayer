@@ -539,7 +539,6 @@ function toggleSettingsPanel() {
             if (songListContainer) songListContainer.style.display = '';
             const lyricsToggleBtn = document.getElementById('lyrics-toggle-btn');
             if (lyricsToggleBtn) lyricsToggleBtn.classList.remove('active');
-            lyricsSavedView = null;
         }
 
         setAdvancedSettingsOpen(false);

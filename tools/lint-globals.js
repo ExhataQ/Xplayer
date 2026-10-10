@@ -8,6 +8,9 @@
 //   - Any file (module or classic) can also add globals by calling registerLegacyGlobals({ name, ... }), so the keys
 //     of those calls (found with acorn) are globals too. Any other module-level name is NOT a global: using it in
 //     another file without an import is exactly the mistake the lint is there to catch.
+//   - WINDOW_PUBLISHED_GLOBALS below is the one other way in: a name that a single, named file publishes with a plain
+//     `window.<name> = ...` assignment. Each entry is checked against that file's syntax tree on every run and the
+//     run fails if the assignment is gone, so an entry cannot go stale. A `window.x = ...` anywhere else adds nothing.
 //
 // Used by eslint.config.js. Run it on its own to see the numbers:
 //   node tools/lint-globals.js          counts
@@ -20,6 +23,29 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 const acorn = require('acorn');
 const walk = require('acorn-walk');
+
+// name -> the one file (relative to src/js) that must contain `window.<name> = ...`.
+// Keep this list short and add to it only for a name that other files really use as a bare global at run time.
+const WINDOW_PUBLISHED_GLOBALS = {
+    // initExternalScrollbar('main-content', ...) in 06c-scrollbar-widget.js publishes it during start-up (called from
+    // the DOMContentLoaded handler in 99-player.js). Other files call it directly or behind a typeof guard.
+    updateExternalScrollbar: '06c-scrollbar-widget.js'
+};
+
+// Names assigned with a plain `window.<name> = ...` in one parsed file. Computed keys (window[x]) and other
+// operators (||=, +=) do not count.
+function findWindowAssignments(ast) {
+    const found = new Set();
+    walk.simple(ast, {
+        AssignmentExpression(node) {
+            const left = node.left;
+            if (node.operator !== '=' || left.type !== 'MemberExpression' || left.computed) return;
+            if (left.object.type !== 'Identifier' || left.object.name !== 'window' || left.property.type !== 'Identifier') return;
+            found.add(left.property.name);
+        }
+    });
+    return found;
+}
 
 function buildLintGlobals(root = path.resolve(__dirname, '..')) {
     const jsDir = path.join(root, 'src', 'js');
@@ -45,6 +71,7 @@ function buildLintGlobals(root = path.resolve(__dirname, '..')) {
 
     // 99-player.js holds a {{SONGS_DATA}} build token acorn cannot parse; it registers nothing.
     const scanned = [...classic.filter((f) => f !== '99-player.js').map((f) => [f, 'script']), ...modules.map((f) => [f, 'module'])];
+    const windowAssignments = new Map(); // file -> names assigned as window.<name> = ...
     for (const [file, sourceType] of scanned) {
         let ast;
         try {
@@ -52,6 +79,7 @@ function buildLintGlobals(root = path.resolve(__dirname, '..')) {
         } catch (e) {
             throw new Error(`lint-globals: cannot parse ${file}: ${e.message}`);
         }
+        if (Object.values(WINDOW_PUBLISHED_GLOBALS).includes(file)) windowAssignments.set(file, findWindowAssignments(ast));
         walk.simple(ast, {
             CallExpression(node) {
                 if (node.callee.type !== 'Identifier' || node.callee.name !== 'registerLegacyGlobals') return;
@@ -66,6 +94,13 @@ function buildLintGlobals(root = path.resolve(__dirname, '..')) {
         });
     }
 
+    for (const [name, file] of Object.entries(WINDOW_PUBLISHED_GLOBALS)) {
+        const assigned = windowAssignments.get(file);
+        if (!assigned) throw new Error(`lint-globals: ${name} is listed as published by ${file}, but that file is not a scanned script in src/manifest.json`);
+        if (!assigned.has(name)) throw new Error(`lint-globals: ${file} no longer contains \`window.${name} = ...\`; update WINDOW_PUBLISHED_GLOBALS in tools/lint-globals.js`);
+        if (!names.has(name)) names.set(name, 'window');
+    }
+
     const sorted = [...names.keys()].sort();
     return {
         classic,
@@ -76,12 +111,13 @@ function buildLintGlobals(root = path.resolve(__dirname, '..')) {
             moduleFiles: modules.length,
             fromClassic: sorted.filter((n) => names.get(n) === 'classic').length,
             fromRegisterLegacyGlobals: sorted.filter((n) => names.get(n) === 'registered').length,
+            fromWindowPublication: sorted.filter((n) => names.get(n) === 'window').length,
             total: sorted.length
         }
     };
 }
 
-module.exports = { buildLintGlobals };
+module.exports = { buildLintGlobals, findWindowAssignments, WINDOW_PUBLISHED_GLOBALS };
 
 if (require.main === module) {
     const result = buildLintGlobals();

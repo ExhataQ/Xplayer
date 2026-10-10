@@ -1,7 +1,8 @@
 'use strict';
 
-// ESLint flat config. REPORT-ONLY: it exists to catch missing imports and typos while the renderer moves from
-// classic scripts to ES modules (see tools/tests/README.md, "Lint"). Run it with `npm run lint`.
+// ESLint flat config. It exists to catch missing imports and typos while the renderer moves from classic scripts
+// to ES modules (see tools/tests/README.md, "Lint"). `npm run lint` exits 1 on any error and only reports
+// warnings; `npm run lint:strict` also fails on warnings. The exit codes are set in tools/lint.js, not here.
 //
 // The app's own globals are generated from src/manifest.json by tools/lint-globals.js on every run; do not list them here.
 // src/js/99-player.js is skipped: it holds a build template token ({{SONGS_DATA}}) that is not valid JavaScript.

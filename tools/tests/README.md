@@ -8,7 +8,7 @@ All commands are PowerShell, run from the repository root (the folder with `pack
 
 | Group | What it is | Files |
 | --- | --- | --- |
-| **unit** | Pure Node: no browser. Fast (most files finish in under a second). | `event-bus`, `language-detect`, `lrc-parser`, `main-process-safety`, `manifest`, `metadata-backend`, `music-folders`, `online-metadata`, `recents`, `scan-folder-tags`, `scanner`, `search-engine`, `setters`, `shuffle`, `storage-core`, `storage` (`*.test.js`) |
+| **unit** | Pure Node: no browser. Fast (most files finish in under a second). | `event-bus`, `language-detect`, `lint`, `lrc-parser`, `main-process-safety`, `manifest`, `metadata-backend`, `music-folders`, `online-metadata`, `recents`, `scan-folder-tags`, `scanner`, `search-engine`, `setters`, `shuffle`, `storage-core`, `storage` (`*.test.js`) |
 | **browser** | Builds a throwaway copy of the real app, opens it in headless Chromium with a stubbed Electron API, and drives it. Each test file launches its own browser. | everything else in `tools/tests/*.test.js` |
 | **sequence suites** | A kind of browser test: runs scenarios and compares the recorded order of UI calls with `tools/tests/expected/*.json`. | `events-a`, `events-b`, `events-c`, `events-d` (scenarios live in `helpers/scenarios-*.js`) |
 | **Python logic test** | `metadata_backend_logic.py`, started by `metadata-backend.test.js`. Uses a stand-in for `mutagen` (`helpers/fake_mutagen.py`). | |
@@ -53,8 +53,8 @@ npm run test:unit                                # quick end-to-end check of the
 | `node tools/tests/run.js --concurrency=2` | Runs two files at once. Default is 1. Browser files are timing-sensitive (see below), so check failures with 1 before blaming the code. |
 | `$env:SEQUENCE_PAGES=3; node --test tools/tests/events-b.test.js` | Opt-in: the sequence suites open up to 3 scenario pages at once. Default 1. |
 | `node --check src/js/04a-ui-render-core.js` | Syntax check of one JavaScript file (no linter needed). |
-| `npm run lint` | ESLint report. Never fails the build. See "Lint". |
-| `npm run lint:strict` | Same, but exits 1 on any warning or error. |
+| `npm run lint` | ESLint. Exits 1 if there is any error; warnings are only reported. See "Lint". |
+| `npm run lint:strict` | Same, but also exits 1 on any warning. |
 
 Arguments for `node --test` can also be passed through the runner after a second `--`, for example `node tools/tests/run.js songs-store -- --test-name-pattern="lock"`. This pass-through form was verified on Linux only; on Windows PowerShell use the direct `node --test ...` form above, which is verified there.
 
@@ -185,18 +185,19 @@ For the `src/js` module conversion, the gate files are `scroll`, `manifest`, `co
 * **`scroll.test.js`** still has its own copy of `loadPlaywright` and `buildApp` (different fake song data); only `launch` and `gotoApp` come from the shared fixture.
 * **Docs:** when you change scripts, discovery, helpers or prerequisites, update this file in the same change. If the repository workflow asks for it, add a line to `tools/change.log.txt`.
 
-## 8. Lint (report-only)
+## 8. Lint (errors fail, warnings are reported)
 
 ESLint exists to catch missing imports and typos while the renderer moves from classic scripts to ES modules.
 
 * Config: `eslint.config.js` (flat config, root). Rules: `no-undef`, `no-unused-vars` (warning), `no-unreachable`, `no-dupe-keys`, `no-self-assign`.
-* The app's globals are **generated**, not listed: `tools/lint-globals.js` reads `src/manifest.json`, takes the top-level declarations of the classic scripts from `tools/dep-map.js`, and adds every key of a `registerLegacyGlobals({...})` call (in classic scripts and modules). Run `node tools/lint-globals.js` for the counts (currently 50 classic files, 62 modules, 938 names: 436 from classic declarations, 502 from `registerLegacyGlobals`). A name that exists only inside a module and is not registered is *not* a global, so using it in another file without an import is reported.
+* The app's globals are **generated**, not listed: `tools/lint-globals.js` reads `src/manifest.json`, takes the top-level declarations of the classic scripts from `tools/dep-map.js`, and adds every key of a `registerLegacyGlobals({...})` call (in classic scripts and modules). Run `node tools/lint-globals.js` for the counts (measured with this change: 46 classic files, 67 modules, 929 names: 413 from classic declarations, 515 from `registerLegacyGlobals`, 1 from a window publication). A name that exists only inside a module and is not registered is *not* a global, so using it in another file without an import is reported.
+* **One name is published on `window` instead of registered:** `updateExternalScrollbar`. `initExternalScrollbar('main-content', ...)` in `src/js/06c-scrollbar-widget.js` assigns `window.updateExternalScrollbar` during start-up and other files use it as a bare global. `WINDOW_PUBLISHED_GLOBALS` in `tools/lint-globals.js` lists it together with the one file allowed to publish it, and every lint run checks that file's syntax tree for a plain `window.updateExternalScrollbar = ...`; the run fails (exit 2, with a message) if the assignment is gone or the file is not in the manifest. A `window.x = ...` anywhere else does **not** become a global. Add a name there only for a real run-time publication, and update `tools/tests/lint.test.js`, which pins the list. Behavior of the published function (start-up order, which scrollbar it updates) is covered by `scrollbar-publication.test.js`.
 * `manifest.modules` files are linted as ES modules, the other `src/js` files as classic scripts, `electron/` as CommonJS with Node globals (`electron/preload.js` also gets browser globals).
 * Skipped: `src/js/99-player.js` (it contains the build token `{{SONGS_DATA}}`, which is not valid JavaScript), `tools/` and `tools/tests/`.
-* `npm run lint` prints every problem and a count per rule and always exits 0. `npm run lint:strict` exits 1 on any warning or error. Nothing is ever fixed automatically.
+* Exit codes of `tools/lint.js`: `npm run lint` exits **1 if there is any error** (a parse error counts as one) and 0 otherwise, so warnings are only reported; `npm run lint:strict` exits 1 on any error **or warning**; 2 means ESLint could not run (not installed, or it threw). It prints every problem and a count per rule. Nothing is ever fixed automatically. `tools/tests/lint.test.js` runs the real script against a stand-in ESLint to check these codes, so the test needs no ESLint install.
 * Needs `npm install` (adds `eslint` and `globals`; `globals` supplies the browser and Node built-in names, which ESLint does not include).
 
-**Baseline counts per rule: not recorded yet.** ESLint could not be installed where this was written (no network), so the rules have never been executed: the configuration is unverified against a real ESLint. What was verified: the config module loads, its blocks cover every `src/js` file exactly once (111 files plus the skipped `99-player.js`), and the generated global names (above) include the names registered by `core/legacy.js`. To record the baseline:
+**Baseline counts per rule: not recorded yet.** The first real ESLint run (reported by the maintainer, before the lint-fix patch) found 21 errors and 13 warnings: 20 errors for `updateExternalScrollbar` (published at run time, now allowed as described above) and 1 for `lyricsSavedView` (a dead assignment in `src/js/08e-panel-settings.js`, removed). After that patch the expected result is 0 errors and the same 13 warnings; confirm with `node tools/lint.js --summary` and record the per-rule numbers in the table below. The 13 warnings are deliberately left alone. The configuration was first written without a working ESLint (no network). What was verified: the config module loads, its blocks cover every `src/js` file exactly once (112 files plus the skipped `99-player.js`, recounted from the manifest for this change), and the generated global names (above) include the names registered by `core/legacy.js`. To record the baseline:
 
 ```powershell
 npm install
