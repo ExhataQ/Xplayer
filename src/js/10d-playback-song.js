@@ -11,7 +11,6 @@ export function playSongFromQueue(queueIndex) {
     const queueItem = playbackQueue[queueIndex];
     const song = queueItem.song || queueItem;
     const listId = queueItem.listId || currentView;
-    const ghostSlot = queueItem.ghostSlot !== undefined ? queueItem.ghostSlot : null;
 
     if (listId === VIEWS.SEARCH && searchQuery) {
         queueItem.searchQuery = searchQuery;
@@ -23,7 +22,6 @@ export function playSongFromQueue(queueIndex) {
         : null;
     const isTrackSwitch = !!audioElement.src && previousQueueIndex >= 0 && previousSong && previousSong.id !== song.id;
     const canCrossfade = isTrackSwitch && !audioElement.paused && !audioElement.ended;
-    const isSameSong = previousSong && previousSong.id === song.id;
 
     if (isTrackSwitch && typeof cancelActiveAudioFade === 'function') {
         cancelActiveAudioFade();
@@ -310,7 +308,6 @@ export function playCurrentViewFromStart(targetListId = currentView) {
 
     let songsToPlay = [];
     let listId = targetListId || currentView;
-    const previousListId = lastPlaybackListId;
     setLastPlaybackListId(listId);
 
     if (currentView === VIEWS.ALL_SONGS) {

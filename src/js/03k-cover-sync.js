@@ -82,8 +82,6 @@ export function setupCoverStreamListeners() {
     if (!desktopApi.supports('library.onScanCoverBatch') || window._coverStreamListenersAttached) return;
     window._coverStreamListenersAttached = true;
 
-    let coverStreamActive = false;
-
     // desktopApi holds these main-process messages until start-up has finished (see whenAppReady).
     desktopApi.library.onScanCoverBatch((batch) => {
         if (typeof showCoverProgressNotification === 'function') {

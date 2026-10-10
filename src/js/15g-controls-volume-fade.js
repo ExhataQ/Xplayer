@@ -141,7 +141,6 @@ export function scheduleCrossfadeTransition(song) {
     }
 
     const fadeMs = Math.max(150, (Number(settings.crossfadeDuration) || 4) * 1000);
-    const currentVolume = clampVolume(audioElement.volume);
 
     cancelPendingCrossfade();
 

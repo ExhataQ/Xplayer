@@ -42,14 +42,10 @@ export function toggleNormalShuffle() {
                     : playbackQueue[currentQueueIndex].id
                 : null;
 
-        let remainingSongs;
         let currentSongData = null;
 
         if (currentSongId !== null) {
             currentSongData = currentListSongs.find((s) => s.id === currentSongId);
-            remainingSongs = currentListSongs.filter((s) => s.id !== currentSongId);
-        } else {
-            remainingSongs = [...currentListSongs];
         }
 
         if (currentSongData) {

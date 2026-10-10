@@ -33,9 +33,6 @@ export function renderTrackLyricsBox() {
         return;
     }
 
-    const hasSynced =
-        typeof initSyncedLyrics === 'function' && typeof getSyncedLyricsForSong === 'function' ? false : false;
-
     let syncedText = null;
     if (typeof getSyncedLyricsForSong === 'function') {
         syncedText = getSyncedLyricsForSong(song);

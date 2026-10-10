@@ -282,7 +282,7 @@ function confirmCreatePlaylist() {
         return;
     }
 
-    const newPlaylist = createPlaylist(name);
+    createPlaylist(name);
     closePlaylistModal();
 
     if (currentOpenFolderId) {
@@ -336,7 +336,6 @@ function showEditPlaylistDialog(playlistId) {
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
 
-    let tempCoverData = null;
     window._editPlaylistTempCover = null;
 
     window.handleEditPlaylistCover = function (input) {

@@ -274,11 +274,8 @@ if (desktopApi.supports('window.onThumbarPrev')) {
     });
 }
 
-let isWindowMaximized = false;
-
 if (desktopApi.supports('window.onWindowMaximize')) {
     const handleWindowMaximizeChange = debounce((isMax) => {
-        isWindowMaximized = isMax;
         if (typeof updateMaximizeIcon === 'function') {
             updateMaximizeIcon(isMax);
         }
@@ -288,7 +285,6 @@ if (desktopApi.supports('window.onWindowMaximize')) {
     });
     if (desktopApi.supports('window.getWindowMaximized')) {
         desktopApi.window.getWindowMaximized().then((isMax) => {
-            isWindowMaximized = isMax;
             if (typeof updateMaximizeIcon === 'function') {
                 updateMaximizeIcon(isMax);
             }
