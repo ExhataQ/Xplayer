@@ -4,6 +4,20 @@
 
 let downloadProgressActive = false;
 
+// Cleanups that closePlaylistModal / closeAddLinkModal run before they close anything, newest first. A dialog that
+// attaches a document keydown listener (or a window helper) adds one here when it opens. Before D-09d-1 each dialog
+// instead replaced the close function with a wrapper that ran its cleanup and then the previous function: the same
+// list, built as a chain, newest first, never shortened. A module cannot do that reassignment (registerLegacyGlobals
+// would keep the original function on window), so the list is explicit. Like the chain, it is kept for the life of
+// the page, and an older dialog's cleanup still runs when a newer dialog closes (createModal removes an older
+// dialog's elements without running its cleanup).
+const playlistModalCleanups = [];
+const addLinkModalCleanups = [];
+
+function runModalCleanups(cleanups) {
+    for (let i = cleanups.length - 1; i >= 0; i--) cleanups[i]();
+}
+
 // An overlay closes its dialog only when the click lands on the overlay itself. The dialog sits
 // inside the overlay and marks itself data-stop, which keeps the click from the page-level
 // listeners, but the overlay's own listener still sees clicks that bubble up from the dialog.
@@ -34,6 +48,7 @@ function createModal(modalClassName, overlayClassName, closeFunction) {
 }
 
 function closePlaylistModal() {
+    runModalCleanups(playlistModalCleanups);
     const overlay = document.querySelector('.playlist-modal-overlay');
     if (overlay) {
         if (overlay._cleanup) overlay._cleanup();
@@ -49,6 +64,7 @@ function closePlaylistModal() {
 }
 
 function closeAddLinkModal() {
+    runModalCleanups(addLinkModalCleanups);
     const overlay = document.querySelector('.playlist-modal-overlay');
     if (overlay) overlay.remove();
     const modal = document.querySelector('.playlist-modal');
@@ -257,12 +273,10 @@ function showCreatePlaylistDialog() {
         document.removeEventListener('keydown', handleKeydown);
     };
 
-    const originalClose = closePlaylistModal;
-    closePlaylistModal = function () {
+    playlistModalCleanups.push(function () {
         if (overlay._cleanup) overlay._cleanup();
         document.removeEventListener('keydown', handleKeydown);
-        originalClose();
-    };
+    });
 
     setTimeout(() => {
         const input = document.getElementById('playlist-name-input');
@@ -369,11 +383,9 @@ function showEditPlaylistDialog(playlistId) {
         delete window._editPlaylistTempCover;
     };
 
-    const originalClose = closePlaylistModal;
-    closePlaylistModal = function () {
+    playlistModalCleanups.push(function () {
         if (overlay._cleanup) overlay._cleanup();
-        originalClose();
-    };
+    });
 
     setTimeout(() => {
         const input = document.getElementById('edit-playlist-name-input');
@@ -454,12 +466,10 @@ function showCreateFolderDialog() {
         document.removeEventListener('keydown', handleKeydown);
     };
 
-    const originalClose = closePlaylistModal;
-    closePlaylistModal = function () {
+    playlistModalCleanups.push(function () {
         if (overlay._cleanup) overlay._cleanup();
         document.removeEventListener('keydown', handleKeydown);
-        originalClose();
-    };
+    });
 
     setTimeout(() => {
         const input = document.getElementById('folder-name-input');
@@ -535,11 +545,9 @@ function showEditFolderDialog(folderId) {
         document.removeEventListener('keydown', handleKeydown);
     };
 
-    const originalClose = closePlaylistModal;
-    closePlaylistModal = function () {
+    playlistModalCleanups.push(function () {
         if (overlay._cleanup) overlay._cleanup();
-        originalClose();
-    };
+    });
 
     setTimeout(() => {
         const input = document.getElementById('edit-folder-name-input');
@@ -646,11 +654,9 @@ function showAddLinkDialog() {
 
     document.addEventListener('keydown', handleKeydown);
 
-    const originalClose = closeAddLinkModal;
-    closeAddLinkModal = function () {
+    addLinkModalCleanups.push(function () {
         document.removeEventListener('keydown', handleKeydown);
-        originalClose();
-    };
+    });
 
     function focusInput() {
         const input = document.getElementById('link-url-input');
