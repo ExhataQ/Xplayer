@@ -6,42 +6,42 @@ Status values: `todo`, `in progress`, `patch received`, `applied + verified`, `b
 
 ## Next actions
 
-* [ ] Run the Playwright checks and complete `tools/smoke-checklist.md`. The Node.js test suite and Python metadata-backend test have passed. Once the remaining checks pass, update any remaining `patch received` rows to `applied + verified`.
-* [ ] Run the module spike (A-04) in Electron and paste the DevTools output into a new A report. Only Phase 3 and later need it. A-04 is currently marked `applied + verified`; confirm whether the runtime evidence has been recorded.
-* [ ] Give B, C and D their briefs (`.agent/PLAN.md`, section 9.4) at the same time: B-01 to B-04, C-01, D-01 and D-02 do not depend on each other. The handler bridge exists, so B-07, C-04 and D-05 can also start; tell them to read `src/js/core/LEGACY.md` first.
-* [x] B-08, B-09 and B-10 completed; see B report 0012 and the October 9 change log.
-* [x] C-04 through C-07 completed; see C migration commit 5bccad3. Continue D-05 and D-09 according to their dependencies.
-* [ ] Keep A-16 blocked until B-10, C-07 and D-09 are complete.
-* [ ] D-05: apply D-0010 (with the D-0011 additions, one combined patch), then D-0012 (the call sites in `10c-playback-queue.js` (B) and `19-online-lyrics.js` (C), which removes the last 3 inline handlers). After your checks, mark D-05 `applied + verified`. D-09a (read-only survey) can start at any time; D-09b to D-09i follow in order, one patch each.
-* [ ] Investigate and resolve the 21 ESLint errors; standard lint currently exits 0 despite reporting errors. See the October 10 verification output. This does not block continuing D-09 unless a later change touches an affected area.
-* [ ] Complete the remaining Electron/Playwright smoke checks and `tools/smoke-checklist.md`. Do not mark runtime verification complete until the real Electron run has been performed.
+- [ ] Run the Playwright checks and complete `tools/smoke-checklist.md`. The full Node.js test suite passed after commit `4d479bc`: 432 tests, 430 passed, 0 failed, 2 skipped, across 58 suites. The Python metadata-backend test was previously reported as passed. Do not mark runtime verification complete until the required real Electron run and remaining smoke checks pass.
+- [ ] Run the module spike (A-04) in Electron and paste the DevTools output into a new A report. Only Phase 3 and later need it. A-04 is currently marked `applied + verified`; confirm whether the runtime evidence has been recorded.
+- [ ] Give B, C and D their briefs (`.agent/PLAN.md`, section 9.4) at the same time: B-01 to B-04, C-01, D-01 and D-02 do not depend on each other. The handler bridge exists, so B-07, C-04 and D-05 can also start; tell them to read `src/js/core/LEGACY.md` first.
+- [x] B-08, B-09 and B-10 completed; see B report 0012 and the October 9 change log.
+- [x] C-04 through C-07 completed; see C migration commit 5bccad3. Continue D-05 and D-09 according to their dependencies.
+- [ ] Keep A-16 blocked until B-10, C-07 and D-09 are complete.
+- [ ] D-05: apply D-0010 (with the D-0011 additions, one combined patch), then D-0012 (the call sites in `10c-playback-queue.js` (B) and `19-online-lyrics.js` (C), which removes the last 3 inline handlers). After your checks, mark D-05 `applied + verified`. D-09a (read-only survey) can start at any time; D-09b to D-09i follow in order, one patch each.
+- [ ] Investigate and resolve the 21 ESLint errors; standard lint currently exits 0 despite reporting errors. See the October 10 verification output. This does not block continuing D-09 unless a later change touches an affected area.
+- [ ] Complete the remaining Electron/Playwright smoke checks and `tools/smoke-checklist.md`. Do not mark runtime verification complete until the real Electron run has been performed.
 
 ## Agent A: Foundation and data
 
-| ID   | Phase | Step                                       | Needs            | Status                        | Patch                                                                  |
-| ---- | ----- | ------------------------------------------ | ---------------- | ----------------------------- | ---------------------------------------------------------------------- |
-| A-01 | 0     | Add the analysis tool                      | -                | applied + verified            | A report 1                                                             |
-| A-02 | 0     | Record test baselines                      | -                | applied + verified            | A report 1                                                             |
-| A-03 | 0     | Add the smoke checklist                    | -                | applied + verified            | A report 1                                                             |
-| A-04 | 0     | Module-loading spike                       | -                | applied + verified            | Runtime evidence to confirm                                            |
-| A-05 | 0.5   | Event bus check                            | -                | applied + verified            | First plan (A report 1)                                                |
-| A-06 | 1     | Create the owner and setter files          | -                | applied + verified            | A report 1                                                             |
+| ID   | Phase | Step                                       | Needs            | Status                        | Patch                         |
+| ---- | ----- | ------------------------------------------ | ---------------- | ----------------------------- | ----------------------------- |
+| A-01 | 0     | Add the analysis tool                      | -                | applied + verified            | A report 1                    |
+| A-02 | 0     | Record test baselines                      | -                | applied + verified            | A report 1                    |
+| A-03 | 0     | Add the smoke checklist                    | -                | applied + verified            | A report 1                    |
+| A-04 | 0     | Module-loading spike                       | -                | applied + verified            | Runtime evidence to confirm   |
+| A-05 | 0.5   | Event bus check                            | -                | applied + verified            | First plan (A report 1)       |
+| A-06 | 1     | Create the owner and setter files          | -                | applied + verified            | A report 1                    |
 | A-07 | 1     | Replace writes in A's own files            | A-06             | applied + verified            | A-07b complete; report A 0019 |
-| A-08 | 2     | Emit events from data changes              | A-07             | applied + verified            | First plan (A reports 2, 3)                                            |
-| A-09 | 2     | Remove direct render calls from A's files  | -                | applied + verified            | First plan (A reports 2, 3)                                            |
-| A-10 | 3     | Build the handler bridge                   | A-04             | applied + verified            |                                                                        |
-| A-11 | 4     | Split `99-player.js`                       | A-04, A-07       | applied + verified            |                                                                        |
-| A-12 | 4     | Convert storage, recents and search engine | A-10             | applied + verified            |                                                                        |
-| A-13 | 5     | Storage module                             | A-12             | applied + verified            |                                                                        |
-| A-14 | 5     | `api/` wrapper and preload                 | A-10             | applied + verified            |                                                                        |
-| A-15 | 6     | Convert core and library to modules        | A-13, A-14, A-11 | applied + verified            |                                                                        |
-| A-16 | 6     | Final flip                                 | B-10, C-07, D-09 | todo                          |                                                                        |
-| A-S1 | side  | Safe downloads and delete                  | -                | applied + verified            |                                                                        |
-| A-S2 | side  | One place for settings files               | A-S1             | applied + verified            |                                                                        |
-| A-S3 | side  | Song list as data, not text                | A-S2             | partly done (`songs-data.js`) |                                                                        |
-| A-S4 | side  | IPC and window hardening                   | -                | applied + verified            |                                                                        |
-| A-S5 | side  | Safer tag writes                           | -                | applied + verified            |                                                                        |
-| A-S6 | side  | Tests for each fix                         | A-S1..S5         | applied + verified            |                                                                        |
+| A-08 | 2     | Emit events from data changes              | A-07             | applied + verified            | First plan (A reports 2, 3)   |
+| A-09 | 2     | Remove direct render calls from A's files  | -                | applied + verified            | First plan (A reports 2, 3)   |
+| A-10 | 3     | Build the handler bridge                   | A-04             | applied + verified            |                               |
+| A-11 | 4     | Split `99-player.js`                       | A-04, A-07       | applied + verified            |                               |
+| A-12 | 4     | Convert storage, recents and search engine | A-10             | applied + verified            |                               |
+| A-13 | 5     | Storage module                             | A-12             | applied + verified            |                               |
+| A-14 | 5     | `api/` wrapper and preload                 | A-10             | applied + verified            |                               |
+| A-15 | 6     | Convert core and library to modules        | A-13, A-14, A-11 | applied + verified            |                               |
+| A-16 | 6     | Final flip                                 | B-10, C-07, D-09 | todo                          |                               |
+| A-S1 | side  | Safe downloads and delete                  | -                | applied + verified            |                               |
+| A-S2 | side  | One place for settings files               | A-S1             | applied + verified            |                               |
+| A-S3 | side  | Song list as data, not text                | A-S2             | partly done (`songs-data.js`) |                               |
+| A-S4 | side  | IPC and window hardening                   | -                | applied + verified            |                               |
+| A-S5 | side  | Safer tag writes                           | -                | applied + verified            |                               |
+| A-S6 | side  | Tests for each fix                         | A-S1..S5         | applied + verified            |                               |
 
 ## Agent B: Playback
 
@@ -56,42 +56,42 @@ Status values: `todo`, `in progress`, `patch received`, `applied + verified`, `b
 | B-07 | 3     | Convert inline handlers                 | A-10                   | applied + verified |                                                                        |
 | B-08 | 4     | Shuffle modules                         | A-10, B-03             | applied + verified | B report 0012                                                          |
 | B-09 | 5     | Swap storage and API calls              | A-13, A-14             | applied + verified | B report 0012                                                          |
-| B-10 | 6     | Convert playback to modules             | A-15, A-11, B-09, B-08 | applied + verified | B report 0012; song navigation conversion recorded in change log |
+| B-10 | 6     | Convert playback to modules             | A-15, A-11, B-09, B-08 | applied + verified | B report 0012; song navigation conversion recorded in change log       |
 | B-13 | —     | Song navigation module                  | —                      | applied + verified | `B-0013-song-navigation-module.patch`; tests passed and changes pushed |
 
 ## Agent C: Lyrics, metadata, panels
 
-| ID   | Phase | Step                                           | Needs            | Status             | Patch                       |
-| ---- | ----- | ---------------------------------------------- | ---------------- | ------------------ | --------------------------- |
-| C-01 | 1     | Replace writes in the panel files              | A-06             | applied + verified |                             |
-| C-02 | 2     | Emit lyrics and settings events                | -                | applied + verified | First plan (C 0001 to 0005) |
-| C-03 | 2     | Panels react to events                         | -                | applied + verified | First plan (C 0001 to 0005) |
-| C-04 | 3     | Convert inline handlers                        | A-10             | applied + verified | C migration commit 5bccad3 |
-| C-05 | 4     | Lyrics leaf modules                            | A-10             | applied + verified | C migration commit 5bccad3 |
-| C-06 | 5     | Swap storage and API calls                     | A-13, A-14       | applied + verified | C migration commit 5bccad3 |
+| ID   | Phase | Step                                           | Needs            | Status             | Patch                                                       |
+| ---- | ----- | ---------------------------------------------- | ---------------- | ------------------ | ----------------------------------------------------------- |
+| C-01 | 1     | Replace writes in the panel files              | A-06             | applied + verified |                                                             |
+| C-02 | 2     | Emit lyrics and settings events                | -                | applied + verified | First plan (C 0001 to 0005)                                 |
+| C-03 | 2     | Panels react to events                         | -                | applied + verified | First plan (C 0001 to 0005)                                 |
+| C-04 | 3     | Convert inline handlers                        | A-10             | applied + verified | C migration commit 5bccad3                                  |
+| C-05 | 4     | Lyrics leaf modules                            | A-10             | applied + verified | C migration commit 5bccad3                                  |
+| C-06 | 5     | Swap storage and API calls                     | A-13, A-14       | applied + verified | C migration commit 5bccad3                                  |
 | C-07 | 6     | Convert lyrics, metadata and panels to modules | A-15, C-05, C-06 | applied + verified | C migration commit 5bccad3; 293 passed, 0 failed, 2 skipped |
 
 ## Agent D: UI shell
 
-| ID   | Phase | Step                                   | Needs                        | Status             | Patch                       |
-| ---- | ----- | -------------------------------------- | ---------------------------- | ------------------ | --------------------------- |
-| D-01 | 1     | Replace writes in the smaller UI files | A-06                         | applied + verified |                             |
-| D-02 | 1     | Replace writes in `07-views`           | A-06                         | applied + verified |                             |
-| D-03 | 2     | Renderers subscribe to events          | -                            | applied + verified | First plan (D 0001 to 0004) |
-| D-04 | 2     | Remove D's own cross-subsystem calls   | -                            | applied + verified | First plan (D 0001 to 0004) |
-| D-05 | 3     | Convert inline handlers                | A-10                         | applied + verified | D-0007 (slice 1), D-0010 (slice 2: 96 -> 5 inline handlers), D-0011 (add-to-queue and right-panel actions), D-0012 (B and C call sites; 0 inline handlers left in the D files) |
-| D-06 | 5     | Replace the one generic `invoke`       | A-14                         | applied + verified |                             |
-| D-07 | 4     | Theme switcher module                  | A-10                         | applied + verified |                             |
-| D-08 | 5     | Swap storage and API calls             | A-13, A-14                   | applied + verified |                             |
-| D-09 | 6 | Convert the UI shell to modules (nine steps below) | A-15, B-10, C-07, D-08 | in progress | D-09a to D-09d applied + verified; D-09e and D-09f patch received (D-0022, D-0021); D-09g to D-09i todo |
-| D-09a | 6 | Pre-flight: list globals, load-time references, runtime reassignments and listener order per D file (no edits) | A-15, B-10, C-07, D-08 | applied + verified | D report 0013; survey files added |
-| D-09b | 6 | Leaf files `06c`, `06d`, `06e`, `06h`, `06j` | D-09a | applied + verified | D reports 0014, 0015 |
-| D-09c | 6 | Drag and drop `06f`, `06g` | D-09b | applied + verified | D report 0016 |
-| D-09d | 6 | `06a`, `06b`, `06k` (fix the `06b` function reassignments first; one real Electron run) | D-09c | applied + verified | D reports 0017 to 0020 (d1 to d4) |
-| D-09e | 6 | Renderers `04b` to `04g`, `07a` | D-09d | patch received | D report 0022; focused tests passed (manifest, render-modules, events-wiring, ui-handlers, listener-order, converted-modules); full suite not run |
-| D-09f | 6 | Event subscribers `04h` to `04v` (decide the module registration rule first) | D-09e | patch received | D report 0021; focused tests passed (event-subscribers-modules, listener-order, events-wiring, event-bus, events-b); full suite not run |
-| D-09g | 6    | `04a`                                  | D-09f, D-0012 (D-05 done)    | todo               |                             |
-| D-09h | 6    | Virtual scroll `05c`, `05a`, `05b`     | D-09g                        | todo               |                             |
-| D-09i | 6    | `07-views`, then the full smoke checklist and a second real Electron run | D-09h | todo |                             |
+| ID    | Phase | Step                                                                                                           | Needs                     | Status             | Patch                                                                                                                                                                          |
+| ----- | ----- | -------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| D-01  | 1     | Replace writes in the smaller UI files                                                                         | A-06                      | applied + verified |                                                                                                                                                                                |
+| D-02  | 1     | Replace writes in `07-views`                                                                                   | A-06                      | applied + verified |                                                                                                                                                                                |
+| D-03  | 2     | Renderers subscribe to events                                                                                  | -                         | applied + verified | First plan (D 0001 to 0004)                                                                                                                                                    |
+| D-04  | 2     | Remove D's own cross-subsystem calls                                                                           | -                         | applied + verified | First plan (D 0001 to 0004)                                                                                                                                                    |
+| D-05  | 3     | Convert inline handlers                                                                                        | A-10                      | applied + verified | D-0007 (slice 1), D-0010 (slice 2: 96 -> 5 inline handlers), D-0011 (add-to-queue and right-panel actions), D-0012 (B and C call sites; 0 inline handlers left in the D files) |
+| D-06  | 5     | Replace the one generic `invoke`                                                                               | A-14                      | applied + verified |                                                                                                                                                                                |
+| D-07  | 4     | Theme switcher module                                                                                          | A-10                      | applied + verified |                                                                                                                                                                                |
+| D-08  | 5     | Swap storage and API calls                                                                                     | A-13, A-14                | applied + verified |                                                                                                                                                                                |
+| D-09  | 6     | Convert the UI shell to modules (nine steps below)                                                             | A-15, B-10, C-07, D-08    | in progress        | D-09a to D-09f applied + verified; full suite passed after commit 4d479bc (430 passed, 0 failed, 2 skipped); D-09g to D-09i todo                                               |
+| D-09a | 6     | Pre-flight: list globals, load-time references, runtime reassignments and listener order per D file (no edits) | A-15, B-10, C-07, D-08    | applied + verified | D report 0013; survey files added                                                                                                                                              |
+| D-09b | 6     | Leaf files `06c`, `06d`, `06e`, `06h`, `06j`                                                                   | D-09a                     | applied + verified | D reports 0014, 0015                                                                                                                                                           |
+| D-09c | 6     | Drag and drop `06f`, `06g`                                                                                     | D-09b                     | applied + verified | D report 0016                                                                                                                                                                  |
+| D-09d | 6     | `06a`, `06b`, `06k` (fix the `06b` function reassignments first; one real Electron run)                        | D-09c                     | applied + verified | D reports 0017 to 0020 (d1 to d4)                                                                                                                                              |
+| D-09e | 6     | Renderers `04b` to `04g`, `07a`                                                                                | D-09d                     | applied + verified | D report 0022; focused tests and full suite passed after commit `4d479bc` (430 passed, 0 failed, 2 skipped)                                                                    |
+| D-09f | 6     | Event subscribers `04h` to `04v` (decide the module registration rule first)                                   | D-09e                     | applied + verified | D report 0021; focused tests and full suite passed after commit `4d479bc` (430 passed, 0 failed, 2 skipped)                                                                    |
+| D-09g | 6     | `04a`                                                                                                          | D-09f, D-0012 (D-05 done) | todo               |                                                                                                                                                                                |
+| D-09h | 6     | Virtual scroll `05c`, `05a`, `05b`                                                                             | D-09g                     | todo               |                                                                                                                                                                                |
+| D-09i | 6     | `07-views`, then the full smoke checklist and a second real Electron run                                       | D-09h                     | todo               |                                                                                                                                                                                |
 
 D-05 does not have to finish before D-09a: an inline `on...=` string keeps working after its file becomes a module, because the module registers its names with `registerLegacyGlobals`. D-05 only has to finish (D-0012) before D-09g (`04a`), where the last strings are.
