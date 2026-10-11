@@ -149,11 +149,13 @@ describe('converted UI controls behave like the inline handlers did (real page)'
             ${SPY_SETUP}
             const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
             __spy(['toggleFavoriteFromMenu', 'showSongMetadataModal', 'removeFromQueue', 'addArtistToQueue', 'openArtist', 'playCurrentViewFromStart', 'togglePinItem', 'confirmDeleteFolder', 'openFolder']);
-            __spyClose();
+            const out = {};
+            // Whether the menu is still in the page when a "play" item's function runs: it has to be closed first.
+            const spiedOpenArtist = window.openArtist;
+            window.openArtist = function (...a) { out.menuOpenWhenPlayRuns = !!document.getElementById('context-menu'); return spiedOpenArtist.apply(this, a); };
             const fire = (fn) => { const el = document.createElement('div'); document.body.appendChild(el); el.addEventListener('contextmenu', (e) => fn(e), { once: true }); el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 200, clientY: 200 })); el.remove(); };
             const itemByText = (text) => [...document.querySelectorAll('#context-menu .context-menu-item')].find((e) => e.textContent.trim().startsWith(text));
-            const out = {};
-            const run = async (key, open, text) => { open(); __calls.length = 0; __click(itemByText(text)); await sleep(150); out[key] = [...__calls]; if (document.getElementById('context-menu')) __realClose(); };
+            const run = async (key, open, text) => { open(); __calls.length = 0; __click(itemByText(text)); await sleep(150); out[key] = [...__calls]; out[key + 'Closed'] = !document.getElementById('context-menu'); if (document.getElementById('context-menu')) window.closeContextMenu(); };
             await run('favorite', () => fire((e) => showContextMenu(e, 3, {})), 'Add to favorites');
             await run('metadata', () => fire((e) => showContextMenu(e, 3, {})), 'Show metadata');
             await run('queue', () => fire((e) => showContextMenu(e, 3, { queueIndex: 4 })), 'Remove from queue');
@@ -166,14 +168,20 @@ describe('converted UI controls behave like the inline handlers did (real page)'
             out.folderId = folderId;
             return out;
         })()`);
-        assert.deepEqual(result.favorite, ['toggleFavoriteFromMenu()', 'closeContextMenu()']);
-        assert.deepEqual(result.metadata, ['showSongMetadataModal(3)', 'closeContextMenu()']);
-        assert.deepEqual(result.queue, ['removeFromQueue(4)', 'closeContextMenu()']);
-        assert.deepEqual(result.artistAdd, ['addArtistToQueue("Artist 1")', 'closeContextMenu()']);
-        assert.deepEqual(result.artistPlay, ['closeContextMenu()', 'openArtist("Artist 1")', 'playCurrentViewFromStart()']);
-        assert.deepEqual(result.pinQuote, ['togglePinItem("artist-x","O\'Neil")', 'closeContextMenu()']);
-        assert.deepEqual(result.folderOpen, [`openFolder(${JSON.stringify(result.folderId)})`, 'closeContextMenu()']);
-        assert.deepEqual(result.folderDelete, [`confirmDeleteFolder(${JSON.stringify(result.folderId)},"Fold's")`, 'closeContextMenu()']);
+        // The close is done by the context-menu file with its own closeContextMenu, which a replacement on window cannot
+        // see, so "and then close the menu" is checked by the menu being gone, not by a recorded call.
+        assert.deepEqual(result.favorite, ['toggleFavoriteFromMenu()']);
+        assert.deepEqual(result.metadata, ['showSongMetadataModal(3)']);
+        assert.deepEqual(result.queue, ['removeFromQueue(4)']);
+        assert.deepEqual(result.artistAdd, ['addArtistToQueue("Artist 1")']);
+        assert.deepEqual(result.artistPlay, ['openArtist("Artist 1")', 'playCurrentViewFromStart()']);
+        assert.deepEqual(result.pinQuote, ['togglePinItem("artist-x","O\'Neil")']);
+        assert.deepEqual(result.folderOpen, [`openFolder(${JSON.stringify(result.folderId)})`]);
+        assert.deepEqual(result.folderDelete, [`confirmDeleteFolder(${JSON.stringify(result.folderId)},"Fold's")`]);
+        for (const key of ['favorite', 'metadata', 'queue', 'artistAdd', 'artistPlay', 'pinQuote', 'folderOpen', 'folderDelete']) {
+            assert.equal(result[key + 'Closed'], true, `${key}: the menu closes after the item is used`);
+        }
+        assert.equal(result.menuOpenWhenPlayRuns, false, 'play items close the menu before they start playing');
         assert.deepEqual(errors, []);
         await page.close();
     });

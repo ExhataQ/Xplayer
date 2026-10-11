@@ -5,7 +5,7 @@ let activeContextMenu = null;
 let currentContextPlaylistId = null;
 let contextMenuMouseDownOutside = false;
 
-const CONTEXT_MENU_TYPE_LABELS = {
+export const CONTEXT_MENU_TYPE_LABELS = {
     playlist: 'Playlist',
     folder: 'Folder',
     album: 'Album',
@@ -335,7 +335,7 @@ registerActions({
 // ==============================================================================
 // CONTEXT MENU - SHOW / CLOSE
 // ==============================================================================
-function showContextMenu(event, songId, options = {}) {
+export function showContextMenu(event, songId, options = {}) {
     event.stopPropagation();
     event.preventDefault();
 
@@ -435,7 +435,7 @@ function showContextMenu(event, songId, options = {}) {
     }, 10);
 }
 
-function closeContextMenu() {
+export function closeContextMenu() {
     if (activeContextMenu) {
         activeContextMenu.remove();
         activeContextMenu = null;
@@ -492,7 +492,7 @@ function getContainingFolderIdFromEvent(event) {
     return null;
 }
 
-function showLeftPanelItemContextMenu(event, itemId, itemName, itemType) {
+export function showLeftPanelItemContextMenu(event, itemId, itemName, itemType) {
     event.stopPropagation();
     event.preventDefault();
 
@@ -684,18 +684,18 @@ function showLeftPanelItemContextMenu(event, itemId, itemName, itemType) {
     menu._flippedY = spaceToBottom < menuHeight;
 }
 
-function showSpecialItemContextMenu(event, itemId, itemName) {
+export function showSpecialItemContextMenu(event, itemId, itemName) {
     showLeftPanelItemContextMenu(event, itemId, itemName, 'special');
 }
 
-function showPlaylistContextMenu(event, playlistId) {
+export function showPlaylistContextMenu(event, playlistId) {
     const playlists = getPlaylists();
     const playlist = playlists.find((p) => p.id == playlistId || p.id === playlistId);
     const name = playlist ? playlist.name : 'Playlist';
     showLeftPanelItemContextMenu(event, `playlist-${playlistId}`, name, 'playlist');
 }
 
-function showFolderContextMenu(event, folderId) {
+export function showFolderContextMenu(event, folderId) {
     const folders = getFolders();
     const folder = folders.find((f) => f.id === folderId);
     const name = folder ? folder.name : 'Folder';
@@ -823,14 +823,14 @@ function showFolderContextMenu(event, folderId) {
     menu._flippedY = spaceToBottom < menuHeight;
 }
 
-function showAlbumContextMenu(event, albumId) {
+export function showAlbumContextMenu(event, albumId) {
     const albums = getAlbums();
     const album = albums.find((a) => a.id === albumId);
     const name = album ? album.name : 'Album';
     showLeftPanelItemContextMenu(event, albumId, name, 'album');
 }
 
-function showArtistContextMenu(event, artistId) {
+export function showArtistContextMenu(event, artistId) {
     const artists = getArtists();
     const artist = artists.find((a) => a.id === artistId);
     const name = artist ? artist.name : 'Artist';
@@ -845,7 +845,7 @@ function getViewItemType(viewId) {
     return 'special';
 }
 
-function showSubheroContextMenu(event) {
+export function showSubheroContextMenu(event) {
     const clickedMoreInfo = event.target.closest('.subhero-more-btn, .more-info');
     if (clickedMoreInfo) {
         temporarilySuppressTooltip(clickedMoreInfo);
@@ -997,3 +997,18 @@ window.addEventListener('resize', function () {
         positionSubmenus(menu);
     }
 });
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        showContextMenu,
+        closeContextMenu,
+        showLeftPanelItemContextMenu,
+        showSpecialItemContextMenu,
+        showPlaylistContextMenu,
+        showFolderContextMenu,
+        showAlbumContextMenu,
+        showArtistContextMenu,
+        showSubheroContextMenu,
+        CONTEXT_MENU_TYPE_LABELS
+    });
+}
