@@ -29,7 +29,7 @@ Gate: D-09f and D-0012.
 - Check the three remaining inline `on...=` strings in `04a` still resolve after conversion.
 - Run `listener-order` and `converted-modules` tests.
 
-## 4. D-09h: virtual scroll `05c`, `05a`, `05b`
+## 4. D-09h: virtual scroll `05c`, `05a`, `05b` (done, patch D-0024)
 
 Gate: D-09g. Keep `05a` before `05c` in `"modules"`. Run `scroll.test.js` and the placeholder checks. Highest regression risk.
 

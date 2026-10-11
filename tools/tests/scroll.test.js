@@ -95,15 +95,28 @@ async function openPage(browser, dir) {
 }
 
 // Records every renderVisibleItems call as [msSinceStart, 'PH'|'REAL', scrollTop].
+// Renders happen inside 05a (an ES module), where calls between its own functions cannot be spied on through
+// window, so the log is built from the DOM: a batch of added rows containing a skeleton is 'PH', any other
+// batch of added rows is 'REAL'. The third value is the scroll position at that moment.
 const instrument = (page) =>
     page.evaluate(() => {
         window.__log = [];
         window.__t0 = performance.now();
-        const orig = window.renderVisibleItems;
-        window.renderVisibleItems = function (c, ph) {
-            window.__log.push([Math.round(performance.now() - window.__t0), ph ? 'PH' : 'REAL', Math.round(c.scrollTop)]);
-            return orig.apply(this, arguments);
-        };
+        if (window.__logObserver) window.__logObserver.disconnect();
+        const content = document.querySelector('.content');
+        window.__logObserver = new MutationObserver((records) => {
+            let added = false;
+            let placeholder = false;
+            for (const r of records) {
+                r.addedNodes.forEach((n) => {
+                    if (n.nodeType !== 1) return;
+                    added = true;
+                    if (n.classList.contains('lazy-skeleton') || n.querySelector('.lazy-skeleton')) placeholder = true;
+                });
+            }
+            if (added) window.__log.push([Math.round(performance.now() - window.__t0), placeholder ? 'PH' : 'REAL', Math.round(content.scrollTop)]);
+        });
+        window.__logObserver.observe(document.getElementById('song-list'), { childList: true, subtree: true });
         window.__im = null;
     });
 

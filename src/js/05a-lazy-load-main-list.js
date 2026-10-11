@@ -8,7 +8,7 @@ const LOW_STEP_LIMIT = 500;
 const LOW_STEP = 50;
 const HIGH_STEP = 100;
 
-function snapVirtualScrollThreshold(value) {
+export function snapVirtualScrollThreshold(value) {
     const v = parseInt(value, 10);
     if (isNaN(v)) return DEFAULT_VIRTUAL_SCROLL_THRESHOLD;
     let snapped;
@@ -30,7 +30,7 @@ VIRTUAL_SCROLL_THRESHOLD = (function () {
     return DEFAULT_VIRTUAL_SCROLL_THRESHOLD;
 })();
 
-function setVirtualScrollThreshold(value) {
+export function setVirtualScrollThreshold(value) {
     const v = snapVirtualScrollThreshold(value);
     VIRTUAL_SCROLL_THRESHOLD = v;
     storageWrite(STORAGE_KEYS.VIRTUAL_SCROLL_THRESHOLD, v);
@@ -64,7 +64,7 @@ const ITEM_HEIGHT = (() => {
 
 // The one rule for "does this list use virtual scrolling": strictly more songs than the
 // Advanced Settings threshold. Every list (including All Songs) follows it.
-function shouldUseVirtualScroll(songs) {
+export function shouldUseVirtualScroll(songs) {
     return !!songs && songs.length > VIRTUAL_SCROLL_THRESHOLD;
 }
 // ==============================================================================
@@ -74,14 +74,14 @@ function shouldUseVirtualScroll(songs) {
 // ==============================================================================
 
 // Which item indexes should be in the DOM for a given scroll position.
-function computeVirtualWindow(scrollTop, viewportHeight, itemHeight, overscan, count) {
+export function computeVirtualWindow(scrollTop, viewportHeight, itemHeight, overscan, count) {
     return {
         start: Math.max(0, Math.floor(scrollTop / itemHeight) - overscan),
         end: Math.min(count - 1, Math.ceil((scrollTop + viewportHeight) / itemHeight) + overscan)
     };
 }
 
-function createVirtualSpacer(heightPx) {
+export function createVirtualSpacer(heightPx) {
     const spacer = document.createElement('div');
     spacer.style.height = heightPx + 'px';
     spacer.style.width = '100%';
@@ -91,7 +91,7 @@ function createVirtualSpacer(heightPx) {
 
 // Clears `list`, then renders [top spacer] + items win.start..win.end. buildHTML(i) returns
 // the row's HTML ('' skips the row). Returns the spacer and the rendered {element, index}s.
-function rebuildVirtualWindow(list, win, itemHeight, buildHTML) {
+export function rebuildVirtualWindow(list, win, itemHeight, buildHTML) {
     list.innerHTML = '';
     const spacer = createVirtualSpacer(win.start * itemHeight);
     list.appendChild(spacer);
@@ -111,7 +111,7 @@ function rebuildVirtualWindow(list, win, itemHeight, buildHTML) {
 }
 
 // Bottom spacer so the scroll height equals count * itemHeight. Returns the element or null.
-function appendVirtualBottomSpacer(list, win, itemHeight, count, alwaysAdd) {
+export function appendVirtualBottomSpacer(list, win, itemHeight, count, alwaysAdd) {
     const height = Math.max(0, count * itemHeight - win.start * itemHeight - (win.end - win.start + 1) * itemHeight);
     if (height <= 0 && !alwaysAdd) return null;
     const spacer = createVirtualSpacer(height);
@@ -120,7 +120,7 @@ function appendVirtualBottomSpacer(list, win, itemHeight, count, alwaysAdd) {
 }
 
 // rAF-coalesced scroll listener (+ optional ResizeObserver) with one detach().
-function attachRafScroll(content, onFrame, onResize) {
+export function attachRafScroll(content, onFrame, onResize) {
     let rafId = null;
     function onScroll() {
         if (rafId) return;
@@ -159,7 +159,7 @@ const OVERSCAN_COUNT = 15;
 // inserting/removing a normal-flow child would - the browser only has to composite the
 // moved row, not re-lay-out the list.
 // ------------------------------------------------------------------------------
-function createVirtualRowElement(html) {
+export function createVirtualRowElement(html) {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
     const element = tempDiv.firstElementChild;
@@ -167,11 +167,11 @@ function createVirtualRowElement(html) {
     return element;
 }
 
-function positionVirtualRow(element, index, itemHeight) {
+export function positionVirtualRow(element, index, itemHeight) {
     element.style.transform = `translateY(${index * itemHeight}px)`;
 }
 
-function setVirtualListHeight(list, count, itemHeight) {
+export function setVirtualListHeight(list, count, itemHeight) {
     const height = count * itemHeight + 'px';
     if (list.style.height !== height) list.style.height = height;
 }
@@ -186,7 +186,7 @@ const COVER_PRELOAD_LIMIT = 800;
 const COVER_PREWARM_MARGIN = 60;
 const coverPreloadCache = new Map(); // url -> { img, promise }; Map order doubles as LRU
 
-function preloadCover(url) {
+export function preloadCover(url) {
     if (!url) return Promise.resolve();
     const hit = coverPreloadCache.get(url);
     if (hit) {
@@ -205,7 +205,7 @@ function preloadCover(url) {
     return promise;
 }
 
-function prewarmSongCovers(songs, from, to) {
+export function prewarmSongCovers(songs, from, to) {
     if (!songs || songs.length === 0) return;
     const start = Math.max(0, from);
     const end = Math.min(songs.length - 1, to);
@@ -233,13 +233,13 @@ let virtualScrollState = {
     container: null
 };
 
-function buildSongItemAt(index, listId) {
+export function buildSongItemAt(index, listId) {
     const song = virtualScrollState.currentSongs[index];
     if (!song) return '';
     return createSongItemHTML(song, index, listId);
 }
 
-function buildPlaceholderHTML(index) {
+export function buildPlaceholderHTML(index) {
     return `
     <div class="song-item lazy-skeleton">
         <div class="song-number-item"><div class="ph-number-placeholder"></div></div>
@@ -261,7 +261,7 @@ function buildPlaceholderHTML(index) {
     </div>`;
 }
 
-function renderVisibleItems(content, showPlaceholders) {
+export function renderVisibleItems(content, showPlaceholders) {
     if (currentView === VIEWS.SETTINGS) return;
 
     const state = virtualScrollState;
@@ -387,7 +387,7 @@ function renderVisibleItems(content, showPlaceholders) {
     }
 }
 
-function syncPlaceholdersForJump(content, topOverride) {
+export function syncPlaceholdersForJump(content, topOverride) {
     if (virtualScrollState.enabled && virtualScrollState.container === content) {
         if (currentView === VIEWS.SETTINGS) return;
 
@@ -412,7 +412,7 @@ function syncPlaceholdersForJump(content, topOverride) {
     }
 }
 
-function attachWheelPlaceholderSync(content) {
+export function attachWheelPlaceholderSync(content) {
     function onWheel(e) {
         if (currentView === VIEWS.SETTINGS) return;
         if (!virtualScrollState.enabled) return;
@@ -431,7 +431,7 @@ let virtualScrollHighlightThrottleTimer = null;
 let virtualScrollHighlightTrailingPending = false;
 let virtualScrollHighlightTrailingListId = null;
 
-function scheduleVirtualScrollHighlightUpdate(listId) {
+export function scheduleVirtualScrollHighlightUpdate(listId) {
     virtualScrollHighlightTrailingListId = listId;
     if (virtualScrollHighlightThrottleTimer) {
         virtualScrollHighlightTrailingPending = true;
@@ -447,14 +447,14 @@ function scheduleVirtualScrollHighlightUpdate(listId) {
     }, VIRTUAL_SCROLL_HIGHLIGHT_THROTTLE_MS);
 }
 
-function runVirtualScrollHighlightUpdate(listId) {
+export function runVirtualScrollHighlightUpdate(listId) {
     reapplySelectionState();
     applyStoredHighlight(listId);
 }
 
 const VIRTUAL_SCROLL_SETTLE_MS = 150;
 
-function scheduleVirtualScrollSettle(content) {
+export function scheduleVirtualScrollSettle(content) {
     const target = content || virtualScrollState.container;
     if (!target) return;
 
@@ -475,7 +475,7 @@ function scheduleVirtualScrollSettle(content) {
     }, VIRTUAL_SCROLL_SETTLE_MS);
 }
 
-function initLazyLoading(songs, listId) {
+export function initLazyLoading(songs, listId) {
     if (currentView === VIEWS.SETTINGS) return;
 
     teardownLazyLoading();
@@ -600,7 +600,7 @@ function initLazyLoading(songs, listId) {
     virtualScrollState.lastRenderedEnd = virtualScrollState.lastVisibleIndex;
 }
 
-function renderVirtualScrollImmediate(content) {
+export function renderVirtualScrollImmediate(content) {
     if (!virtualScrollState.enabled) return;
     if (currentView === VIEWS.SETTINGS) return;
 
@@ -629,7 +629,7 @@ function renderVirtualScrollImmediate(content) {
 
 const THUMB_HOLD_SETTLE_MS = 400;
 
-function scheduleThumbHoldSettle(content) {
+export function scheduleThumbHoldSettle(content) {
     if (!content) return;
     clearTimeout(virtualScrollState.thumbHoldSettleTimeout);
     virtualScrollState.thumbHoldSettleTimeout = setTimeout(() => {
@@ -641,7 +641,7 @@ function scheduleThumbHoldSettle(content) {
 }
 
 
-function settleVirtualScrollAfterThumbRelease(content) {
+export function settleVirtualScrollAfterThumbRelease(content) {
     if (!content) return;
 
     if (virtualScrollState.enabled && virtualScrollState.container === content) {
@@ -661,7 +661,7 @@ function settleVirtualScrollAfterThumbRelease(content) {
     }
 }
 
-function teardownLazyLoading() {
+export function teardownLazyLoading() {
     const songListEl = document.getElementById('song-list');
     if (songListEl) {
         songListEl.classList.remove('song-list--virtual');
@@ -694,7 +694,7 @@ function teardownLazyLoading() {
     virtualScrollState.spacerDiv = null;
 }
 
-function getLazyState() {
+export function getLazyState() {
     return {
         enabled: virtualScrollState.enabled,
         renderedCount: virtualScrollState.visibleItems.length,
@@ -706,7 +706,7 @@ function getLazyState() {
     };
 }
 
-function reapplySelectionState() {
+export function reapplySelectionState() {
     if (typeof currentView !== 'undefined' && currentView === VIEWS.LYRICS) return;
     if (typeof selectedSongIds === 'undefined' || !selectedSongIds || selectedSongIds.size === 0) return;
 
@@ -724,4 +724,43 @@ function reapplySelectionState() {
     if (typeof updateSelectionHighlight === 'function') {
         updateSelectionHighlight();
     }
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        DEFAULT_VIRTUAL_SCROLL_THRESHOLD,
+        MIN_VIRTUAL_SCROLL_THRESHOLD,
+        MAX_VIRTUAL_SCROLL_THRESHOLD,
+        ITEM_HEIGHT,
+        virtualScrollState,
+        VIRTUAL_SCROLL_SETTLE_MS,
+        snapVirtualScrollThreshold,
+        setVirtualScrollThreshold,
+        shouldUseVirtualScroll,
+        computeVirtualWindow,
+        createVirtualSpacer,
+        rebuildVirtualWindow,
+        appendVirtualBottomSpacer,
+        attachRafScroll,
+        createVirtualRowElement,
+        positionVirtualRow,
+        setVirtualListHeight,
+        preloadCover,
+        prewarmSongCovers,
+        buildSongItemAt,
+        buildPlaceholderHTML,
+        renderVisibleItems,
+        syncPlaceholdersForJump,
+        attachWheelPlaceholderSync,
+        scheduleVirtualScrollHighlightUpdate,
+        runVirtualScrollHighlightUpdate,
+        scheduleVirtualScrollSettle,
+        initLazyLoading,
+        renderVirtualScrollImmediate,
+        scheduleThumbHoldSettle,
+        settleVirtualScrollAfterThumbRelease,
+        teardownLazyLoading,
+        getLazyState,
+        reapplySelectionState
+    });
 }

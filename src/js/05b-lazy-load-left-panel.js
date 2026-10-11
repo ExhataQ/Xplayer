@@ -28,7 +28,7 @@ let leftPanelVirtualState = {
     lastScrollTop: 0
 };
 
-function buildLeftPanelItemAt(index, currentOpenFolderId) {
+export function buildLeftPanelItemAt(index, currentOpenFolderId) {
     const items = leftPanelVirtualState.currentItems;
     if (!items[index]) return '';
 
@@ -177,7 +177,7 @@ function buildLeftPanelItemAt(index, currentOpenFolderId) {
     </li>`;
 }
 
-function buildLeftPanelPlaceholderHTML(index) {
+export function buildLeftPanelPlaceholderHTML(index) {
     return `<li class="left-panel-main-item lazy-skeleton" style="min-height: 59px; height: 59px; max-height: 59px; box-sizing: border-box;">
         <div class="subfolder-row" style="display: flex; align-items: center; gap: 12px; width: 100%; height: 100%; box-sizing: border-box;">
             <div class="main-item-cover-wrapper">
@@ -191,7 +191,7 @@ function buildLeftPanelPlaceholderHTML(index) {
     </li>`;
 }
 
-function renderLeftPanelVisibleItems(showPlaceholders) {
+export function renderLeftPanelVisibleItems(showPlaceholders) {
     const state = leftPanelVirtualState;
     if (!state.enabled || !state.container) return;
     if (typeof currentOpenFolderId !== 'undefined' && currentOpenFolderId) return;
@@ -228,7 +228,7 @@ function renderLeftPanelVisibleItems(showPlaceholders) {
     }, 16);
 }
 
-function initLeftPanelLazyLoading() {
+export function initLeftPanelLazyLoading() {
     const content = document.getElementById('left-panel-main-content');
     if (!content) {
         setTimeout(() => initLeftPanelLazyLoading(), 100);
@@ -303,7 +303,7 @@ function initLeftPanelLazyLoading() {
     leftPanelVirtualState.lastRenderedEnd = leftPanelVirtualState.lastVisibleIndex;
 }
 
-function teardownLeftPanelLazyLoading() {
+export function teardownLeftPanelLazyLoading() {
     if (leftPanelVirtualState._scrollCleanup) {
         leftPanelVirtualState._scrollCleanup();
         leftPanelVirtualState._scrollCleanup = null;
@@ -321,7 +321,7 @@ function teardownLeftPanelLazyLoading() {
     leftPanelVirtualState.spacerDiv = null;
 }
 
-function refreshLeftPanelLazy() {
+export function refreshLeftPanelLazy() {
     if (!leftPanelVirtualState.enabled) {
         initLeftPanelLazyLoading();
     } else {
@@ -333,7 +333,7 @@ function refreshLeftPanelLazy() {
     }
 }
 
-function getLeftPanelItemsArray() {
+export function getLeftPanelItemsArray() {
     const pinnedIds = getPinnedItems();
     const allItemsData = collectAllLeftPanelItems();
 
@@ -346,4 +346,19 @@ function getLeftPanelItemsArray() {
     const flat = [];
     flattenLeftPanelItems(base, 0, 'root', flat, new Set());
     return flat;
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        LEFT_ITEM_HEIGHT,
+        LEFT_OVERSCAN_COUNT,
+        leftPanelVirtualState,
+        buildLeftPanelItemAt,
+        buildLeftPanelPlaceholderHTML,
+        renderLeftPanelVisibleItems,
+        initLeftPanelLazyLoading,
+        teardownLeftPanelLazyLoading,
+        refreshLeftPanelLazy,
+        getLeftPanelItemsArray
+    });
 }

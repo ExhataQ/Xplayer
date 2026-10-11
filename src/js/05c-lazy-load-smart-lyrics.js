@@ -17,14 +17,14 @@ let smartLyricsVirtualState = {
     lastScrollTop: 0
 };
 
-function buildSmartLyricsRowAt(index) {
+export function buildSmartLyricsRowAt(index) {
     if (typeof buildSmartLyricsRowHTML !== 'function') return '';
     const song = smartLyricsVirtualState.currentSongs[index];
     if (!song) return '';
     return buildSmartLyricsRowHTML(song, index);
 }
 
-function renderSmartLyricsVisibleItems(showPlaceholders) {
+export function renderSmartLyricsVisibleItems(showPlaceholders) {
     const state = smartLyricsVirtualState;
     if (!state.enabled || !state.container) return;
 
@@ -68,7 +68,7 @@ function renderSmartLyricsVisibleItems(showPlaceholders) {
     state.lastVisibleIndex = endIndex;
 }
 
-function initSmartLyricsVirtualScroll() {
+export function initSmartLyricsVirtualScroll() {
     teardownSmartLyricsVirtualScroll();
 
     const content = document.querySelector('.content');
@@ -97,7 +97,7 @@ function initSmartLyricsVirtualScroll() {
     renderSmartLyricsVisibleItems(false);
 }
 
-function teardownSmartLyricsVirtualScroll() {
+export function teardownSmartLyricsVirtualScroll() {
     if (smartLyricsVirtualState._scrollCleanup) {
         smartLyricsVirtualState._scrollCleanup();
         smartLyricsVirtualState._scrollCleanup = null;
@@ -117,7 +117,7 @@ function teardownSmartLyricsVirtualScroll() {
     smartLyricsVirtualState.lastVisibleIndex = 0;
 }
 
-function refreshSmartLyricsVirtualScroll(songs) {
+export function refreshSmartLyricsVirtualScroll(songs) {
     // init() calls teardown(), which clears currentSongs, so the songs must be assigned
     // AFTER init or the first render would see an empty list.
     if (!smartLyricsVirtualState.enabled) {
@@ -127,4 +127,16 @@ function refreshSmartLyricsVirtualScroll(songs) {
     smartLyricsVirtualState.firstVisibleIndex = -1;
     smartLyricsVirtualState.lastVisibleIndex = -1;
     renderSmartLyricsVisibleItems(false);
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        SMART_LYRICS_ITEM_HEIGHT,
+        smartLyricsVirtualState,
+        buildSmartLyricsRowAt,
+        renderSmartLyricsVisibleItems,
+        initSmartLyricsVirtualScroll,
+        teardownSmartLyricsVirtualScroll,
+        refreshSmartLyricsVirtualScroll
+    });
 }

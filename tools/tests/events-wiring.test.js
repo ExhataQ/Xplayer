@@ -25,6 +25,8 @@ const { SCENARIOS, measure } = require('./helpers/call-sequence-scenarios');
 // any more; the recorded sequence below is the old one with those entries removed, nothing else.
 // Likewise prepareGaplessNextTrack() in 10c-playback-queue.js calls clearGaplessPreload() inside its own
 // module, so the gapless scenario lost that one entry and nothing else.
+// Likewise 05b-lazy-load-left-panel.js is a module now: renderLeftPanelVisibleItems() calls made from inside that
+// file (for example by refreshLeftPanelLazy()) are not visible to the spy, so 18 entries of that one name were removed.
 const EXPECTED_CALL_SEQUENCES = {
     "recents: save a song while the portable Recent panel is open": [
         "renderPortableRecentlyPlayed"
@@ -36,11 +38,9 @@ const EXPECTED_CALL_SEQUENCES = {
         "showNotification",
         "renderLeftPanelMainList",
         "renderLeftPanelVisibleItems",
-        "renderLeftPanelVisibleItems",
         "updateScrollbarById",
         "showNotification",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
         "renderLeftPanelVisibleItems",
         "updateScrollbarById"
     ],
@@ -48,15 +48,12 @@ const EXPECTED_CALL_SEQUENCES = {
         "renderPlaylistsView",
         "renderLeftPanelMainList",
         "renderLeftPanelVisibleItems",
-        "renderLeftPanelVisibleItems",
         "updateScrollbarById",
         "renderAlbumLeftPanelItems",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
         "updateScrollbarById",
         "renderArtistLeftPanelItems",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
         "updateScrollbarById",
         "renderLeftPanelVisibleItems",
         "updateScrollbarById"
@@ -73,15 +70,12 @@ const EXPECTED_CALL_SEQUENCES = {
         "renderPlaylistsView",
         "renderLeftPanelMainList",
         "renderLeftPanelVisibleItems",
-        "renderLeftPanelVisibleItems",
         "updateScrollbarById",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
         "renderLeftPanelVisibleItems",
         "updateScrollbarById",
         "renderPlaylistsView",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
         "renderLeftPanelVisibleItems",
         "updateScrollbarById"
     ],
@@ -116,11 +110,9 @@ const EXPECTED_CALL_SEQUENCES = {
         "renderPlaylistsView",
         "renderLeftPanelMainList",
         "renderLeftPanelVisibleItems",
-        "renderLeftPanelVisibleItems",
         "updateScrollbarById",
         "renderPlaylistsView",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
         "updateScrollbarById",
         "showNotification"
     ],
@@ -141,33 +133,26 @@ const EXPECTED_CALL_SEQUENCES = {
     "folders: create then delete an empty folder": [
         "renderFoldersView",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
         "updateScrollbarById",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
         "renderLeftPanelVisibleItems",
         "updateScrollbarById",
         "renderFoldersView",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
         "renderLeftPanelVisibleItems",
         "updateScrollbarById"
     ],
     "folders: delete a folder together with its contents": [
         "renderFoldersView",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
         "updateScrollbarById",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
         "renderLeftPanelVisibleItems",
         "updateScrollbarById",
         "renderFoldersView",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
         "updateScrollbarById",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
         "renderLeftPanelVisibleItems",
         "updateScrollbarById"
     ],
@@ -175,7 +160,6 @@ const EXPECTED_CALL_SEQUENCES = {
         "switchView",
         "renderFoldersView",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
         "renderLeftPanelVisibleItems",
         "updateScrollbarById"
     ]

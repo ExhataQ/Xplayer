@@ -3,7 +3,6 @@
         "renderFoldersView",
         "renderLeftPanelMainList",
         "renderLeftPanelVisibleItems",
-        "renderLeftPanelVisibleItems",
         "updateScrollbarById",
         "showNotification"
     ],
@@ -14,13 +13,10 @@
         "updateScrollbarById",
         "showNotification",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
         "renderFoldersView",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
         "updateScrollbarById",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
         "updateScrollbarById",
         "updateScrollbarById"
     ],
@@ -62,8 +58,7 @@
     ],
     "covers: background cover scan completes": [
         "completeCoverProgressNotification",
-        "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems"
+        "renderLeftPanelMainList"
     ],
     "playlists: remove a song while that playlist is open": [
         "refreshCurrentViewAfterMutation",
