@@ -428,7 +428,7 @@ Each step is sized for one session or less. The IDs are used in reports and on t
   - **D-09f** Event subscribers `04h` to `04v`. First decide the registration rule for modules (`EVENTS.md` rule 5 says to revisit it); keep subscription order.
   - **D-09g** (done) `04a` (keep its capture listeners in the same order relative to the others). Needs D-05 finished (D-0012), because the last three inline handlers are in this file.
   - **D-09h** (done) Virtual scroll: `05c`, then `05a`, then `05b`. Import/export edits only; run the placeholder checks and `scroll.test.js` after each file.
-  - **D-09i** `07-views` last, then the full smoke checklist and a second real Electron run.
+  - **D-09i** (patch D-0025, not yet verified in Electron) `07-views` last, then the full smoke checklist and a second real Electron run.
   - Not in D-09: `00-state`, `01-sizes`, `02-ghost-list`, `03j` and the other classic files that hold top-level `let`/`const`; they flip together in A-16.
   - Expect: pinned call-sequence baselines in `tools/tests/expected/` lose the spied names for calls a module makes to its own functions (as in A-15); list each removed name in the report.
   - Files: D's files, `src/manifest.json` (one-line moves)

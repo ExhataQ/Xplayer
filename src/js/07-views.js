@@ -35,13 +35,13 @@ const VIEWS = {
     SETTINGS_ADVANCED: 'settings-advanced'
 };
 
-function getCurrentViewLabel() {
+export function getCurrentViewLabel() {
     if (currentView && currentView.startsWith('a') && currentView.length === 13) return 'Album';
     if (currentView && currentView.startsWith('r') && currentView.length === 13) return 'Artist';
     return 'Playlist';
 }
 
-function formatArtistNames(artist) {
+export function formatArtistNames(artist) {
     if (!artist) return '—';
     const names =
         typeof getArtistNamesForSong === 'function'
@@ -53,7 +53,7 @@ function formatArtistNames(artist) {
     return names.join(', ');
 }
 
-function buildPlayerArtistHTML(artist) {
+export function buildPlayerArtistHTML(artist) {
     if (!artist) return '—';
     const names =
         typeof getArtistNamesForSong === 'function'
@@ -76,7 +76,7 @@ function buildPlayerArtistHTML(artist) {
         .join('<span class="player-artist-sep">, </span>');
 }
 
-function resetViewScroll() {
+export function resetViewScroll() {
     if (
         currentView !== VIEWS.LYRICS &&
         typeof lyricsPreView !== 'undefined' &&
@@ -97,7 +97,7 @@ function resetViewScroll() {
     }
 }
 
-function resetLeftPanelActiveState() {
+export function resetLeftPanelActiveState() {
     document.querySelectorAll('.left-panel-main-item').forEach((item) => {
         item.classList.remove('active');
     });
@@ -107,7 +107,7 @@ function resetLeftPanelActiveState() {
     }
 }
 
-function activateLeftPanelItem(viewName) {
+export function activateLeftPanelItem(viewName) {
     const tagItem = document.querySelector(`.left-panel-tags .left-panel-item[onclick*="${viewName}"]`);
     if (tagItem) {
         tagItem.classList.add('active');
@@ -118,7 +118,7 @@ function activateLeftPanelItem(viewName) {
     }
 }
 
-function refreshUIAfterViewSwitch() {
+export function refreshUIAfterViewSwitch() {
     setTimeout(() => {
         if (typeof updateExternalScrollbar === 'function') {
             updateExternalScrollbar();
@@ -126,7 +126,7 @@ function refreshUIAfterViewSwitch() {
     }, 100);
 }
 
-function refreshSongCovers() {
+export function refreshSongCovers() {
     setTimeout(() => {
         document.querySelectorAll('.song-cover').forEach((img) => {
             const src = img.src;
@@ -139,13 +139,13 @@ function refreshSongCovers() {
     }, 50);
 }
 
-function finalizeViewSwitch(listId) {
+export function finalizeViewSwitch(listId) {
     applyStoredHighlight(listId);
     refreshSongCovers();
     refreshUIAfterViewSwitch();
 }
 
-function refreshCurrentView() {
+export function refreshCurrentView() {
     const songs = getSongsForList(currentView);
     renderSongsList(songs, currentView);
     setupHeroSection(true, getCurrentViewDisplayName(), songs.length, getCurrentViewLabel());
@@ -155,7 +155,7 @@ function refreshCurrentView() {
     }
 }
 
-function updateAllCounts() {
+export function updateAllCounts() {
     const activeSongs = getActiveSongs();
     const allSongsCountDisplay = getCachedEl('all-songs-count-display');
     if (allSongsCountDisplay) {
@@ -167,7 +167,7 @@ function updateAllCounts() {
     }
 }
 
-function getCurrentViewDisplayName() {
+export function getCurrentViewDisplayName() {
     if (currentView === VIEWS.ALL_SONGS) return 'All Songs';
     if (currentView === VIEWS.FAVORITES) return 'Liked Songs';
     if (currentView === VIEWS.HISTORY) return 'Recents';
@@ -194,7 +194,7 @@ function getCurrentViewDisplayName() {
 // ==============================================================================
 // SUBHERO CONTROLS
 // ==============================================================================
-function setSubheroVisibility(view) {
+export function setSubheroVisibility(view) {
     const subheroSection = document.getElementById('subhero-section');
     if (!subheroSection) return;
 
@@ -205,7 +205,7 @@ function setSubheroVisibility(view) {
     }
 }
 
-function updateSubheroPlayButton(isPlaying) {
+export function updateSubheroPlayButton(isPlaying) {
     const btn = document.getElementById('subhero-play-btn');
     if (!btn) return;
     const viewName = getCurrentViewDisplayName();
@@ -230,7 +230,7 @@ function updateSubheroPlayButton(isPlaying) {
     }
 }
 
-function updateSubheroShuffleButton() {
+export function updateSubheroShuffleButton() {
     const btn = document.getElementById('subhero-shuffle-btn');
     if (!btn) return;
     if (isShuffled) {
@@ -242,7 +242,7 @@ function updateSubheroShuffleButton() {
     }
 }
 
-function toggleShuffleFromSubhero() {
+export function toggleShuffleFromSubhero() {
     shuffleButton.click();
     updateSubheroShuffleButton();
 }
@@ -250,7 +250,7 @@ function toggleShuffleFromSubhero() {
 // ==============================================================================
 // VIEW STATE CHECKS
 // ==============================================================================
-function isViewCurrentlyPlaying(viewId) {
+export function isViewCurrentlyPlaying(viewId) {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) return false;
     const curItem = playbackQueue[currentQueueIndex];
     const curListId = curItem.listId || VIEWS.ALL_SONGS;
@@ -516,7 +516,7 @@ const listProviders = {
     }
 };
 
-function getSongsForPrefixedList(listId) {
+export function getSongsForPrefixedList(listId) {
     if (!listId) return null;
     if (listId.startsWith('playlist-')) {
         return getPlaylistSongs(listId.replace('playlist-', ''));
@@ -530,7 +530,7 @@ function getSongsForPrefixedList(listId) {
     return null;
 }
 
-function getSongsForList(listId) {
+export function getSongsForList(listId) {
     const prefixed = getSongsForPrefixedList(listId);
     if (prefixed !== null) return prefixed;
 
@@ -540,7 +540,7 @@ function getSongsForList(listId) {
     return provider.getSongs();
 }
 
-function getSongCountForList(listId) {
+export function getSongCountForList(listId) {
     const prefixed = getSongsForPrefixedList(listId);
     if (prefixed !== null) return prefixed.length;
 
@@ -551,7 +551,7 @@ function getSongCountForList(listId) {
 // ==============================================================================
 // VIEW NAVIGATION HISTORY
 // ==============================================================================
-function pushToHistoryStack(song) {
+export function pushToHistoryStack(song) {
     if (!song || isNavigatingHistory) return;
 
     const actualSong = song.song || song;
@@ -585,7 +585,7 @@ function pushToHistoryStack(song) {
     setIsPrevNavigation(false);
 }
 
-function pushViewToHistory(view) {
+export function pushViewToHistory(view) {
     if (isNavigatingHistory) {
         return;
     }
@@ -620,15 +620,15 @@ function pushViewToHistory(view) {
     updateNavigationButtons();
 }
 
-function canGoBack() {
+export function canGoBack() {
     return historyNavigationIndex > 0;
 }
 
-function canGoForward() {
+export function canGoForward() {
     return historyNavigationIndex < playbackHistoryStack.length - 1;
 }
 
-function goBack() {
+export function goBack() {
     if (!canGoBack()) {
         return;
     }
@@ -667,7 +667,7 @@ function goBack() {
     updateNavigationButtons();
 }
 
-function goForward() {
+export function goForward() {
     if (!canGoForward()) {
         return;
     }
@@ -706,7 +706,7 @@ function goForward() {
     updateNavigationButtons();
 }
 
-function updateNavigationButtons() {
+export function updateNavigationButtons() {
     const backBtn = document.getElementById('back-btn');
     const forwardBtn = document.getElementById('forward-btn');
 
@@ -733,7 +733,7 @@ function updateNavigationButtons() {
 // ==============================================================================
 // DETAIL VIEW OPENERS
 // ==============================================================================
-function openDetailView(id, type) {
+export function openDetailView(id, type) {
     const items = type === 'album' ? getAlbums() : getArtists();
     const item = items.find((i) => i.id === id);
     if (!item) return;
@@ -805,18 +805,18 @@ function openDetailView(id, type) {
     }, 50);
 }
 
-function openAlbum(albumId) {
+export function openAlbum(albumId) {
     openDetailView(albumId, 'album');
 }
 
-function openArtist(artistId) {
+export function openArtist(artistId) {
     openDetailView(artistId, 'artist');
 }
 
 // ==============================================================================
 // VIEW SWITCHING
 // ==============================================================================
-function switchToLyrics() {
+export function switchToLyrics() {
     const lyricsToggleBtn = getCachedEl('lyrics-toggle-btn');
 
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) {
@@ -895,7 +895,7 @@ function switchToLyrics() {
     switchView(VIEWS.LYRICS);
 }
 
-function switchView(view) {
+export function switchView(view) {
     let isSameView = currentView === view;
 
     if ((currentView === VIEWS.LYRICS || currentView === VIEWS.ONLINE_LYRICS || currentView === VIEWS.SMART_LYRICS) && view !== VIEWS.LYRICS && view !== VIEWS.ONLINE_LYRICS && view !== VIEWS.SMART_LYRICS) {
@@ -1088,15 +1088,15 @@ function switchView(view) {
 // ==============================================================================
 // SETTINGS/HISTORY NAVIGATION HELPERS
 // ==============================================================================
-function switchToHistoryFromSettings() {
+export function switchToHistoryFromSettings() {
     switchView(VIEWS.HISTORY);
 }
 
-function switchToSearchHistoryFromSettings() {
+export function switchToSearchHistoryFromSettings() {
     switchView(VIEWS.SEARCH_HISTORY);
 }
 
-function handleHeroClear() {
+export function handleHeroClear() {
     if (currentView === VIEWS.HISTORY) {
         clearPlayHistory();
     } else if (currentView === VIEWS.SEARCH_HISTORY) {
@@ -1106,7 +1106,7 @@ function handleHeroClear() {
     }
 }
 
-function openSearchHistoryChild(sessionId, query) {
+export function openSearchHistoryChild(sessionId, query) {
     searchInput.value = query;
     setSearchQuery(query.toLowerCase().trim());
 
@@ -1134,4 +1134,47 @@ function openSearchHistoryChild(sessionId, query) {
     resetLeftPanelActiveState();
 
     refreshUIAfterViewSwitch();
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        VIEWS,
+        listProviders,
+        getCurrentViewLabel,
+        formatArtistNames,
+        buildPlayerArtistHTML,
+        resetViewScroll,
+        resetLeftPanelActiveState,
+        activateLeftPanelItem,
+        refreshUIAfterViewSwitch,
+        refreshSongCovers,
+        finalizeViewSwitch,
+        refreshCurrentView,
+        updateAllCounts,
+        getCurrentViewDisplayName,
+        setSubheroVisibility,
+        updateSubheroPlayButton,
+        updateSubheroShuffleButton,
+        toggleShuffleFromSubhero,
+        isViewCurrentlyPlaying,
+        getSongsForPrefixedList,
+        getSongsForList,
+        getSongCountForList,
+        pushToHistoryStack,
+        pushViewToHistory,
+        canGoBack,
+        canGoForward,
+        goBack,
+        goForward,
+        updateNavigationButtons,
+        openDetailView,
+        openAlbum,
+        openArtist,
+        switchToLyrics,
+        switchView,
+        switchToHistoryFromSettings,
+        switchToSearchHistoryFromSettings,
+        handleHeroClear,
+        openSearchHistoryChild
+    });
 }

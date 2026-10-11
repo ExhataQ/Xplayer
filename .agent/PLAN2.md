@@ -33,7 +33,7 @@ Gate: D-09f and D-0012.
 
 Gate: D-09g. Keep `05a` before `05c` in `"modules"`. Run `scroll.test.js` and the placeholder checks. Highest regression risk.
 
-## 5. D-09i: `07-views.js`
+## 5. D-09i: `07-views.js` (patch D-0025; Electron run still to do)
 
 Gate: D-09h. Full smoke checklist and a second real Electron run before D-09 is closed.
 
