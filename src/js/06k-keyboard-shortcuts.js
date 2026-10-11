@@ -219,7 +219,7 @@ document.addEventListener('mousedown', function (e) {
     }
 });
 
-function initMarqueeOnHover(element, options = {}) {
+export function initMarqueeOnHover(element, options = {}) {
     if (!element) return;
     if (element.dataset.marqueeInit === '1') return;
     element.dataset.marqueeInit = '1';
@@ -399,4 +399,10 @@ function initMarqueeOnHover(element, options = {}) {
 
     element._marqueeRestart = runOnce;
     element._marqueeStop = finish;
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        initMarqueeOnHover
+    });
 }

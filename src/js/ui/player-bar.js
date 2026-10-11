@@ -4,7 +4,9 @@
 
 // Runs at load: attaches click / context-menu handlers to the search button, the player
 // title, artist and cover, and the album art. Must load after the scripts that define
-// the handlers it references.
+// the handlers it references. It is an ES module listed after 06k-keyboard-shortcuts.js in
+// src/manifest.json "modules": the typeof guards below on initMarqueeOnHover would silently
+// skip the marquee if 06k came later (tools/tests/player-bar.test.js checks it works).
 
 document.getElementById('search-btn').onclick = () => {
     performSearch();
@@ -73,3 +75,5 @@ if (albumArtImage) {
         }
     });
 }
+
+export {};

@@ -45,7 +45,6 @@
     "05c-lazy-load-smart-lyrics.js",
     "06a-context-menus.js",
     "06b-modals.js",
-    "06k-keyboard-shortcuts.js",
     "07-views.js",
     "07a-ui-actions.js",
     "08a-panel-layout.js",
@@ -56,8 +55,7 @@
     "04p-playback-events.js",
     "04t-lyrics-events.js",
     "04u-search-events.js",
-    "04v-right-panel-events.js",
-    "ui/player-bar.js"
+    "04v-right-panel-events.js"
   ],
   "modules": [
     "core/storage-schema.js",
@@ -72,6 +70,8 @@
     "06g-drag-drop-left-panel.js",
     "06h-fullscreen-viewer.js",
     "06j-notification-system.js",
+    "06k-keyboard-shortcuts.js",
+    "ui/player-bar.js",
     "core/state-queue.js",
     "core/state-now-playing.js",
     "core/state-navigation.js",
