@@ -1,7 +1,7 @@
 // ==============================================================================
 // UI RENDER - FAVORITES & HISTORY
 // ==============================================================================
-function renderFavoritesView() {
+export function renderFavoritesView() {
     updateHeroCover(VIEWS.FAVORITES);
     const favorites = getFavorites();
     const favoriteSongs = filterDeletedSongs(favorites.map((id) => getSongById(id)));
@@ -32,7 +32,7 @@ function renderFavoritesView() {
     }, 100);
 }
 
-function renderHistoryView() {
+export function renderHistoryView() {
     updateHeroCover(VIEWS.HISTORY);
     const history = getPlayHistory().filter((entry) => !deletedSongIds.has(entry.id));
     const songList = document.getElementById('song-list');
@@ -98,7 +98,7 @@ function renderHistoryView() {
     applyHistoryStoredHighlight(listId);
 }
 
-function renderRecentlyPlayed() {
+export function renderRecentlyPlayed() {
     const recentSongs = getRecentlyPlayedSongs();
     const listId = VIEWS.RECENT;
 
@@ -149,7 +149,7 @@ function renderRecentlyPlayed() {
     applyStoredHighlight(listId);
 }
 
-function renderPortableRecentlyPlayed() {
+export function renderPortableRecentlyPlayed() {
     const recentSongs = getRecentlyPlayedSongs();
     const recentList = document.getElementById('recently-played-list');
 
@@ -188,4 +188,13 @@ function renderPortableRecentlyPlayed() {
 
     recentList.innerHTML = recentHTML;
     updateScrollbarById('right-panel-content');
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        renderFavoritesView,
+        renderHistoryView,
+        renderRecentlyPlayed,
+        renderPortableRecentlyPlayed
+    });
 }

@@ -1,7 +1,7 @@
 // ==============================================================================
 // UI RENDER - PLAYLISTS
 // ==============================================================================
-function renderPlaylistsView() {
+export function renderPlaylistsView() {
     const playlists = getPlaylists();
     const leftPanelMainList = document.querySelector('.left-panel-main-list');
 
@@ -82,7 +82,7 @@ function renderPlaylistsView() {
     updateScrollbarById('left-panel-main-content');
 }
 
-function renderFoldersView() {
+export function renderFoldersView() {
     const folders = getFolders();
     const leftPanelMainList = document.querySelector('.left-panel-main-list');
 
@@ -138,7 +138,7 @@ function renderFoldersView() {
     updateScrollbarById('left-panel-main-content');
 }
 
-function renderFolderContents(folderId) {
+export function renderFolderContents(folderId) {
     if (typeof teardownLeftPanelLazyLoading === 'function') {
         teardownLeftPanelLazyLoading();
     }
@@ -337,7 +337,7 @@ function renderFolderContents(folderId) {
     updateScrollbarById('left-panel-main-content');
 }
 
-function renderPlaylistDetailView(playlistId) {
+export function renderPlaylistDetailView(playlistId) {
     const playlists = getPlaylists();
     const playlist = playlists.find((p) => p.id == playlistId || p.id === playlistId);
     if (!playlist) {
@@ -398,4 +398,13 @@ function renderPlaylistDetailView(playlistId) {
             updateExternalScrollbar();
         }
     }, 100);
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        renderPlaylistsView,
+        renderFoldersView,
+        renderFolderContents,
+        renderPlaylistDetailView
+    });
 }

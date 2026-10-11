@@ -1,7 +1,7 @@
 // ==============================================================================
 // UI RENDER - ALBUMS
 // ==============================================================================
-function renderAlbumsView() {
+export function renderAlbumsView() {
     const albums = getAlbums();
     const songListElement = document.getElementById('song-list');
 
@@ -65,7 +65,7 @@ function renderAlbumsView() {
     songListElement.innerHTML = albumsHtml;
 }
 
-function renderAlbumDetailView(albumId) {
+export function renderAlbumDetailView(albumId) {
     const albums = getAlbums();
     const album = albums.find((a) => a.id === albumId);
     if (!album) {
@@ -113,7 +113,7 @@ function renderAlbumDetailView(albumId) {
     }, 50);
 }
 
-function renderAlbumLeftPanelItems() {
+export function renderAlbumLeftPanelItems() {
     const albums = getAlbums();
     const leftPanelMainList = document.querySelector('.left-panel-main-list');
 
@@ -175,4 +175,12 @@ function renderAlbumLeftPanelItems() {
 
     renderLeftPanelMainList();
     updateScrollbarById('left-panel-main-content');
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        renderAlbumsView,
+        renderAlbumDetailView,
+        renderAlbumLeftPanelItems
+    });
 }

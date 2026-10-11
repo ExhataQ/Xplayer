@@ -10,3 +10,6 @@ on('rightPanel:tabChanged', (e) => {
         renderPortableRecentlyPlayed();
     }
 });
+
+// Nothing to register: this file only subscribes to events while it loads. The empty export makes it a module.
+export {};

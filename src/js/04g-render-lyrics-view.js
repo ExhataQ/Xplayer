@@ -1,7 +1,7 @@
 // ==============================================================================
 // UI RENDER - LYRICS VIEW
 // ==============================================================================
-function renderLyricsView() {
+export function renderLyricsView() {
     let container = document.getElementById('lyrics-view-root');
     const songListContainer = document.getElementById('song-list-container');
     const mainContentInner = document.querySelector('.main-content-inner');
@@ -203,7 +203,7 @@ function renderLyricsView() {
     }, 50);
 }
 
-function teardownLyricsView() {
+export function teardownLyricsView() {
     const container = document.getElementById('lyrics-view-root');
     if (container) container.style.display = 'none';
     const lyricsToggleBtn = document.getElementById('lyrics-toggle-btn');
@@ -211,4 +211,11 @@ function teardownLyricsView() {
     if (typeof resetSyncedLyricsFollowState === 'function') {
         resetSyncedLyricsFollowState();
     }
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        renderLyricsView,
+        teardownLyricsView
+    });
 }

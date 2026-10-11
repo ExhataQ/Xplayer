@@ -162,7 +162,7 @@ registerActions({
 // ------------------------------------------------------------------------------
 // Renderers that build elements with createElement copy the attributes of an actionAttrs(...)
 // string onto the element with this helper.
-function applyActionAttrs(element, attributeString) {
+export function applyActionAttrs(element, attributeString) {
     const holder = document.createElement('template');
     holder.innerHTML = `<i ${attributeString}></i>`;
     for (const attribute of holder.content.firstChild.attributes) element.setAttribute(attribute.name, attribute.value);
@@ -330,3 +330,9 @@ registerActions({
         playFromUrl(...arguments);
     }
 });
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        applyActionAttrs
+    });
+}

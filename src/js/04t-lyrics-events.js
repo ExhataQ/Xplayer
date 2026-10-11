@@ -9,3 +9,6 @@
 on('lyrics:changed', () => {
     renderLyricsView();
 });
+
+// Nothing to register: this file only subscribes to events while it loads. The empty export makes it a module.
+export {};

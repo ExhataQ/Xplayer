@@ -59,3 +59,6 @@ on('playlist:songRemovedFromView', (e) => {
     updateScrollbarById('left-panel-main-content');
     updateLeftPanelCounts();
 });
+
+// Nothing to register: this file only subscribes to events while it loads. The empty export makes it a module.
+export {};

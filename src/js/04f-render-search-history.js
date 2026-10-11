@@ -1,7 +1,7 @@
 // ==============================================================================
 // UI RENDER - SEARCH HISTORY
 // ==============================================================================
-function renderSearchHistoryView() {
+export function renderSearchHistoryView() {
     const searchHistory = getSearchHistory();
     const songList = document.getElementById('song-list');
 
@@ -122,4 +122,10 @@ function renderSearchHistoryView() {
     `;
 
     setTimeout(() => updateExternalScrollbar(), 100);
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        renderSearchHistoryView
+    });
 }

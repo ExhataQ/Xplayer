@@ -93,3 +93,9 @@
 
 2026-10-09
 - Agent D (D-09a, no code change): pre-flight survey of the 34 classic D files for the module conversion. Report 0013 and raw data (.agent/reports/D/0013-d09a-survey.json). Findings: 13 shared live `let`s that other files or A's setters assign (decision needed), an implicit global in 06c, two load-time uses of 06h/06k in ui/player-bar.js, and one listener-order change (06e).
+
+2026-10-11
+- D-09e (Agent D2): 04b-render-playlists-folders.js, 04c-render-albums.js, 04d-render-artists.js, 04e-render-favorites-history.js, 04f-render-search-history.js, 04g-render-lyrics-view.js and 07a-ui-actions.js are now ES modules (manifest "modules", placed after 06i and before 06a). Each exports its functions and registers them with a guarded registerLegacyGlobals; 07a registers only applyActionAttrs (its registerActions calls still run at load, and ITEM_CONTEXT_MENUS stays private). No logic edits. New tools/tests/render-modules.test.js (13 tests). Report D 0022.
+
+2026-10-11
+- Agent D (D-09f): the 12 event subscriber files 04h to 04v (36 top-level on(...) calls) are ES modules. Each ends with an empty export; src/manifest.json lists them first under "modules", in their old order, so they still subscribe before any other code that could emit. No logic change, no names to register. New tools/tests/event-subscribers-modules.test.js checks the manifest, one registration per written on(...) in file order, and that nothing emits before its subscriber exists. Report D 0021.

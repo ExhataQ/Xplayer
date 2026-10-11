@@ -83,13 +83,13 @@ Status values: `todo`, `in progress`, `patch received`, `applied + verified`, `b
 | D-06 | 5     | Replace the one generic `invoke`       | A-14                         | applied + verified |                             |
 | D-07 | 4     | Theme switcher module                  | A-10                         | applied + verified |                             |
 | D-08 | 5     | Swap storage and API calls             | A-13, A-14                   | applied + verified |                             |
-| D-09  | 6 | Convert the UI shell to modules (nine steps below) | A-15, B-10, C-07, D-08 | in progress | Combined D-0013–D-0015 and test-speedup patch; 317 passed, 0 failed, 2 skipped; lint has 21 errors |
+| D-09 | 6 | Convert the UI shell to modules (nine steps below) | A-15, B-10, C-07, D-08 | in progress | D-09a to D-09d applied + verified; D-09e and D-09f patch received (D-0022, D-0021); D-09g to D-09i todo |
 | D-09a | 6 | Pre-flight: list globals, load-time references, runtime reassignments and listener order per D file (no edits) | A-15, B-10, C-07, D-08 | applied + verified | D report 0013; survey files added |
-| D-09b | 6 | Leaf files `06c`, `06d`, `06e`, `06h`, `06j` | D-09a | patch received | D report 0014 and D-0015; test suite passed, lint errors outstanding |
-| D-09c | 6    | Drag and drop `06f`, `06g`             | D-09b                        | todo               |                             |
-| D-09d | 6    | `06a`, `06b`, `06k` (fix the `06b` function reassignments first; one real Electron run) | D-09c | todo |                             |
-| D-09e | 6    | Renderers `04b` to `04g`, `07a`        | D-09d                        | todo               |                             |
-| D-09f | 6    | Event subscribers `04h` to `04v` (decide the module registration rule first) | D-09e | todo |                             |
+| D-09b | 6 | Leaf files `06c`, `06d`, `06e`, `06h`, `06j` | D-09a | applied + verified | D reports 0014, 0015 |
+| D-09c | 6 | Drag and drop `06f`, `06g` | D-09b | applied + verified | D report 0016 |
+| D-09d | 6 | `06a`, `06b`, `06k` (fix the `06b` function reassignments first; one real Electron run) | D-09c | applied + verified | D reports 0017 to 0020 (d1 to d4) |
+| D-09e | 6 | Renderers `04b` to `04g`, `07a` | D-09d | patch received | D report 0022; focused tests passed (manifest, render-modules, events-wiring, ui-handlers, listener-order, converted-modules); full suite not run |
+| D-09f | 6 | Event subscribers `04h` to `04v` (decide the module registration rule first) | D-09e | patch received | D report 0021; focused tests passed (event-subscribers-modules, listener-order, events-wiring, event-bus, events-b); full suite not run |
 | D-09g | 6    | `04a`                                  | D-09f, D-0012 (D-05 done)    | todo               |                             |
 | D-09h | 6    | Virtual scroll `05c`, `05a`, `05b`     | D-09g                        | todo               |                             |
 | D-09i | 6    | `07-views`, then the full smoke checklist and a second real Electron run | D-09h | todo |                             |

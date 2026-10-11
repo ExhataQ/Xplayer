@@ -1,7 +1,7 @@
 // ==============================================================================
 // UI RENDER - ARTISTS
 // ==============================================================================
-function renderArtistDetailView(artistId) {
+export function renderArtistDetailView(artistId) {
     const artists = getArtists();
     const artist = artists.find((a) => a.id === artistId);
     if (!artist) {
@@ -49,7 +49,7 @@ function renderArtistDetailView(artistId) {
     }, 50);
 }
 
-function renderArtistLeftPanelItems() {
+export function renderArtistLeftPanelItems() {
     const artists = getArtists();
     const leftPanelMainList = document.querySelector('.left-panel-main-list');
 
@@ -110,4 +110,11 @@ function renderArtistLeftPanelItems() {
 
     renderLeftPanelMainList();
     updateScrollbarById('left-panel-main-content');
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        renderArtistDetailView,
+        renderArtistLeftPanelItems
+    });
 }

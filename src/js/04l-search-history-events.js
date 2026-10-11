@@ -19,3 +19,6 @@ on('searchHistory:entryDeleted', () => {
 
     showNotification('Search removed from history', 'error', 2000);
 });
+
+// Nothing to register: this file only subscribes to events while it loads. The empty export makes it a module.
+export {};
