@@ -138,6 +138,31 @@ describe('modal dialogs clean up when they close (real page)', { concurrency: fa
         });
     }
 
+    // These two have no keydown handler. The overlay closes both; the played-data dialog also has a Close button
+    // (the create-item buttons open the create dialogs instead).
+    test('create item and played data dialogs: a click on the overlay closes them, and Close closes played data', async (t) => {
+        if (skip) return void t.skip(skip);
+        const { page, errors } = await open();
+        try {
+            for (const call of ['showCreateItemDialog()', 'showPlayedDataModal(SONGS_DATA[0].id)']) {
+                await show(page, call);
+                assert.equal(await overlays(page), 1, call);
+                await page.mouse.click(5, 5);
+                assert.equal(await overlays(page), 0, `${call}: overlay click`);
+            }
+            await show(page, 'showPlayedDataModal(SONGS_DATA[0].id)');
+            await page.evaluate(() => document.querySelector('.playlist-modal button').click());
+            assert.equal(await overlays(page), 0, 'played data: Close button');
+            await show(page, 'showCreateItemDialog()');
+            await page.evaluate(() => document.querySelector('.playlist-modal button').click()); // "Playlist": swaps in the create dialog
+            assert.equal(await overlays(page), 1);
+            assert.equal(await page.evaluate(() => document.querySelector('.playlist-modal-title').textContent.trim().length > 0), true);
+            assert.deepEqual(errors, []);
+        } finally {
+            await page.close();
+        }
+    });
+
     test('edit playlist: its window helpers exist while it is open and are removed when it closes', async (t) => {
         if (skip) return void t.skip(skip);
         const { page, errors } = await open();

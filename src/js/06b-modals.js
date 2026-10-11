@@ -28,7 +28,7 @@ function closeOnOverlayClick(overlay, closeFunction) {
     };
 }
 
-function createModal(modalClassName, overlayClassName, closeFunction) {
+export function createModal(modalClassName, overlayClassName, closeFunction) {
     const existingModal = document.querySelector(`.${modalClassName}`);
     const existingOverlay = document.querySelector(`.${overlayClassName}`);
     if (existingModal) existingModal.remove();
@@ -47,7 +47,7 @@ function createModal(modalClassName, overlayClassName, closeFunction) {
     };
 }
 
-function closePlaylistModal() {
+export function closePlaylistModal() {
     runModalCleanups(playlistModalCleanups);
     const overlay = document.querySelector('.playlist-modal-overlay');
     if (overlay) {
@@ -63,7 +63,7 @@ function closePlaylistModal() {
     document.querySelectorAll('.playlist-modal').forEach((el) => el.remove());
 }
 
-function closeAddLinkModal() {
+export function closeAddLinkModal() {
     runModalCleanups(addLinkModalCleanups);
     const overlay = document.querySelector('.playlist-modal-overlay');
     if (overlay) overlay.remove();
@@ -72,7 +72,7 @@ function closeAddLinkModal() {
     downloadProgressActive = false;
 }
 
-function closeCreateItemModal() {
+export function closeCreateItemModal() {
     const overlay = document.querySelector('.playlist-modal-overlay');
     if (overlay) {
         if (overlay._cleanup) overlay._cleanup();
@@ -82,7 +82,7 @@ function closeCreateItemModal() {
     if (modal) modal.remove();
 }
 
-function closePlayedDataModal() {
+export function closePlayedDataModal() {
     const overlay = document.querySelector('.playlist-modal-overlay');
     if (overlay) {
         if (overlay._cleanup) overlay._cleanup();
@@ -100,7 +100,7 @@ function closeSongMetadataModal() {
     }
 }
 
-function showSongMetadataModal(songId) {
+export function showSongMetadataModal(songId) {
     const song = typeof SONGS_DATA !== 'undefined' ? SONGS_DATA.find((item) => item.id === songId) : null;
     if (!song) {
         showNotification('Song metadata is unavailable', 'warning', 2000);
@@ -162,7 +162,7 @@ function showSongMetadataModal(songId) {
     overlay._cleanup = () => document.removeEventListener('keydown', handleKeydown);
 }
 
-function showConfirmDialog(options) {
+export function showConfirmDialog(options) {
     return new Promise((resolve) => {
         const { modal, overlay } = createModal('playlist-modal', 'playlist-modal-overlay', function () {
             resolve(false);
@@ -234,7 +234,7 @@ function showConfirmDialog(options) {
     });
 }
 
-function showCreatePlaylistDialog() {
+export function showCreatePlaylistDialog() {
     const { modal, overlay } = createModal('playlist-modal', 'playlist-modal-overlay', closePlaylistModal);
     modal.setAttribute('data-stop', '');
 
@@ -287,7 +287,7 @@ function showCreatePlaylistDialog() {
     }, 100);
 }
 
-function confirmCreatePlaylist() {
+export function confirmCreatePlaylist() {
     const input = document.getElementById('playlist-name-input');
     const name = input ? input.value.trim() : '';
 
@@ -309,7 +309,7 @@ function confirmCreatePlaylist() {
     updateScrollbarById('left-panel-main-content');
 }
 
-function showEditPlaylistDialog(playlistId) {
+export function showEditPlaylistDialog(playlistId) {
     const playlists = getPlaylists();
     const playlist = playlists.find((p) => p.id == playlistId || p.id === playlistId);
     if (!playlist) return;
@@ -393,7 +393,7 @@ function showEditPlaylistDialog(playlistId) {
     }, 100);
 }
 
-function confirmEditPlaylist(playlistId) {
+export function confirmEditPlaylist(playlistId) {
     const input = document.getElementById('edit-playlist-name-input');
     const name = input ? input.value.trim() : '';
 
@@ -427,7 +427,7 @@ function confirmEditPlaylist(playlistId) {
     showNotification('Playlist updated', 'success', 2000);
 }
 
-function showCreateFolderDialog() {
+export function showCreateFolderDialog() {
     const { modal, overlay } = createModal('playlist-modal', 'playlist-modal-overlay', closePlaylistModal);
     modal.setAttribute('data-stop', '');
 
@@ -477,7 +477,7 @@ function showCreateFolderDialog() {
     }, 100);
 }
 
-function confirmCreateFolder() {
+export function confirmCreateFolder() {
     const input = document.getElementById('folder-name-input');
     const name = input ? input.value.trim() : '';
 
@@ -504,7 +504,7 @@ function confirmCreateFolder() {
     updateScrollbarById('left-panel-main-content');
 }
 
-function showEditFolderDialog(folderId) {
+export function showEditFolderDialog(folderId) {
     const folders = getFolders();
     const folder = folders.find((f) => f.id === folderId);
     if (!folder) return;
@@ -555,7 +555,7 @@ function showEditFolderDialog(folderId) {
     }, 100);
 }
 
-function confirmEditFolder(folderId) {
+export function confirmEditFolder(folderId) {
     const input = document.getElementById('edit-folder-name-input');
     const name = input ? input.value.trim() : '';
 
@@ -585,7 +585,7 @@ function confirmEditFolder(folderId) {
     showNotification('Folder renamed', 'success', 2000);
 }
 
-function showCreateItemDialog() {
+export function showCreateItemDialog() {
     const { modal, overlay } = createModal('playlist-modal', 'playlist-modal-overlay', closeCreateItemModal);
     modal.setAttribute('data-stop', '');
 
@@ -616,7 +616,7 @@ function showCreateItemDialog() {
     };
 }
 
-function showAddLinkDialog() {
+export function showAddLinkDialog() {
     const { modal, overlay } = createModal('playlist-modal', 'playlist-modal-overlay', closeAddLinkModal);
     modal.setAttribute('data-stop', '');
 
@@ -683,7 +683,7 @@ function showAddLinkDialog() {
     setTimeout(focusInput, 50);
 }
 
-function playFromUrl(saveToFolder) {
+export function playFromUrl(saveToFolder) {
     if (downloadProgressActive) return;
 
     const input = document.getElementById('link-url-input');
@@ -791,7 +791,7 @@ function showDownloadNotification(percent, status) {
     }
 }
 
-function updateDownloadNotification(percent, status) {
+export function updateDownloadNotification(percent, status) {
     if (downloadNotifyIndex === -1) return;
     showDownloadNotification(percent, status);
 }
@@ -804,7 +804,7 @@ function removeDownloadNotification() {
     }
 }
 
-function showPlayedDataModal(songId) {
+export function showPlayedDataModal(songId) {
     const song = SONGS_DATA.find((s) => s.id === songId);
     if (!song) return;
 
@@ -880,7 +880,7 @@ function showPlayedDataModal(songId) {
     };
 }
 
-function showWelcomeDialog() {
+export function showWelcomeDialog() {
     if (SONGS_DATA.length > 0) return;
     const { modal, overlay } = createModal('playlist-modal', 'playlist-modal-overlay', null);
     modal.setAttribute('data-stop', '');
@@ -933,4 +933,30 @@ function addSongToQueueAndPlay(song) {
 
     playSongFromQueue(currentQueueIndex);
     updateQueueDisplay();
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        createModal,
+        closePlaylistModal,
+        closeAddLinkModal,
+        closeCreateItemModal,
+        closePlayedDataModal,
+        showSongMetadataModal,
+        showConfirmDialog,
+        showCreatePlaylistDialog,
+        confirmCreatePlaylist,
+        showEditPlaylistDialog,
+        confirmEditPlaylist,
+        showCreateFolderDialog,
+        confirmCreateFolder,
+        showEditFolderDialog,
+        confirmEditFolder,
+        showCreateItemDialog,
+        showAddLinkDialog,
+        playFromUrl,
+        updateDownloadNotification,
+        showPlayedDataModal,
+        showWelcomeDialog
+    });
 }
