@@ -94,7 +94,6 @@
         "renderFavoritesView",
         "updateActiveHighlight",
         "updateHeroSongCount",
-        "updateHeroSongCount",
         "updateScrollbarById"
     ],
     "favorites: sync after a change, All Songs view": [
@@ -138,7 +137,6 @@
         "renderFavoritesView",
         "updateActiveHighlight",
         "updateHeroSongCount",
-        "updateHeroSongCount",
         "updateScrollbarById",
         "showNotification",
         "updateLeftPanelCounts",
@@ -173,7 +171,6 @@
         "updateScrollbarById",
         "refreshCurrentView",
         "updateActiveHighlight",
-        "updateHeroSongCount",
         "updateScrollbarById"
     ],
     "songs: library songs changed, playlist view": [
@@ -199,7 +196,6 @@
     "mutation refresh: Favorites view": [
         "renderFavoritesView",
         "updateActiveHighlight",
-        "updateHeroSongCount",
         "updateHeroSongCount",
         "updateLeftPanelCounts",
         "renderLeftPanelVisibleItems",

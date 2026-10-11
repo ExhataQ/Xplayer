@@ -181,6 +181,8 @@ Single-owner files (edit only in the phase owner's change): `00-state.js`, `99-p
 
 Agent ownership (A, B, C, D) is in section 9.
 
+Shared live variables (D-09 rule): a top-level `let` that more than one file reads or assigns by bare name is declared once, in a classic script owned by the agent that owns the setters (today `04a0-ui-state.js` for the UI variables, `10a0-shuffle-state.js`, `15a0-controls-state.js`, `08a`/`08e`, and `00-state.js` for A's own). A file that becomes a module never declares such a variable; it only reads and assigns it by bare name, or calls the setter. A `let`/`const` that is only changed in place (a Set, an array, an object) can stay in the module and be published with `registerLegacyGlobals`, because the shared reference never changes. These variables move into the state modules in A-16.
+
 Contracts to agree before parallel work starts: the event names and payloads (section 3, Phase 2), the storage `get`/`set` signature, the `registerLegacyGlobals` signature, and the `api/` namespace shape. Adding to a contract needs the core owner; changing one needs every consumer's owner.
 
 Parallel-safe: Phase 4 conversions of different leaf files; Phase 5 storage vs API; Phase 6 subsystems that do not import each other.
@@ -424,7 +426,7 @@ Each step is sized for one session or less. The IDs are used in reports and on t
   - **D-09d** `06a`, `06b`, `06k`. One real Electron run after this step (file:// module loading, keyboard shortcuts, modals). `06b` reassigns its own functions while a dialog is open (`closePlaylistModal = function ...` in four dialogs, `closeAddLinkModal = function ...` in the link dialog) and creates and deletes `window.handleEditPlaylistCover` and `window._editPlaylistTempCover`. In a module, `registerLegacyGlobals` would keep the original function on `window` and drop the wrapper, so first turn each wrapper into a module-level variable or a named step that the close function calls (a small, tested change on its own), then convert.
   - **D-09e** Renderers `04b` to `04g` and `07a`.
   - **D-09f** Event subscribers `04h` to `04v`. First decide the registration rule for modules (`EVENTS.md` rule 5 says to revisit it); keep subscription order.
-  - **D-09g** `04a` (keep its capture listeners in the same order relative to the others). Needs D-05 finished (D-0012), because the last three inline handlers are in this file.
+  - **D-09g** (done) `04a` (keep its capture listeners in the same order relative to the others). Needs D-05 finished (D-0012), because the last three inline handlers are in this file.
   - **D-09h** Virtual scroll: `05c`, then `05a`, then `05b`. Import/export edits only; run the placeholder checks and `scroll.test.js` after each file.
   - **D-09i** `07-views` last, then the full smoke checklist and a second real Electron run.
   - Not in D-09: `00-state`, `01-sizes`, `02-ghost-list`, `03j` and the other classic files that hold top-level `let`/`const`; they flip together in A-16.

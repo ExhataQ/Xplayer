@@ -1,14 +1,14 @@
 // ==============================================================================
 // UI RENDER - HERO SECTION
 // ==============================================================================
-function updateHeroSongCount(count) {
+export function updateHeroSongCount(count) {
     const heroCountElement = document.getElementById('hero-song-count');
     if (heroCountElement) {
         heroCountElement.textContent = count + (count === 1 ? ' song' : ' songs');
     }
 }
 
-function updateHeroSection(title, count, label = 'Playlist', idValue = null) {
+export function updateHeroSection(title, count, label = 'Playlist', idValue = null) {
     const heroTitle = document.getElementById('hero-title');
     const heroCount = document.getElementById('hero-song-count');
     const heroLabel = document.querySelector('.playlist-hero-label');
@@ -44,21 +44,21 @@ function updateHeroSection(title, count, label = 'Playlist', idValue = null) {
     }, 0);
 }
 
-function showHeroClearButton(show) {
+export function showHeroClearButton(show) {
     const clearBtn = document.getElementById('hero-clear-btn');
     if (clearBtn) {
         clearBtn.style.display = show ? 'flex' : 'none';
     }
 }
 
-function showHeroSection(show) {
+export function showHeroSection(show) {
     const heroSection = document.getElementById('playlist-hero-section');
     if (heroSection) {
         heroSection.style.display = show ? 'flex' : 'none';
     }
 }
 
-function setupHeroSection(show, title, count, label = 'Playlist', idValue = null, showClear = false) {
+export function setupHeroSection(show, title, count, label = 'Playlist', idValue = null, showClear = false) {
     showHeroSection(show);
     showHeroClearButton(showClear);
     if (show) {
@@ -66,14 +66,14 @@ function setupHeroSection(show, title, count, label = 'Playlist', idValue = null
     }
 }
 
-function showTracklistHeader(show) {
+export function showTracklistHeader(show) {
     const tracklistHeader = document.querySelector('.tracklist-header');
     if (tracklistHeader) {
         tracklistHeader.style.display = show ? 'flex' : 'none';
     }
 }
 
-function updateHeroCover(view) {
+export function updateHeroCover(view) {
     document.body.classList.toggle('view-all-songs', view === VIEWS.ALL_SONGS);
     document.body.classList.toggle('view-favorites', view === VIEWS.FAVORITES);
     const defaultSvg = document.getElementById('hero-cover-svg');
@@ -140,7 +140,7 @@ function updateHeroCover(view) {
     }
 }
 
-function collectAllLeftPanelItems() {
+export function collectAllLeftPanelItems() {
     const items = [];
     const pinnedIds = getPinnedItems();
     const playedOrder = getPlayedItemOrder();
@@ -251,7 +251,7 @@ function collectAllLeftPanelItems() {
 // ==============================================================================
 // UI RENDER - SONG ITEMS
 // ==============================================================================
-function createSongItemHTML(song, index = null, listId = null) {
+export function createSongItemHTML(song, index = null, listId = null) {
     const currentQueueItem = currentQueueIndex >= 0 ? playbackQueue[currentQueueIndex] : null;
     const currentSongId = currentQueueItem
         ? currentQueueItem.song
@@ -282,7 +282,7 @@ function createSongItemHTML(song, index = null, listId = null) {
     });
 }
 
-function buildSongArtistHTML(song) {
+export function buildSongArtistHTML(song) {
     if (!song || !song.artist) return '';
     const names = typeof getArtistNamesForSong === 'function' ? getArtistNamesForSong(song) : [String(song.artist)];
     if (names.length === 0) return escapeHtml(String(song.artist));
@@ -300,7 +300,7 @@ function buildSongArtistHTML(song) {
         .join('<span class="song-artist-sep">, </span>');
 }
 
-function buildSongAlbumHTML(song) {
+export function buildSongAlbumHTML(song) {
     if (!song || !song.album || song.album.trim() === '') return '';
     const albums = typeof getAlbums === 'function' ? getAlbums() : [];
     const album = albums.find((a) => a.name === song.album);
@@ -309,7 +309,7 @@ function buildSongAlbumHTML(song) {
     return `<span class="song-album-name" ${actionAttrs('openAlbum', [String(album.id)], { stop: true })} data-stop-mousedown>${name}</span>`;
 }
 
-function buildSongItemHTML(config) {
+export function buildSongItemHTML(config) {
     const {
         song,
         index = null,
@@ -400,7 +400,7 @@ const RIGHT_PANEL_ROW_ACTIONS = {
     selectOnlineLyricsPickerSong: (args) => actionAttrs('selectOnlineLyricsPickerSong', args)
 };
 
-function renderRightPanelItem(song, config = {}) {
+export function renderRightPanelItem(song, config = {}) {
     const {
         isNowPlaying = false,
         action = null,
@@ -437,7 +437,7 @@ function renderRightPanelItem(song, config = {}) {
 // ==============================================================================
 // UI RENDER - SONG LISTS
 // ==============================================================================
-function renderSongsList(songs, listId = VIEWS.ALL_SONGS) {
+export function renderSongsList(songs, listId = VIEWS.ALL_SONGS) {
     if (currentView === VIEWS.SETTINGS) return;
 
     const songListContainer = document.getElementById('song-list-container');
@@ -543,7 +543,7 @@ const HOVER_SCROLL_THROTTLE_MS = 80;
 let hoverHighlightThrottleTimer = null;
 let hoverHighlightTrailingPending = false;
 
-function scheduleHoverHighlightUpdate() {
+export function scheduleHoverHighlightUpdate() {
     if (hoverHighlightThrottleTimer) {
         hoverHighlightTrailingPending = true;
         return;
@@ -558,13 +558,13 @@ function scheduleHoverHighlightUpdate() {
     }, HOVER_SCROLL_THROTTLE_MS);
 }
 
-function createHighlightDiv() {
+export function createHighlightDiv() {
     const div = document.createElement('div');
     div.style.cssText = `position: absolute; left: ${ROW_EDGE_INSET}px; right: ${ROW_EDGE_INSET}px; border-radius: var(--radius-xs); pointer-events: none; z-index: 0;`;
     return div;
 }
 
-function getItemPosition(item) {
+export function getItemPosition(item) {
     const content = document.querySelector('.content');
     const contentRect = content.getBoundingClientRect();
     const scrollTop = content.scrollTop;
@@ -575,7 +575,7 @@ function getItemPosition(item) {
     };
 }
 
-function initHoverLayer() {
+export function initHoverLayer() {
     if (hoverLayer) return;
 
     const content = document.querySelector('.content');
@@ -652,7 +652,7 @@ function initHoverLayer() {
     });
 }
 
-function handleHoverMouseMove(e) {
+export function handleHoverMouseMove(e) {
     if (document.body.classList.contains('dragging-scrollbar')) return;
 
     setLastMouseX(e.clientX);
@@ -697,7 +697,7 @@ function handleHoverMouseMove(e) {
     }
 }
 
-function updateHoverHighlight(foundItem) {
+export function updateHoverHighlight(foundItem) {
     let hoverEl = document.getElementById('hover-highlight-single');
     if (document.body.classList.contains('dragging-song')) {
         if (hoverEl) hoverEl.style.display = 'none';
@@ -741,14 +741,14 @@ function updateHoverHighlight(foundItem) {
     hoveredRowEl = foundItem;
 }
 
-function handleHoverMouseLeave() {
+export function handleHoverMouseLeave() {
     if (!document.body.classList.contains('dragging-scrollbar')) {
         hideHoverHighlight();
         hoveredSongIndex = -1;
     }
 }
 
-function hideHoverHighlight() {
+export function hideHoverHighlight() {
     clearTimeout(hoverHighlightThrottleTimer);
     hoverHighlightThrottleTimer = null;
     hoverHighlightTrailingPending = false;
@@ -760,7 +760,7 @@ function hideHoverHighlight() {
     }
 }
 
-function updateHoverHighlightAfterScroll() {
+export function updateHoverHighlightAfterScroll() {
     if (document.body.classList.contains('dragging-scrollbar')) {
         hideHoverHighlight();
         hoveredSongIndex = -1;
@@ -874,7 +874,7 @@ document.addEventListener('keydown', function (e) {
     }
 });
 
-function selectSongItem(element, songId, listId, index, event = null) {
+export function selectSongItem(element, songId, listId, index, event = null) {
     const ctrlHeld = event && (event.ctrlKey || event.metaKey);
     const shiftHeld = event && event.shiftKey;
 
@@ -941,7 +941,7 @@ function selectSongItem(element, songId, listId, index, event = null) {
     element.classList.add('last-selected');
 }
 
-function clearAllSelections() {
+export function clearAllSelections() {
     document.querySelectorAll('.song-item.selected').forEach((item) => {
         item.classList.remove('selected');
     });
@@ -956,7 +956,7 @@ function clearAllSelections() {
     selectionHighlights = [];
 }
 
-function reapplySelectionAfterFilter(listId, filteredSongs) {
+export function reapplySelectionAfterFilter(listId, filteredSongs) {
     document.querySelectorAll('.song-item.selected').forEach((item) => {
         item.classList.remove('selected');
     });
@@ -994,7 +994,7 @@ function reapplySelectionAfterFilter(listId, filteredSongs) {
     updateSelectionHighlight();
 }
 
-function getSongIndexById(songId, listId) {
+export function getSongIndexById(songId, listId) {
     const songs =
         virtualScrollState.enabled && virtualScrollState.currentSongs
             ? virtualScrollState.currentSongs
@@ -1005,7 +1005,7 @@ function getSongIndexById(songId, listId) {
     return -1;
 }
 
-function updateSelectionHighlight() {
+export function updateSelectionHighlight() {
     selectionHighlights.forEach((el) => el.remove());
     selectionHighlights = [];
 
@@ -1053,7 +1053,7 @@ function updateSelectionHighlight() {
     });
 }
 
-function updateActiveHighlight(slotIdentifier) {
+export function updateActiveHighlight(slotIdentifier) {
     if (!activeHighlightEl) return;
     activeHighlightEl.style.display = 'none';
     activeSongSlot = slotIdentifier;
@@ -1062,7 +1062,7 @@ function updateActiveHighlight(slotIdentifier) {
 // ==============================================================================
 // UI RENDER - LEFT PANEL
 // ==============================================================================
-function renderLeftPanelMainList() {
+export function renderLeftPanelMainList() {
     if (currentOpenFolderId) {
         renderFolderContents(currentOpenFolderId);
         return;
@@ -1073,4 +1073,40 @@ function renderLeftPanelMainList() {
     } else {
         initLeftPanelLazyLoading();
     }
+}
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        selectedSongIds,
+        updateHeroSongCount,
+        updateHeroSection,
+        showHeroClearButton,
+        showHeroSection,
+        setupHeroSection,
+        showTracklistHeader,
+        updateHeroCover,
+        collectAllLeftPanelItems,
+        createSongItemHTML,
+        buildSongArtistHTML,
+        buildSongAlbumHTML,
+        buildSongItemHTML,
+        renderRightPanelItem,
+        renderSongsList,
+        scheduleHoverHighlightUpdate,
+        createHighlightDiv,
+        getItemPosition,
+        initHoverLayer,
+        handleHoverMouseMove,
+        updateHoverHighlight,
+        handleHoverMouseLeave,
+        hideHoverHighlight,
+        updateHoverHighlightAfterScroll,
+        selectSongItem,
+        clearAllSelections,
+        reapplySelectionAfterFilter,
+        getSongIndexById,
+        updateSelectionHighlight,
+        updateActiveHighlight,
+        renderLeftPanelMainList
+    });
 }
