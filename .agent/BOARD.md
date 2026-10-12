@@ -1,97 +1,91 @@
-# Board
+# Plan 3 Board: Cleanup and Test Upgrade
 
-Edited by the human only. Update it after each patch is applied and verified. Plan: `.agent/PLAN.md`. Reports: `.agent/reports/`. The finished event bus plan is in `.agent/archive/`.
+This board tracks `.agent/PLAN.md`. The previous refactoring plan and its historical reports are archived in `.agent/archive/refactor/`.
 
-Status values: `todo`, `in progress`, `patch received`, `applied + verified`, `blocked`.
+Update this board manually after each patch is applied and verified. Do not mark a task complete merely because a patch was generated or received.
+
+## Status definitions
+
+- `todo` — not started.
+- `in progress` — currently being worked on.
+- `patch received` — patch received but not yet applied and verified.
+- `applied + verified` — patch applied and the required checks passed.
+- `blocked` — waiting on a dependency or an unresolved issue.
 
 ## Next actions
 
-- [ ] Run the Playwright checks and complete `tools/smoke-checklist.md`. The full Node.js test suite passed after commit `4d479bc`: 432 tests, 430 passed, 0 failed, 2 skipped, across 58 suites. The Python metadata-backend test was previously reported as passed. Do not mark runtime verification complete until the required real Electron run and remaining smoke checks pass.
-- [ ] Run the module spike (A-04) in Electron and paste the DevTools output into a new A report. Only Phase 3 and later need it. A-04 is currently marked `applied + verified`; confirm whether the runtime evidence has been recorded.
-- [ ] Give B, C and D their briefs (`.agent/PLAN.md`, section 9.4) at the same time: B-01 to B-04, C-01, D-01 and D-02 do not depend on each other. The handler bridge exists, so B-07, C-04 and D-05 can also start; tell them to read `src/js/core/LEGACY.md` first.
-- [x] B-08, B-09 and B-10 completed; see B report 0012 and the October 9 change log.
-- [x] C-04 through C-07 completed; see C migration commit 5bccad3. Continue D-05 and D-09 according to their dependencies.
-- [ ] Keep A-16 blocked until B-10, C-07 and D-09 are complete.
-- [ ] D-05: apply D-0010 (with the D-0011 additions, one combined patch), then D-0012 (the call sites in `10c-playback-queue.js` (B) and `19-online-lyrics.js` (C), which removes the last 3 inline handlers). After your checks, mark D-05 `applied + verified`. D-09a (read-only survey) can start at any time; D-09b to D-09i follow in order, one patch each.
-- [ ] Investigate and resolve the 21 ESLint errors; standard lint currently exits 0 despite reporting errors. See the October 10 verification output. This does not block continuing D-09 unless a later change touches an affected area.
-- [ ] Complete the remaining Electron/Playwright smoke checks and `tools/smoke-checklist.md`. Do not mark runtime verification complete until the real Electron run has been performed.
+- [ ] Start Phase 1. Agents A, B, C and D may work in parallel within their assigned files in `.agent/PLAN.md`, section 4.
+- [ ] B: record a fresh test-timing baseline before changing test infrastructure. The existing baseline in `.agent/PLAN.md` is the reference measurement.
+- [ ] Keep each patch small. Check its diff, run focused tests, and update this board and `tools/change.log.txt` after verification.
+- [ ] Do not delete tests unless the report explains why the test is obsolete or identifies the remaining test that covers its behavior.
+- [ ] Start Phase 2 only after every Phase 1 task is `applied + verified` and no other agent has a patch in flight.
+- [ ] After Phase 2, run the full test suite, the smoke checklist and the real Electron application. Record the results before declaring the plan complete.
 
-## Agent A: Foundation and data
+## Phase 1 — Parallel cleanup and improvements
 
-| ID   | Phase | Step                                       | Needs            | Status                        | Patch                         |
-| ---- | ----- | ------------------------------------------ | ---------------- | ----------------------------- | ----------------------------- |
-| A-01 | 0     | Add the analysis tool                      | -                | applied + verified            | A report 1                    |
-| A-02 | 0     | Record test baselines                      | -                | applied + verified            | A report 1                    |
-| A-03 | 0     | Add the smoke checklist                    | -                | applied + verified            | A report 1                    |
-| A-04 | 0     | Module-loading spike                       | -                | applied + verified            | Runtime evidence to confirm   |
-| A-05 | 0.5   | Event bus check                            | -                | applied + verified            | First plan (A report 1)       |
-| A-06 | 1     | Create the owner and setter files          | -                | applied + verified            | A report 1                    |
-| A-07 | 1     | Replace writes in A's own files            | A-06             | applied + verified            | A-07b complete; report A 0019 |
-| A-08 | 2     | Emit events from data changes              | A-07             | applied + verified            | First plan (A reports 2, 3)   |
-| A-09 | 2     | Remove direct render calls from A's files  | -                | applied + verified            | First plan (A reports 2, 3)   |
-| A-10 | 3     | Build the handler bridge                   | A-04             | applied + verified            |                               |
-| A-11 | 4     | Split `99-player.js`                       | A-04, A-07       | applied + verified            |                               |
-| A-12 | 4     | Convert storage, recents and search engine | A-10             | applied + verified            |                               |
-| A-13 | 5     | Storage module                             | A-12             | applied + verified            |                               |
-| A-14 | 5     | `api/` wrapper and preload                 | A-10             | applied + verified            |                               |
-| A-15 | 6     | Convert core and library to modules        | A-13, A-14, A-11 | applied + verified            |                               |
-| A-16 | 6     | Final flip                                 | B-10, C-07, D-09 | todo                          |                               |
-| A-S1 | side  | Safe downloads and delete                  | -                | applied + verified            |                               |
-| A-S2 | side  | One place for settings files               | A-S1             | applied + verified            |                               |
-| A-S3 | side  | Song list as data, not text                | A-S2             | partly done (`songs-data.js`) |                               |
-| A-S4 | side  | IPC and window hardening                   | -                | applied + verified            |                               |
-| A-S5 | side  | Safer tag writes                           | -                | applied + verified            |                               |
-| A-S6 | side  | Tests for each fix                         | A-S1..S5         | applied + verified            |                               |
+### Agent A — Housekeeping and documentation
 
-## Agent B: Playback
+| ID   | Task                                                                                           | Dependencies | Status | Notes                                                           |
+| ---- | ---------------------------------------------------------------------------------------------- | ------------ | ------ | --------------------------------------------------------------- |
+| A-01 | Remove dead `tools/spike-modules/` and `tools/test-shuffle/` folders after checking references | None         | todo   | Keep `tools/placeholder-test/`                                  |
+| A-02 | Triage `tools/prompt.txt` and check root documentation for stale file names                    | None         | todo   | Do not delete `tools/prompt.txt` without explicit authorization |
 
-| ID   | Phase | Step                                    | Needs                  | Status             | Patch                                                                  |
-| ---- | ----- | --------------------------------------- | ---------------------- | ------------------ | ---------------------------------------------------------------------- |
-| B-01 | 1     | Review A's playback setters             | A-06                   | applied + verified |                                                                        |
-| B-02 | 1     | Replace writes in `10c` and `10d`       | A-06, B-01             | applied + verified |                                                                        |
-| B-03 | 1     | Replace writes in `10b`, `15b`, `15c`   | A-06                   | applied + verified |                                                                        |
-| B-04 | 1     | Replace writes in the remaining B files | A-06                   | applied + verified |                                                                        |
-| B-05 | 2     | Emit playback events                    | B-02                   | applied + verified | First plan (B 0001 to 0005)                                            |
-| B-06 | 2     | Replace cross-subsystem render calls    | -                      | applied + verified | First plan (B 0001 to 0005)                                            |
-| B-07 | 3     | Convert inline handlers                 | A-10                   | applied + verified |                                                                        |
-| B-08 | 4     | Shuffle modules                         | A-10, B-03             | applied + verified | B report 0012                                                          |
-| B-09 | 5     | Swap storage and API calls              | A-13, A-14             | applied + verified | B report 0012                                                          |
-| B-10 | 6     | Convert playback to modules             | A-15, A-11, B-09, B-08 | applied + verified | B report 0012; song navigation conversion recorded in change log       |
-| B-13 | —     | Song navigation module                  | —                      | applied + verified | `B-0013-song-navigation-module.patch`; tests passed and changes pushed |
+### Agent B — Test speed and infrastructure
 
-## Agent C: Lyrics, metadata, panels
+| ID   | Task                                                                                 | Dependencies | Status | Notes                                                  |
+| ---- | ------------------------------------------------------------------------------------ | ------------ | ------ | ------------------------------------------------------ |
+| B-01 | Establish and record test-timing baseline                                            | None         | todo   | Compare before and after using the same environment    |
+| B-02 | Replace fixed sleeps in `scroll.test.js` and `view-switch-song-list-cleanup.test.js` | B-01         | todo   | Preserve behavioral coverage                           |
+| B-03 | Parallelize independent sequence suites                                              | B-01         | todo   | Avoid shared-state and ordering regressions            |
+| B-04 | Mock the 700 ms backoff in `online-metadata.test.js`                                 | B-01         | todo   | Keep retry behavior covered                            |
+| B-05 | Optimize fixture building and investigate modal-close test slowdown                  | B-01         | todo   | Measure changes                                        |
+| B-06 | Add fast test commands and CI support                                                | B-04, B-05   | todo   | Coordinate changes to `package.json` with other agents |
 
-| ID   | Phase | Step                                           | Needs            | Status             | Patch                                                       |
-| ---- | ----- | ---------------------------------------------- | ---------------- | ------------------ | ----------------------------------------------------------- |
-| C-01 | 1     | Replace writes in the panel files              | A-06             | applied + verified |                                                             |
-| C-02 | 2     | Emit lyrics and settings events                | -                | applied + verified | First plan (C 0001 to 0005)                                 |
-| C-03 | 2     | Panels react to events                         | -                | applied + verified | First plan (C 0001 to 0005)                                 |
-| C-04 | 3     | Convert inline handlers                        | A-10             | applied + verified | C migration commit 5bccad3                                  |
-| C-05 | 4     | Lyrics leaf modules                            | A-10             | applied + verified | C migration commit 5bccad3                                  |
-| C-06 | 5     | Swap storage and API calls                     | A-13, A-14       | applied + verified | C migration commit 5bccad3                                  |
-| C-07 | 6     | Convert lyrics, metadata and panels to modules | A-15, C-05, C-06 | applied + verified | C migration commit 5bccad3; 293 passed, 0 failed, 2 skipped |
+### Agent C — Test consolidation and maintenance
 
-## Agent D: UI shell
+| ID   | Task                                                        | Dependencies           | Status | Notes                                       |
+| ---- | ----------------------------------------------------------- | ---------------------- | ------ | ------------------------------------------- |
+| C-01 | Remove dead or stale tests with documented justification    | None                   | todo   | Preserve meaningful coverage                |
+| C-02 | Consolidate the window contract test                        | None                   | todo   | Keep all necessary contract checks          |
+| C-03 | Consolidate the inline-handler static rule                  | None                   | todo   | Preserve rule coverage                      |
+| C-04 | Merge order checks and trim redundant tool tests            | None                   | todo   | Keep required regression checks             |
+| C-05 | Review remaining fixed sleeps and update test documentation | C-02, C-03, C-04, B-06 | todo   | Coordinate edits to `tools/tests/README.md` |
 
-| ID    | Phase | Step                                                                                                           | Needs                     | Status             | Patch                                                                                                                                                                          |
-| ----- | ----- | -------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| D-01  | 1     | Replace writes in the smaller UI files                                                                         | A-06                      | applied + verified |                                                                                                                                                                                |
-| D-02  | 1     | Replace writes in `07-views`                                                                                   | A-06                      | applied + verified |                                                                                                                                                                                |
-| D-03  | 2     | Renderers subscribe to events                                                                                  | -                         | applied + verified | First plan (D 0001 to 0004)                                                                                                                                                    |
-| D-04  | 2     | Remove D's own cross-subsystem calls                                                                           | -                         | applied + verified | First plan (D 0001 to 0004)                                                                                                                                                    |
-| D-05  | 3     | Convert inline handlers                                                                                        | A-10                      | applied + verified | D-0007 (slice 1), D-0010 (slice 2: 96 -> 5 inline handlers), D-0011 (add-to-queue and right-panel actions), D-0012 (B and C call sites; 0 inline handlers left in the D files) |
-| D-06  | 5     | Replace the one generic `invoke`                                                                               | A-14                      | applied + verified |                                                                                                                                                                                |
-| D-07  | 4     | Theme switcher module                                                                                          | A-10                      | applied + verified |                                                                                                                                                                                |
-| D-08  | 5     | Swap storage and API calls                                                                                     | A-13, A-14                | applied + verified |                                                                                                                                                                                |
-| D-09  | 6     | Convert the UI shell to modules (nine steps below)                                                             | A-15, B-10, C-07, D-08    | in progress        | D-09a to D-09f applied + verified; full suite passed after commit 4d479bc (430 passed, 0 failed, 2 skipped); D-09g to D-09i todo                                               |
-| D-09a | 6     | Pre-flight: list globals, load-time references, runtime reassignments and listener order per D file (no edits) | A-15, B-10, C-07, D-08    | applied + verified | D report 0013; survey files added                                                                                                                                              |
-| D-09b | 6     | Leaf files `06c`, `06d`, `06e`, `06h`, `06j`                                                                   | D-09a                     | applied + verified | D reports 0014, 0015                                                                                                                                                           |
-| D-09c | 6     | Drag and drop `06f`, `06g`                                                                                     | D-09b                     | applied + verified | D report 0016                                                                                                                                                                  |
-| D-09d | 6     | `06a`, `06b`, `06k` (fix the `06b` function reassignments first; one real Electron run)                        | D-09c                     | applied + verified | D reports 0017 to 0020 (d1 to d4)                                                                                                                                              |
-| D-09e | 6     | Renderers `04b` to `04g`, `07a`                                                                                | D-09d                     | applied + verified | D report 0022; focused tests and full suite passed after commit `4d479bc` (430 passed, 0 failed, 2 skipped)                                                                    |
-| D-09f | 6     | Event subscribers `04h` to `04v` (decide the module registration rule first)                                   | D-09e                     | applied + verified | D report 0021; focused tests and full suite passed after commit `4d479bc` (430 passed, 0 failed, 2 skipped)                                                                    |
-| D-09g | 6     | `04a`                                                                                                          | D-09f, D-0012 (D-05 done) | todo               |                                                                                                                                                                                |
-| D-09h | 6     | Virtual scroll `05c`, `05a`, `05b`                                                                             | D-09g                     | todo               |                                                                                                                                                                                |
-| D-09i | 6     | `07-views`, then the full smoke checklist and a second real Electron run                                       | D-09h                     | todo               |                                                                                                                                                                                |
+### Agent D — Product-code leftovers
 
-D-05 does not have to finish before D-09a: an inline `on...=` string keeps working after its file becomes a module, because the module registers its names with `registerLegacyGlobals`. D-05 only has to finish (D-0012) before D-09g (`04a`), where the last strings are.
+| ID   | Task                                                     | Dependencies | Status | Notes                                               |
+| ---- | -------------------------------------------------------- | ------------ | ------ | --------------------------------------------------- |
+| D-01 | Fix the search-clear bug in `08h-panel-search.js`        | None         | todo   | Add focused regression coverage                     |
+| D-02 | Remove duplicate left-panel refreshes                    | None         | todo   | Verify affected refresh paths                       |
+| D-03 | Rename `recents:count-changed` to `recents:countChanged` | D-02         | todo   | Update all relevant producers, consumers and tests  |
+| D-04 | Add a helper for left-panel list writes                  | D-02, D-03   | todo   | Keep ownership and behavior clear                   |
+| D-05 | Remove dead code and resolve applicable lint warnings    | None         | todo   | Record lint results and avoid unrelated refactoring |
+
+## Phase 2 — Renderer folder move
+
+Agent A performs this phase alone after all Phase 1 tasks are `applied + verified`.
+
+| ID   | Task                                                                          | Dependencies               | Status | Notes                                                          |
+| ---- | ----------------------------------------------------------------------------- | -------------------------- | ------ | -------------------------------------------------------------- |
+| A-03 | Move renderer files into the folders specified in `.agent/PLAN.md`, section 5 | All Phase 1 tasks verified | todo   | Update imports, manifest paths, tests, tools and documentation |
+| A-04 | Update and verify documentation after the move                                | A-03                       | todo   | Check all documented paths against the final layout            |
+
+Do not rename numbered JavaScript files or introduce folders outside the approved layout without documenting the reason and obtaining approval.
+
+## Phase 3 — Final verification
+
+These checks must be performed against the final tree, after Phase 2.
+
+| ID   | Task                                                                    | Dependencies | Status | Notes                                             |
+| ---- | ----------------------------------------------------------------------- | ------------ | ------ | ------------------------------------------------- |
+| V-01 | Run the complete test suite                                             | A-03, A-04   | todo   | Record total, passed, failed and skipped counts   |
+| V-02 | Run lint and the required dependency-map and event-audit checks         | A-03, A-04   | todo   | Record results and compare with the baseline      |
+| V-03 | Complete `tools/smoke-checklist.md`                                     | A-03, A-04   | todo   | Record any failures                               |
+| V-04 | Start and verify the actual Electron application                        | A-03, A-04   | todo   | A browser-only test does not satisfy this check   |
+| V-05 | Record final timings and verification results in `tools/change.log.txt` | V-01 to V-04 | todo   | Do not claim success for checks that were not run |
+
+## Completion rule
+
+Plan 3 is complete only when all Phase 1 and Phase 2 tasks are `applied + verified`, all Phase 3 checks have been performed successfully, and the final results are documented.
+
+The archived refactoring board is historical. Update only this active `.agent/BOARD.md` when tracking Plan 3 progress.
