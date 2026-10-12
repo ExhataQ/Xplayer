@@ -9,7 +9,8 @@ Archive (.agent/AGENTS.md section 1): <done / not done and why>.
 
 ## Numbers
 
-`node tools/dep-map.js` before and after: mutable globals written from other files, file-level cycles, load-time cross-file references.
+`npm run test:timing` for the files you touched, before and after (seconds, tests, passed).
+D, and A in Phase 2: `node tools/dep-map.js` before and after: mutable globals written from other files, file-level cycles, load-time cross-file references.
 `node tools/event-audit.js --strict`: <exit code and the three totals>.
 
 ## Tests actually run

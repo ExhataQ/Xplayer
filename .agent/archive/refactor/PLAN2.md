@@ -1,5 +1,9 @@
 # Plan 2: remaining work
 
+> **FINISHED 2026-10-12. Archived.** Steps 1 to 8 are done (A-16 final flip, D-09g to D-09i, the full suite, the full smoke checklist and a real Electron run on the final tree, all by the human). Step 9 (optional cleanup) and the open questions moved to the live plan, `.agent/PLAN.md`:
+> duplicate refreshes, the `recents:count-changed` rename and the `leftPanelVirtualState` helper are D-02 to D-04 there. The `08h` bug (step 1) was never fixed and is D-01. The 21 ESLint errors (step 1) are gone.
+> Open questions answered: the browser tests do run in CI (`.github/workflows/test.yml`, Windows, `npm test`). `sandbox: true` (A-S4) and the archive snapshots are still unconfirmed and stay on the human list in `.agent/BOARD.md`.
+
 Source: written by the human. Status values come from `BOARD.md` and were not re-verified when this file was saved. Steps are in order. Progress notes are appended under each step.
 
 ## 1. Lock down the current state

@@ -17,7 +17,7 @@ Main source structure:
 * `Source/src/assets/` — fonts, icons, and other static assets bundled into the app.
 * `Source/electron/` — Electron main process, IPC, scanner, metadata, downloads, lyrics, and other backend functionality.
 * `Source/tools/` — tests, development utilities, and change log.
-* `Source/.agent/` — agent workflow documents (`AGENTS.md`, the refactor `PLAN.md`, `BOARD.md`, `reports/`). Read `Source/.agent/AGENTS.md` before changing anything.
+* `Source/.agent/` — agent workflow documents (`AGENTS.md`, the current `PLAN.md`, `BOARD.md`, `reports/`). Read `Source/.agent/AGENTS.md` before changing anything.
 
 The application is built by running:
 
@@ -59,15 +59,16 @@ Before changing something, identify which layer owns the behavior.
 * LRCLIB → `electron/online-lyrics.js` and `src/js/19-online-lyrics.js`
 * Electron IPC / application bootstrap → `electron/main.js`
 * Window behavior → `electron/window-manager.js`
-* Renderer playback / queue / shuffle → `src/js/10-playback.js`
-* Playback controls → `src/js/15-playback-controls.js`
+* Renderer playback / queue / shuffle → `src/js/10a-playback-shuffle.js`, `10a0-shuffle-state.js`, `10b-playback-smart-shuffle.js`, `10c-playback-queue.js`, `10d-playback-song.js`
+* Playback controls → `src/js/15a-controls-time-play.js` to `15g-controls-volume-fade.js` (state in `15a0-controls-state.js`)
+* Song navigation / highlight → `src/js/14-song-navigation.js`, `13-song-highlight.js`
 * Metadata editor UI → `src/js/20-metadata-editor.js`
-* Storage / settings → `src/js/03-storage.js`
+* Storage / settings → `src/js/core/storage.js` (limits in `03-storage.js`, favorites and settings in `03f-favorites-settings.js`)
 * Views → `src/js/07-views.js`
-* Panels/settings/search → `src/js/08-panels.js`
-* Virtual scrolling → `src/js/05-lazy-load.js`
-* Main renderer UI → `src/js/04a-ui-render-core.js` and `04b-ui-render-views.js`
-* Lyrics parsing/sync → `src/js/11-lrc.js`
+* Panels → `src/js/08a` to `08g` (`08e-panel-settings.js`, `08h-panel-search.js` for search)
+* Virtual scrolling → `src/js/05a-lazy-load-main-list.js`, `05b-lazy-load-left-panel.js`, `05c-lazy-load-smart-lyrics.js`
+* Main renderer UI → `src/js/04a-ui-render-core.js` and the renderers `04b` to `04g`; event subscribers `04h` to `04v`
+* Lyrics display / sync editor → `src/js/11a-lrc-parser-display.js` and `11b` to `11g`; the LRC parser is `src/js/lyrics/lrc-parser.js`
 * Online lyrics UI → `src/js/19-online-lyrics.js`
 * Language detection → `src/js/21-language-detect.js`
 * Styling → the appropriate file in `src/css/`
