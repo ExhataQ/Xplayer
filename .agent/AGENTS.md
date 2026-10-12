@@ -93,7 +93,7 @@ The application uses Electron with:
 
 Preserve the existing security architecture and IPC/contextBridge boundaries.
 
-Renderer JavaScript files are numerically ordered. Preserve their existing load-order assumptions.
+Renderer JavaScript files are ES modules imported by `src/js/main.js`. Preserve the import order there: it is the load order.
 
 ---
 

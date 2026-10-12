@@ -16,7 +16,7 @@ const JS = path.join(ROOT, 'src', 'js');
 const ORIGINAL_FLAT_NAMES = [
     'getWindowMaximized', 'closeApp', 'minimizeApp', 'setMinimizeOnClose', 'maximizeApp', 'showFileInExplorer',
     'deleteFile', 'changeMusicFolder', 'focusWindow', 'downloadAndScan', 'importDroppedFiles', 'getMusicFolders',
-    'addMusicFolder', 'removeMusicFolder', 'removeMusicFolders', 'rebuildFromFolders', 'invoke', 'getFolderStats',
+    'addMusicFolder', 'removeMusicFolder', 'removeMusicFolders', 'rebuildFromFolders', 'getFolderStats',
     'saveLyricsFile', 'readLyricsFile', 'pickDownloadFolder', 'resetDownloadFolder', 'getDownloadFolder',
     'searchOnlineLyrics', 'downloadOnlineLyrics', 'searchOnlineMetadata', 'getOnlineMetadata', 'saveAudioCover',
     'chooseCoverImage', 'getAudioMetadata', 'saveAudioMetadata', 'exportAudioMetadataJson', 'importAudioMetadataJson',
@@ -50,7 +50,7 @@ function loadWrapper(electronAPI) {
     const context = { window: { electronAPI }, Promise, Error, Object, Boolean };
     context.globalThis = context;
     vm.createContext(context);
-    vm.runInContext(fs.readFileSync(path.join(JS, 'api', 'desktop-api.js'), 'utf8') + '\n;globalThis.__api = desktopApi;', context);
+    vm.runInContext(require('../lib/strip-exports').stripExports(fs.readFileSync(path.join(JS, 'api', 'desktop-api.js'), 'utf8')) + '\n;globalThis.__api = desktopApi;', context);
     return context.__api;
 }
 
@@ -60,13 +60,13 @@ test('preload: exposes electronAPI with every old flat name still present', () =
     for (const name of ORIGINAL_FLAT_NAMES) assert.equal(typeof exposed.api[name], 'function', `electronAPI.${name}`);
 });
 
-test('preload: every flat name except invoke is in exactly one group, and the group call uses the same channel', () => {
+test('preload: every flat name is in exactly one group, and the group call uses the same channel', () => {
     const { exposed, calls } = loadPreload();
     const api = exposed.api;
     for (const g of GROUPS) assert.equal(typeof api[g], 'object', `electronAPI.${g}`);
     const inGroups = GROUPS.flatMap((g) => Object.keys(api[g]).map((n) => [g, n]));
     const names = inGroups.map(([, n]) => n);
-    assert.deepEqual([...names].sort(), ORIGINAL_FLAT_NAMES.filter((n) => n !== 'invoke').concat(['welcomeSelectFolder', 'getStartupSongs']).sort(), 'groups cover every old name, plus welcomeSelectFolder and getStartupSongs');
+    assert.deepEqual([...names].sort(), ORIGINAL_FLAT_NAMES.concat(['welcomeSelectFolder', 'getStartupSongs']).sort(), 'groups cover every old name, plus welcomeSelectFolder and getStartupSongs');
     assert.equal(new Set(names).size, names.length, 'no name in two groups');
     for (const [g, n] of inGroups) {
         calls.length = 0;
@@ -109,9 +109,7 @@ test('preload: every old name still makes the same ipc call as before the groups
         assert.equal(calls[0].kind, kind, `${name}: kind`);
         assert.equal(calls[0].channel, channel, `${name}: channel`);
     }
-    calls.length = 0;
-    exposed.api.invoke('some-channel', 1);
-    assert.deepEqual(calls[0], { kind: 'invoke', channel: 'some-channel', args: [1] });
+    assert.equal(exposed.api.invoke, undefined, 'the generic invoke(channel, ...) escape hatch is gone');
 });
 
 test('preload: getStartupSongs asks the main process for the saved song list, right away', () => {
@@ -151,7 +149,7 @@ test('desktopApi: event callbacks go through whenAppReady when it exists', () =>
     context.whenAppReady = (fn) => held.push(fn);
     context.globalThis = context;
     vm.createContext(context);
-    vm.runInContext(fs.readFileSync(path.join(JS, 'api', 'desktop-api.js'), 'utf8') + '\n;globalThis.__api = desktopApi;', context);
+    vm.runInContext(require('../lib/strip-exports').stripExports(fs.readFileSync(path.join(JS, 'api', 'desktop-api.js'), 'utf8')) + '\n;globalThis.__api = desktopApi;', context);
     const seen = [];
     context.__api.window.onThumbarNext((value) => seen.push(value));
     subscriptions[0]('early');

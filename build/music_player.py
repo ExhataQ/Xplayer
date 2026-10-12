@@ -190,7 +190,7 @@ def generate_html_template(songs_data, placeholder_image):
 
     # Load order lives in src/manifest.json (see build/build_manifest.py), not here.
     manifest = load_manifest(source_root)
-    for name in manifest["js"] + manifest.get("modules", []):
+    for name in [manifest["entry"]] + manifest["modules"]:
         copy_manifest_file(manifest_file_path(source_root, "js", name), output_js_dir, name)
 
     for name in manifest["css"]:

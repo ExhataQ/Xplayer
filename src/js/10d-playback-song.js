@@ -420,7 +420,6 @@ if (typeof registerLegacyGlobals === 'function') {
         playSongFromQueue,
         createQueueFromSongList,
         playSongFromList,
-        playSongFromHistory,
         playOrResumeCurrentView,
         playCurrentViewFromStart,
         isCurrentViewPlaying,

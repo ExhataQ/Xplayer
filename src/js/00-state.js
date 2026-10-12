@@ -5,7 +5,7 @@
 // Single source of truth for every
 // storage key the app uses (reading and writing: core/storage.js). Values are unchanged from
 // what each key already was, so existing saved data keeps working as-is.
-const STORAGE_KEYS = {
+export const STORAGE_KEYS = {
     FAVORITES: 'favorites',
     PLAY_HISTORY: 'playHistory',
     RECENTLY_PLAYED: 'recentlyPlayed',
@@ -29,7 +29,7 @@ const STORAGE_KEYS = {
     AUDIO_PLAYBACK_SETTINGS: 'audioPlaybackSettings'
 };
 
-function getSongById(id) {
+export function getSongById(id) {
     return typeof SONGS_DATA !== 'undefined' ? SONGS_DATA.find((s) => s.id === id) : null;
 }
 
@@ -44,7 +44,7 @@ function getSongById(id) {
 // (same fixed action, reset-on-repeat semantics) — NOT applied to throttle
 // patterns (immediate-run + trailing-pending flag) or to timers whose slot is
 // reused for two different callbacks, since those aren't the same behavior.
-function debounce(fn, delay) {
+export function debounce(fn, delay) {
     let timerId = null;
     function debounced(...args) {
         if (timerId) clearTimeout(timerId);
@@ -74,8 +74,8 @@ function debounce(fn, delay) {
 // returning a stale reference. This sidesteps needing to individually prove every call
 // site's element is never removed/recreated; only applied where a file was confirmed to
 // repeat the same id lookup, not applied blindly everywhere getElementById appears.
-const _cachedElById = {};
-function getCachedEl(id) {
+export const _cachedElById = {};
+export function getCachedEl(id) {
     const cached = _cachedElById[id];
     if (cached && cached.isConnected) return cached;
     const el = document.getElementById(id);
@@ -83,38 +83,38 @@ function getCachedEl(id) {
     return el;
 }
 
-let playbackQueue = [];
-let currentQueueIndex = -1;
-let isShuffled = false;
-let shuffleMode = 'normal';
-let repeatMode = 0;
-let currentView = 'all-songs';
-let lastPlaybackListId = 'all-songs';
-let searchQuery = '';
-let lastPlayedSong = null;
-let lastPlayedSongStartTime = 0;
-let updateExternalScrollbarFn = function () {};
-let playbackHistoryStack = [];
-let historyNavigationIndex = -1;
-let isManualPlay = false;
-let isPrevNavigation = false;
-let leftPanelFilterMode = 'all';
-let currentOpenFolderId = null;
-let currentOpenFolderName = '';
-let folderNavigationStack = [];
+export let playbackQueue = [];
+export let currentQueueIndex = -1;
+export let isShuffled = false;
+export let shuffleMode = 'normal';
+export let repeatMode = 0;
+export let currentView = 'all-songs';
+export let lastPlaybackListId = 'all-songs';
+export let searchQuery = '';
+export let lastPlayedSong = null;
+export let lastPlayedSongStartTime = 0;
+export let updateExternalScrollbarFn = function () {};
+export let playbackHistoryStack = [];
+export let historyNavigationIndex = -1;
+export let isManualPlay = false;
+export let isPrevNavigation = false;
+export let leftPanelFilterMode = 'all';
+export let currentOpenFolderId = null;
+export let currentOpenFolderName = '';
+export let folderNavigationStack = [];
 
-let previousRightPanelState = {
+export let previousRightPanelState = {
     wasActive: false,
     wasCollapsed: false,
     wasTab: 'tags'
 };
 
-let lyricsPreScrollTop = 0;
-let lyricsPreView = null;
+export let lyricsPreScrollTop = 0;
+export let lyricsPreView = null;
 
-let leftPanelCollapsed = storageRead(STORAGE_KEYS.LEFT_PANEL_COLLAPSED) === 'true';
+export let leftPanelCollapsed = storageRead(STORAGE_KEYS.LEFT_PANEL_COLLAPSED) === 'true';
 
-let rightPanelCollapsed = storageRead(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED) === 'true';
+export let rightPanelCollapsed = storageRead(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED) === 'true';
 if (storageRead(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED) === null) {
     rightPanelCollapsed = false;
     storageWriteBool(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED, false);
@@ -123,7 +123,7 @@ if (storageRead(STORAGE_KEYS.RIGHT_PANEL_COLLAPSED) === null) {
 // ==============================================================================
 // EXTENDED METADATA FIELDS
 // ==============================================================================
-const EXTENDED_METADATA_FIELDS = [
+export const EXTENDED_METADATA_FIELDS = [
     {
         key: 'albumArtist',
         label: 'Album Artist',
@@ -298,31 +298,83 @@ const EXTENDED_METADATA_FIELDS = [
 // ==============================================================================
 // PLAYER ICON CONSTANTS
 // ==============================================================================
-const PLAY_ICON_HTML = '<img src="icons/play.svg" alt="" class="player-svg-icon">';
-const PAUSE_ICON_HTML = '<img src="icons/pause.svg" alt="" class="player-svg-icon">';
+export const PLAY_ICON_HTML = '<img src="icons/play.svg" alt="" class="player-svg-icon">';
+export const PAUSE_ICON_HTML = '<img src="icons/pause.svg" alt="" class="player-svg-icon">';
 // ==============================================================================
 // DOM ELEMENT REFERENCES
 // ==============================================================================
-let audioElement = document.getElementById('audio');
+export let audioElement = document.getElementById('audio');
 
-function getActiveAudioElement() {
+export function getActiveAudioElement() {
     return gaplessActiveElement;
 }
 
-function getInactiveAudioElement() {
+export function getInactiveAudioElement() {
     return gaplessActiveElement === audioElement
         ? gaplessAudioElement
         : audioElement;
 }
-const playButton = document.getElementById('play-btn');
-const shuffleButton = document.getElementById('shuffle-btn');
-const repeatButton = document.getElementById('repeat-btn');
-const repeatOneIndicator = document.getElementById('repeat-one');
-const currentTimeDisplay = document.getElementById('current-time');
-const totalTimeDisplay = document.getElementById('total-time');
-const searchInput = document.getElementById('search-input');
-const songListElement = document.getElementById('song-list');
-const rightPanelElement = document.getElementById('right-panel');
-const leftPanelElement = document.getElementById('left-panel');
-const tagsContentElement = document.getElementById('tags-content');
-const MIN_PLAY_TIME_TO_SAVE = 5;
+export const playButton = document.getElementById('play-btn');
+export const shuffleButton = document.getElementById('shuffle-btn');
+export const repeatButton = document.getElementById('repeat-btn');
+export const repeatOneIndicator = document.getElementById('repeat-one');
+export const currentTimeDisplay = document.getElementById('current-time');
+export const totalTimeDisplay = document.getElementById('total-time');
+export const searchInput = document.getElementById('search-input');
+export const songListElement = document.getElementById('song-list');
+export const rightPanelElement = document.getElementById('right-panel');
+export const leftPanelElement = document.getElementById('left-panel');
+export const tagsContentElement = document.getElementById('tags-content');
+export const MIN_PLAY_TIME_TO_SAVE = 5;
+
+// Names other files call or read by name (inline handlers, other modules).
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        getSongById,
+        debounce,
+        getCachedEl,
+        STORAGE_KEYS,
+        EXTENDED_METADATA_FIELDS,
+        playButton,
+        shuffleButton,
+        repeatButton,
+        repeatOneIndicator,
+        currentTimeDisplay,
+        totalTimeDisplay,
+        searchInput,
+        songListElement,
+        rightPanelElement,
+        leftPanelElement,
+        tagsContentElement,
+        MIN_PLAY_TIME_TO_SAVE
+    });
+}
+
+// Variables other files read and assign by name: the accessors read and write this file's own variables.
+if (typeof registerLegacyState === 'function') {
+    registerLegacyState({
+        playbackQueue: [() => playbackQueue, (value) => { playbackQueue = value; }],
+        currentQueueIndex: [() => currentQueueIndex, (value) => { currentQueueIndex = value; }],
+        isShuffled: [() => isShuffled, (value) => { isShuffled = value; }],
+        shuffleMode: [() => shuffleMode, (value) => { shuffleMode = value; }],
+        repeatMode: [() => repeatMode, (value) => { repeatMode = value; }],
+        currentView: [() => currentView, (value) => { currentView = value; }],
+        lastPlaybackListId: [() => lastPlaybackListId, (value) => { lastPlaybackListId = value; }],
+        searchQuery: [() => searchQuery, (value) => { searchQuery = value; }],
+        lastPlayedSong: [() => lastPlayedSong, (value) => { lastPlayedSong = value; }],
+        lastPlayedSongStartTime: [() => lastPlayedSongStartTime, (value) => { lastPlayedSongStartTime = value; }],
+        playbackHistoryStack: [() => playbackHistoryStack, (value) => { playbackHistoryStack = value; }],
+        historyNavigationIndex: [() => historyNavigationIndex, (value) => { historyNavigationIndex = value; }],
+        isManualPlay: [() => isManualPlay, (value) => { isManualPlay = value; }],
+        isPrevNavigation: [() => isPrevNavigation, (value) => { isPrevNavigation = value; }],
+        leftPanelFilterMode: [() => leftPanelFilterMode, (value) => { leftPanelFilterMode = value; }],
+        currentOpenFolderId: [() => currentOpenFolderId, (value) => { currentOpenFolderId = value; }],
+        currentOpenFolderName: [() => currentOpenFolderName, (value) => { currentOpenFolderName = value; }],
+        folderNavigationStack: [() => folderNavigationStack, (value) => { folderNavigationStack = value; }],
+        lyricsPreScrollTop: [() => lyricsPreScrollTop, (value) => { lyricsPreScrollTop = value; }],
+        lyricsPreView: [() => lyricsPreView, (value) => { lyricsPreView = value; }],
+        leftPanelCollapsed: [() => leftPanelCollapsed, (value) => { leftPanelCollapsed = value; }],
+        rightPanelCollapsed: [() => rightPanelCollapsed, (value) => { rightPanelCollapsed = value; }],
+        audioElement: [() => audioElement, (value) => { audioElement = value; }]
+    });
+}

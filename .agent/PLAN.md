@@ -318,7 +318,7 @@ Each step is sized for one session or less. The IDs are used in reports and on t
   - Files: A's files, `src/manifest.json`
   - Done when: Smoke checklist and all node tests pass.
   - Needs: A-13, A-14, A-11
-- [ ] **A-16** (Phase 6) **Final flip.** Point the manifest at a single module entry, update `app-fixture.js`, remove unused bridge entries and the generic `invoke`, update the file mapping in `claude.md` and the status in this plan.
+- [x] **A-16** (Phase 6) **Final flip.** Done (A report 0020). `src/manifest.json` is `{css, entry: "main.js"}`; `src/js/main.js` imports all 115 modules in load order. The 14 remaining classic files became modules; their `let` state is exposed to bare-name readers by `registerLegacyState` (window accessors). `99-player.js` is now only the build-data template (`window.__buildData`); its bootstrap moved to `core/startup.js` and its data to `core/build-data.js`. The generic `invoke` is gone from `electron/preload.js`; 155 window registrations nothing outside their file read were removed. `app-fixture.js`, `tools/lib/manifest.js`, dep-map, lint-globals, ESLint config, `build/` and the docs follow the new entry. Not done: a real Electron run, replacing bare-name reads by imports (the window bridge still serves about 720 names), turning dep-map into an import-graph check, deleting `tools/spike-modules`.
   - Files: `src/manifest.json`, fixtures, `electron/preload.js`, `claude.md`, `PLAN.md`
   - Done when: All tests and the full smoke checklist pass.
   - Needs: B-10, C-07, D-09

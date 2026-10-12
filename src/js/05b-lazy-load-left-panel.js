@@ -353,8 +353,6 @@ if (typeof registerLegacyGlobals === 'function') {
         LEFT_ITEM_HEIGHT,
         LEFT_OVERSCAN_COUNT,
         leftPanelVirtualState,
-        buildLeftPanelItemAt,
-        buildLeftPanelPlaceholderHTML,
         renderLeftPanelVisibleItems,
         initLeftPanelLazyLoading,
         teardownLeftPanelLazyLoading,

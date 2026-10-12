@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 'use strict';
 
-// Works out which global names ESLint must treat as defined, from src/manifest.json. Nothing here is a hand-kept list.
+// Works out which global names ESLint must treat as defined, from src/js/main.js (the module entry that
+// src/manifest.json names). Nothing here is a hand-kept list.
 //
-//   - Classic scripts (manifest "js", plus 99-player.js) share one global scope, so every top-level declaration
-//     in them is a global for all other files. The declarations come from tools/dep-map.js (its "decls").
-//   - Any file (module or classic) can also add globals by calling registerLegacyGlobals({ name, ... }), so the keys
-//     of those calls (found with acorn) are globals too. Any other module-level name is NOT a global: using it in
-//     another file without an import is exactly the mistake the lint is there to catch.
+//   - Every renderer file is an ES module, so a top-level name is private to its file. The one classic script,
+//     99-player.js (the player.js build-data template), declares nothing.
+//   - A file adds globals by calling registerLegacyGlobals({ name, ... }) or registerLegacyState({ name: [get, set] }),
+//     so the keys of those calls (found with acorn) are globals. Any other module-level name is NOT a global: using it
+//     in another file without an import is exactly the mistake the lint is there to catch.
 //   - WINDOW_PUBLISHED_GLOBALS below is the one other way in: a name that a single, named file publishes with a plain
 //     `window.<name> = ...` assignment. Each entry is checked against that file's syntax tree on every run and the
 //     run fails if the assignment is gone, so an entry cannot go stale. A `window.x = ...` anywhere else adds nothing.
@@ -23,6 +24,7 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 const acorn = require('acorn');
 const walk = require('acorn-walk');
+const { readManifest } = require('./lib/manifest');
 
 // name -> the one file (relative to src/js) that must contain `window.<name> = ...`.
 // Keep this list short and add to it only for a name that other files really use as a bare global at run time.
@@ -49,9 +51,9 @@ function findWindowAssignments(ast) {
 
 function buildLintGlobals(root = path.resolve(__dirname, '..')) {
     const jsDir = path.join(root, 'src', 'js');
-    const manifest = JSON.parse(fs.readFileSync(path.join(root, 'src', 'manifest.json'), 'utf8'));
-    const classic = [...manifest.js, '99-player.js'];
-    const modules = manifest.modules || [];
+    const manifest = readManifest(root);
+    const classic = ['99-player.js'];
+    const modules = [manifest.entry, ...manifest.modules];
 
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'xplayer-lint-'));
     let depMap;
@@ -82,7 +84,7 @@ function buildLintGlobals(root = path.resolve(__dirname, '..')) {
         if (Object.values(WINDOW_PUBLISHED_GLOBALS).includes(file)) windowAssignments.set(file, findWindowAssignments(ast));
         walk.simple(ast, {
             CallExpression(node) {
-                if (node.callee.type !== 'Identifier' || node.callee.name !== 'registerLegacyGlobals') return;
+                if (node.callee.type !== 'Identifier' || !['registerLegacyGlobals', 'registerLegacyState'].includes(node.callee.name)) return;
                 const arg = node.arguments[0];
                 if (!arg || arg.type !== 'ObjectExpression') return;
                 for (const prop of arg.properties) {

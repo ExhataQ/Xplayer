@@ -5,7 +5,7 @@
 // desktopApi.<group>.<name>(...) instead of window.electronAPI.<name>(...), so the preload
 // surface can change in one place and the browser/test case (no electronAPI) is handled once.
 //
-// A classic script loaded early (after core/storage.js): some files register listeners while
+// Loaded early (after core/storage.js): some files register listeners while
 // they load (15e thumbnail buttons, 03k cover scan), so it must exist before them.
 //
 //   desktopApi.available()          true when window.electronAPI exists
@@ -22,10 +22,9 @@
 // Groups: window, library, metadata, files, lyrics. They are the same groups the preload
 // exposes (electron/preload.js). The calls go through the flat names, which the preload keeps
 // as aliases, so this works with the test stub and with either preload shape.
-// The generic electronAPI.invoke(channel, ...) is deliberately not wrapped: add a named call
-// in the preload and in the table below instead.
+// The preload has no generic invoke(channel, ...): add a named call in the preload and in the table below instead.
 
-const desktopApi = (function () {
+export const desktopApi = (function () {
     // 'invoke' = returns a promise, 'send' = fire and forget, 'sync' = returns its value right away,
     // 'on' = subscribes to an event.
     const TABLE = {
@@ -115,3 +114,10 @@ const desktopApi = (function () {
     }
     return api;
 })();
+
+// Names other files call or read by name (inline handlers, other modules).
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        desktopApi
+    });
+}

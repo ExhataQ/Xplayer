@@ -1,6 +1,6 @@
 # Storage
 
-`core/storage.js` is the only file that touches `localStorage`. It is a classic script loaded first in `src/manifest.json`, because `00-state.js` and `01-sizes.js` read saved values while they load. Keys are the `STORAGE_KEYS` values from `00-state.js`; stored values keep the format they always had, so data saved by older builds loads.
+`core/storage.js` is the only file that touches `localStorage`. It is an ES module imported right after `core/legacy.js` in `src/js/main.js`, because `00-state.js` and `01-sizes.js` read saved values while they load. Keys are the `STORAGE_KEYS` values from `00-state.js`; stored values keep the format they always had, so data saved by older builds loads.
 
 ## API (globals)
 
@@ -31,7 +31,7 @@ Pass one as the third argument of `storageReadJson`:
 | `normalizeSettings(value, defaults)` | settings objects: a key with a default is kept only if it has that default's type |
 | `normalizePanelWidths` | `{ left, right }` or `null` |
 
-Modules are not available while classic scripts load, so code that reads at load time (00, 01) checks the value inline.
+Code that reads at load time (00, 01) still checks the value inline, so it works in tests that load those files without the module graph.
 
 ## Adding a saved value
 

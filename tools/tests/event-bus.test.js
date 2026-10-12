@@ -10,7 +10,7 @@ function loadEventBus() {
     const source = fs.readFileSync(path.join(__dirname, '../../src/js/00b-events.js'), 'utf8');
     const context = { CustomEvent, EventTarget };
     vm.createContext(context);
-    vm.runInContext(source, context);
+    vm.runInContext(require('../lib/strip-exports').stripExports(source), context);
     return context;
 }
 

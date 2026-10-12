@@ -5,7 +5,7 @@ Two jobs, both so that files can become modules without breaking the HTML that c
 1. **`registerLegacyGlobals`**: a module puts its public names on `window`, so `onclick="doThing()"` strings and classic scripts keep working.
 2. **`data-action`**: replaces the inline `on...=` strings, one view at a time. One listener per event type on `document` runs the action.
 
-`core/legacy.js` loads right after `00b-events.js`, so every later file can call it while it loads. It is covered by `tools/tests/legacy-bridge.test.js` (14 tests; run in Chromium and also checked in Electron 44.5.1).
+`core/legacy.js` is a module and the first import of `src/js/main.js`, so every later module can use it while it loads. It also registers its own API on `window`. It is covered by `tools/tests/legacy-bridge.test.js` (14 tests; run in Chromium and also checked in Electron 44.5.1).
 
 ## API
 
@@ -14,6 +14,8 @@ Two jobs, both so that files can become modules without breaking the HTML that c
 | `registerActions({ fnA, fnB })` | Names the functions `data-action` may call. The key is the name used in the HTML. Registering the same function twice is fine; a different function under the same name throws. |
 | `actionAttrs('fnA', [arg, ...], { event, stop })` | Returns the attribute string for an element: `` `<button ${actionAttrs('openArtist', [name])}>` ``. Escapes quotes, `<`, `>` and `&` for you. Use it whenever an argument comes from data. |
 | `registerLegacyGlobals({ fnA, constB })` | Assigns each entry onto `window`. Throws if `window` already has a different value under that name (a name defined twice). Used by a file that has become a module, for names that inline handlers or classic scripts still use. |
+| `registerLegacyState({ x: [() => x, (v) => { x = v; }] })` | Defines a `window` accessor property for a module-private `let`, so code that still reads or assigns the bare name keeps working. Throws if the name already exists on `window`. |
+| `whenAppReady(fn)` | Runs `fn` once start-up has finished. |
 | `legacyGlobalNames()` | Sorted list of names registered so far. This is the inventory of what is still bridged; the bridge is finished when nothing needs it. |
 | `registeredActionNames()` | Sorted list of registered actions. |
 
@@ -72,13 +74,16 @@ Classic scripts run while the page is parsed, then the module scripts, then the 
 
 So a typo, or a forgotten `registerActions`, fails the test instead of being a button that does nothing.
 
-## Converting a file to an ES module
+## Load order and start-up
 
-1. Add `export` to what tests or other modules import, and end the file with a guarded registration of the names classic scripts still call:
-   `if (typeof registerLegacyGlobals === 'function') { registerLegacyGlobals({ name }); }`
-2. Move the file from `"js"` to `"modules"` in `src/manifest.json`. Modules run after every classic script (including `player.js`) and before `DOMContentLoaded`, so no classic file may use the file's names while it loads. `node tools/dep-map.js` lists load-time references; none may point at a module.
-3. Do not read classic globals at the top level of the module; read them inside functions. For anything a test needs, take the dependency as an optional last parameter (`storage`, `songs`) and fall back to the global inside the function body.
-4. Tests import it with `await import(pathToFileURL(file).href)` (`src/js/package.json` makes Node read these files as modules). Add the new names to `converted-modules.test.js`.
+`src/manifest.json` names the stylesheets and one entry, `main.js`. Its static `import` lines are the load order: `core/legacy`, `core/storage`, `api/desktop-api`, `core/build-data`, the shared state files (`00-state`, `00b-events`, `01-sizes`, ...), `core/startup` (the DOMContentLoaded bootstrap), then the event subscribers `04h` to `04v`, then everything else. Module code runs after the parse-time classic `99-player.js` (it only sets `window.__buildData`) and before `DOMContentLoaded`. Do not read another module's names at the top level unless that module is imported earlier in `main.js`.
+
+## Adding or changing a module
+
+1. Add `export` to what tests or other modules import. List the file in `main.js` at the position it must run.
+2. A name that inline handlers or other files read by bare name is registered: `registerLegacyGlobals({ name })` for functions and constants, `registerLegacyState({ name: [get, set] })` for a `let` that is reassigned. Prefer an `import` for new code. `tools/tests/helpers/bridge-use.js` finds names that nothing outside the file reads; do not register those.
+3. Read other modules' names inside functions, not at the top level. For anything a test needs, take the dependency as an optional last parameter and fall back to the global inside the function body.
+4. Tests import it with `await import(pathToFileURL(file).href)`; modules that use `export` are loaded in vm tests through `stripExports`.
 
 ## Status
 

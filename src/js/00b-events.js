@@ -16,13 +16,21 @@
 // unsubscribe function. handler receives the CustomEvent; the payload is
 // event.detail, not the event itself, so most handlers only need
 // `on('x', (e) => { ...e.detail... })`.
-const appEvents = new EventTarget();
+export const appEvents = new EventTarget();
 
-function emit(name, detail) {
+export function emit(name, detail) {
     appEvents.dispatchEvent(new CustomEvent(name, { detail }));
 }
 
-function on(name, handler) {
+export function on(name, handler) {
     appEvents.addEventListener(name, handler);
     return () => appEvents.removeEventListener(name, handler);
+}
+
+// Names other files call or read by name (inline handlers, other modules).
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        emit,
+        on
+    });
 }

@@ -202,10 +202,9 @@ export function initTracklistScrollEffect() {
     updateHeaderBackground();
 }
 
-// Classic scripts and inline handlers still call these by name; registered until the final flip.
+// Other files and inline handlers call these by name, so they are registered on window.
 if (typeof registerLegacyGlobals === 'function') {
     registerLegacyGlobals({
-        isBelowCollapseThreshold,
         collapseLeftPanel,
         expandLeftPanel,
         toggleLeftPanelCollapse,

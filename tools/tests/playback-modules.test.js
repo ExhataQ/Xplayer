@@ -68,13 +68,13 @@ window.electronAPI = new Proxy({}, { get: (t, k) => (k === 'then') ? undefined :
         return { page, errors };
     }
 
-    test('every exported function of the playback modules is on window, with no page errors', { timeout: 30000 }, async (t) => {
+    test('every exported function of the playback modules that other files use is on window, with no page errors', { timeout: 30000 }, async (t) => {
         if (!guard(t)) return;
         const names = [];
         for (const file of PLAYBACK_MODULES) {
-            for (const m of fs.readFileSync(path.join(JS, file), 'utf8').matchAll(/^export (?:async )?function (\w+)/gm)) names.push(m[1]);
+            for (const m of fs.readFileSync(path.join(JS, file), 'utf8').matchAll(/^export (?:async )?function (\w+)/gm)) if (require('./helpers/bridge-use').usedOutside(file, m[1])) names.push(m[1]);
         }
-        assert.ok(names.length > 60, 'expected the playback modules to export more than 60 functions, found ' + names.length);
+        assert.ok(names.length > 30, 'expected more than 30 playback functions used by other files, found ' + names.length);
         const { page, errors } = await openApp();
         const missing = await page.evaluate((list) => list.filter((n) => typeof window[n] !== 'function'), names);
         assert.deepEqual(missing, []);

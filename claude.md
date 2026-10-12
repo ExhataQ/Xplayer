@@ -43,7 +43,7 @@ The Electron files under `Source/electron/` are copied into the built applicatio
 
 The renderer files under `Source/src/js/` and `Source/src/css/` are copied into `App/MusicPlayerOutput/`.
 
-`Source/src/js/99-player.js` is the renderer bootstrap/template. The library is not inside it: it is read from `MusicPlayerOutput/songs.json` (see `electron/songs-store.js`); the `{{SONGS_DATA}}` placeholder is only the fallback list for a plain browser and the tests.
+`Source/src/js/main.js` is the single renderer entry: a list of `import` lines whose order is the load order. `Source/src/js/99-player.js` is only the build-time data template (`{{SONGS_DATA}}`, `{{PLACEHOLDER_IMAGE}}`); `core/build-data.js` reads it. The library itself is read from `MusicPlayerOutput/songs.json` (see `electron/songs-store.js`); the placeholder list is only the fallback for a plain browser and the tests. The start-up code is `core/startup.js`.
 
 `Source/tools/change.log.txt` is the append-only project change log.
 
@@ -313,7 +313,7 @@ Important source areas:
 
 * `Source/electron/` — Electron main-process code, scanner, metadata backends, downloads, windows, etc.
 * `Source/electron/scan-folder.js` — runtime music scanner and metadata/cover extraction. Changes involving supported formats, scanned metadata fields, duration, cover extraction, cover hashing, and file URLs normally belong here.
-* `Source/src/js/` — renderer JavaScript. Files are numerically ordered and their load order matters.
+* `Source/src/js/` — renderer JavaScript. Every file is an ES module; `src/js/main.js` imports them in the order they must run (the numeric names are a hint, the imports decide).
 * `Source/src/css/` — renderer styles.
 * `Source/build/music_player.py` — build-time script that assembles the application. It is not the runtime music scanner.
 * `Source/build/music_player.html` — build template.

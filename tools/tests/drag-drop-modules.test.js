@@ -11,14 +11,13 @@ const acorn = require('acorn');
 const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 
 const SRC = path.resolve(__dirname, '..', '..', 'src');
-const manifest = JSON.parse(fs.readFileSync(path.join(SRC, 'manifest.json'), 'utf8'));
+const manifest = require('../lib/manifest').readManifest(path.resolve(SRC, '..'));
 const FILES = { '06f-drag-drop-songs.js': 'initSongDragToLeftPanel', '06g-drag-drop-left-panel.js': 'initLeftPanelDragAndDrop' };
 
 describe('D-09c: manifest', () => {
     test('both files are modules and no longer classic scripts', () => {
         for (const file of Object.keys(FILES)) {
             assert.ok(manifest.modules.includes(file), `${file} should be in modules`);
-            assert.ok(!manifest.js.includes(file), `${file} should not be in js`);
         }
     });
 

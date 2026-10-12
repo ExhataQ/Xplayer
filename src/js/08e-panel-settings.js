@@ -42,19 +42,19 @@ registerActions({
     }
 });
 
-function setAudioPlaybackDurationSetting(input, key) {
+export function setAudioPlaybackDurationSetting(input, key) {
     setAudioPlaybackSetting(key, Number(input.value));
     input.nextElementSibling.textContent = input.value + 's';
 }
 
-function setReplayGainTrimSetting(input) {
+export function setReplayGainTrimSetting(input) {
     setAudioPlaybackSetting('replayGainTrimDb', Number(input.value));
     input.nextElementSibling.textContent = (Number(input.value) > 0 ? '+' : '') + input.value + ' dB';
 }
 
-let advancedSettingsOpen = false;
+export let advancedSettingsOpen = false;
 
-function openSettingsPanel() {
+export function openSettingsPanel() {
     if (advancedSettingsOpen) {
         renderAdvancedSettingsPanel();
         return;
@@ -316,25 +316,25 @@ Save and Apply Changes
     }, 50);
 }
 
-function setSmartShuffleSetting(key, value) {
+export function setSmartShuffleSetting(key, value) {
     const numericSettings = ['journeySize', 'groupSize', 'recentLimit'];
     saveSmartShuffleSetting(key, numericSettings.includes(key) ? Number(value) : value);
     showNotification('Smart Shuffle setting saved', 'success', 1500);
 }
 
-function openAdvancedSettings() {
+export function openAdvancedSettings() {
     pushViewToHistory(VIEWS.SETTINGS_ADVANCED);
     setAdvancedSettingsOpen(true);
     renderAdvancedSettingsPanel();
 }
 
-function closeAdvancedSettings() {
+export function closeAdvancedSettings() {
     pushViewToHistory(VIEWS.SETTINGS);
     setAdvancedSettingsOpen(false);
     openSettingsPanel();
 }
 
-function renderAdvancedSettingsPanel() {
+export function renderAdvancedSettingsPanel() {
     const songList = songListElement;
 
     if (typeof teardownLazyLoading === 'function') {
@@ -434,7 +434,7 @@ Remove All
     }, 50);
 }
 
-function handleThresholdInput(value) {
+export function handleThresholdInput(value) {
     if (typeof snapVirtualScrollThreshold !== 'function') return;
 
     const v = snapVirtualScrollThreshold(value);
@@ -452,7 +452,7 @@ function handleThresholdInput(value) {
     }
 }
 
-function updateThresholdSliderFill(value) {
+export function updateThresholdSliderFill(value) {
     const slider = document.getElementById('threshold-slider');
     if (!slider) return;
     const min = parseInt(slider.min, 10) || 0;
@@ -461,7 +461,7 @@ function updateThresholdSliderFill(value) {
     slider.style.background = `linear-gradient(to right, var(--accent) 0%, var(--accent) ${pct}%, var(--bg-hover) ${pct}%, var(--bg-hover) 100%)`;
 }
 
-function enterSettingsFromHistory() {
+export function enterSettingsFromHistory() {
     setAdvancedSettingsOpen(false);
     setCurrentView(VIEWS.SETTINGS);
     resetLeftPanelActiveState();
@@ -477,7 +477,7 @@ function enterSettingsFromHistory() {
     openSettingsPanel();
 }
 
-function enterAdvancedSettingsFromHistory() {
+export function enterAdvancedSettingsFromHistory() {
     setAdvancedSettingsOpen(true);
     setCurrentView(VIEWS.SETTINGS);
     resetLeftPanelActiveState();
@@ -493,7 +493,7 @@ function enterAdvancedSettingsFromHistory() {
     renderAdvancedSettingsPanel();
 }
 
-function closeSettingsPanelOnly() {
+export function closeSettingsPanelOnly() {
     setAdvancedSettingsOpen(false);
     if (currentView === VIEWS.ALL_SONGS) {
         teardownLazyLoading();
@@ -518,11 +518,11 @@ function closeSettingsPanelOnly() {
     updateSettingsMargins();
 }
 
-function closeSettingsPanel() {
+export function closeSettingsPanel() {
     closeSettingsPanelOnly();
 }
 
-function toggleSettingsPanel() {
+export function toggleSettingsPanel() {
     if (currentView === VIEWS.SETTINGS && advancedSettingsOpen) {
         closeAdvancedSettings();
         return;
@@ -574,7 +574,7 @@ function toggleSettingsPanel() {
     }
 }
 
-async function refreshUrlSaveFolderDisplay() {
+export async function refreshUrlSaveFolderDisplay() {
     const el = document.getElementById('url-save-path-display');
     if (!el) return;
     if (!desktopApi.supports('library.getDownloadFolder')) {
@@ -597,7 +597,7 @@ async function refreshUrlSaveFolderDisplay() {
     }
 }
 
-async function changeUrlSaveFolder() {
+export async function changeUrlSaveFolder() {
     if (!desktopApi.supports('library.pickDownloadFolder')) {
         showNotification('Not available in browser mode', 'warning', 2000);
         return;
@@ -611,7 +611,7 @@ async function changeUrlSaveFolder() {
     }
 }
 
-async function resetUrlSaveFolder() {
+export async function resetUrlSaveFolder() {
     if (!desktopApi.supports('library.pickDownloadFolder')) {
         showNotification('Not available in browser mode', 'warning', 2000);
         return;
@@ -631,4 +631,31 @@ async function resetUrlSaveFolder() {
         await refreshUrlSaveFolderDisplay();
         showNotification('Reset to default Downloads folder', 'success', 2000);
     }
+}
+
+// Names other files call or read by name (inline handlers, other modules).
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        setAudioPlaybackDurationSetting,
+        setReplayGainTrimSetting,
+        openSettingsPanel,
+        setSmartShuffleSetting,
+        openAdvancedSettings,
+        closeAdvancedSettings,
+        handleThresholdInput,
+        enterSettingsFromHistory,
+        enterAdvancedSettingsFromHistory,
+        closeSettingsPanelOnly,
+        closeSettingsPanel,
+        toggleSettingsPanel,
+        changeUrlSaveFolder,
+        resetUrlSaveFolder
+    });
+}
+
+// Variables other files read and assign by name: the accessors read and write this file's own variables.
+if (typeof registerLegacyState === 'function') {
+    registerLegacyState({
+        advancedSettingsOpen: [() => advancedSettingsOpen, (value) => { advancedSettingsOpen = value; }]
+    });
 }

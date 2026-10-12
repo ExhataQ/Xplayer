@@ -4,7 +4,7 @@ registerActions({
     attemptCancelSyncEditor
 });
 
-function formatLrcTime(seconds) {
+export function formatLrcTime(seconds) {
     if (seconds < 0) seconds = 0;
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -13,7 +13,7 @@ function formatLrcTime(seconds) {
     return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0') + '.' + String(cs).padStart(2, '0');
 }
 
-function parseManualTime(str) {
+export function parseManualTime(str) {
     if (!str) return null;
     let s = String(str).trim();
     if (s === '') return null;
@@ -32,7 +32,7 @@ function parseManualTime(str) {
     return null;
 }
 
-function pushSyncHistory(label) {
+export function pushSyncHistory(label) {
     if (!syncEditorState.history) syncEditorState.history = [];
     syncEditorState.redoStack = [];
 
@@ -60,7 +60,7 @@ function pushSyncHistory(label) {
     }
 }
 
-function undoSync() {
+export function undoSync() {
     if (!syncEditorState.history || syncEditorState.history.length === 0) {
         showNotification('Nothing to undo', 'info', 1200);
         return;
@@ -88,7 +88,7 @@ function undoSync() {
     updateSyncEditorProgress();
 }
 
-function redoSync() {
+export function redoSync() {
     if (!syncEditorState.redoStack || syncEditorState.redoStack.length === 0) {
         showNotification('Nothing to redo', 'info', 1200);
         return;
@@ -116,7 +116,7 @@ function redoSync() {
     updateSyncEditorProgress();
 }
 
-let syncEditorState = {
+export let syncEditorState = {
     open: false,
     songId: null,
     lines: [],
@@ -126,7 +126,7 @@ let syncEditorState = {
     active: false
 };
 
-function openSyncEditor() {
+export function openSyncEditor() {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) {
         showNotification('No song playing', 'warning', 2000);
         return;
@@ -175,7 +175,7 @@ function openSyncEditor() {
     document.addEventListener('keydown', syncEditorKeyHandler);
 }
 
-function closeSyncEditor() {
+export function closeSyncEditor() {
     if (syncEditorState._miniTick) {
         audioElement.removeEventListener('timeupdate', syncEditorState._miniTick);
         audioElement.removeEventListener('play', syncEditorState._miniTick);
@@ -201,7 +201,7 @@ function closeSyncEditor() {
     document.removeEventListener('keydown', syncEditorKeyHandler);
 }
 
-function syncEditorKeyHandler(e) {
+export function syncEditorKeyHandler(e) {
     if (!syncEditorState.open) return;
 
     const target = document.activeElement;
@@ -257,7 +257,7 @@ function syncEditorKeyHandler(e) {
     }
 }
 
-function attemptCancelSyncEditor() {
+export function attemptCancelSyncEditor() {
     const hasStamps = syncEditorState.lines.some((l) => typeof l.time === 'number');
     if (hasStamps) {
         showConfirmDialog({
@@ -273,7 +273,7 @@ function attemptCancelSyncEditor() {
     }
 }
 
-function renderSyncEditor() {
+export function renderSyncEditor() {
     let overlay = document.getElementById('sync-editor-overlay');
     if (!overlay) {
         overlay = document.createElement('div');
@@ -392,4 +392,23 @@ function renderSyncEditor() {
 
     requestAnimationFrame(() => overlay.classList.add('active'));
     updateLiveFollowButton();
+}
+
+// Names other files call or read by name (inline handlers, other modules).
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        formatLrcTime,
+        parseManualTime,
+        pushSyncHistory,
+        openSyncEditor,
+        closeSyncEditor,
+        attemptCancelSyncEditor
+    });
+}
+
+// Variables other files read and assign by name: the accessors read and write this file's own variables.
+if (typeof registerLegacyState === 'function') {
+    registerLegacyState({
+        syncEditorState: [() => syncEditorState, (value) => { syncEditorState = value; }]
+    });
 }

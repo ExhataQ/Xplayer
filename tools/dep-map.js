@@ -14,13 +14,15 @@ const path = require('path');
 const acorn = require('acorn');
 const walk = require('acorn-walk');
 const { stripExports } = require('./lib/strip-exports');
+const { readManifest } = require('./lib/manifest');
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..');
 const JS_DIR = path.join(ROOT, 'src', 'js');
-const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'manifest.json'), 'utf8'));
-// Modules run after every classic script (including player.js), so they come last.
+const manifest = readManifest(ROOT);
+// Every renderer file is an ES module imported by main.js, in the order main.js lists them; player.js (the
+// build-data script) is the only classic script and runs first.
 const MODULES = new Set(manifest.modules || []);
-const files = [...manifest.js, '99-player.js', ...MODULES];
+const files = ['99-player.js', ...MODULES];
 const order = Object.fromEntries(files.map((f, i) => [f, i]));
 
 function patternNames(p, out = []) {

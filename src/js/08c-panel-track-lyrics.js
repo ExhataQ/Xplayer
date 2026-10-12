@@ -339,17 +339,10 @@ export function clearTrackLyricsBox() {
 
 if (typeof registerLegacyGlobals === 'function') {
     registerLegacyGlobals({
-        getTrackLyricsForCurrentSong,
         renderTrackLyricsBox,
         applyTrackLyricsExpandedState,
         toggleTrackLyricsExpand,
         updateTrackLyricsHighlight,
-        seekTrackLyricsToLine,
-        scrollTrackLyricsToActive,
-        attachTrackLyricsScrollWatcher,
-        attachTrackLyricsWheelGuard,
-        showTrackLyricsSyncButton,
-        hideTrackLyricsSyncButton,
-        clearTrackLyricsBox
+        scrollTrackLyricsToActive
     });
 }

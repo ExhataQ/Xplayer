@@ -77,7 +77,7 @@ function buildApp(songCount) {
     html = renderTemplate(html, ROOT);
     html = html.replace('{{SONGS_COUNT}}', String(songCount)).split('{{PLACEHOLDER_IMAGE}}').join(PH);
     const stub = `<script>window.electronAPI = new Proxy({}, {get:(t,k)=> (k==='then')?undefined:(...a)=>{ if(/^on[A-Z]/.test(String(k))) return ()=>{}; return Promise.resolve(null);} });</script>\n`;
-    html = html.replace('<script src="js/00-state.js">', stub + '<script src="js/00-state.js">');
+    html = html.replace('<script type="module" src="js/main.js">', () => stub + '<script type="module" src="js/main.js">');
     fs.writeFileSync(path.join(out, 'index.html'), html);
     return out;
 }

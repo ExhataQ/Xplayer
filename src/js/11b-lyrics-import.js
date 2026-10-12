@@ -164,7 +164,6 @@ if (typeof registerLegacyGlobals === 'function') {
         importLrcFile,
         openLrcPasteDialog,
         closeLrcPasteDialog,
-        lrcPasteKeyHandler,
         saveLrcPaste,
         clearSyncedLyricsForCurrentSong
     });

@@ -1,7 +1,8 @@
 // Tests for core/storage.js (the only file that touches localStorage) and
 // core/storage-schema.js (read-time validators). Runs in Node, no browser needed.
 //
-// storage.js is a classic script (it has to load before 00-state.js), so it is run in a vm
+// storage.js has to load before 00-state.js and reads the global localStorage, so it is run in a vm (with its
+// `export` keywords removed)
 // context whose localStorage is a small fake - the fake is the thing it wraps.
 // storage-schema.js is an ES module and is imported directly.
 const test = require('node:test');
@@ -24,7 +25,7 @@ function load({ stored = {}, failReads = false, failWrites = false, noStorage = 
     const context = { console: { ...console, warn: (...a) => warnings.push(a.join(' ')) }, JSON, String };
     if (!noStorage) context.localStorage = localStorage;
     vm.createContext(context);
-    vm.runInContext(fs.readFileSync(path.join(JS, 'core/storage.js'), 'utf8'), context);
+    vm.runInContext(require('../lib/strip-exports').stripExports(fs.readFileSync(path.join(JS, 'core/storage.js'), 'utf8')), context);
     return { api: context, stored, warnings };
 }
 

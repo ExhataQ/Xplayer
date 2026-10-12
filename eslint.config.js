@@ -24,13 +24,6 @@ const unused = (vars) => ['warn', { vars, args: 'none', caughtErrors: 'none' }];
 module.exports = [
     { ignores: ['**/node_modules/**', 'src/js/99-player.js', 'electron/MusicPlayerOutput/**'] },
     {
-        // Classic scripts: one shared global scope. Top-level functions/variables are used by OTHER files, so
-        // no-unused-vars only looks inside functions and blocks here.
-        files: underSrc(app.classic),
-        languageOptions: { ecmaVersion: 'latest', sourceType: 'script', globals: { ...globals.browser, ...app.globals } },
-        rules: { ...baseRules, 'no-unused-vars': unused('local') }
-    },
-    {
         files: underSrc(app.modules),
         languageOptions: { ecmaVersion: 'latest', sourceType: 'module', globals: { ...globals.browser, ...app.globals } },
         rules: { ...baseRules, 'no-unused-vars': unused('all') }

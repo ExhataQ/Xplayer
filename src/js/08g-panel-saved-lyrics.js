@@ -198,11 +198,9 @@ export async function removeAllSavedLyrics() {
 
 if (typeof registerLegacyGlobals === 'function') {
     registerLegacyGlobals({
-        getSavedLyricsEntries,
         renderSavedLyricsList,
         openSavedLyricsViewer,
         closeSavedLyricsViewer,
-        savedLyricsKeyHandler,
         deleteSavedLyricsEntry,
         removeAllSavedLyrics
     });

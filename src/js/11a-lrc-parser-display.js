@@ -253,15 +253,10 @@ if (typeof registerLegacyGlobals === 'function') {
     registerLegacyGlobals({
         getLyricsDisplayMode,
         setLyricsDisplayMode,
-        refreshSyncedHighlight,
         resetLyricsDisplayMode,
         initSyncedLyrics,
         updateSyncedLyricsHighlight,
-        smoothScrollToLine,
-        markProgrammaticScroll,
         attachSyncedLyricsScrollWatcher,
-        showFollowLyricsButton,
-        hideFollowLyricsButton,
         resetSyncedLyricsFollowState,
         syncedLyricsState,
         lyricsDisplayMode

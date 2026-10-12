@@ -51,7 +51,7 @@ async function loadStorageWith(values) {
     };
     vm.createContext(context);
     vm.runInContext(storageKeysMatch[0], context);
-    vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/js/core/storage.js'), 'utf8'), context);
+    vm.runInContext(require('../lib/strip-exports').stripExports(fs.readFileSync(path.join(__dirname, '../../src/js/core/storage.js'), 'utf8')), context);
     for (const s of splitSources) {
         vm.runInContext(s, context);
     }

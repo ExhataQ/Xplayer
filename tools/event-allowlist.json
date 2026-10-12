@@ -131,7 +131,7 @@
                 "why": "toggleFolderExpandedFromUI() and closeFolder() are click handlers that redraw the same left panel after the user expands or leaves a folder row. UI state only; no data changed."
             },
             {
-                "file": "99-player.js",
+                "file": "core/startup.js",
                 "names": [
                     "renderLeftPanelMainList",
                     "renderPlaylistsView",
@@ -142,7 +142,7 @@
                 "why": "toggle*Filter() click handlers (filter buttons) and the DOMContentLoaded start-up redraw the left panel from UI state. Not a response to a data change."
             },
             {
-                "file": "99-player.js",
+                "file": "core/startup.js",
                 "names": [
                     "renderSongsList",
                     "updateHeroSongCount",
@@ -161,7 +161,7 @@
                 "why": "openPlaylist(), openFolder() and the go-up-one-folder handler open a view (navigation). toggleFolderExpandedFromUI() also calls renderFolderContents after the user clicks a chevron; it saves the expanded state and redraws the open folder, the same kind of click handler as closeFolder(). D decided (report 0004): accepted. It is a click handler that saves UI state and redraws the folder the user is looking at; nothing else in the app needs to react. The reaction at 09:88 was converted in EB-A5 (playlist:songRemovedFromView)."
             },
             {
-                "file": "99-player.js",
+                "file": "core/startup.js",
                 "names": [
                     "renderFolderContents"
                 ],

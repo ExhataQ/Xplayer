@@ -248,7 +248,6 @@ if (typeof registerLegacyGlobals === 'function') {
         updateSyncMiniVolume,
         syncMiniToggleMute,
         startSyncVolumeDrag,
-        generateLrcFromEditor,
         updateSyncEditorPreview,
         updateSyncEditorProgress,
         saveSyncAsFile,

@@ -137,7 +137,7 @@ describe('lint-globals: names published as window.<name> = ...', () => {
     });
 
     // A tiny copy of the layout buildLintGlobals needs. node_modules is linked so tools/dep-map.js finds acorn.
-    function fixture(t, { manifest, files }) {
+    function fixture(t, { imports, files }) {
         const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lint-globals-'));
         t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
         fs.mkdirSync(path.join(dir, 'src', 'js'), { recursive: true });
@@ -145,7 +145,8 @@ describe('lint-globals: names published as window.<name> = ...', () => {
         fs.copyFileSync(path.join(ROOT, 'tools', 'dep-map.js'), path.join(dir, 'tools', 'dep-map.js'));
         fs.cpSync(path.join(ROOT, 'tools', 'lib'), path.join(dir, 'tools', 'lib'), { recursive: true });
         fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(dir, 'node_modules'), 'junction');
-        fs.writeFileSync(path.join(dir, 'src', 'manifest.json'), JSON.stringify({ css: [], ...manifest }));
+        fs.writeFileSync(path.join(dir, 'src', 'manifest.json'), JSON.stringify({ css: [], entry: 'main.js' }));
+        fs.writeFileSync(path.join(dir, 'src', 'js', 'main.js'), imports.map((name) => `import './${name}';\n`).join(''));
         fs.writeFileSync(path.join(dir, 'src', 'js', '99-player.js'), '');
         for (const [name, code] of Object.entries(files)) fs.writeFileSync(path.join(dir, 'src', 'js', name), code);
         return dir;
@@ -153,26 +154,25 @@ describe('lint-globals: names published as window.<name> = ...', () => {
 
     test('the publishing file is accepted, and window.* assignments elsewhere add no global', (t) => {
         const dir = fixture(t, {
-            manifest: { js: ['a.js'], modules: ['06c-scrollbar-widget.js', 'b.js'] },
+            imports: ['06c-scrollbar-widget.js', 'b.js'],
             files: {
-                'a.js': 'function declaredInClassic() {}\n',
                 '06c-scrollbar-widget.js': 'export function init() { window.updateExternalScrollbar = () => {}; window.alsoPublished = 1; }\n',
-                'b.js': 'export const x = 1; window.sneaky = x;\n'
+                'b.js': 'export const x = 1; window.sneaky = x; registerLegacyGlobals({ viaRegistration: x }); registerLegacyState({ viaState: [() => x] });\n'
             }
         });
-        assert.deepEqual(Object.keys(buildLintGlobals(dir).globals).sort(), ['declaredInClassic', 'updateExternalScrollbar']);
+        assert.deepEqual(Object.keys(buildLintGlobals(dir).globals).sort(), ['updateExternalScrollbar', 'viaRegistration', 'viaState']);
     });
 
     test('it fails loudly when the publishing file no longer assigns the name', (t) => {
         const dir = fixture(t, {
-            manifest: { js: [], modules: ['06c-scrollbar-widget.js'] },
+            imports: ['06c-scrollbar-widget.js'],
             files: { '06c-scrollbar-widget.js': "export function init() { window['updateExternalScrollbar'] = () => {}; }\n" }
         });
         assert.throws(() => buildLintGlobals(dir), /no longer contains/);
     });
 
-    test('it fails loudly when the publishing file is not in the manifest', (t) => {
-        const dir = fixture(t, { manifest: { js: ['a.js'], modules: [] }, files: { 'a.js': 'window.updateExternalScrollbar = () => {};\n' } });
+    test('it fails loudly when the publishing file is not imported by the entry', (t) => {
+        const dir = fixture(t, { imports: ['a.js'], files: { 'a.js': 'export const a = 1;\n' } });
         assert.throws(() => buildLintGlobals(dir), /not a scanned script/);
     });
 });

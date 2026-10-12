@@ -1,12 +1,12 @@
 // ==============================================================================
 // RIGHT PANEL - TOGGLE / COLLAPSE / EXPAND
 // ==============================================================================
-let lastRightPanelStateBeforeQueue = {
+export let lastRightPanelStateBeforeQueue = {
     wasCollapsed: false,
     wasTab: 'tags'
 };
 
-function toggleRightPanel() {
+export function toggleRightPanel() {
     const rightPanel = rightPanelElement;
     const playerToggleButton = document.querySelector('.queue-toggle-btn');
     const queueContent = document.getElementById('queue-content');
@@ -74,7 +74,7 @@ function toggleRightPanel() {
     }
 }
 
-function openTagsTab() {
+export function openTagsTab() {
     const rightPanel = rightPanelElement;
     const playerToggleButton = document.querySelector('.queue-toggle-btn');
     const queueContent = document.getElementById('queue-content');
@@ -121,7 +121,7 @@ function openTagsTab() {
     }
 }
 
-function collapseRightPanel() {
+export function collapseRightPanel() {
     setRightPanelCollapsed(true);
     const rightPanel = rightPanelElement;
     const collapseBtn = document.getElementById('right-panel-collapse-btn');
@@ -168,7 +168,7 @@ function collapseRightPanel() {
     }, 30);
 }
 
-function expandRightPanel() {
+export function expandRightPanel() {
     setRightPanelCollapsed(false);
     const rightPanel = rightPanelElement;
     const collapseBtn = document.getElementById('right-panel-collapse-btn');
@@ -204,7 +204,7 @@ function expandRightPanel() {
     }, 30);
 }
 
-function toggleRightPanelCollapse() {
+export function toggleRightPanelCollapse() {
     const btn = document.getElementById('right-panel-collapse-btn');
     if (btn) temporarilySuppressTooltip(btn);
 
@@ -213,4 +213,22 @@ function toggleRightPanelCollapse() {
     } else {
         collapseRightPanel();
     }
+}
+
+// Names other files call or read by name (inline handlers, other modules).
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        toggleRightPanel,
+        openTagsTab,
+        collapseRightPanel,
+        expandRightPanel,
+        toggleRightPanelCollapse
+    });
+}
+
+// Variables other files read and assign by name: the accessors read and write this file's own variables.
+if (typeof registerLegacyState === 'function') {
+    registerLegacyState({
+        lastRightPanelStateBeforeQueue: [() => lastRightPanelStateBeforeQueue, (value) => { lastRightPanelStateBeforeQueue = value; }]
+    });
 }

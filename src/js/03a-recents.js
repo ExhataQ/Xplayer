@@ -72,7 +72,7 @@ export function resolveRecentSongs(list, library, isDeleted) {
 }
 
 // Called with no arguments by the app: the defaults read the live stored list, library and
-// deleted set (classic globals, looked up at call time). Tests pass all three.
+// deleted set (globals, looked up at call time). Tests pass all three.
 export function getRecentlyPlayedSongs(
     recent = getRecentlyPlayed(),
     library = SONGS_DATA,

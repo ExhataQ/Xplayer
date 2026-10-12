@@ -132,7 +132,7 @@ export function searchSongs(songs, query, options) {
 }
 
 // Search results for a query over the songs that are currently in the library (not deleted).
-// Tests pass `songs`; the app leaves it out and gets getActiveSongs() (a classic global).
+// Tests pass `songs`; the app leaves it out and gets getActiveSongs() (a global).
 export function getSearchResults(query, options, songs) {
     return searchSongs(songs || getActiveSongs(), query, options);
 }

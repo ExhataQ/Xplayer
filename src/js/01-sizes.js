@@ -1,14 +1,14 @@
-let SCREEN_WIDTH = window.screen.width;
+export let SCREEN_WIDTH = window.screen.width;
 
-const COLLAPSED_WIDTH = 74;
-const RIGHT_COLLAPSED_WIDTH = 40;
-const COLLAPSE_THRESHOLD = SCREEN_WIDTH * (1020 / 1920);
-const MIN_PANEL_WIDTH = SCREEN_WIDTH * (285 / 1920);
-const COLLAPSE_RESIZE_THRESHOLD = MIN_PANEL_WIDTH + 60;
-const LYRICS_NARROW_THRESHOLD = SCREEN_WIDTH * (1280 / 1920);
-const LYRICS_VERY_NARROW_THRESHOLD = SCREEN_WIDTH * (1000 / 1920);
+export const COLLAPSED_WIDTH = 74;
+export const RIGHT_COLLAPSED_WIDTH = 40;
+export const COLLAPSE_THRESHOLD = SCREEN_WIDTH * (1020 / 1920);
+export const MIN_PANEL_WIDTH = SCREEN_WIDTH * (285 / 1920);
+export const COLLAPSE_RESIZE_THRESHOLD = MIN_PANEL_WIDTH + 60;
+export const LYRICS_NARROW_THRESHOLD = SCREEN_WIDTH * (1280 / 1920);
+export const LYRICS_VERY_NARROW_THRESHOLD = SCREEN_WIDTH * (1000 / 1920);
 
-const panelWidths = (function () {
+export const panelWidths = (function () {
     // Read while this file loads, before storage-schema.js has run, so the check is inline.
     const saved = storageReadJson(STORAGE_KEYS.PANEL_WIDTHS, null);
     if (saved && saved.left > 0 && saved.right > 0) return saved;
@@ -18,11 +18,11 @@ const panelWidths = (function () {
     };
 })();
 
-let lastWindowWidth = 0;
-let lastRightPanelCollapsed = null;
-let lastNonMaximizedWidths = null;
+export let lastWindowWidth = 0;
+export let lastRightPanelCollapsed = null;
+export let lastNonMaximizedWidths = null;
 
-function updateScreenWidth() {
+export function updateScreenWidth() {
     SCREEN_WIDTH = window.screen.width;
     const maxPanelWidth = SCREEN_WIDTH * (400 / 1920);
     const minPanelWidth = SCREEN_WIDTH * (285 / 1920);
@@ -35,14 +35,14 @@ function updateScreenWidth() {
     updateLyricsTextScale();
 }
 
-let CONTEXT_MENU_WIDTH = SCREEN_WIDTH * (235 / 1920);
+export let CONTEXT_MENU_WIDTH = SCREEN_WIDTH * (235 / 1920);
 
-function updateContextMenuWidth() {
+export function updateContextMenuWidth() {
     CONTEXT_MENU_WIDTH = SCREEN_WIDTH * (235 / 1920);
     document.documentElement.style.setProperty('--context-menu-width', CONTEXT_MENU_WIDTH + 'px');
 }
 
-function saveNonMaximizedWidths() {
+export function saveNonMaximizedWidths() {
     lastNonMaximizedWidths = {
         left: panelWidths.left,
         right: panelWidths.right,
@@ -50,7 +50,7 @@ function saveNonMaximizedWidths() {
     };
 }
 
-function restoreNonMaximizedWidths() {
+export function restoreNonMaximizedWidths() {
     if (lastNonMaximizedWidths) {
         panelWidths.left = lastNonMaximizedWidths.left;
         panelWidths.right = lastNonMaximizedWidths.right;
@@ -59,7 +59,7 @@ function restoreNonMaximizedWidths() {
     }
 }
 
-function applyPanelWidths() {
+export function applyPanelWidths() {
     const leftPanel = document.getElementById('left-panel');
     const rightPanel = document.getElementById('right-panel');
 
@@ -145,7 +145,7 @@ function applyPanelWidths() {
     updateLibraryLocationsLayout();
 }
 
-function recalcLayoutWidths() {
+export function recalcLayoutWidths() {
     const rightPanel = document.getElementById('right-panel');
     const rightPanelActive = rightPanel && rightPanel.classList.contains('active') && !rightPanelCollapsed;
     const gapSize = 7;
@@ -284,7 +284,7 @@ function recalcLayoutWidths() {
     updateLyricsTextScale();
 }
 
-function adjustHeroTitleSize() {
+export function adjustHeroTitleSize() {
     const title = document.getElementById('hero-title');
     const info = title ? title.closest('.playlist-hero-info') : null;
     if (!title || !info) {
@@ -329,7 +329,7 @@ function adjustHeroTitleSize() {
     }
 }
 
-function initLeftPanelResize() {
+export function initLeftPanelResize() {
     const minPanelWidth = SCREEN_WIDTH * (285 / 1920);
     const maxPanelWidth = SCREEN_WIDTH * (400 / 1920);
 
@@ -371,7 +371,7 @@ function initLeftPanelResize() {
 // ==============================================================================
 // FOOTER PLAYER RESIZE
 // ==============================================================================
-function applyFooterWidths() {
+export function applyFooterWidths() {
     const playerContainer = document.querySelector('.player-container');
     const leftSection = document.querySelector('.player-left-section');
     const centerSection = document.querySelector('.player-center-section');
@@ -429,7 +429,7 @@ function applyFooterWidths() {
     }
 }
 
-function updateSettingsMargins() {
+export function updateSettingsMargins() {
     const settingsContent = document.querySelector('.settings-panel-content');
     if (!settingsContent) return;
 
@@ -437,7 +437,7 @@ function updateSettingsMargins() {
     settingsContent.style.paddingRight = '5%';
 }
 
-function updateLibraryLocationsLayout() {
+export function updateLibraryLocationsLayout() {
     const threshold = SCREEN_WIDTH * (1020 / 1920);
     const items = document.querySelectorAll('.library-location-item');
 
@@ -456,7 +456,7 @@ function updateLibraryLocationsLayout() {
     }
 }
 
-function updateLyricsTextScale() {
+export function updateLyricsTextScale() {
     const root = document.documentElement;
     const w = document.documentElement.clientWidth;
 
@@ -476,4 +476,32 @@ function updateLyricsTextScale() {
 
     root.style.setProperty('--lyrics-font-size', fontSize + 'px');
     root.style.setProperty('--lyrics-line-height', String(lineHeight));
+}
+
+// Names other files call or read by name (inline handlers, other modules).
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        updateScreenWidth,
+        updateContextMenuWidth,
+        applyPanelWidths,
+        recalcLayoutWidths,
+        adjustHeroTitleSize,
+        initLeftPanelResize,
+        applyFooterWidths,
+        updateSettingsMargins,
+        updateLibraryLocationsLayout,
+        updateLyricsTextScale,
+        COLLAPSED_WIDTH,
+        RIGHT_COLLAPSED_WIDTH,
+        COLLAPSE_THRESHOLD,
+        MIN_PANEL_WIDTH,
+        panelWidths
+    });
+}
+
+// Variables other files read and assign by name: the accessors read and write this file's own variables.
+if (typeof registerLegacyState === 'function') {
+    registerLegacyState({
+        SCREEN_WIDTH: [() => SCREEN_WIDTH, (value) => { SCREEN_WIDTH = value; }]
+    });
 }

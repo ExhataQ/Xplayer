@@ -288,11 +288,8 @@ export function switchToQueuePanel() {
 if (typeof registerLegacyGlobals === 'function') {
     registerLegacyGlobals({
         getCurrentSongForInfo,
-        hasEnabledExtendedFields,
         updateInfoButtonVisibility,
-        openExtendedInfoPanel,
         closeExtendedInfoPanel,
-        extendedInfoKeyHandler,
         showRightPanelContextMenu,
         switchRightPanelTab,
         updateRightPanelHeader,

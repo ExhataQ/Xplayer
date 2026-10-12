@@ -233,8 +233,6 @@ if (typeof registerLegacyGlobals === 'function') {
     registerLegacyGlobals({
         insertSyncLineAbove,
         insertSyncLineBelow,
-        deleteSyncLine,
-        setSyncLineTimeToNow,
         toggleSyncLineInstrumental,
         shiftSyncLineTime,
         showSyncLineContextMenu,

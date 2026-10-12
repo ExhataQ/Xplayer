@@ -8,8 +8,8 @@
 // They never change what is stored; a repaired value only reaches storage when the caller
 // saves it again.
 //
-// Pure functions: no DOM, no storage. This file is an ES module (see "modules" in
-// src/manifest.json); classic code gets the names from registerLegacyGlobals below.
+// Pure functions: no DOM, no storage. This file is an ES module (imported by
+// main.js); other files get the names from registerLegacyGlobals below.
 
 const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const isId = (value) => typeof value === 'string' || (typeof value === 'number' && Number.isFinite(value));

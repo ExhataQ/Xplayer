@@ -5,50 +5,66 @@
 // Setters only: each one assigns the variable that is still declared in its original
 // file. Nothing was changed to call them by creating this file. Listed in core/SETTERS.md.
 
-function setIsShuffled(value) {
+export function setIsShuffled(value) {
     isShuffled = value;
 }
 
-function setShuffleMode(value) {
+export function setShuffleMode(value) {
     shuffleMode = value;
 }
 
-function setRepeatMode(value) {
+export function setRepeatMode(value) {
     repeatMode = value;
 }
 
-function setRepeatFunctionalityActive(value) {
+export function setRepeatFunctionalityActive(value) {
     repeatFunctionalityActive = value;
 }
 
-function setRepeatVisualState(value) {
+export function setRepeatVisualState(value) {
     repeatVisualState = value;
 }
 
-function setSmartShuffleSourceId(value) {
+export function setSmartShuffleSourceId(value) {
     smartShuffleSourceId = value;
 }
 
-function setSmartShufflePreviousSong(value) {
+export function setSmartShufflePreviousSong(value) {
     smartShufflePreviousSong = value;
 }
 
-function setSmartShuffleJourney(value) {
+export function setSmartShuffleJourney(value) {
     smartShuffleJourney = value;
 }
 
-function setSmartShuffleJourneyIndex(value) {
+export function setSmartShuffleJourneyIndex(value) {
     smartShuffleJourneyIndex = value;
 }
 
-function setShuffleIndex(value) {
+export function setShuffleIndex(value) {
     shuffleIndex = value;
 }
 
-function setShuffleOrder(value) {
+export function setShuffleOrder(value) {
     shuffleOrder = value;
 }
 
-function setShuffleSourceId(value) {
+export function setShuffleSourceId(value) {
     shuffleSourceId = value;
+}
+
+// Names other files call or read by name (inline handlers, other modules).
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        setIsShuffled,
+        setShuffleMode,
+        setRepeatMode,
+        setRepeatFunctionalityActive,
+        setRepeatVisualState,
+        setSmartShuffleSourceId,
+        setSmartShufflePreviousSong,
+        setSmartShuffleJourney,
+        setSmartShuffleJourneyIndex,
+        setShuffleIndex
+    });
 }

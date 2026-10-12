@@ -10,9 +10,10 @@ const fs = require('fs');
 const path = require('path');
 const acorn = require('acorn');
 const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
+const { usedOutside } = require('./helpers/bridge-use');
 
 const SRC = path.resolve(__dirname, '..', '..', 'src');
-const manifest = JSON.parse(fs.readFileSync(path.join(SRC, 'manifest.json'), 'utf8'));
+const manifest = require('../lib/manifest').readManifest(path.resolve(SRC, '..'));
 const FILES = {
     '05a-lazy-load-main-list.js': ['DEFAULT_VIRTUAL_SCROLL_THRESHOLD', 'MIN_VIRTUAL_SCROLL_THRESHOLD', 'MAX_VIRTUAL_SCROLL_THRESHOLD', 'ITEM_HEIGHT', 'virtualScrollState', 'VIRTUAL_SCROLL_SETTLE_MS'],
     '05b-lazy-load-left-panel.js': ['LEFT_ITEM_HEIGHT', 'LEFT_OVERSCAN_COUNT', 'leftPanelVirtualState'],
@@ -26,7 +27,6 @@ describe('virtual scroll modules: manifest', () => {
     test('the three files are modules and no longer classic scripts', () => {
         for (const file of Object.keys(FILES)) {
             assert.ok(manifest.modules.includes(file), `${file} should be in modules`);
-            assert.ok(!manifest.js.includes(file), `${file} should not be in js`);
         }
     });
 
@@ -37,8 +37,9 @@ describe('virtual scroll modules: manifest', () => {
         assert.deepEqual(order, [...order].sort((a, b) => a - b));
     });
 
-    test('the threshold variable stays declared in the classic 04a0-ui-state.js, which 05a assigns at load', () => {
-        assert.ok(manifest.js.includes('04a0-ui-state.js'));
+    test('the threshold variable stays declared in 04a0-ui-state.js (loaded first), which 05a assigns at load', () => {
+        assert.ok(manifest.modules.indexOf('04a0-ui-state.js') >= 0);
+        assert.ok(manifest.modules.indexOf('04a0-ui-state.js') < manifest.modules.indexOf('05a-lazy-load-main-list.js'));
         assert.ok(!/^(let|const|var) VIRTUAL_SCROLL_THRESHOLD\b/m.test(read('05a-lazy-load-main-list.js')));
         assert.match(read('05a-lazy-load-main-list.js'), /^VIRTUAL_SCROLL_THRESHOLD = /m);
     });
@@ -46,13 +47,15 @@ describe('virtual scroll modules: manifest', () => {
 
 describe('virtual scroll modules: shape', () => {
     for (const [file, shared] of Object.entries(FILES)) {
-        test(`${file}: every function is exported and registered, plus ${shared.join(', ')}`, () => {
+        test(`${file}: every function is exported; those other files use are registered, plus ${shared.join(', ')}`, () => {
             const ast = parse(file);
             assert.ok(!ast.body.some((n) => n.type === 'FunctionDeclaration'), 'no function is left unexported');
             const block = read(file).match(/if \(typeof registerLegacyGlobals === 'function'\) \{\s+registerLegacyGlobals\(\{([^}]*)\}\);\s+\}/);
             assert.ok(block, 'guarded registration present');
             const names = block[1].split(',').map((s) => s.trim()).filter(Boolean).sort();
-            assert.deepEqual(names, [...shared, ...exportedOf(file)].sort());
+            const exported = exportedOf(file);
+            for (const name of [...shared, ...exported.filter((n) => usedOutside(file, n))]) assert.ok(names.includes(name), `${name} is used by another file but not registered`);
+            for (const name of names) assert.ok([...shared, ...exported].includes(name), `${name} is registered but is not exported`);
         });
     }
 
@@ -95,7 +98,7 @@ describe('virtual scroll modules: real page', { concurrency: false }, () => {
         page.on('pageerror', (e) => errors.push(String(e)));
         try {
             await gotoApp(page, dir);
-            const all = Object.entries(FILES).flatMap(([file, shared]) => [...shared, ...exportedOf(file)]);
+            const all = Object.entries(FILES).flatMap(([file, shared]) => [...shared, ...exportedOf(file).filter((n) => usedOutside(file, n))]);
             const missing = await page.evaluate((list) => list.filter((n) => window[n] === undefined), all);
             assert.deepEqual(missing, []);
             const info = await page.evaluate(() => ({

@@ -1,4 +1,4 @@
-// The UI event subscribers (04h to 04v) are ES modules listed first under "modules" in src/manifest.json.
+// The UI event subscribers (04h to 04v) are ES modules imported by src/js/main.js right after the start-up module.
 // They subscribe with top-level on(...) calls, so they have to be registered after the classic scripts and
 // before the page starts (and before anything can emit). This records, in a real page, which file subscribed
 // to which event and when events were emitted, and checks:
@@ -12,7 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const { ROOT, loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 
-const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'manifest.json'), 'utf8'));
+const manifest = require('../lib/manifest').readManifest(ROOT);
 const SUBSCRIBER_FILES = [
     '04h-recents-history-events.js',
     '04i-library-rebuild-events.js',
@@ -39,9 +39,10 @@ function writtenSubscriptions() {
 }
 
 describe('UI event subscribers as ES modules', () => {
-    test('are listed under "modules" (in this order, before every other module) and not under "js"', () => {
-        assert.deepEqual(manifest.modules.slice(0, SUBSCRIBER_FILES.length), SUBSCRIBER_FILES);
-        for (const file of SUBSCRIBER_FILES) assert.ok(!manifest.js.includes(file), `${file} is also a classic script`);
+    test('are imported by main.js in this order, right after core/startup.js and before every other renderer module', () => {
+        const start = manifest.modules.indexOf('core/startup.js') + 1;
+        assert.ok(start > 0);
+        assert.deepEqual(manifest.modules.slice(start, start + SUBSCRIBER_FILES.length), SUBSCRIBER_FILES);
     });
 
     test('each file subscribes at the top level and has no function or variable others could need', () => {
@@ -126,13 +127,11 @@ describe('UI event subscribers in the real page', { concurrency: false }, () => 
         }
     });
 
-    test('the page loads the subscribers as type="module" scripts and not as classic scripts', async (t) => {
+    test('the page loads the subscribers through the module entry, not as classic scripts or tags of their own', async (t) => {
         if (skip) return void t.skip(skip);
         const { moduleSources, classicSources } = await record();
-        for (const file of SUBSCRIBER_FILES) {
-            assert.ok(moduleSources.some((src) => src && src.endsWith(file)), `${file} is not a module script in the page`);
-            assert.ok(!classicSources.some((src) => src && src.endsWith(file)), `${file} is also a classic script in the page`);
-        }
+        assert.deepEqual(moduleSources.map((src) => src && src.replace(/^.*\//, '')), ['main.js']);
+        for (const file of SUBSCRIBER_FILES) assert.ok(!classicSources.some((src) => src && src.endsWith(file)), `${file} is a classic script in the page`);
     });
 
     test('the recording sees the bus (so the checks above cannot pass on an empty list)', async (t) => {

@@ -344,10 +344,6 @@ if (typeof registerLegacyGlobals === 'function') {
         replaceBrokenCoverWithPlaceholder,
         playTrackNext,
         updateAlbumArt,
-        updateTrackInfoBoxVisibility,
-        showTrackPlaceholders,
-        removePlaceholder,
-        clearTrackPlaceholders,
         updateTrackNextBox
     });
 }

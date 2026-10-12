@@ -43,6 +43,8 @@ Count remaining `onclick=` strings in `build/music_player.html` and any file sti
 
 ## 7. A-16: the final flip
 
+Status: done, see A report 0020. Differences from the text below: the live `let`s were not turned into getters; they stay module-private and are exposed with `registerLegacyState`. `ui/player-bar.js` and `core/storage.js` were already modules. `dep-map.js` is not yet an import-graph check.
+
 Gate: D-09 closed.
 
 - Convert the classic files still in the manifest: `00-state.js`, `01-sizes.js`, `02-ghost-list.js`, `core/state-playback-modes.js`, `03j-library-locations.js`, `ui/player-bar.js`, `core/legacy.js`, `api/desktop-api.js`, `99-player.js`. `core/storage.js` may stay classic if its load-order reason still holds (explicit decision).

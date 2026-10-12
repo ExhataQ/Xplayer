@@ -61,7 +61,5 @@ const groups = {
 contextBridge.exposeInMainWorld('electronAPI', {
     // flat aliases of every grouped call
     ...Object.assign({}, ...Object.values(groups)),
-    // generic escape hatch; the renderer no longer uses it once welcomeSelectFolder is swapped in 06b
-    invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
     ...groups
 });

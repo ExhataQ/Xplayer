@@ -133,9 +133,6 @@ if (typeof registerLegacyGlobals === 'function') {
     registerLegacyGlobals({
         SMART_LYRICS_ITEM_HEIGHT,
         smartLyricsVirtualState,
-        buildSmartLyricsRowAt,
-        renderSmartLyricsVisibleItems,
-        initSmartLyricsVirtualScroll,
         teardownSmartLyricsVirtualScroll,
         refreshSmartLyricsVirtualScroll
     });

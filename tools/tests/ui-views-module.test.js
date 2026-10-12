@@ -9,19 +9,21 @@ const fs = require('fs');
 const path = require('path');
 const acorn = require('acorn');
 const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
+const { usedOutside } = require('./helpers/bridge-use');
 
 const SRC = path.resolve(__dirname, '..', '..', 'src');
 const FILE = '07-views.js';
 const SHARED = ['VIEWS', 'listProviders'];
-const manifest = JSON.parse(fs.readFileSync(path.join(SRC, 'manifest.json'), 'utf8'));
+const manifest = require('../lib/manifest').readManifest(path.resolve(SRC, '..'));
 const source = fs.readFileSync(path.join(SRC, 'js', FILE), 'utf8');
 const ast = acorn.parse(source, { ecmaVersion: 'latest', sourceType: 'module' });
 const exported = ast.body.filter((n) => n.type === 'ExportNamedDeclaration').map((n) => n.declaration.id.name);
+// The exported functions something outside this file refers to: the ones that have to be on window.
+const needed = exported.filter((n) => usedOutside(FILE, n));
 
 describe('07-views module: manifest', () => {
     test('is a module and no longer a classic script', () => {
         assert.ok(manifest.modules.includes(FILE));
-        assert.ok(!manifest.js.includes(FILE));
     });
 
     test('order: the bridge and 07a come before it, 04a and 06a after it', () => {
@@ -29,11 +31,12 @@ describe('07-views module: manifest', () => {
         const order = ['07a-ui-actions.js', FILE, '04a-ui-render-core.js', '06a-context-menus.js'].map((f) => m.indexOf(f));
         assert.ok(order.every((i) => i >= 0));
         assert.deepEqual(order, [...order].sort((a, b) => a - b));
-        assert.ok(manifest.js.indexOf('core/legacy.js') >= 0);
+        assert.equal(m.indexOf('core/legacy.js'), 0);
     });
 
-    test('isNavigatingHistory stays declared in the classic 04a0-ui-state.js', () => {
-        assert.ok(manifest.js.includes('04a0-ui-state.js'));
+    test('isNavigatingHistory stays declared in 04a0-ui-state.js, which loads before it', () => {
+        assert.ok(manifest.modules.indexOf('04a0-ui-state.js') >= 0);
+        assert.ok(manifest.modules.indexOf('04a0-ui-state.js') < manifest.modules.indexOf(FILE));
         assert.ok(!/^(let|const|var) isNavigatingHistory\b/m.test(source));
     });
 });
@@ -44,11 +47,13 @@ describe('07-views module: shape', () => {
         assert.equal(exported.length, 36);
     });
 
-    test('the guarded registration lists every exported function plus VIEWS and listProviders', () => {
+    test('the guarded registration lists every exported function that other files use, plus VIEWS and listProviders', () => {
         const block = source.match(/if \(typeof registerLegacyGlobals === 'function'\) \{\s+registerLegacyGlobals\(\{([^}]*)\}\);\s+\}/);
         assert.ok(block, 'guarded registration present');
         const names = block[1].split(',').map((s) => s.trim()).filter(Boolean).sort();
-        assert.deepEqual(names, [...SHARED, ...exported].sort());
+        assert.ok(needed.length >= 25);
+        for (const name of [...SHARED, ...needed]) assert.ok(names.includes(name), `${name} is used by another file but not registered`);
+        for (const name of names) assert.ok([...SHARED, ...exported].includes(name), `${name} is registered but is not exported`);
     });
 
     test('nothing runs while loading: only declarations and the registration', () => {
@@ -84,7 +89,7 @@ describe('07-views module: real page', { concurrency: false }, () => {
         page.on('pageerror', (e) => errors.push(String(e)));
         try {
             await gotoApp(page, dir);
-            const missing = await page.evaluate((list) => list.filter((n) => window[n] === undefined), [...SHARED, ...exported]);
+            const missing = await page.evaluate((list) => list.filter((n) => window[n] === undefined), [...SHARED, ...needed]);
             assert.deepEqual(missing, []);
             const views = await page.evaluate(() => ({ ...VIEWS }));
             assert.equal(views.ALL_SONGS, 'all-songs');

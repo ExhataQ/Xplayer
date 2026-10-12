@@ -11,14 +11,13 @@ const path = require('path');
 const { loadPlaywright, launch, buildApp } = require('./helpers/app-fixture');
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
-const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'manifest.json'), 'utf8'));
+const manifest = require('../lib/manifest').readManifest(ROOT);
 const FILES = ['06c-scrollbar-widget.js', '06d-tooltip-system.js', '06e-tooltip-titles.js', '06h-fullscreen-viewer.js', '06j-notification-system.js'];
 
 describe('D-09b: manifest', () => {
     test('the five files are modules and no longer classic scripts', () => {
         for (const f of FILES) {
             assert.ok(manifest.modules.includes(f), `${f} should be under modules`);
-            assert.ok(!manifest.js.includes(f), `${f} should not be a classic script`);
         }
     });
     test('they keep their relative order (their document listeners register in this order)', () => {

@@ -12,7 +12,7 @@ const acorn = require('acorn');
 const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 
 const SRC = path.resolve(__dirname, '..', '..', 'src');
-const manifest = JSON.parse(fs.readFileSync(path.join(SRC, 'manifest.json'), 'utf8'));
+const manifest = require('../lib/manifest').readManifest(path.resolve(SRC, '..'));
 const FILES = {
     '04b-render-playlists-folders.js': ['renderPlaylistsView', 'renderFoldersView', 'renderFolderContents', 'renderPlaylistDetailView'],
     '04c-render-albums.js': ['renderAlbumsView', 'renderAlbumDetailView', 'renderAlbumLeftPanelItems'],
@@ -28,7 +28,6 @@ describe('D-09e: manifest', () => {
     test('the seven files are modules and no longer classic scripts', () => {
         for (const file of Object.keys(FILES)) {
             assert.ok(manifest.modules.includes(file), `${file} should be in modules`);
-            assert.ok(!manifest.js.includes(file), `${file} should not be in js`);
         }
     });
 

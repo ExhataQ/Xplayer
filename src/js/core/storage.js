@@ -6,7 +6,7 @@
 // (plain strings, 'true'/'false' for booleans, JSON text for objects and lists), so data saved
 // by older builds still loads.
 //
-// This is a classic script loaded BEFORE 00-state.js, because 00-state.js and 01-sizes.js
+// Loaded BEFORE 00-state.js (see src/js/main.js), because 00-state.js and 01-sizes.js
 // read saved values while they load. It must not use anything from another file.
 //
 // Contract
@@ -28,7 +28,7 @@
 // is stored: a repaired value is only written back when the caller saves it.
 // Validators for the saved lists and settings are in storage-schema.js.
 
-function storageRead(key, fallback = null) {
+export function storageRead(key, fallback = null) {
     try {
         const value = localStorage.getItem(key);
         return value === null || value === undefined ? fallback : value;
@@ -37,7 +37,7 @@ function storageRead(key, fallback = null) {
     }
 }
 
-function storageWrite(key, value) {
+export function storageWrite(key, value) {
     try {
         localStorage.setItem(key, String(value));
         return true;
@@ -47,7 +47,7 @@ function storageWrite(key, value) {
     }
 }
 
-function storageRemove(key) {
+export function storageRemove(key) {
     try {
         localStorage.removeItem(key);
         return true;
@@ -57,18 +57,18 @@ function storageRemove(key) {
     }
 }
 
-function storageReadBool(key, fallback = false) {
+export function storageReadBool(key, fallback = false) {
     const value = storageRead(key);
     if (value === 'true') return true;
     if (value === 'false') return false;
     return fallback;
 }
 
-function storageWriteBool(key, value) {
+export function storageWriteBool(key, value) {
     return storageWrite(key, value ? 'true' : 'false');
 }
 
-function storageReadJson(key, fallback, normalize) {
+export function storageReadJson(key, fallback, normalize) {
     const saved = storageRead(key);
     if (!saved) return fallback;
     try {
@@ -81,11 +81,24 @@ function storageReadJson(key, fallback, normalize) {
     }
 }
 
-function storageWriteJson(key, value) {
+export function storageWriteJson(key, value) {
     try {
         return storageWrite(key, JSON.stringify(value));
     } catch (e) {
         console.warn('[storage] could not serialise "' + key + '":', e);
         return false;
     }
+}
+
+// Names other files call or read by name (inline handlers, other modules).
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        storageRead,
+        storageWrite,
+        storageRemove,
+        storageReadBool,
+        storageWriteBool,
+        storageReadJson,
+        storageWriteJson
+    });
 }

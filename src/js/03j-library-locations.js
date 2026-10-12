@@ -8,7 +8,7 @@
 // LIBRARY LOCATIONS (MULTI-FOLDER SUPPORT)
 // ==============================================================================
 
-let libraryLocationsPanelOpen = false;
+export let libraryLocationsPanelOpen = false;
 
 // Pulled out of rebuildLibraryFromFolders() in 03m-library-folder-render.js: that
 // function is otherwise pure UI orchestration (see the comment at the top of that
@@ -16,7 +16,7 @@ let libraryLocationsPanelOpen = false;
 // ghost-list state after a full library rebuild - is genuine core state, no DOM.
 // Everything DOM-related that used to follow this block inline now lives in the
 // 'library:rebuilt' subscriber in 04i-library-rebuild-events.js.
-function resetLibraryAfterRebuild(songs) {
+export function resetLibraryAfterRebuild(songs) {
     SONGS_DATA.length = 0;
     Array.prototype.push.apply(SONGS_DATA, songs);
 
@@ -34,7 +34,7 @@ function resetLibraryAfterRebuild(songs) {
     emit('library:rebuilt', { songs });
 }
 
-async function loadLibraryLocations() {
+export async function loadLibraryLocations() {
     if (!desktopApi.supports('library.getMusicFolders')) {
         return [];
     }
@@ -47,7 +47,7 @@ async function loadLibraryLocations() {
 }
 
 
-async function getFolderStats(folderPath) {
+export async function getFolderStats(folderPath) {
     if (!desktopApi.supports('library.getFolderStats')) {
         return {
             songCount: 0,
@@ -65,9 +65,9 @@ async function getFolderStats(folderPath) {
 }
 
 
-let selectedLibraryFolders = [];
+export let selectedLibraryFolders = [];
 
-function selectLibraryFolder(element, folderPath, event) {
+export function selectLibraryFolder(element, folderPath, event) {
     const list = document.getElementById('library-locations-list');
     if (list) list.focus();
     const items = Array.from(document.querySelectorAll('.library-location-item'));
@@ -98,14 +98,14 @@ function selectLibraryFolder(element, folderPath, event) {
 }
 
 
-function clearLibraryFolderSelection() {
+export function clearLibraryFolderSelection() {
     selectedLibraryFolders = [];
     const items = document.querySelectorAll('.library-location-item');
     items.forEach((item) => item.classList.remove('selected'));
 }
 
 
-function normalizeDroppedFolderPath(rawValue) {
+export function normalizeDroppedFolderPath(rawValue) {
     if (!rawValue || typeof rawValue !== 'string') return null;
 
     let value = rawValue.trim();
@@ -127,7 +127,7 @@ function normalizeDroppedFolderPath(rawValue) {
 }
 
 
-function isFolderPathCandidate(rawValue) {
+export function isFolderPathCandidate(rawValue) {
     const value = normalizeDroppedFolderPath(rawValue);
     if (!value) return false;
 
@@ -145,7 +145,7 @@ function isFolderPathCandidate(rawValue) {
 }
 
 
-async function addFolderPathFromInput(rawValue, label = 'Folder') {
+export async function addFolderPathFromInput(rawValue, label = 'Folder') {
     if (!rawValue || !isFolderPathCandidate(rawValue)) {
         return false;
     }
@@ -175,7 +175,7 @@ async function addFolderPathFromInput(rawValue, label = 'Folder') {
 }
 
 
-async function handleDroppedLibraryFolder(event) {
+export async function handleDroppedLibraryFolder(event) {
     if (!event || !event.dataTransfer) return;
     event.preventDefault();
     event.stopPropagation();
@@ -211,7 +211,7 @@ async function handleDroppedLibraryFolder(event) {
 }
 
 
-async function handlePastedLibraryFolder(event) {
+export async function handlePastedLibraryFolder(event) {
     if (!event || !event.clipboardData) return;
     const pastedText = event.clipboardData.getData('text');
     if (!pastedText || !pastedText.trim()) return;
@@ -224,7 +224,7 @@ async function handlePastedLibraryFolder(event) {
     await addFolderPathFromInput(importText, 'Pasted folder');
 }
 
-function changeMusicFolder() {
+export function changeMusicFolder() {
     if (!desktopApi.supports('library.changeMusicFolder')) {
         showNotification('Not available in browser mode', 'warning', 2000);
         return;
@@ -255,4 +255,25 @@ function changeMusicFolder() {
         .catch((err) => {
             showNotification('Error changing folder', 'error', 3000);
         });
+}
+
+// Names other files call or read by name (inline handlers, other modules).
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        resetLibraryAfterRebuild,
+        loadLibraryLocations,
+        getFolderStats,
+        selectLibraryFolder,
+        clearLibraryFolderSelection,
+        handleDroppedLibraryFolder,
+        handlePastedLibraryFolder,
+        changeMusicFolder
+    });
+}
+
+// Variables other files read and assign by name: the accessors read and write this file's own variables.
+if (typeof registerLegacyState === 'function') {
+    registerLegacyState({
+        selectedLibraryFolders: [() => selectedLibraryFolders, (value) => { selectedLibraryFolders = value; }]
+    });
 }

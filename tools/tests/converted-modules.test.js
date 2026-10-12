@@ -13,7 +13,7 @@ const path = require('path');
 const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
-const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'manifest.json'), 'utf8'));
+const manifest = require('../lib/manifest').readManifest(ROOT);
 const pw = loadPlaywright();
 
 // Every name that classic scripts use from a converted file (see `node tools/dep-map.js uses <name>`).
@@ -44,13 +44,13 @@ describe('converted ES modules in the real page', { concurrency: false }, () => 
         return { page, errors };
     }
 
-    test('the built page loads every manifest module as type="module"', { timeout: 30000 }, async (t) => {
+    test('the built page loads one module entry (main.js) and player.js as its only classic script', { timeout: 30000 }, async (t) => {
         if (!guard(t)) return;
         const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
-        for (const name of manifest.modules) {
-            assert.ok(html.includes(`<script type="module" src="js/${name}"></script>`), `${name} should be a module tag`);
-            assert.ok(!html.includes(`<script src="js/${name}"></script>`), `${name} should not also be a classic tag`);
-        }
+        const tags = [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"[^>]*>/g)].map((m) => m[0]);
+        assert.deepEqual(tags.filter((tag) => /type="module"/.test(tag)), ['<script type="module" src="js/main.js">']);
+        assert.deepEqual(tags.filter((tag) => !/type="module"/.test(tag)), ['<script src="player.js">']);
+        for (const name of manifest.modules) assert.ok(fs.existsSync(path.join(dir, 'js', ...name.split('/'))), `${name} is copied next to main.js`);
     });
 
     test('all names the classic scripts call are registered on window, with no page errors', { timeout: 30000 }, async (t) => {
@@ -135,21 +135,22 @@ describe('converted ES modules in the real page', { concurrency: false }, () => 
         await page.close();
     });
 
-    test('every function exported by a module is also on window, and so is every function an inline handler calls', { timeout: 30000 }, async (t) => {
+    test('every exported function that another file, the page or the main process uses is on window, and so is every function an inline handler calls', { timeout: 30000 }, async (t) => {
         if (!guard(t)) return;
         const read = (rel) => fs.readFileSync(path.join(ROOT, 'src', 'js', ...rel.split('/')), 'utf8');
         // Functions the modules export (they are registered with registerLegacyGlobals). These four
         // export their internal helpers for the unit tests and register only what other files call.
         // (06i-theme-switcher.js is another module's own file; its exports are used inside it.)
+        const { usedOutside } = require('./helpers/bridge-use');
         const registersOnlyWhatIsUsed = new Set(['core/storage-schema.js', '03-storage.js', '03a-recents.js', '03b-search-engine.js', '06i-theme-switcher.js']);
         const exported = [];
         for (const name of manifest.modules.filter((n) => !registersOnlyWhatIsUsed.has(n))) {
-            for (const m of read(name).matchAll(/^export (?:async )?function (\w+)/gm)) exported.push(m[1]);
+            for (const m of read(name).matchAll(/^export (?:async )?function (\w+)/gm)) if (usedOutside(name, m[1])) exported.push(m[1]);
         }
         // Functions that inline on...="" handlers call by name (in the page template and in JS strings).
         const sources = [fs.readFileSync(path.join(ROOT, 'build', 'music_player.html'), 'utf8')];
         const topLevel = new Set();
-        for (const name of [...manifest.js, ...manifest.modules]) {
+        for (const name of manifest.modules) {
             const code = read(name);
             sources.push(code);
             for (const m of code.matchAll(/^(?:export )?(?:async )?function (\w+)/gm)) topLevel.add(m[1]);
@@ -160,7 +161,7 @@ describe('converted ES modules in the real page', { concurrency: false }, () => 
                 for (const call of attr[1].matchAll(/(?<![.\w$])([A-Za-z_$][\w$]*)\s*\(/g)) if (topLevel.has(call[1])) called.add(call[1]);
             }
         }
-        assert.ok(exported.length > 100, 'expected the modules to export well over 100 functions, found ' + exported.length);
+        assert.ok(exported.length > 100, 'expected well over 100 functions used outside their file, found ' + exported.length);
         // Inline handlers are being converted to data-action, so this count only shrinks; it just proves the scan finds some.
         assert.ok(called.size > 3, 'expected more than 3 handler functions, found ' + called.size);
         const { page, errors } = await openApp();

@@ -362,10 +362,8 @@ if (typeof registerLegacyGlobals === 'function') {
         loadPastedIntoEditor,
         togglePasteArea,
         startBlankSyncSession,
-        setSyncEditorLinesFromText,
         loadPlainLyricsIntoEditor,
         loadVariantIntoEditor,
-        importLrcIntoEditor,
-        applyImportedLrcText
+        importLrcIntoEditor
     });
 }

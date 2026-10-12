@@ -59,10 +59,8 @@ export function toggleHideRightPanelLyrics(checked) {
 if (typeof registerLegacyGlobals === 'function') {
     registerLegacyGlobals({
         getExtendedMetadataSettings,
-        saveExtendedMetadataSettings,
         toggleExtendedMetadataField,
         getHideRightPanelLyrics,
-        setHideRightPanelLyrics,
         toggleHideRightPanelLyrics
     });
 }

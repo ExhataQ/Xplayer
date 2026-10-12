@@ -1,7 +1,7 @@
 // ==============================================================================
 // GHOST LIST SYSTEM (POSITION-BASED SLOTS)
 // ==============================================================================
-const ghostLists = {
+export const ghostLists = {
     'all-songs': [],
     recent: [],
     search: [],
@@ -13,11 +13,11 @@ const ghostLists = {
     history: []
 };
 
-let currentSearchSessionId = null;
-let nextSearchItemSlotId = 1;
-let nextFavoriteSlotId = 1;
+export let currentSearchSessionId = null;
+export let nextSearchItemSlotId = 1;
+export let nextFavoriteSlotId = 1;
 
-let activeSlotHighlights = {
+export let activeSlotHighlights = {
     'all-songs': null,
     recent: null,
     search: null,
@@ -28,10 +28,10 @@ let activeSlotHighlights = {
     history: null
 };
 
-let historyGhostSlots = [];
-let nextHistorySlotId = 1;
+export let historyGhostSlots = [];
+export let nextHistorySlotId = 1;
 
-function initHistoryGhostSlots() {
+export function initHistoryGhostSlots() {
     const history = getPlayHistory();
     historyGhostSlots = [];
     for (let i = 0; i < history.length; i++) {
@@ -43,7 +43,7 @@ function initHistoryGhostSlots() {
     }
 }
 
-function addHistoryGhostSlot(songId) {
+export function addHistoryGhostSlot(songId) {
     const slotEntry = {
         slotId: `History${String(nextHistorySlotId).padStart(5, '0')}`,
         songId: songId
@@ -53,20 +53,20 @@ function addHistoryGhostSlot(songId) {
     return slotEntry.slotId;
 }
 
-function removeHistoryGhostSlot(slotIndex) {
+export function removeHistoryGhostSlot(slotIndex) {
     if (slotIndex < historyGhostSlots.length) {
         historyGhostSlots[slotIndex] = null;
     }
 }
 
-function getHistoryGhostSlotId(slotIndex) {
+export function getHistoryGhostSlotId(slotIndex) {
     if (slotIndex < historyGhostSlots.length && historyGhostSlots[slotIndex]) {
         return historyGhostSlots[slotIndex].slotId;
     }
     return null;
 }
 
-function rebuildGhostListFromMain(listId, songs) {
+export function rebuildGhostListFromMain(listId, songs) {
     const ghostList = ghostLists[listId];
     if (!ghostList) return;
 
@@ -91,7 +91,7 @@ function rebuildGhostListFromMain(listId, songs) {
     }
 }
 
-function getGhostSlotId(listId, songId, occurrenceIndex = 0) {
+export function getGhostSlotId(listId, songId, occurrenceIndex = 0) {
     const ghostList = ghostLists[listId];
     if (!ghostList) return null;
 
@@ -115,16 +115,43 @@ function getGhostSlotId(listId, songId, occurrenceIndex = 0) {
     return null;
 }
 
-function clearGhostList(listId) {
+export function clearGhostList(listId) {
     if (ghostLists[listId]) {
         ghostLists[listId] = [];
     }
     activeSlotHighlights[listId] = null;
 }
 
-function initGhostSlots(listId, songs, prefix) {
+export function initGhostSlots(listId, songs, prefix) {
     ghostLists[listId] = [];
     for (let i = 0; i < songs.length; i++) {
         ghostLists[listId].push(`${prefix}-${String(i + 1).padStart(5, '0')}`);
     }
+}
+
+// Names other files call or read by name (inline handlers, other modules).
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        initHistoryGhostSlots,
+        addHistoryGhostSlot,
+        removeHistoryGhostSlot,
+        getHistoryGhostSlotId,
+        rebuildGhostListFromMain,
+        getGhostSlotId,
+        clearGhostList,
+        initGhostSlots,
+        ghostLists
+    });
+}
+
+// Variables other files read and assign by name: the accessors read and write this file's own variables.
+if (typeof registerLegacyState === 'function') {
+    registerLegacyState({
+        currentSearchSessionId: [() => currentSearchSessionId, (value) => { currentSearchSessionId = value; }],
+        nextSearchItemSlotId: [() => nextSearchItemSlotId, (value) => { nextSearchItemSlotId = value; }],
+        nextFavoriteSlotId: [() => nextFavoriteSlotId, (value) => { nextFavoriteSlotId = value; }],
+        activeSlotHighlights: [() => activeSlotHighlights, (value) => { activeSlotHighlights = value; }],
+        historyGhostSlots: [() => historyGhostSlots, (value) => { historyGhostSlots = value; }],
+        nextHistorySlotId: [() => nextHistorySlotId, (value) => { nextHistorySlotId = value; }]
+    });
 }
