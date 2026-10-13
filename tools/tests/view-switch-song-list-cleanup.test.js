@@ -20,7 +20,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
+const { loadPlaywright, launch, buildApp, gotoApp, waitForAppSettled } = require('./helpers/app-fixture');
 
 const pw = loadPlaywright();
 const TEST_OPTIONS = { timeout: 30000 };
@@ -43,6 +43,10 @@ describe('leaving a virtualized song list never leaves stale height/positioning 
 
     const guard = (t) => (skip ? (t.skip(skip), false) : true);
 
+    // Waits until the app has no timer shorter than 600 ms pending (a view switch finishes its rendering on such
+    // timers) for two frames in a row; it gives up after 2 s and the assertions that follow report the failure.
+    const viewSettled = (page) => waitForAppSettled(page, 2000, 600);
+
     async function openApp() {
         const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
         const errors = [];
@@ -57,7 +61,7 @@ describe('leaving a virtualized song list never leaves stale height/positioning 
     // stopped working, not that the fix held.
     async function ensureVirtualizedAllSongs(page) {
         await page.evaluate(() => switchView('all-songs'));
-        await page.waitForTimeout(150);
+        await viewSettled(page);
         const before = await page.evaluate(() => ({
             enabled: virtualScrollState.enabled,
             height: document.getElementById('song-list').style.height
@@ -122,12 +126,12 @@ describe('leaving a virtualized song list never leaves stale height/positioning 
             if (scenario.name === 'advanced settings panel') {
                 // Reach it the way it's actually reached: settings panel first, then advanced.
                 await page.evaluate(() => window.toggleSettingsPanel());
-                await page.waitForTimeout(50);
+                await viewSettled(page);
                 await page.evaluate(() => window.openAdvancedSettings());
             } else {
                 await page.evaluate(scenario.open);
             }
-            await page.waitForTimeout(150);
+            await viewSettled(page);
 
             const state = await songListCleanupState(page);
             assert.equal(state.hasVirtualClass, false, `${scenario.name}: #song-list should not still have song-list--virtual`);
@@ -148,9 +152,9 @@ describe('leaving a virtualized song list never leaves stale height/positioning 
         await ensureVirtualizedAllSongs(page);
 
         await page.evaluate(() => window.toggleSettingsPanel());
-        await page.waitForTimeout(150);
+        await viewSettled(page);
         await page.evaluate(() => window.toggleSettingsPanel());
-        await page.waitForTimeout(150);
+        await viewSettled(page);
 
         const after = await page.evaluate(() => ({
             enabled: virtualScrollState.enabled,

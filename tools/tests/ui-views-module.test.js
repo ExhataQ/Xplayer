@@ -1,7 +1,7 @@
 // 07-views.js is an ES module. Behavior is covered by view-switch-song-list-cleanup.test.js, ui-handlers.test.js and
-// the event baselines; this file checks the wiring: manifest placement, that every top-level function is exported and
-// registered on window together with VIEWS and listProviders, that nothing runs while the file loads, and that the
-// names other files rely on are reachable by bare name in a real page.
+// the event baselines; this file checks the wiring: manifest placement, that every top-level function is exported,
+// that nothing runs while the file loads, and that VIEWS keeps its values in a real page. That the names other files
+// rely on are registered on window is checked in window-contract.test.js.
 // Needs: acorn (devDependency). The last describe needs playwright + a browser and skips itself if missing.
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -9,17 +9,13 @@ const fs = require('fs');
 const path = require('path');
 const acorn = require('acorn');
 const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
-const { usedOutside } = require('./helpers/bridge-use');
 
 const SRC = path.resolve(__dirname, '..', '..', 'src');
 const FILE = '07-views.js';
-const SHARED = ['VIEWS', 'listProviders'];
 const manifest = require('../lib/manifest').readManifest(path.resolve(SRC, '..'));
 const source = fs.readFileSync(path.join(SRC, 'js', FILE), 'utf8');
 const ast = acorn.parse(source, { ecmaVersion: 'latest', sourceType: 'module' });
 const exported = ast.body.filter((n) => n.type === 'ExportNamedDeclaration').map((n) => n.declaration.id.name);
-// The exported functions something outside this file refers to: the ones that have to be on window.
-const needed = exported.filter((n) => usedOutside(FILE, n));
 
 describe('07-views module: manifest', () => {
     test('is a module and no longer a classic script', () => {
@@ -45,15 +41,6 @@ describe('07-views module: shape', () => {
     test('every function is exported; 36 of them', () => {
         assert.ok(!ast.body.some((n) => n.type === 'FunctionDeclaration'));
         assert.equal(exported.length, 36);
-    });
-
-    test('the guarded registration lists every exported function that other files use, plus VIEWS and listProviders', () => {
-        const block = source.match(/if \(typeof registerLegacyGlobals === 'function'\) \{\s+registerLegacyGlobals\(\{([^}]*)\}\);\s+\}/);
-        assert.ok(block, 'guarded registration present');
-        const names = block[1].split(',').map((s) => s.trim()).filter(Boolean).sort();
-        assert.ok(needed.length >= 25);
-        for (const name of [...SHARED, ...needed]) assert.ok(names.includes(name), `${name} is used by another file but not registered`);
-        for (const name of names) assert.ok([...SHARED, ...exported].includes(name), `${name} is registered but is not exported`);
     });
 
     test('nothing runs while loading: only declarations and the registration', () => {
@@ -82,15 +69,13 @@ describe('07-views module: real page', { concurrency: false }, () => {
         if (dir) fs.rmSync(dir, { recursive: true, force: true });
     });
 
-    test('names are on window and VIEWS keeps its values', { timeout: 30000 }, async (t) => {
+    test('VIEWS keeps its values', { timeout: 30000 }, async (t) => {
         if (skip) return void t.skip(skip);
         const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e)));
         try {
             await gotoApp(page, dir);
-            const missing = await page.evaluate((list) => list.filter((n) => window[n] === undefined), [...SHARED, ...needed]);
-            assert.deepEqual(missing, []);
             const views = await page.evaluate(() => ({ ...VIEWS }));
             assert.equal(views.ALL_SONGS, 'all-songs');
             assert.equal(views.SETTINGS_ADVANCED, 'settings-advanced');

@@ -1,8 +1,8 @@
-// D-09e: 04b to 04g (the view renderers) and 07a (the data-action wrappers) are ES modules.
+// 04b to 04g (the view renderers) and 07a (the data-action wrappers) are ES modules.
 // What the renderers draw is covered by the other browser tests (scroll, search-ui, view-switch-song-list-cleanup,
 // ui-handlers, the pinned call-sequence baselines). This file checks the wiring: manifest placement, that each file
-// only exports its functions and registers exactly those on window (07a also registers its actions at load), and
-// that in a real page every name is a function and every renderer runs without a page error.
+// only exports its functions (07a also registers its actions at load), and that in a real page every renderer runs
+// without a page error. That the names are registered on window is checked in window-contract.test.js.
 // Needs: acorn (devDependency). The last describe needs playwright + a browser and skips itself if missing.
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -42,15 +42,11 @@ describe('D-09e: manifest', () => {
 
 describe('D-09e: module shape', () => {
     for (const [file, names] of Object.entries(FILES)) {
-        test(`${file} exports ${names.join(', ')} and registers the same names`, () => {
+        test(`${file} exports ${names.join(', ')} and has no unexported function`, () => {
             const ast = parse(file);
             const exported = ast.body.filter((n) => n.type === 'ExportNamedDeclaration').map((n) => n.declaration.id.name);
             assert.deepEqual(exported.sort(), [...names].sort(), 'every top-level function is exported');
             assert.ok(!ast.body.some((n) => n.type === 'FunctionDeclaration'), 'no function is left unexported');
-            const text = fs.readFileSync(path.join(SRC, 'js', file), 'utf8');
-            const block = text.match(/if \(typeof registerLegacyGlobals === 'function'\) \{\s+registerLegacyGlobals\(\{([^}]*)\}\);\s+\}/);
-            assert.ok(block, 'guarded registration present');
-            assert.deepEqual(block[1].split(',').map((s) => s.trim()).filter(Boolean).sort(), [...names].sort());
         });
     }
 
@@ -74,22 +70,6 @@ describe('D-09e: real page', { concurrency: false }, () => {
     after(async () => {
         if (browser) await browser.close();
         if (dir) fs.rmSync(dir, { recursive: true, force: true });
-    });
-
-    test('every name is a function on window and start-up completes without errors', { timeout: 30000 }, async (t) => {
-        if (skip) return void t.skip(skip);
-        const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
-        const errors = [];
-        page.on('pageerror', (e) => errors.push(String(e)));
-        try {
-            await gotoApp(page, dir);
-            const names = Object.values(FILES).flat();
-            const types = await page.evaluate((list) => list.map((n) => [n, typeof window[n]]), names);
-            assert.deepEqual(types.filter(([, type]) => type !== 'function'), []);
-            assert.deepEqual(errors, []);
-        } finally {
-            await page.close();
-        }
     });
 
     test('the data-action wrappers registered by 07a at load exist and applyActionAttrs copies attributes', { timeout: 30000 }, async (t) => {

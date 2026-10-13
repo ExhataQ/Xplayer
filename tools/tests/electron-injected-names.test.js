@@ -2,7 +2,8 @@
 // electron/main.js and electron/window-manager.js). They only work if the name is a global function once the page has
 // loaded, which for a function that lives in an ES module means it has to be registered with registerLegacyGlobals.
 // A missing name fails silently (the injected code is guarded by typeof, or throws inside Electron where nobody
-// sees it), so this runs the injected snippets the way Electron does, in the page's global scope.
+// sees it), so this runs the injected snippets the way Electron does, in the page's global scope. That the names
+// are registered on window is checked in window-contract.test.js (electron/ counts as a user of a name there).
 // Needs playwright + a browser; skips itself if missing (see scroll.test.js for setup).
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -50,19 +51,6 @@ describe('names called by the Electron main process (real page)', { concurrency:
         await gotoApp(page, dir);
         return { page, errors };
     }
-
-    test('each name is a global function after start-up', async (t) => {
-        if (skip) return void t.skip(skip);
-        const { page, errors } = await open();
-        try {
-            for (const name of Object.keys(INJECTED)) {
-                assert.equal(await page.evaluate(`typeof ${name}`), 'function', name);
-            }
-            assert.deepEqual(errors, []);
-        } finally {
-            await page.close();
-        }
-    });
 
     test('download progress: with no download notification showing, the update does nothing', async (t) => {
         if (skip) return void t.skip(skip);

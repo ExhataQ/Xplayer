@@ -15,7 +15,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { renderTemplate } = require('./helpers/render-template');
-const { launch: launchShared, gotoApp } = require('./helpers/app-fixture');
+const { launch: launchShared, gotoApp, waitForAppSettled } = require('./helpers/app-fixture');
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
 const VIEWPORT = { width: 1500, height: 900 };
@@ -127,6 +127,23 @@ const thumbCenter = (page, id = 'external-scrollbar-thumb') =>
         const r = document.getElementById(thumbId).getBoundingClientRect();
         return [r.left + r.width / 2, r.top + r.height / 2];
     }, id);
+
+// The scrollbar only takes clicks once it has the 'visible' class (it gets it when the mouse is over the list)
+// and its thumb has been laid out.
+const thumbReady = (page, scrollbarId = 'external-scrollbar', thumbId = 'external-scrollbar-thumb') =>
+    page.waitForFunction(
+        ([bar, thumb]) => document.getElementById(bar).classList.contains('visible') && document.getElementById(thumb).offsetHeight > 0,
+        [scrollbarId, thumbId]
+    );
+
+// Waits until the list engine has nothing left to do: no app timer shorter than 600 ms is pending (the 150 ms
+// scroll settle and the 400 ms thumb-hold settle; the 750 ms scrollbar auto-hide is longer and is ignored) for
+// two frames in a row. It gives up after 2 s and continues, so the assertions that follow report the failure.
+const engineIdle = (page) => waitForAppSettled(page, 2000, 600);
+
+// Waits for a page state. If it is not reached in 3 s this simply continues and the assertion that follows fails
+// with its own message.
+const reaches = (page, fn) => page.waitForFunction(fn, undefined, { timeout: 3000 }).catch(() => {});
 
 // Snapshot of list health. `misplaced` = rows whose on-screen position doesn't match their
 // list index (i.e. the scroll math drifted).
@@ -316,12 +333,12 @@ describe('song list virtual scrolling', { concurrency: false }, () => {
         assert.equal(s.virtual, false, '150 songs with threshold 200 must not virtualize');
         assert.equal(s.rows, 150);
         await page.evaluate(() => setVirtualScrollThreshold(100));
-        await page.waitForTimeout(300);
+        await reaches(page, () => virtualScrollState.enabled === true && document.querySelectorAll('#song-list .song-item').length < 150);
         s = await q();
         assert.equal(s.virtual, true, '150 songs with threshold 100 must virtualize');
         assert.ok(s.rows < 150);
         await page.evaluate(() => setVirtualScrollThreshold(200));
-        await page.waitForTimeout(300);
+        await reaches(page, () => virtualScrollState.enabled === false && document.querySelectorAll('#song-list .song-item').length === 150);
         s = await q();
         assert.equal(s.virtual, false);
         assert.equal(s.rows, 150);
@@ -333,11 +350,11 @@ describe('song list virtual scrolling', { concurrency: false }, () => {
         const page = await openPage(browser, big);
         await instrument(page);
         await page.mouse.move(700, 450);
-        await page.waitForTimeout(300);
+        await thumbReady(page);
         const [x, y] = await thumbCenter(page);
         await page.mouse.move(x, y);
         await page.mouse.down();
-        await page.waitForTimeout(700);
+        await page.waitForTimeout(700); // the window being observed: nothing may render placeholders while the thumb is held still
         const log = await takeLog(page);
         await page.mouse.up();
         assert.equal(log.filter((l) => l[1] === 'PH').length, 0, 'placeholders rendered while thumb held still');
@@ -353,15 +370,15 @@ describe('song list virtual scrolling', { concurrency: false }, () => {
         const page = await openPage(browser, big);
         await instrument(page);
         await page.mouse.move(700, 450);
-        await page.waitForTimeout(300);
+        await thumbReady(page);
         const [x, y] = await thumbCenter(page);
         await page.mouse.move(x, y);
         await page.mouse.down();
         for (let i = 1; i <= 6; i++) {
             await page.mouse.move(x, y + i);
-            await page.waitForTimeout(40);
+            await page.waitForTimeout(40); // slow, evenly spaced moves are the input of this test
         }
-        await page.waitForTimeout(400);
+        await engineIdle(page);
         const log = await takeLog(page);
         const h = await listHealth(page);
         await page.mouse.up();
@@ -377,10 +394,10 @@ describe('song list virtual scrolling', { concurrency: false }, () => {
             const page = await openPage(browser, big);
             await instrument(page);
             await page.mouse.move(700, 450);
-            await page.waitForTimeout(300);
+            await thumbReady(page);
             if (dir === 'top') {
                 await page.evaluate(() => (document.querySelector('.content').scrollTop = 1e9));
-                await page.waitForTimeout(500);
+                await engineIdle(page);
             }
             await takeLog(page);
             const [x, y] = await thumbCenter(page);
@@ -389,11 +406,11 @@ describe('song list virtual scrolling', { concurrency: false }, () => {
             const sign = dir === 'bottom' ? 1 : -1;
             await page.mouse.move(x, y + sign * 600, { steps: 6 });
             await page.mouse.move(x, y + sign * 900, { steps: 2 });
-            await page.waitForTimeout(700); // still holding
+            await engineIdle(page); // still holding: the thumb-hold settle renders real rows
             const log = await takeLog(page);
             const held = await listHealth(page);
             await page.mouse.up();
-            await page.waitForTimeout(400);
+            await engineIdle(page);
             const after = await listHealth(page);
 
             assert.ok(log.some((l) => l[1] === 'PH'), 'a fast drag should show placeholders while moving');
@@ -411,7 +428,7 @@ describe('song list virtual scrolling', { concurrency: false }, () => {
         const page = await openPage(browser, big);
         await instrument(page);
         await page.mouse.move(700, 450);
-        await page.waitForTimeout(300);
+        await thumbReady(page);
         const rand = mulberry32(3);
         const pick = (arr) => arr[Math.floor(rand() * arr.length)];
         const bad = [];
@@ -421,9 +438,9 @@ describe('song list virtual scrolling', { concurrency: false }, () => {
             await page.mouse.down();
             const dy = pick([-700, -300, -40, -5, 5, 40, 300, 700, 900]);
             await page.mouse.move(x, y + dy, { steps: pick([1, 2, 4, 8]) });
-            await page.waitForTimeout(pick([0, 60, 300]));
+            await page.waitForTimeout(pick([0, 60, 300])); // how long the thumb is held before release is part of the random input
             await page.mouse.up();
-            await page.waitForTimeout(350);
+            await engineIdle(page);
             const h = await listHealth(page);
             if (h.misplaced || h.placeholders || h.visibleReal < 4) bad.push({ k, dy, ...h });
         }
@@ -438,9 +455,9 @@ describe('song list virtual scrolling', { concurrency: false }, () => {
         await page.mouse.move(700, 450);
         for (let i = 0; i < 8; i++) {
             await page.mouse.wheel(0, 100);
-            await page.waitForTimeout(25);
+            await page.waitForTimeout(25); // the pace of a normal wheel: the rate is the input being tested
         }
-        await page.waitForTimeout(400);
+        await engineIdle(page);
         let log = await takeLog(page);
         let h = await listHealth(page);
         assert.equal(log.filter((l) => l[1] === 'PH').length, 0, 'placeholders during normal wheel scroll');
@@ -448,9 +465,9 @@ describe('song list virtual scrolling', { concurrency: false }, () => {
 
         for (let i = 0; i < 6; i++) {
             await page.mouse.wheel(0, 3000);
-            await page.waitForTimeout(16);
+            await page.waitForTimeout(16); // one frame between wheel events: a very fast wheel
         }
-        await page.waitForTimeout(500);
+        await engineIdle(page);
         log = await takeLog(page);
         h = await listHealth(page);
         assert.ok(log.some((l) => l[1] === 'PH'), 'a very fast wheel should show placeholders');
@@ -474,7 +491,8 @@ describe('song list virtual scrolling', { concurrency: false }, () => {
                 },
                 [kind]
             );
-            await page.waitForTimeout(900);
+            await reaches(page, () => virtualScrollState.enabled && document.querySelector('#song-list .song-item'));
+            await engineIdle(page);
             await instrument(page);
             const view = await page.evaluate(() => ({ virtual: virtualScrollState.enabled, songs: virtualScrollState.currentSongs.length, ITEM_HEIGHT }));
             assert.equal(view.virtual, true, `${kind} view with ${view.songs} songs should be virtual`);
@@ -482,16 +500,16 @@ describe('song list virtual scrolling', { concurrency: false }, () => {
             for (const h of heights) assert.equal(h, view.ITEM_HEIGHT, `${kind} row height ${h} != ITEM_HEIGHT`);
 
             await page.mouse.move(700, 450);
-            await page.waitForTimeout(300);
+            await thumbReady(page);
             const bad = [];
             for (const dy of [900, -900, 300, -300, 900]) {
                 const [x, y] = await thumbCenter(page);
                 await page.mouse.move(x, y);
                 await page.mouse.down();
                 await page.mouse.move(x, y + dy, { steps: 6 });
-                await page.waitForTimeout(150);
+                await page.waitForTimeout(150); // how long the thumb is held before release
                 await page.mouse.up();
-                await page.waitForTimeout(350);
+                await engineIdle(page);
                 const h = await listHealth(page);
                 if (h.misplaced || h.placeholders || h.visibleReal < 4) bad.push({ dy, ...h });
             }
@@ -536,10 +554,10 @@ describe('song list virtual scrolling', { concurrency: false }, () => {
             return [r.left + r.width / 2, r.top + r.height / 2];
         });
         await page.mouse.move(box[0], box[1]);
-        await page.waitForTimeout(400);
+        await thumbReady(page, 'left-panel-scrollbar', 'left-panel-scrollbar-thumb');
         const bad = [];
         const check = async (label) => {
-            await page.waitForTimeout(400);
+            await engineIdle(page);
             const h = await leftHealth(page);
             if (h.placeholders || h.gapAbove || h.gapBelow || h.real === 0) bad.push({ label, ...h });
             return h;
@@ -549,14 +567,14 @@ describe('song list virtual scrolling', { concurrency: false }, () => {
             await page.mouse.move(x, y);
             await page.mouse.down();
             await page.mouse.move(x, y + dy, { steps: 6 });
-            await page.waitForTimeout(100);
+            await page.waitForTimeout(100); // how long the thumb is held before release
             await page.mouse.up();
             await check(`thumb ${dy}`);
             await page.mouse.move(box[0], box[1]);
         }
         for (const d of [120, 120, 3000, 3000, -3000]) {
             await page.mouse.wheel(0, d);
-            await page.waitForTimeout(20);
+            await page.waitForTimeout(20); // fast wheel pace: the rate is the input being tested
         }
         await check('wheel');
         assert.deepEqual(bad, []);
@@ -575,11 +593,12 @@ describe('song list virtual scrolling', { concurrency: false }, () => {
             window.__slSongs = songs;
             refreshSmartLyricsVirtualScroll(songs);
         });
-        await page.waitForTimeout(300);
+        await reaches(page, () => document.querySelector('#smart-lyrics-song-list .smart-lyrics-song-row'));
+        await engineIdle(page);
         const bad = [];
         for (const top of [0, 3000, 12345, 40000, 1e9, 20000, 0]) {
             await page.evaluate((y) => (document.querySelector('.content').scrollTop = y), top);
-            await page.waitForTimeout(250);
+            await engineIdle(page);
             const r = await page.evaluate(() => {
                 const list = document.getElementById('smart-lyrics-song-list');
                 const rows = [...list.querySelectorAll('.smart-lyrics-song-row')];

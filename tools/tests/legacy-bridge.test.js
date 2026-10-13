@@ -3,66 +3,15 @@
 // Tests for core/legacy.js, the bridge that lets inline on...= handlers keep working while files
 // become modules, and runs data-action elements through one delegated listener.
 //
-//   - static checks (no browser): every data-action name written in the source is registered
 //   - browser checks (Playwright, skipped if it is missing): real clicks in the real app page
+//
+// That every data-action name is registered, and that the bridge's own names are on window, is checked in
+// window-contract.test.js.
 
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
-const path = require('path');
 const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
-
-const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
-const JS_DIR = path.join(ROOT, 'src', 'js');
-
-function listJs(dir) {
-    return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-        e.isDirectory() ? listJs(path.join(dir, e.name)) : e.name.endsWith('.js') ? [path.join(dir, e.name)] : []);
-}
-
-describe('data-action names written in the source are all registered', () => {
-    const acorn = require('acorn');
-    const walk = require('acorn-walk');
-    const files = listJs(JS_DIR).filter((f) => path.basename(f) !== 'legacy.js');
-    const registered = new Set();
-    const used = []; // { file, name }
-    const dynamic = [];
-
-    for (const file of files) {
-        const source = fs.readFileSync(file, 'utf8');
-        // 99-player.js is a template with {{placeholders}}; make it parseable.
-        const ast = acorn.parse(require('../lib/strip-exports').stripExports(source).replace(/\{\{[A-Z_]+\}\}/g, 'null'), { ecmaVersion: 'latest', sourceType: 'script' });
-        walk.simple(ast, {
-            CallExpression(node) {
-                if (node.callee.type !== 'Identifier') return;
-                if (node.callee.name === 'registerActions' && node.arguments[0] && node.arguments[0].type === 'ObjectExpression') {
-                    for (const p of node.arguments[0].properties) {
-                        if (p.type === 'Property') registered.add(p.key.name || p.key.value);
-                    }
-                }
-                if (node.callee.name === 'actionAttrs' && node.arguments[0]) {
-                    if (node.arguments[0].type === 'Literal') used.push({ file, name: node.arguments[0].value });
-                    else dynamic.push({ file, what: 'actionAttrs with a computed name' });
-                }
-            }
-        });
-        for (const m of source.matchAll(/data-action(?:-[a-z]+)?=\\?["']([^"'\\]*)/g)) {
-            if (m[1].includes('${')) dynamic.push({ file, what: `data-action="${m[1]}"` });
-            else used.push({ file, name: m[1] });
-        }
-    }
-    const html = fs.readFileSync(path.join(ROOT, 'build', 'music_player.html'), 'utf8');
-    for (const m of html.matchAll(/data-action(?:-[a-z]+)?="([^"]*)"/g)) used.push({ file: 'build/music_player.html', name: m[1] });
-
-    test('action names are literal, so this check can verify them', () => {
-        assert.deepEqual(dynamic, [], 'use a fixed name in data-action; put the variable part in data-args');
-    });
-
-    test('every data-action name has a registerActions entry', () => {
-        const missing = used.filter((u) => !registered.has(u.name)).map((u) => `${path.relative(ROOT, u.file)}: ${u.name}`);
-        assert.deepEqual(missing, []);
-    });
-});
 
 describe('legacy bridge in the real page', { concurrency: false }, () => {
     const pw = loadPlaywright();
@@ -98,15 +47,6 @@ describe('legacy bridge in the real page', { concurrency: false }, () => {
             ${body}
         })()`);
     }
-
-    test('the page loads with the bridge and its API is on window', async (t) => {
-        if (skip) return void t.skip(skip);
-        const { page, errors } = await openPage();
-        const types = await page.evaluate(() => [typeof registerLegacyGlobals, typeof registerActions, typeof actionAttrs, typeof legacyGlobalNames, typeof registeredActionNames]);
-        assert.deepEqual(types, ['function', 'function', 'function', 'function', 'function']);
-        assert.deepEqual(errors, []);
-        await page.close();
-    });
 
     test('a data-action click calls the registered action with its args, this and window.event', async (t) => {
         if (skip) return void t.skip(skip);

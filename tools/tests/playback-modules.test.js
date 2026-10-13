@@ -1,7 +1,7 @@
 // Real-browser tests for the playback files that are ES modules (10a-10d, 13, 15a-15g, 16, 17):
-// every name other files call is on window, the state the setters assign by bare name still
-// lives in the classic files, the player buttons still drive playback, and the context-menu
-// actions reach the Electron calls through desktopApi.
+// the state the setters assign by bare name still lives in the classic files, the player buttons
+// still drive playback, and the context-menu actions reach the Electron calls through desktopApi.
+// That the names other files call are registered on window is checked in window-contract.test.js.
 //
 // Run:   node --test tools/tests/playback-modules.test.js
 // Needs: npm i -D playwright   (see scroll.test.js for setup notes)
@@ -12,16 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 
-const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
-const JS = path.join(ROOT, 'src', 'js');
 const pw = loadPlaywright();
-
-const PLAYBACK_MODULES = [
-    '10a-playback-shuffle.js', '10b-playback-smart-shuffle.js', '10c-playback-queue.js', '10d-playback-song.js',
-    '13-song-highlight.js', '15a-controls-time-play.js', '15b-controls-shuffle-btn.js', '15c-controls-repeat-btn.js',
-    '15d-controls-track-nav.js', '15e-controls-audio-events.js', '15f-controls-progress-seek.js',
-    '15g-controls-volume-fade.js', '16-context-menu-actions.js', '17-song-selection.js'
-];
 
 describe('playback modules in the real page', { concurrency: false }, () => {
     let browser, dir, skip;
@@ -67,20 +58,6 @@ window.electronAPI = new Proxy({}, { get: (t, k) => (k === 'then') ? undefined :
         });
         return { page, errors };
     }
-
-    test('every exported function of the playback modules that other files use is on window, with no page errors', { timeout: 30000 }, async (t) => {
-        if (!guard(t)) return;
-        const names = [];
-        for (const file of PLAYBACK_MODULES) {
-            for (const m of fs.readFileSync(path.join(JS, file), 'utf8').matchAll(/^export (?:async )?function (\w+)/gm)) if (require('./helpers/bridge-use').usedOutside(file, m[1])) names.push(m[1]);
-        }
-        assert.ok(names.length > 30, 'expected more than 30 playback functions used by other files, found ' + names.length);
-        const { page, errors } = await openApp();
-        const missing = await page.evaluate((list) => list.filter((n) => typeof window[n] !== 'function'), names);
-        assert.deepEqual(missing, []);
-        assert.deepEqual(errors, []);
-        await page.close();
-    });
 
     test('state the setters assign by bare name is still a classic global', { timeout: 30000 }, async (t) => {
         if (!guard(t)) return;

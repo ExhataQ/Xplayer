@@ -1,8 +1,9 @@
 'use strict';
 
-// Agent D, step D-09b: 06c, 06d, 06e, 06h and 06j are ES modules (see "modules" in src/manifest.json).
-// Browser checks (Playwright, skipped if it is missing): in the real page everything the classic
-// scripts used from these files is still on window, and the behavior the files add still works.
+// 06c, 06d, 06e, 06h and 06j are ES modules (imported by src/js/main.js).
+// Browser checks (Playwright, skipped if it is missing): the shared variables still work from classic code, and
+// the behavior the files add still works. That the names the classic scripts use from these files are on window
+// is checked in window-contract.test.js.
 
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -51,21 +52,6 @@ describe('D-09b: real page', () => {
         await page.waitForTimeout(600);
         return { page, errors };
     }
-
-    test('registered names are on window, and the implicit global is now a window property', async (t) => {
-        if (skip) return void t.skip(skip);
-        const { page, errors } = await openPage();
-        const result = await page.evaluate(() => {
-            const names = ['updateScrollbarById', 'initExternalScrollbar', 'temporarilySuppressTooltip', 'openImageViewer', 'closeImageViewer', 'showNotification',
-                'showCoverProgressNotification', 'completeCoverProgressNotification', 'toggleNotificationPanel', 'closeNotificationPanel', 'clearAllNotifications',
-                'removeNotificationItem', 'renderNotificationPanel'];
-            return { missing: names.filter((n) => typeof window[n] !== 'function'), external: typeof window.updateExternalScrollbar };
-        });
-        assert.deepEqual(result.missing, []);
-        assert.equal(result.external, 'function', 'the main-content scrollbar publishes updateExternalScrollbar');
-        assert.deepEqual(errors, []);
-        await page.close();
-    });
 
     test('the shared variables still work from classic code and the setters (mouse position, notifications)', async (t) => {
         if (skip) return void t.skip(skip);

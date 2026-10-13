@@ -19,15 +19,26 @@
 //
 // Needs playwright + a browser; skips itself if missing (see scroll.test.js for setup).
 //
-// Every scenario gets its own fresh page, so scenarios do not share state. They run one after the other by
-// default. SEQUENCE_PAGES=<n> runs up to n at once (useful on a machine with spare cores; the recorded
-// sequences must not change - if one does, run with 1 to see whether the load, not the code, caused it).
+// Every scenario gets its own fresh page (its own browser context), so scenarios do not share state. Several
+// pages run at once (see pageCount): a page spends much of its start-up waiting on timers, so pages overlap well
+// even on a machine with few cores. SEQUENCE_PAGES=<n> overrides the number; SEQUENCE_PAGES=1 runs them one
+// after the other. Recording a baseline (EVENT_BASELINE) always uses one page.
+//
+// A few scenarios record calls made by app timers next to a fixed wait of their own, so on a busy machine their
+// order can flip. A scenario that differs from its recorded sequence (or has page errors) while pages ran in
+// parallel is therefore run again ALONE, and the alone result is the one that counts. A real regression
+// differs when run alone as well, so it still fails; a flip caused only by load passes, and the test says so
+// in a diagnostic line.
 
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
+const os = require('os');
 const { loadPlaywright, launch, buildApp, gotoApp } = require('./app-fixture');
 const { measure } = require('./call-sequence-scenarios');
+
+// Up to 4 pages, at least 2 (pages overlap on idle waiting even with one core); SEQUENCE_PAGES overrides.
+const pageCount = (scenarioCount) => Math.max(1, Math.min(scenarioCount, Number(process.env.SEQUENCE_PAGES) || Math.min(4, Math.max(2, os.cpus().length))));
 
 function defineSequenceSuite({ title, scenarios, expectedFile }) {
     const pw = loadPlaywright();
@@ -64,7 +75,7 @@ function defineSequenceSuite({ title, scenarios, expectedFile }) {
             }
         }
 
-        async function runAll(names) {
+        async function runAll(names, width) {
             const results = new Array(names.length);
             let next = 0;
             const worker = async () => {
@@ -73,7 +84,6 @@ function defineSequenceSuite({ title, scenarios, expectedFile }) {
                     results[i] = await runScenario(names[i]);
                 }
             };
-            const width = Math.max(1, Math.min(names.length, Number(process.env.SEQUENCE_PAGES) || 1));
             await Promise.all(Array.from({ length: width }, worker));
             return results;
         }
@@ -86,7 +96,25 @@ function defineSequenceSuite({ title, scenarios, expectedFile }) {
             if (names.length === 0) return; // nothing converted in this suite yet
             const expected = JSON.parse(fs.readFileSync(expectedFile, 'utf8'));
             let changed = false;
-            const results = await runAll(names);
+            const width = baseline ? 1 : pageCount(names.length);
+            const results = await runAll(names, width);
+            if (!baseline && width > 1) {
+                const retried = [];
+                for (let i = 0; i < results.length; i++) {
+                    const { name, calls, errors } = results[i];
+                    if (!(name in expected)) continue; // reported by the assertion below
+                    let same = errors.length === 0;
+                    try {
+                        assert.deepEqual(calls, expected[name]);
+                    } catch (_) {
+                        same = false;
+                    }
+                    if (same) continue;
+                    results[i] = await runScenario(name); // no other page is running any more
+                    retried.push(name);
+                }
+                if (retried.length) t.diagnostic(`${retried.length} scenario(s) differed while ${width} pages ran at once and were run again alone (this result is the one counted): ${retried.join('; ')}`);
+            }
             for (const { name, calls, errors } of results) {
                 assert.deepEqual(errors, [], `${name}: page errors`);
                 if (baseline) {

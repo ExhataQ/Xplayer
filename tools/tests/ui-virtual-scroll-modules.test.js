@@ -1,8 +1,8 @@
 // 05a, 05b and 05c (the virtual scroll files) are ES modules. Behavior is covered by scroll.test.js and the
 // other browser tests; this file checks the wiring: manifest placement and order, that every top-level function
-// is exported and registered on window together with the shared constants and state objects, that the state
-// objects are never reassigned (a registered copy of a reassigned variable would go stale), and that the
-// saved virtual scroll threshold is applied at start-up.
+// is exported, that the state objects are never reassigned (a registered copy of a reassigned variable would go
+// stale), and that the saved virtual scroll threshold is applied at start-up. That the names, constants and state
+// objects are registered on window is checked in window-contract.test.js.
 // Needs: acorn (devDependency). The last describe needs playwright + a browser and skips itself if missing.
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -10,22 +10,16 @@ const fs = require('fs');
 const path = require('path');
 const acorn = require('acorn');
 const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
-const { usedOutside } = require('./helpers/bridge-use');
 
 const SRC = path.resolve(__dirname, '..', '..', 'src');
 const manifest = require('../lib/manifest').readManifest(path.resolve(SRC, '..'));
-const FILES = {
-    '05a-lazy-load-main-list.js': ['DEFAULT_VIRTUAL_SCROLL_THRESHOLD', 'MIN_VIRTUAL_SCROLL_THRESHOLD', 'MAX_VIRTUAL_SCROLL_THRESHOLD', 'ITEM_HEIGHT', 'virtualScrollState', 'VIRTUAL_SCROLL_SETTLE_MS'],
-    '05b-lazy-load-left-panel.js': ['LEFT_ITEM_HEIGHT', 'LEFT_OVERSCAN_COUNT', 'leftPanelVirtualState'],
-    '05c-lazy-load-smart-lyrics.js': ['SMART_LYRICS_ITEM_HEIGHT', 'smartLyricsVirtualState']
-};
+const FILES = ['05a-lazy-load-main-list.js', '05b-lazy-load-left-panel.js', '05c-lazy-load-smart-lyrics.js'];
 const read = (file) => fs.readFileSync(path.join(SRC, 'js', file), 'utf8');
 const parse = (file) => acorn.parse(read(file), { ecmaVersion: 'latest', sourceType: 'module' });
-const exportedOf = (file) => parse(file).body.filter((n) => n.type === 'ExportNamedDeclaration').map((n) => n.declaration.id.name);
 
 describe('virtual scroll modules: manifest', () => {
     test('the three files are modules and no longer classic scripts', () => {
-        for (const file of Object.keys(FILES)) {
+        for (const file of FILES) {
             assert.ok(manifest.modules.includes(file), `${file} should be in modules`);
         }
     });
@@ -46,16 +40,9 @@ describe('virtual scroll modules: manifest', () => {
 });
 
 describe('virtual scroll modules: shape', () => {
-    for (const [file, shared] of Object.entries(FILES)) {
-        test(`${file}: every function is exported; those other files use are registered, plus ${shared.join(', ')}`, () => {
-            const ast = parse(file);
-            assert.ok(!ast.body.some((n) => n.type === 'FunctionDeclaration'), 'no function is left unexported');
-            const block = read(file).match(/if \(typeof registerLegacyGlobals === 'function'\) \{\s+registerLegacyGlobals\(\{([^}]*)\}\);\s+\}/);
-            assert.ok(block, 'guarded registration present');
-            const names = block[1].split(',').map((s) => s.trim()).filter(Boolean).sort();
-            const exported = exportedOf(file);
-            for (const name of [...shared, ...exported.filter((n) => usedOutside(file, n))]) assert.ok(names.includes(name), `${name} is used by another file but not registered`);
-            for (const name of names) assert.ok([...shared, ...exported].includes(name), `${name} is registered but is not exported`);
+    for (const file of FILES) {
+        test(`${file}: every function is exported`, () => {
+            assert.ok(!parse(file).body.some((n) => n.type === 'FunctionDeclaration'), 'no function is left unexported');
         });
     }
 
@@ -70,7 +57,7 @@ describe('virtual scroll modules: shape', () => {
     });
 
     test('none of the three files registers a listener or emits while loading', () => {
-        for (const file of Object.keys(FILES)) {
+        for (const file of FILES) {
             const kinds = parse(file).body.filter((n) => n.type === 'ExpressionStatement' && !(n.expression.type === 'AssignmentExpression'));
             assert.deepEqual(kinds.map((n) => n.expression.type), [], file);
         }
@@ -91,16 +78,13 @@ describe('virtual scroll modules: real page', { concurrency: false }, () => {
         if (dir) fs.rmSync(dir, { recursive: true, force: true });
     });
 
-    test('names are on window, row heights come from the CSS, the shared state is the live object', { timeout: 30000 }, async (t) => {
+    test('row heights come from the CSS, the shared state is the live object', { timeout: 30000 }, async (t) => {
         if (skip) return void t.skip(skip);
         const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e)));
         try {
             await gotoApp(page, dir);
-            const all = Object.entries(FILES).flatMap(([file, shared]) => [...shared, ...exportedOf(file).filter((n) => usedOutside(file, n))]);
-            const missing = await page.evaluate((list) => list.filter((n) => window[n] === undefined), all);
-            assert.deepEqual(missing, []);
             const info = await page.evaluate(() => ({
                 item: ITEM_HEIGHT,
                 css: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--song-item-height')),

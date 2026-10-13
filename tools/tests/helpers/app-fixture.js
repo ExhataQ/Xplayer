@@ -73,9 +73,10 @@ async function launch(pw) {
     return null;
 }
 
-// Counts the app's own pending setTimeout calls that are shorter than 900 ms (cleared ones do not count).
-// Runs inside the page before any app script. The 900 ms limit is the longest fixed wait the tests used
-// to rely on: a timer longer than that was never waited for.
+// Counts the app's own pending setTimeout calls that are shorter than a limit, 900 ms by default (cleared ones
+// do not count). Runs inside the page before any app script. The 900 ms default is the longest fixed wait the
+// tests used to rely on: a timer longer than that was never waited for. A test can pass a lower limit to ignore
+// longer timers it does not care about (for example the 750 ms scrollbar auto-hide).
 function trackStartupTimers() {
     const pending = new Map();
     const byHandle = new Map();
@@ -105,23 +106,24 @@ function trackStartupTimers() {
         }
         return realClear(handle);
     };
-    window.__pendingStartupTimers = () => [...pending.values()].filter((ms) => ms < 900).length;
+    window.__pendingStartupTimers = (limit = 900) => [...pending.values()].filter((ms) => ms < limit).length;
 }
 
 // Resolves when the page has finished loading, fonts are ready and no short app timer is pending for two
-// frames in a row. maxMs keeps the old behaviour as a ceiling: after that it simply continues.
-async function waitForAppSettled(page, maxMs = 3000) {
-    await page.evaluate(async (limit) => {
+// frames in a row. maxMs keeps the old behaviour as a ceiling: after that it simply continues. belowMs is the
+// timer limit described above.
+async function waitForAppSettled(page, maxMs = 3000, belowMs = 900) {
+    await page.evaluate(async ({ limit, below }) => {
         const start = performance.now();
         if (document.readyState !== 'complete') await new Promise((r) => window.addEventListener('load', r, { once: true }));
         await document.fonts.ready;
         let quietFrames = 0;
         while (quietFrames < 2 && performance.now() - start < limit) {
             await new Promise((r) => requestAnimationFrame(r));
-            const pending = typeof window.__pendingStartupTimers === 'function' ? window.__pendingStartupTimers() : 0;
+            const pending = typeof window.__pendingStartupTimers === 'function' ? window.__pendingStartupTimers(below) : 0;
             quietFrames = pending === 0 ? quietFrames + 1 : 0;
         }
-    }, maxMs);
+    }, { limit: maxMs, below: belowMs });
 }
 
 // Opens the built fixture app and waits until its start-up has settled (replaces goto + waitForTimeout(N)).

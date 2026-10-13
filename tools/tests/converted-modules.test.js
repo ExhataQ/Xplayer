@@ -1,9 +1,8 @@
 // Browser test for the files converted to ES modules (03-storage.js, 03a-recents.js,
 // 03b-search-engine.js). The unit tests import them directly; this one checks the part only
-// the real page shows: that the modules load as <script type="module">, that every name the
-// remaining classic scripts call by bare name is registered, and that the app's own call paths
-// (no arguments, reading the live library) work. Names from core/storage.js (a classic script)
-// are listed too, because 00-state.js reads them while it loads.
+// the real page shows: that the modules load as <script type="module"> and that the app's own
+// call paths (no arguments, reading the live library) work. That their names are registered on
+// window is checked in window-contract.test.js.
 //
 // Needs playwright + a browser; skips itself if missing (see scroll.test.js for setup).
 const { test, describe, before, after } = require('node:test');
@@ -15,12 +14,6 @@ const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fix
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
 const manifest = require('../lib/manifest').readManifest(ROOT);
 const pw = loadPlaywright();
-
-// Every name that classic scripts use from a converted file (see `node tools/dep-map.js uses <name>`).
-const REGISTERED = {
-    functions: ['normalizeIdList', 'normalizeStringList', 'normalizeObjectList', 'normalizePlaylists', 'normalizeFolders', 'normalizePinnedMap', 'normalizeSettings', 'normalizePanelWidths', 'storageRead', 'storageWrite', 'storageRemove', 'storageReadBool', 'storageWriteBool', 'storageReadJson', 'storageWriteJson', 'addToRecentList', 'getRecentlyPlayedSongs', 'getRecentCount', 'normalizeSearchText', 'searchSongs', 'getSearchResults', 'initThemeButtons', 'updateScrollbarById', 'initExternalScrollbar', 'temporarilySuppressTooltip', 'openImageViewer', 'closeImageViewer', 'showNotification', 'showCoverProgressNotification', 'completeCoverProgressNotification', 'toggleNotificationPanel', 'closeNotificationPanel', 'clearAllNotifications', 'removeNotificationItem', 'renderNotificationPanel', 'initSongDragToLeftPanel', 'initLeftPanelDragAndDrop', 'initMarqueeOnHover', 'showContextMenu', 'closeContextMenu', 'showLeftPanelItemContextMenu', 'showSpecialItemContextMenu', 'showPlaylistContextMenu', 'showFolderContextMenu', 'showAlbumContextMenu', 'showArtistContextMenu', 'showSubheroContextMenu', 'createModal', 'closePlaylistModal', 'closeAddLinkModal', 'closeCreateItemModal', 'closePlayedDataModal', 'showSongMetadataModal', 'showConfirmDialog', 'showCreatePlaylistDialog', 'confirmCreatePlaylist', 'showEditPlaylistDialog', 'confirmEditPlaylist', 'showCreateFolderDialog', 'confirmCreateFolder', 'showEditFolderDialog', 'confirmEditFolder', 'showCreateItemDialog', 'showAddLinkDialog', 'playFromUrl', 'updateDownloadNotification', 'showPlayedDataModal', 'showWelcomeDialog', 'parseLrcLine', 'parseLRC', 'extractDominantColor', 'applyViewColorFromCover', 'detectLanguageFromText', 'detectSongLanguage', 'analyzeAllSongsLanguages', 'smartShuffleLanguagePrepass', 'ensureShuffleLanguages', 'shuffleArray', 'createShuffleOrder', 'resetShuffle', 'clearShuffle', 'getSongDurationSeconds', 'generateSmartShuffleJourney', 'resetSmartShuffle', 'getNextSmartShuffledSong', 'getNextShuffledSong', 'startSmartShuffleFromCurrentView', 'updateQueueDisplay', 'removeFromQueue', 'cleanupPlaybackQueue', 'addToQueueNextFromMenu', 'addPlaylistToQueue', 'addAlbumToQueue', 'addArtistToQueue', 'addSongToQueueAt', 'clearGaplessPreload', 'prepareGaplessNextTrack', 'usePreloadedGaplessTrack', 'playSongFromQueue', 'createQueueFromSongList', 'playSongFromList', 'playOrResumeCurrentView', 'playCurrentViewFromStart', 'isCurrentViewPlaying', 'togglePlayAllFromCurrentView', 'paintEqOnNumberCell', 'unpaintEqOnNumberCell', 'navigateToCurrentArtist', 'navigateToCurrentSongInList', 'switchToViewAndScroll', 'updatePlayingHighlight', 'applyStoredHighlight', 'reapplyHighlightAfterFilter', 'applyHistoryStoredHighlight', 'formatTime', 'toggleTimeDisplay', 'updateTimeDisplay', 'refreshCurrentRowIndicator', 'cancelActiveAudioFade', 'getTargetTrackVolume', 'startFadeIn', 'pausePlaybackWithFade', 'scheduleCrossfadeTransition', 'cancelPendingCrossfade', 'updateVolume', 'toggleMute', 'deleteHistoryEntry', 'showFileLocation', 'deleteSongFile', 'updateLeftPanelCounts', 'syncAllUIState', 'onSongsChanged', 'refreshCurrentViewAfterMutation', 'toggleFavoriteFromMenu'],
-    constants: { MAX_RECENT_SONGS: 50, MAX_HISTORY_ENTRIES: 500, MAX_SEARCH_HISTORY: 20, CONTEXT_MENU_TYPE_LABELS: { playlist: 'Playlist', folder: 'Folder', album: 'Album', artist: 'Artist', special: 'Item' } }
-};
 
 describe('converted ES modules in the real page', { concurrency: false }, () => {
     let browser, dir, skip;
@@ -51,19 +44,6 @@ describe('converted ES modules in the real page', { concurrency: false }, () => 
         assert.deepEqual(tags.filter((tag) => /type="module"/.test(tag)), ['<script type="module" src="js/main.js">']);
         assert.deepEqual(tags.filter((tag) => !/type="module"/.test(tag)), ['<script src="player.js">']);
         for (const name of manifest.modules) assert.ok(fs.existsSync(path.join(dir, 'js', ...name.split('/'))), `${name} is copied next to main.js`);
-    });
-
-    test('all names the classic scripts call are registered on window, with no page errors', { timeout: 30000 }, async (t) => {
-        if (!guard(t)) return;
-        const { page, errors } = await openApp();
-        const seen = await page.evaluate(({ functions, constants }) => ({
-            functions: Object.fromEntries(functions.map((n) => [n, typeof window[n]])),
-            constants: Object.fromEntries(Object.keys(constants).map((n) => [n, window[n]]))
-        }), REGISTERED);
-        for (const n of REGISTERED.functions) assert.equal(seen.functions[n], 'function', `window.${n}`);
-        assert.deepEqual(seen.constants, REGISTERED.constants);
-        assert.deepEqual(errors, []);
-        await page.close();
     });
 
     test('the app call paths work: stored JSON, recents from the live library, search over active songs', { timeout: 30000 }, async (t) => {
@@ -131,42 +111,6 @@ describe('converted ES modules in the real page', { concurrency: false }, () => 
         assert.equal(out.minimizeOnClose, true);
         assert.equal(out.journeySize, 50);
         assert.equal(out.limiter, false);
-        assert.deepEqual(errors, []);
-        await page.close();
-    });
-
-    test('every exported function that another file, the page or the main process uses is on window, and so is every function an inline handler calls', { timeout: 30000 }, async (t) => {
-        if (!guard(t)) return;
-        const read = (rel) => fs.readFileSync(path.join(ROOT, 'src', 'js', ...rel.split('/')), 'utf8');
-        // Functions the modules export (they are registered with registerLegacyGlobals). These four
-        // export their internal helpers for the unit tests and register only what other files call.
-        // (06i-theme-switcher.js is another module's own file; its exports are used inside it.)
-        const { usedOutside } = require('./helpers/bridge-use');
-        const registersOnlyWhatIsUsed = new Set(['core/storage-schema.js', '03-storage.js', '03a-recents.js', '03b-search-engine.js', '06i-theme-switcher.js']);
-        const exported = [];
-        for (const name of manifest.modules.filter((n) => !registersOnlyWhatIsUsed.has(n))) {
-            for (const m of read(name).matchAll(/^export (?:async )?function (\w+)/gm)) if (usedOutside(name, m[1])) exported.push(m[1]);
-        }
-        // Functions that inline on...="" handlers call by name (in the page template and in JS strings).
-        const sources = [fs.readFileSync(path.join(ROOT, 'build', 'music_player.html'), 'utf8')];
-        const topLevel = new Set();
-        for (const name of manifest.modules) {
-            const code = read(name);
-            sources.push(code);
-            for (const m of code.matchAll(/^(?:export )?(?:async )?function (\w+)/gm)) topLevel.add(m[1]);
-        }
-        const called = new Set();
-        for (const code of sources) {
-            for (const attr of code.matchAll(/\bon(?:click|dblclick|change|input|keydown|keyup|mousedown|mouseup|contextmenu|blur|focus|error|submit)=\\?["']([^"']*)["']/g)) {
-                for (const call of attr[1].matchAll(/(?<![.\w$])([A-Za-z_$][\w$]*)\s*\(/g)) if (topLevel.has(call[1])) called.add(call[1]);
-            }
-        }
-        assert.ok(exported.length > 100, 'expected well over 100 functions used outside their file, found ' + exported.length);
-        // Inline handlers are being converted to data-action, so this count only shrinks; it just proves the scan finds some.
-        assert.ok(called.size > 3, 'expected more than 3 handler functions, found ' + called.size);
-        const { page, errors } = await openApp();
-        const missing = await page.evaluate((names) => names.filter((n) => typeof window[n] !== 'function'), [...new Set([...exported, ...called])]);
-        assert.deepEqual(missing, []);
         assert.deepEqual(errors, []);
         await page.close();
     });
