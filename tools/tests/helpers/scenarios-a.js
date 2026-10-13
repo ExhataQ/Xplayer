@@ -7,7 +7,7 @@
 // closeFolder() is in 09-folders-playlists.js, an ES module now, and is called from inside that file,
 // where a spy on window.closeFolder cannot see it; it is no longer spied (its entry is removed from
 // the recorded sequence in expected/events-a.json, nothing else changed).
-const SPY = ['renderFoldersView', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'updateScrollbarById', 'showNotification'];
+const SPY = ['renderFoldersView', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'refreshLeftPanelItems', 'updateScrollbarById', 'showNotification'];
 
 const SCENARIOS = {
     // 09's confirmDeleteFolder() calls deleteFolder() (which now emits folder:listChanged and
@@ -50,7 +50,7 @@ Object.assign(SCENARIOS, {
 Object.assign(SCENARIOS, {
     // 03k: when the background cover scan finishes, the left panel is redrawn.
     'covers: background cover scan completes': {
-        spy: ['completeCoverProgressNotification', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'updateScrollbarById'],
+        spy: ['completeCoverProgressNotification', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'refreshLeftPanelItems', 'updateScrollbarById'],
         setup: "window._coverStreamListenersAttached = false; window.electronAPI = { onScanCoverBatch() {}, onScanCoversComplete(fn) { window.__done = fn; } }; setupCoverStreamListeners();",
         run: 'window.__done();'
     }

@@ -169,8 +169,7 @@ export function toggleFolderExpandedFromUI(parentKey, folderId) {
         const container = document.getElementById('left-panel-main-content');
         const savedScroll = container ? container.scrollTop : 0;
         if (typeof leftPanelVirtualState !== 'undefined' && leftPanelVirtualState.enabled) {
-            leftPanelVirtualState.currentItems = getLeftPanelItemsArray();
-            renderLeftPanelVisibleItems(false);
+            refreshLeftPanelItems();
         } else {
             renderLeftPanelMainList();
         }

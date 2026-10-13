@@ -37,17 +37,17 @@ const EXPECTED_CALL_SEQUENCES = {
     "pinned: pin then unpin an item": [
         "showNotification",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateScrollbarById",
         "showNotification",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateScrollbarById"
     ],
     "pinned: move a played item to the top": [
         "renderPlaylistsView",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateScrollbarById",
         "renderAlbumLeftPanelItems",
         "renderLeftPanelMainList",
@@ -55,28 +55,26 @@ const EXPECTED_CALL_SEQUENCES = {
         "renderArtistLeftPanelItems",
         "renderLeftPanelMainList",
         "updateScrollbarById",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateScrollbarById"
     ],
     "pinned: pin then unpin inside a folder": [
         "showNotification",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateScrollbarById",
         "showNotification",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateScrollbarById"
     ],
     "playlists: create, add a song, remove it, delete": [
         "renderPlaylistsView",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateScrollbarById",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
         "updateScrollbarById",
         "renderPlaylistsView",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
         "updateScrollbarById"
     ],
     "search history: delete an entry while the Search History view is showing": [
@@ -98,8 +96,6 @@ const EXPECTED_CALL_SEQUENCES = {
         "updateExternalScrollbar"
     ],
     "history: clear while the History view is showing": [
-        "showHeroSection",
-        "updateHeroSection",
         "renderHistoryView",
         "showHeroSection",
         "updateHeroSection",
@@ -107,10 +103,6 @@ const EXPECTED_CALL_SEQUENCES = {
         "updateExternalScrollbar"
     ],
     "playlists: delete through the confirm flow": [
-        "renderPlaylistsView",
-        "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
-        "updateScrollbarById",
         "renderPlaylistsView",
         "renderLeftPanelMainList",
         "updateScrollbarById",
@@ -135,11 +127,11 @@ const EXPECTED_CALL_SEQUENCES = {
         "renderLeftPanelMainList",
         "updateScrollbarById",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateScrollbarById",
         "renderFoldersView",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateScrollbarById"
     ],
     "folders: delete a folder together with its contents": [
@@ -147,20 +139,20 @@ const EXPECTED_CALL_SEQUENCES = {
         "renderLeftPanelMainList",
         "updateScrollbarById",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateScrollbarById",
         "renderFoldersView",
         "renderLeftPanelMainList",
         "updateScrollbarById",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateScrollbarById"
     ],
     "folders: delete the folder that is currently open": [
         "switchView",
         "renderFoldersView",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateScrollbarById"
     ]
 };
@@ -305,7 +297,7 @@ describe('event bus: core emits, UI subscribers react', { concurrency: false }, 
             // events themselves.
             const counts = [];
             const added = [];
-            on('recents:count-changed', (e) => counts.push(e.detail.count));
+            on('recents:countChanged', (e) => counts.push(e.detail.count));
             on('recents:added', (e) => added.push(e.detail.song.id));
             saveToRecentlyPlayed(SONGS_DATA[0]);
             saveToRecentlyPlayed(SONGS_DATA[1]);

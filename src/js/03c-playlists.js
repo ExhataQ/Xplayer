@@ -111,10 +111,8 @@ export async function deletePlaylistAndClose(playlistId) {
 
     if (confirmed) {
         deletePlaylist(playlistId);
-        // Note: deletePlaylist() above already emitted 'playlist:listChanged' (full
-        // refresh). The subscriber for this event repeats a subset of it, exactly as
-        // the inline code here did before the event-bus conversion - preserved as-is,
-        // not removed, since dropping it would be a behavior change, not a refactor.
+        // deletePlaylist() already emitted 'playlist:listChanged', which redraws the left panel;
+        // the subscriber for this event only shows the notification.
         emit('playlist:deleted', { playlistName });
     }
 }

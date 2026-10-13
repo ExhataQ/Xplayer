@@ -26,7 +26,7 @@ There is no separate `off()` function: `on()` returns the unsubscribe function. 
 7. **Order matters.** If the old code navigated or computed something before refreshing, that step stays before the `emit`.
 8. Every converted reaction gets a call-order scenario in `tools/tests/helpers/call-sequence-scenarios.js`, with the expected sequence measured on the unconverted code first.
 
-Known exception to rule 1: `recents:count-changed` is kebab-case. It was named before the rule was written and is kept so recorded sequences and subscribers stay unchanged; rename it in Plan 2. Setter events `queue:changed`, `queue:indexChanged` and `view:changed` (core) have no subscriber yet on purpose.
+Setter events `queue:changed`, `queue:indexChanged` and `view:changed` (core) have no subscriber yet on purpose.
 
 ## Catalog
 
@@ -35,7 +35,7 @@ Data events (emitted by Agent A files, subscribed in `04h`-`04o`):
 | Event | Payload | Emitted from | Subscribed in |
 |---|---|---|---|
 | `recents:added` | `{ song }` | `03e` | `04h` |
-| `recents:count-changed` | `{ count }` | `03e` | `04h` |
+| `recents:countChanged` | `{ count }` | `03e` | `04h` |
 | `recents:cleared` | none | `03e` | `04h` |
 | `history:added` | none | `03e` | `04h` |
 | `history:cleared` | none | `03e` | `04h` |
@@ -103,8 +103,6 @@ Agent D events (UI shell):
 
 | Event | Payload | Emitted from | Subscribed in |
 |---|---|---|---|
-
-Known inconsistency: `recents:count-changed` is kebab-case; every other name is camelCase. It stays until a patch renames it together with `04h` and the pinned call-order tests.
 
 ## Not events yet (planned, owned by the agent that emits them)
 

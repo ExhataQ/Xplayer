@@ -14,9 +14,7 @@ on('pinned:changed', (e) => {
 
     // Refresh virtual scroll to reflect new pin order
     if (leftPanelVirtualState.enabled) {
-        const newItems = getLeftPanelItemsArray();
-        leftPanelVirtualState.currentItems = newItems;
-        renderLeftPanelVisibleItems(false);
+        refreshLeftPanelItems();
     }
 
     updateScrollbarById('left-panel-main-content');
@@ -30,11 +28,7 @@ on('playedOrder:changed', () => {
     // Refresh virtual scroll (no auto-scroll)
     if (typeof leftPanelVirtualState !== 'undefined' && leftPanelVirtualState.enabled) {
         const currentScrollTop = leftPanelVirtualState.container?.scrollTop || 0;
-        const newItems = getLeftPanelItemsArray();
-        leftPanelVirtualState.currentItems = newItems;
-        if (typeof renderLeftPanelVisibleItems === 'function') {
-            renderLeftPanelVisibleItems(false);
-        }
+        refreshLeftPanelItems();
         // Restore original scroll position
         if (leftPanelVirtualState.container) {
             leftPanelVirtualState.container.scrollTop = currentScrollTop;
@@ -52,8 +46,7 @@ on('folderPin:changed', (e) => {
         renderFolderContents(folderId);
     } else {
         if (leftPanelVirtualState.enabled) {
-            leftPanelVirtualState.currentItems = getLeftPanelItemsArray();
-            renderLeftPanelVisibleItems(false);
+            refreshLeftPanelItems();
         } else {
             renderLeftPanelMainList();
         }

@@ -268,8 +268,7 @@ export function initLeftPanelDragAndDrop() {
             if (draggedFolderId && currentOpenFolderId === draggedFolderId) {
                 renderFolderContents(draggedFolderId);
             } else if (leftPanelVirtualState.enabled) {
-                leftPanelVirtualState.currentItems = getLeftPanelItemsArray();
-                renderLeftPanelVisibleItems(false);
+                refreshLeftPanelItems();
             } else {
                 renderLeftPanelMainList();
             }

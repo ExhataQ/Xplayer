@@ -10,7 +10,7 @@
 // 03e's saveToRecentlyPlayed/updateRecentCount/clearRecentlyPlayed/
 // saveToPlayHistory/clearPlayHistory - moved here verbatim, not rewritten.
 
-on('recents:count-changed', (e) => {
+on('recents:countChanged', (e) => {
     const countElement = document.querySelector('.left-panel-item[onclick*="recent"] .song-count');
     if (countElement) {
         countElement.textContent = e.detail.count;
@@ -46,8 +46,6 @@ on('history:added', () => {
 
 on('history:cleared', () => {
     if (currentView === VIEWS.HISTORY) {
-        showHeroSection(true);
-        updateHeroSection('Recents', 0, 'Playlist', 'History');
         renderHistoryView();
         setTimeout(() => {
             if (typeof updateExternalScrollbar === 'function') {

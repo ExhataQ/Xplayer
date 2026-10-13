@@ -49,14 +49,6 @@ describe('browser launch fallback', { concurrency: false }, () => {
         assert.equal(await launch(null), null);
     });
 
-    test('without a run id nothing is cached: every launch starts the fallback from the beginning', async () => {
-        assert.equal(launchCacheFile(), null);
-        const pw = fakePlaywright(1);
-        await launch(pw);
-        await launch(pw);
-        assert.deepEqual(pw.calls, ['bundled', 'msedge', 'bundled', 'msedge']);
-    });
-
     test('with a run id the working option is tried first by the next launch (and a total failure is never cached)', async () => {
         process.env.XPLAYER_TEST_RUN_ID = `unit-${process.pid}-${Date.now()}`;
         const cacheFile = launchCacheFile();

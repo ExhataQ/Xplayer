@@ -28,22 +28,22 @@ const SCENARIOS = {
         run: 'saveToPlayHistory(SONGS_DATA[0], 4000);'
     },
     'pinned: pin then unpin an item': {
-        spy: ['showNotification', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'updateScrollbarById'],
+        spy: ['showNotification', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'refreshLeftPanelItems', 'updateScrollbarById'],
         setup: '',
         run: "togglePinItem('playlist-zz', 'Zed'); togglePinItem('playlist-zz', 'Zed');"
     },
     'pinned: move a played item to the top': {
-        spy: ['renderPlaylistsView', 'renderAlbumLeftPanelItems', 'renderArtistLeftPanelItems', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'updateScrollbarById'],
+        spy: ['renderPlaylistsView', 'renderAlbumLeftPanelItems', 'renderArtistLeftPanelItems', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'refreshLeftPanelItems', 'updateScrollbarById'],
         setup: "createPlaylist('A'); createPlaylist('B'); window.__older = getPlaylists()[1].id;",
         run: "movePlayedItemToTop('playlist-' + window.__older);"
     },
     'pinned: pin then unpin inside a folder': {
-        spy: ['showNotification', 'renderFolderContents', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'updateScrollbarById'],
+        spy: ['showNotification', 'renderFolderContents', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'refreshLeftPanelItems', 'updateScrollbarById'],
         setup: '',
         run: "togglePinItemInFolder('folder-q', 'playlist-zz', 'Zed'); togglePinItemInFolder('folder-q', 'playlist-zz', 'Zed');"
     },
     'playlists: create, add a song, remove it, delete': {
-        spy: ['renderPlaylistsView', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'updateScrollbarById', 'showNotification'],
+        spy: ['renderPlaylistsView', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'refreshLeftPanelItems', 'updateScrollbarById', 'showNotification'],
         setup: '',
         run: 'const p = createPlaylist("S"); addSongToPlaylist(1, p.id); removeSongFromPlaylist(1, p.id); deletePlaylist(p.id);'
     },
@@ -76,7 +76,7 @@ const SCENARIOS = {
         run: 'await clearPlayHistory(); await new Promise((r) => setTimeout(r, 300));'
     },
     'playlists: delete through the confirm flow': {
-        spy: ['renderPlaylistsView', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'updateScrollbarById', 'showNotification'],
+        spy: ['renderPlaylistsView', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'refreshLeftPanelItems', 'updateScrollbarById', 'showNotification'],
         setup: "window.showConfirmDialog = async () => true; window.__pid = createPlaylist('Doomed').id;",
         run: 'await deletePlaylistAndClose(window.__pid);'
     },
@@ -88,17 +88,17 @@ const SCENARIOS = {
     // Folder scenarios. 'switchView' is spied too, so the position of the navigation call
     // relative to the refresh is pinned (deleteFolder navigates away BEFORE it refreshes).
     'folders: create then delete an empty folder': {
-        spy: ['switchView', 'renderFoldersView', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'updateScrollbarById'],
+        spy: ['switchView', 'renderFoldersView', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'refreshLeftPanelItems', 'updateScrollbarById'],
         setup: '',
         run: "const f = createFolder('F'); deleteFolder(f.id, false);"
     },
     'folders: delete a folder together with its contents': {
-        spy: ['switchView', 'renderFoldersView', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'updateScrollbarById'],
+        spy: ['switchView', 'renderFoldersView', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'refreshLeftPanelItems', 'updateScrollbarById'],
         setup: "const o = createFolder('Outer'); const i = createFolder('Inner'); const p = createPlaylist('P'); addToFolder(o.id, i.id, 'folder'); addToFolder(o.id, p.id, 'playlist'); window.__fid = o.id;",
         run: 'deleteFolder(window.__fid, true);'
     },
     'folders: delete the folder that is currently open': {
-        spy: ['switchView', 'renderFoldersView', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'updateScrollbarById'],
+        spy: ['switchView', 'renderFoldersView', 'renderLeftPanelMainList', 'renderLeftPanelVisibleItems', 'refreshLeftPanelItems', 'updateScrollbarById'],
         setup: "const f = createFolder('Open'); window.__fid = f.id; currentView = 'folder-' + f.id;",
         run: 'deleteFolder(window.__fid, false);'
     }

@@ -1,8 +1,8 @@
 // Order in which files register their document and window listeners while the page loads. Several of these
 // listeners depend on running in a fixed order (a Escape / outside click handled by the context menu before the
-// tooltip code, keyboard shortcuts after the context menu, ...). Moving a file from "js" to "modules" in
-// src/manifest.json changes when it runs, so this records, in a real page, which file registered each listener
-// and checks the order that has to hold. It passes on the classic-script and the module versions alike.
+// tooltip code, keyboard shortcuts after the context menu, ...). The order of the imports in src/js/main.js
+// decides when a file runs, so this records, in a real page, which file registered each listener and checks the
+// order that has to hold. The page is loaded once; every test reads the same recording.
 // Needs playwright + a browser; skips itself if missing (see scroll.test.js for setup).
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -24,7 +24,7 @@ describe('listener registration order (real page)', { concurrency: false }, () =
     });
 
     // [ 'document.keydown <- core/legacy.js', ... ] in the order the listeners were added.
-    async function registrations() {
+    async function record() {
         const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e)));
@@ -49,6 +49,9 @@ describe('listener registration order (real page)', { concurrency: false }, () =
         assert.deepEqual(errors, []);
         return list;
     }
+
+    let recording;
+    const registrations = () => (recording ||= record());
 
     // The files that registered `event` among `files`, in registration order, without repeats.
     const order = (list, event, files) => [...new Set(list.filter((r) => r.startsWith(event + ' <- ')).map((r) => r.split(' <- ')[1]))].filter((f) => files.includes(f));

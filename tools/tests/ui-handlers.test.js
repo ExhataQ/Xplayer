@@ -1,8 +1,8 @@
 'use strict';
 
-// Agent D, step D-05: the UI shell's inline on...= handlers became data-action (core/LEGACY.md).
+// The UI shell attaches behavior with data-action instead of inline on...= handlers (core/LEGACY.md).
 //
-//   - static check: the number of inline handlers left in each D file can only go down
+//   - static check: no renderer file or the page template writes an inline handler, except the listed ones
 //   - browser checks (Playwright, skipped if it is missing): the converted controls still call the
 //     same function with the same arguments, in the same order, as the inline handlers did
 
@@ -14,36 +14,64 @@ const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fix
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
 
-// Inline handlers (on...="...") still written in each D file. Lower these when you convert more;
-// the test fails if a file gets more. Left on purpose (see .agent/reports/D/0007-*.md): handlers that
-// call event.stopPropagation(), handlers on elements other code finds by their onclick text,
-// mousedown handlers that must run before drag listeners, and the right-panel header that
-// 08d-panel-right-tabs.js rewrites with setAttribute('onclick', ...).
-const INLINE_CEILING = {
-    'src/js/04a-ui-render-core.js': 0,
-    'src/js/04b-render-playlists-folders.js': 0,
-    'src/js/04c-render-albums.js': 0,
-    'src/js/04d-render-artists.js': 0,
-    'src/js/04e-render-favorites-history.js': 0,
-    'src/js/04f-render-search-history.js': 0,
-    'src/js/04g-render-lyrics-view.js': 0,
-    'src/js/05b-lazy-load-left-panel.js': 0,
-    'src/js/06a-context-menus.js': 0,
-    'src/js/06b-modals.js': 0,
-    'src/js/06j-notification-system.js': 0,
-    'src/js/07-views.js': 0,
-    'build/music_player.html': 0
+// Inline handlers (on...="...") that are still written in the source, with how many each file
+// has. A file that is not listed must have none, and a listed file may not gain any; lower or
+// remove an entry when its handlers are converted to data-action.
+const INLINE_EXCEPTIONS = {
+    'src/js/03l-import-export.js': 2,
+    'src/js/03m-library-folder-render.js': 1,
+    'src/js/08d-panel-right-tabs.js': 1,
+    'src/js/09-folders-playlists.js': 6
 };
-const INLINE = /(?<![\w.])on(?:click|change|input|mousedown|contextmenu|error|dblclick|keydown|blur)\s*=\s*\\?["'`]|setAttribute\(\s*['"]on/g;
+const INLINE = /(?<![\w.])on(?:click|dblclick|contextmenu|mousedown|mouseup|mouseover|mouseout|change|input|focus|blur|submit|keydown|keyup|keypress|error|load|drag\w*|drop|wheel|scroll)\s*=\s*\\?["'`]|setAttribute\(\s*['"]on/g;
 
-describe('inline handlers left in the D files', () => {
-    for (const [file, ceiling] of Object.entries(INLINE_CEILING)) {
-        test(`${file}: at most ${ceiling}`, () => {
-            const source = fs.readFileSync(path.join(ROOT, file), 'utf8');
-            const count = (source.match(INLINE) || []).length;
-            assert.ok(count <= ceiling, `${file} has ${count} inline handlers, the ceiling is ${ceiling}; convert them to data-action instead`);
-        });
-    }
+function listFiles(dir) {
+    return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        const full = path.join(dir, entry.name);
+        return entry.isDirectory() ? listFiles(full) : [full];
+    });
+}
+
+// The source with every comment blanked out (newlines kept, so line numbers still match), so a
+// comment that mentions onclick="..." is not counted. The tokenizer needs valid tokens, not a valid
+// program, so it also reads the 99-player.js build template.
+function withoutComments(source) {
+    const acorn = require('acorn');
+    const comments = [];
+    for (const token of acorn.tokenizer(source, { ecmaVersion: 'latest', sourceType: 'module', allowHashBang: true, onComment: comments })) void token;
+    let out = source;
+    for (const c of comments) out = out.slice(0, c.start) + out.slice(c.start, c.end).replace(/[^\n]/g, ' ') + out.slice(c.end);
+    return out;
+}
+
+function inlineHandlerLines(file) {
+    let source = fs.readFileSync(file, 'utf8');
+    if (file.endsWith('.js')) source = withoutComments(source);
+    const lines = [];
+    for (const match of source.matchAll(INLINE)) lines.push(source.slice(0, match.index).split('\n').length);
+    return lines;
+}
+
+describe('inline event handlers', () => {
+    const files = [
+        ...listFiles(path.join(ROOT, 'src')).filter((f) => /\.(js|html)$/.test(f)),
+        path.join(ROOT, 'build', 'music_player.html')
+    ];
+    const rel = (f) => path.relative(ROOT, f).split(path.sep).join('/');
+
+    test('renderer source and the page template have no inline handlers beyond the listed exceptions', () => {
+        const names = files.map(rel);
+        assert.ok(names.includes('src/js/main.js') && names.includes('build/music_player.html'), 'the scan did not reach the renderer files');
+        for (const name of Object.keys(INLINE_EXCEPTIONS)) assert.ok(names.includes(name), `${name} is listed as an exception but does not exist; update INLINE_EXCEPTIONS`);
+        const problems = [];
+        for (const file of files) {
+            const name = rel(file);
+            const lines = inlineHandlerLines(file);
+            const allowed = INLINE_EXCEPTIONS[name] || 0;
+            if (lines.length > allowed) problems.push(`${name}: ${lines.length} inline handlers (allowed ${allowed}) at line ${lines.join(', ')}; use data-action instead`);
+        }
+        assert.deepEqual(problems, []);
+    });
 });
 
 describe('converted UI controls behave like the inline handlers did (real page)', () => {

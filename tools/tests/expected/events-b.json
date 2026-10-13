@@ -4,8 +4,7 @@
     ],
     "audio ended, repeat one: Recent view and portable panel open": [
         "renderPortableRecentlyPlayed",
-        "renderRecentlyPlayed",
-        "renderPortableRecentlyPlayed"
+        "renderRecentlyPlayed"
     ],
     "audio ended, repeat one: All Songs view, portable panel closed": [],
     "audio ended: last song of the queue, portable panel open": [
@@ -89,7 +88,7 @@
     ],
     "favorites: sync after a change, Favorites view": [
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateAllCounts",
         "renderFavoritesView",
         "updateActiveHighlight",
@@ -98,41 +97,41 @@
     ],
     "favorites: sync after a change, All Songs view": [
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateAllCounts",
         "updateHeroSongCount",
         "updateScrollbarById"
     ],
     "favorites: sync after a change, playlist view": [
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateAllCounts",
         "updateHeroSongCount",
         "updateScrollbarById"
     ],
     "favorites: sync after a change, album view": [
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateAllCounts",
         "updateHeroSongCount",
         "updateScrollbarById"
     ],
     "favorites: sync after a change, artist view": [
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateAllCounts",
         "updateHeroSongCount",
         "updateScrollbarById"
     ],
     "favorites: sync after a change, History view (no branch)": [
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateAllCounts",
         "updateScrollbarById"
     ],
     "favorites: toggle on then off from the song row, Favorites view": [
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateAllCounts",
         "renderFavoritesView",
         "updateActiveHighlight",
@@ -140,7 +139,7 @@
         "updateScrollbarById",
         "showNotification",
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateAllCounts",
         "renderFavoritesView",
         "updateHeroSongCount",
@@ -148,7 +147,7 @@
         "renderFavoritesView",
         "updateHeroSongCount",
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateAllCounts",
         "updateScrollbarById",
         "updateScrollbarById",
@@ -160,7 +159,7 @@
     "songs: library songs changed, All Songs view": [
         "updateAllCounts",
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "renderPlaylistsView",
         "renderFoldersView",
         "renderAlbumLeftPanelItems",
@@ -174,10 +173,10 @@
     "songs: library songs changed, playlist view": [
         "updateAllCounts",
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "renderPlaylistsView",
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateScrollbarById",
         "renderFoldersView",
         "renderAlbumLeftPanelItems",
@@ -193,7 +192,7 @@
         "updateActiveHighlight",
         "updateHeroSongCount",
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateAllCounts",
         "updateScrollbarById",
         "updateScrollbarById",
@@ -205,7 +204,7 @@
         "updateHeroSongCount",
         "reapplySelectionState",
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateAllCounts",
         "updateScrollbarById",
         "updateScrollbarById",
@@ -218,7 +217,7 @@
         "updateActiveHighlight",
         "updateHeroSongCount",
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateAllCounts",
         "updateScrollbarById",
         "updateScrollbarById",
@@ -231,7 +230,7 @@
         "updateActiveHighlight",
         "updateHeroSongCount",
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateAllCounts",
         "updateScrollbarById",
         "updateScrollbarById",
@@ -245,7 +244,7 @@
         "updateActiveHighlight",
         "updateHeroSongCount",
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateAllCounts",
         "updateScrollbarById",
         "updateScrollbarById",
@@ -259,7 +258,7 @@
         "updateActiveHighlight",
         "updateHeroSongCount",
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateAllCounts",
         "updateScrollbarById",
         "updateScrollbarById",
@@ -270,7 +269,7 @@
     ],
     "mutation refresh: view without a branch (Search)": [
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateAllCounts",
         "updateScrollbarById",
         "updateScrollbarById",
@@ -280,7 +279,7 @@
     ],
     "left panel counts: virtual list enabled": [
         "updateLeftPanelCounts",
-        "renderLeftPanelVisibleItems"
+        "refreshLeftPanelItems"
     ],
     "left panel counts: virtual list disabled": [
         "updateLeftPanelCounts"

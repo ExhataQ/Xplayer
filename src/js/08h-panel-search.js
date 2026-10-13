@@ -42,7 +42,6 @@ export function performSearchNow() {
         setCurrentSearchSessionId(null);
         const allSongs = getSongsForList(VIEWS.ALL_SONGS);
         emit('search:resultsChanged', { view: VIEWS.ALL_SONGS, songs: allSongs });
-        getCachedEl('all-songs-count').textContent = allSongs.length;
         resetLeftPanelActiveState();
         activateLeftPanelItem(VIEWS.ALL_SONGS);
     } else {
@@ -74,10 +73,6 @@ export function performSearchNow() {
             sessionId: currentSearchSessionId
         });
 
-        const countElement = getCachedEl('all-songs-count');
-        if (countElement) {
-            countElement.textContent = filteredSongs.length;
-        }
         emit('search:resultsChanged', { view: VIEWS.SEARCH_ITEMS, songs: filteredSongs });
 
         resetLeftPanelActiveState();

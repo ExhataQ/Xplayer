@@ -121,7 +121,7 @@
             {
                 "file": "09-folders-playlists.js",
                 "names": [
-                    "renderLeftPanelVisibleItems",
+                    "refreshLeftPanelItems",
                     "renderLeftPanelMainList",
                     "renderPlaylistsView",
                     "renderFoldersView",

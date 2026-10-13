@@ -333,6 +333,11 @@ export function refreshLeftPanelLazy() {
     }
 }
 
+export function refreshLeftPanelItems(items = getLeftPanelItemsArray()) {
+    leftPanelVirtualState.currentItems = items;
+    renderLeftPanelVisibleItems(false);
+}
+
 export function getLeftPanelItemsArray() {
     const pinnedIds = getPinnedItems();
     const allItemsData = collectAllLeftPanelItems();
@@ -357,6 +362,7 @@ if (typeof registerLegacyGlobals === 'function') {
         initLeftPanelLazyLoading,
         teardownLeftPanelLazyLoading,
         refreshLeftPanelLazy,
+        refreshLeftPanelItems,
         getLeftPanelItemsArray
     });
 }

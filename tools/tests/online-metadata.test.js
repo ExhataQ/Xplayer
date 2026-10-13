@@ -1,6 +1,6 @@
 // Tests for electron/online-metadata.js cover-art download, with the network mocked (no real requests).
 // Models what the Cover Art Archive really does: 307 redirects to archive.org and http:// image URLs.
-const { test, after } = require('node:test');
+const { test, after, mock } = require('node:test');
 const assert = require('node:assert/strict');
 const Module = require('module');
 const https = require('https');
@@ -20,9 +20,11 @@ after(() => fs.rmSync(userData, { recursive: true, force: true }));
 // ---- mocked network -------------------------------------------------------------------------
 let routes = {};
 let calls = [];
+let callTimes = [];
 https.get = function (url, opts, callback) {
     const target = String(url);
     calls.push(target);
+    callTimes.push(Date.now());
     const req = new EventEmitter();
     req.destroy = (err) => setImmediate(() => req.emit('error', err || new Error('destroyed')));
     setImmediate(() => {
@@ -44,6 +46,25 @@ https.get = function (url, opts, callback) {
     return req;
 };
 
+// ---- virtual time ---------------------------------------------------------------------------
+// The module waits between MusicBrainz requests (rate limit) and between retries (backoff) with
+// setTimeout and Date.now(). Both run on a virtual clock here, so those waits cost no real time.
+mock.timers.enable({ apis: ['setTimeout', 'Date'], now: Date.now() });
+after(() => mock.timers.reset());
+
+// Steps the virtual clock in 100 ms steps while the call is pending, so every wait still elapses
+// in order on Date.now() and timer callbacks fire between network responses.
+async function withVirtualTime(promise) {
+    let settled = false;
+    const result = Promise.resolve(promise).finally(() => { settled = true; });
+    result.catch(() => {});
+    while (!settled) {
+        await new Promise((resolve) => setImmediate(resolve));
+        mock.timers.tick(100);
+    }
+    return result;
+}
+
 const { getOnlineMetadata } = require('../../electron/online-metadata.js');
 
 const REC = '11111111-1111-1111-1111-111111111111';
@@ -59,7 +80,7 @@ function musicBrainzRoutes() {
         [MB_REL]: { status: 200, body: { id: REL, title: 'Album', date: '2000', 'artist-credit': [{ name: 'Artist', joinphrase: '' }], 'label-info': [], 'release-group': { id: 'rg' }, media: [{ position: 1, tracks: [{ position: 1, title: 'Song', recording: { id: REC } }] }] } }
     };
 }
-const run = () => getOnlineMetadata({ fileUrl: 'file:///a.mp3', recordingId: REC, releaseId: REL, title: 'Song' });
+const run = () => withVirtualTime(getOnlineMetadata({ fileUrl: 'file:///a.mp3', recordingId: REC, releaseId: REL, title: 'Song' }));
 const cacheFiles = () => fs.readdirSync(path.join(userData, 'metadata-cache')).filter((f) => f.includes('-cover'));
 
 test('follows the Cover Art Archive redirects, upgrades http:// image links and downloads the 1200px thumbnail', async () => {
@@ -127,6 +148,7 @@ test('a non-image response is rejected and nothing is saved as the cover', async
 
 test('a transient 503 while downloading is retried and then succeeds', async () => {
     calls = [];
+    callTimes = [];
     const img = `https://coverartarchive.org/release/${REL}/3-1200.jpg`;
     routes = {
         ...musicBrainzRoutes(),
@@ -136,6 +158,8 @@ test('a transient 503 while downloading is retried and then succeeds', async () 
     const r = await run();
     assert.equal(r.coverStatus, 'downloaded');
     assert.equal(calls.filter((u) => u === img).length, 2, 'expected exactly one retry');
+    const imgTimes = callTimes.filter((_, i) => calls[i] === img);
+    assert.ok(imgTimes[1] - imgTimes[0] >= 600, `the retry must wait for the backoff, waited ${imgTimes[1] - imgTimes[0]} ms`);
 });
 
 test('a new cover with a different image type replaces the old file instead of leaving a stale one', async () => {
@@ -209,7 +233,7 @@ function releaseOnlyRoutes(tracks) {
     };
 }
 const MB_REL_ONLY = `https://musicbrainz.org/ws/2/release/${REL}?inc=artist-credits%2Brecordings%2Blabels%2Brelease-groups&fmt=json`;
-const runReleaseOnly = (title) => getOnlineMetadata({ fileUrl: 'file:///a.mp3', releaseId: REL, title });
+const runReleaseOnly = (title) => withVirtualTime(getOnlineMetadata({ fileUrl: 'file:///a.mp3', releaseId: REL, title }));
 
 test('release-only import picks the track whose title matches this song', async () => {
     calls = [];

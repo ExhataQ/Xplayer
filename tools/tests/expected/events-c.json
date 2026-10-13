@@ -152,6 +152,9 @@
         "renderSongsList",
         "reapplyHighlightAfterFilter",
         "reapplySelectionAfterFilter",
+        "resetLeftPanelActiveState",
+        "activateLeftPanelItem",
+        "updateExternalScrollbar",
         "updateExternalScrollbar"
     ],
     "search: subhero search: text is typed in a song list": [

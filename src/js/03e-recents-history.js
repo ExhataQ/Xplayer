@@ -35,7 +35,7 @@ export function getRecentlyPlayed() {
 
 
 export function updateRecentCount() {
-    emit('recents:count-changed', { count: getRecentCount() });
+    emit('recents:countChanged', { count: getRecentCount() });
 }
 
 

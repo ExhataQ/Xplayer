@@ -2,7 +2,6 @@
 // CONTEXT MENU STATE
 // ==============================================================================
 let activeContextMenu = null;
-let currentContextPlaylistId = null;
 let contextMenuMouseDownOutside = false;
 
 export const CONTEXT_MENU_TYPE_LABELS = {
@@ -440,7 +439,6 @@ export function closeContextMenu() {
         activeContextMenu.remove();
         activeContextMenu = null;
         currentContextSongId = null;
-        currentContextPlaylistId = null;
     }
     contextMenuMouseDownOutside = false;
 }

@@ -21,17 +21,54 @@ describe('modal dialogs clean up when they close (real page)', { concurrency: fa
         dir = buildApp(5);
     });
     after(async () => {
+        if (shared) await shared.page.close().catch(() => {});
         if (browser) await browser.close();
         if (dir) fs.rmSync(dir, { recursive: true, force: true });
     });
 
+    // Loading the app takes about 1.2 s, so one page serves the whole file. Before a test gets it again it is reset
+    // (any open dialog closed) and checked against the clean state a fresh page has; a page that is not clean is
+    // replaced by a new one, so a leak is never carried into the next test.
+    let shared = null;
     async function open() {
+        if (shared) {
+            if (shared.inUse) throw new Error('the shared page is still in use by another test');
+            const clean = await shared.page
+                .evaluate(() => {
+                    closePlaylistModal();
+                    closeAddLinkModal();
+                    const swallowed = (key) => {
+                        const e = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+                        document.dispatchEvent(e);
+                        return e.defaultPrevented;
+                    };
+                    return (
+                        document.querySelectorAll('.playlist-modal-overlay').length === 0 &&
+                        !swallowed('Enter') &&
+                        !swallowed('Escape') &&
+                        typeof window.handleEditPlaylistCover === 'undefined' &&
+                        typeof window._editPlaylistTempCover === 'undefined'
+                    );
+                })
+                .catch(() => false);
+            if (clean) {
+                shared.errors.length = 0;
+                shared.inUse = true;
+                return shared;
+            }
+            await shared.page.close().catch(() => {});
+            shared = null;
+        }
         const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e)));
         await gotoApp(page, dir);
-        return { page, errors };
+        shared = { page, errors, inUse: true };
+        return shared;
     }
+    const release = async () => {
+        if (shared) shared.inUse = false;
+    };
 
     // true when some keydown listener called preventDefault() on a synthetic key press on the document.
     const swallows = (page, key) =>
@@ -64,7 +101,7 @@ describe('modal dialogs clean up when they close (real page)', { concurrency: fa
             await page.evaluate(() => closeAddLinkModal());
             assert.deepEqual(errors, []);
         } finally {
-            await page.close();
+            await release();
         }
     });
 
@@ -85,7 +122,7 @@ describe('modal dialogs clean up when they close (real page)', { concurrency: fa
                 assert.equal(await swallows(page, 'Escape'), false);
                 assert.deepEqual(errors, []);
             } finally {
-                await page.close();
+                await release();
             }
         });
 
@@ -100,7 +137,7 @@ describe('modal dialogs clean up when they close (real page)', { concurrency: fa
                 assert.equal(await swallows(page, 'Escape'), false);
                 assert.deepEqual(errors, []);
             } finally {
-                await page.close();
+                await release();
             }
         });
 
@@ -115,7 +152,7 @@ describe('modal dialogs clean up when they close (real page)', { concurrency: fa
                 assert.equal(await swallows(page, 'Enter'), false);
                 assert.deepEqual(errors, []);
             } finally {
-                await page.close();
+                await release();
             }
         });
 
@@ -133,7 +170,7 @@ describe('modal dialogs clean up when they close (real page)', { concurrency: fa
                 }
                 assert.deepEqual(errors, []);
             } finally {
-                await page.close();
+                await release();
             }
         });
     }
@@ -159,7 +196,7 @@ describe('modal dialogs clean up when they close (real page)', { concurrency: fa
             assert.equal(await page.evaluate(() => document.querySelector('.playlist-modal-title').textContent.trim().length > 0), true);
             assert.deepEqual(errors, []);
         } finally {
-            await page.close();
+            await release();
         }
     });
 
@@ -174,7 +211,7 @@ describe('modal dialogs clean up when they close (real page)', { concurrency: fa
             assert.deepEqual(await helpers(page), { cover: 'undefined', temp: 'undefined' });
             assert.deepEqual(errors, []);
         } finally {
-            await page.close();
+            await release();
         }
     });
 
@@ -195,7 +232,7 @@ describe('modal dialogs clean up when they close (real page)', { concurrency: fa
             assert.equal(await swallows(page, 'Escape'), false);
             assert.deepEqual(errors, []);
         } finally {
-            await page.close();
+            await release();
         }
     });
 
@@ -210,7 +247,7 @@ describe('modal dialogs clean up when they close (real page)', { concurrency: fa
             assert.equal(await swallows(page, 'Escape'), false);
             assert.deepEqual(errors, []);
         } finally {
-            await page.close();
+            await release();
         }
     });
 
@@ -227,7 +264,7 @@ describe('modal dialogs clean up when they close (real page)', { concurrency: fa
             assert.equal(await swallows(page, 'Escape'), false);
             assert.deepEqual(errors, []);
         } finally {
-            await page.close();
+            await release();
         }
     });
 
@@ -244,7 +281,7 @@ describe('modal dialogs clean up when they close (real page)', { concurrency: fa
             assert.equal(await swallows(page, 'Enter'), false);
             assert.deepEqual(errors, []);
         } finally {
-            await page.close();
+            await release();
         }
     });
 });

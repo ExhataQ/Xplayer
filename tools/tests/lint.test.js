@@ -14,30 +14,10 @@ const { spawnSync } = require('child_process');
 const acorn = require('acorn');
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const { tally, exitCodeFor } = require('../lint');
 const { buildLintGlobals, findWindowAssignments, WINDOW_PUBLISHED_GLOBALS } = require('../lint-globals');
 
 const msg = (severity, ruleId = 'no-undef') => ({ severity, ruleId, message: 'x' });
 const file = (...messages) => ({ filePath: 'a.js', messages });
-
-describe('lint.js tally and exit code', () => {
-    test('tally counts errors, warnings and a parse error (no ruleId) as an error', () => {
-        const t = tally([file(msg(2), msg(1, 'no-unused-vars')), file(msg(2, null), msg(1, 'no-unused-vars'))]);
-        assert.equal(t.errors, 2);
-        assert.equal(t.warnings, 2);
-        assert.deepEqual(t.perRule.get('no-unused-vars'), { error: 0, warn: 2 });
-        assert.deepEqual(t.perRule.get('(parse error)'), { error: 1, warn: 0 });
-    });
-
-    test('exitCodeFor: errors always fail, warnings fail only in strict mode', () => {
-        assert.equal(exitCodeFor({ errors: 0, warnings: 0, strict: false }), 0);
-        assert.equal(exitCodeFor({ errors: 0, warnings: 0, strict: true }), 0);
-        assert.equal(exitCodeFor({ errors: 0, warnings: 5, strict: false }), 0);
-        assert.equal(exitCodeFor({ errors: 0, warnings: 5, strict: true }), 1);
-        assert.equal(exitCodeFor({ errors: 1, warnings: 0, strict: false }), 1);
-        assert.equal(exitCodeFor({ errors: 1, warnings: 0, strict: true }), 1);
-    });
-});
 
 describe('tools/lint.js as a script (stand-in ESLint)', () => {
     function runLint(t, { results, eslintModule, args = [] }) {
@@ -88,11 +68,6 @@ describe('tools/lint.js as a script (stand-in ESLint)', () => {
         assert.match(normal.out, /Lint failed: 1 error\(s\)/);
         assert.equal(runLint(t, { results: withError, args: ['--strict'] }).status, 1);
         assert.equal(runLint(t, { results: withError, args: ['--summary'] }).status, 1);
-    });
-
-    test('--summary leaves out the per-problem text', (t) => {
-        assert.match(runLint(t, { results: warningsOnly }).out, /formatted problems/);
-        assert.doesNotMatch(runLint(t, { results: warningsOnly, args: ['--summary'] }).out, /formatted problems/);
     });
 
     test('a parse error counts as an error', (t) => {

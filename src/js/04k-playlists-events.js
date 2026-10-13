@@ -11,25 +11,11 @@
 on('playlist:listChanged', () => {
     renderPlaylistsView();
     renderLeftPanelMainList();
-
-    // Refresh virtual scroll
-    if (typeof leftPanelVirtualState !== 'undefined' && leftPanelVirtualState.enabled) {
-        const newItems = getLeftPanelItemsArray();
-        leftPanelVirtualState.currentItems = newItems;
-        if (typeof renderLeftPanelVisibleItems === 'function') {
-            renderLeftPanelVisibleItems(false);
-        }
-    }
-
     updateScrollbarById('left-panel-main-content');
 });
 
-// Runs after 'playlist:listChanged' (deletePlaylist() emits that first), same order
-// as the inline calls this replaced in deletePlaylistAndClose().
+// deletePlaylist() already emitted 'playlist:listChanged' (it redraws the left panel), so only the notification is left here.
 on('playlist:deleted', (e) => {
-    renderPlaylistsView();
-    renderLeftPanelMainList();
-    updateScrollbarById('left-panel-main-content');
     showNotification(`Playlist "${e.detail.playlistName}" deleted`, 'error', 2000);
 });
 

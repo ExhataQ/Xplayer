@@ -16,7 +16,7 @@ const ENDED_SPY = ['updateSubheroPlayButton', 'renderRecentlyPlayed', 'renderPor
 const MODE_SPY = ['updateSubheroShuffleButton', 'renderSongsList', 'renderRecentlyPlayed'];
 const REPEAT_ONE = 'setRepeatMode(2); setRepeatFunctionalityActive(true);';
 
-const SYNC_SPY = ['updateLeftPanelCounts', 'renderLeftPanelVisibleItems', 'updateAllCounts', 'renderFavoritesView', 'updateHeroSongCount', 'renderPlaylistsView', 'renderFoldersView', 'renderAlbumLeftPanelItems', 'renderArtistLeftPanelItems', 'refreshCurrentView', 'reapplySelectionState', 'renderHistoryView', 'renderPlaylistDetailView', 'renderAlbumDetailView', 'renderArtistDetailView', 'updateScrollbarById', 'updateSelectionHighlight', 'updateActiveHighlight'];
+const SYNC_SPY = ['updateLeftPanelCounts', 'renderLeftPanelVisibleItems', 'refreshLeftPanelItems', 'updateAllCounts', 'renderFavoritesView', 'updateHeroSongCount', 'renderPlaylistsView', 'renderFoldersView', 'renderAlbumLeftPanelItems', 'renderArtistLeftPanelItems', 'refreshCurrentView', 'reapplySelectionState', 'renderHistoryView', 'renderPlaylistDetailView', 'renderAlbumDetailView', 'renderArtistDetailView', 'updateScrollbarById', 'updateSelectionHighlight', 'updateActiveHighlight'];
 const PLAYLIST_VIEW = "const p = createPlaylist('P'); addSongToPlaylist(1, p.id); currentView = 'playlist-' + p.id;";
 const ALBUM_VIEW = 'currentView = getAlbums()[0].id;';
 const ARTIST_VIEW = 'currentView = getArtists()[0].id;';

@@ -299,7 +299,6 @@ export const EXTENDED_METADATA_FIELDS = [
 // PLAYER ICON CONSTANTS
 // ==============================================================================
 export const PLAY_ICON_HTML = '<img src="icons/play.svg" alt="" class="player-svg-icon">';
-export const PAUSE_ICON_HTML = '<img src="icons/pause.svg" alt="" class="player-svg-icon">';
 // ==============================================================================
 // DOM ELEMENT REFERENCES
 // ==============================================================================

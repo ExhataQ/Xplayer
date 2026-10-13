@@ -140,10 +140,11 @@ function bindPlaybackAudioEvents(audio) {
         if (repeatFunctionalityActive && repeatMode === 2) {
             if (currentQueueIndex >= 0 && playbackQueue[currentQueueIndex]) {
                 saveToRecentlyPlayed(playbackQueue[currentQueueIndex]);
+            } else {
+                emit('playback:recentPanelChanged');
             }
 
             emit('playback:recentViewChanged');
-            emit('playback:recentPanelChanged');
 
             audioElement.currentTime = 0;
             audioElement.play();

@@ -135,9 +135,7 @@ on('viewSongs:changed', (e) => {
 
 // updateLeftPanelCounts() ran with the virtual left-panel list active: refresh its items.
 on('leftPanelCounts:changed', () => {
-    const items = getLeftPanelItemsArray();
-    leftPanelVirtualState.currentItems = items;
-    renderLeftPanelVisibleItems(false);
+    refreshLeftPanelItems();
 });
 
 // 16-context-menu-actions.js: the user added a song to a playlist from the context menu.

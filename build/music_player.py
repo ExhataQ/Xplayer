@@ -239,7 +239,7 @@ def generate_html_template(songs_data, placeholder_image):
     icons_dir_dst = os.path.join(output_dir, "icons")
     if os.path.exists(icons_dir_src):
         os.makedirs(icons_dir_dst, exist_ok=True)
-        for name in ["prev.png", "play.png", "pause.png", "next.png", "play.svg", "pause.svg", "lyrics.svg"]:
+        for name in ["prev.png", "play.png", "pause.png", "next.png", "play.svg", "lyrics.svg"]:
             fsrc = os.path.join(icons_dir_src, name)
             fdst = os.path.join(icons_dir_dst, name)
             if os.path.exists(fsrc):

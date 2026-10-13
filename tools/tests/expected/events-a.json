@@ -2,7 +2,7 @@
     "folders: confirm-delete an empty folder from the folders list": [
         "renderFoldersView",
         "renderLeftPanelMainList",
-        "renderLeftPanelVisibleItems",
+        "refreshLeftPanelItems",
         "updateScrollbarById",
         "showNotification"
     ],

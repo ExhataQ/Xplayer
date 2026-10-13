@@ -11,11 +11,7 @@ on('folder:listChanged', () => {
 
     // Refresh virtual scroll
     if (typeof leftPanelVirtualState !== 'undefined' && leftPanelVirtualState.enabled) {
-        const newItems = getLeftPanelItemsArray();
-        leftPanelVirtualState.currentItems = newItems;
-        if (typeof renderLeftPanelVisibleItems === 'function') {
-            renderLeftPanelVisibleItems(false);
-        }
+        refreshLeftPanelItems();
     }
 
     updateScrollbarById('left-panel-main-content');

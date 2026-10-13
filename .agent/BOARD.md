@@ -80,7 +80,7 @@ These checks must be performed against the final tree, after Phase 2.
 | ---- | ----------------------------------------------------------------------- | ------------ | ------ | ------------------------------------------------- |
 | V-01 | Run the complete test suite                                             | A-03, A-04   | todo   | Record total, passed, failed and skipped counts   |
 | V-02 | Run lint and the required dependency-map and event-audit checks         | A-03, A-04   | todo   | Record results and compare with the baseline      |
-| V-03 | Complete `tools/smoke-checklist.md`                                     | A-03, A-04   | todo   | Record any failures                               |
+| V-03 | C                                   | A-03, A-04   | todo   | Record any failures                               |
 | V-04 | Start and verify the actual Electron application                        | A-03, A-04   | todo   | A browser-only test does not satisfy this check   |
 | V-05 | Record final timings and verification results in `tools/change.log.txt` | V-01 to V-04 | todo   | Do not claim success for checks that were not run |
 

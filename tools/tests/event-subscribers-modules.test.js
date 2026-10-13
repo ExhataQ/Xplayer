@@ -4,7 +4,9 @@
 // to which event and when events were emitted, and checks:
 //   - every on('name', ...) written in those files is registered, once, by that file, in manifest order;
 //   - nothing emitted one of these events before its subscriber existed;
-//   - the files are modules, not classic scripts, and the page has no errors.
+//   - the page has no errors.
+// The page is loaded once; every test reads the same recording. That the page loads one module entry and no
+// classic renderer script is checked in manifest.test.js.
 // Needs playwright + a browser; skips itself if missing (see scroll.test.js for setup).
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -74,7 +76,7 @@ describe('UI event subscribers in the real page', { concurrency: false }, () => 
     });
 
     // Every addEventListener / dispatchEvent whose type looks like a bus event (`subject:verb`), in order.
-    async function record() {
+    async function load() {
         const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e)));
@@ -100,12 +102,12 @@ describe('UI event subscribers in the real page', { concurrency: false }, () => 
         });
         await gotoApp(page, dir);
         const log = await page.evaluate(() => window.__bus);
-        const moduleSources = await page.evaluate(() => [...document.querySelectorAll('script[type="module"]')].map((s) => s.getAttribute('src')));
-        const classicSources = await page.evaluate(() => [...document.querySelectorAll('script:not([type="module"])')].map((s) => s.getAttribute('src')).filter(Boolean));
         await page.close();
         assert.deepEqual(errors, []);
-        return { log, moduleSources, classicSources };
+        return { log };
     }
+    let recording;
+    const record = () => (recording ||= load());
 
     test('every written on(...) is registered once by its own file, in file order and source order', async (t) => {
         if (skip) return void t.skip(skip);
@@ -125,13 +127,6 @@ describe('UI event subscribers in the real page', { concurrency: false }, () => 
             if (kind === 'on') subscribed.add(type);
             else if (names.has(type)) assert.ok(subscribed.has(type), `${type} was emitted before its subscriber was registered`);
         }
-    });
-
-    test('the page loads the subscribers through the module entry, not as classic scripts or tags of their own', async (t) => {
-        if (skip) return void t.skip(skip);
-        const { moduleSources, classicSources } = await record();
-        assert.deepEqual(moduleSources.map((src) => src && src.replace(/^.*\//, '')), ['main.js']);
-        for (const file of SUBSCRIBER_FILES) assert.ok(!classicSources.some((src) => src && src.endsWith(file)), `${file} is a classic script in the page`);
     });
 
     test('the recording sees the bus (so the checks above cannot pass on an empty list)', async (t) => {

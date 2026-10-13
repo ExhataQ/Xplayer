@@ -76,11 +76,8 @@ const SEARCH_CASES = {
         run: 'performSearchNow();' + WAIT
     },
     'main search box: the query is cleared': {
-        // The real code reads getCachedEl('all-songs-count'), an id that does not exist in the app, so this
-        // branch throws right after the list is redrawn. The scenario records that behavior as it is
-        // (try/catch) instead of hiding it; fixing it is not part of the event-bus work.
         setup: "getCachedEl('search-input').value = ''; currentView = VIEWS.SEARCH_ITEMS;",
-        run: 'try { performSearchNow(); } catch (e) { /* known: missing #all-songs-count */ }' + WAIT
+        run: 'performSearchNow();' + WAIT
     },
     'subhero search: text is typed in a song list': {
         setup: "currentView = VIEWS.ALL_SONGS; getCachedEl('subhero-search-input').value = 'Artist 3';",
