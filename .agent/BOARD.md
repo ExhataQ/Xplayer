@@ -14,10 +14,10 @@ Update this board manually after each patch is applied and verified. Do not mark
 
 ## Next actions
 
-- [ ] Phase 1 is not finished. Open: B-03 verification, B-05, B-06, C-01, C-04, C-05 (see notes).
+- [ ] Phase 1 is not finished. Open: B-03 verification, B-05, B-06, C-05 (see notes).
 - [ ] Owners to check the applied patches on their own machine: `npm run test:timing` (B: record the table on the real machine), `npm run lint:strict` (D-05), and the manual checks in each report under "For you (manual checks)".
 - [ ] B: B-02 is applied and focused tests pass; B-03 needs sequence-suite-specific verification and Windows timing measurements.
-- [ ] C: C-02 is applied and its focused window-contract test passes. C-04 still needs a test proving real ESLint rejects an undefined name.
+- [ ] C: C-01 to C-04 are applied + verified. C-05: the sleeps and the README are done for the commands that exist today; after B-06 lands, re-read the README sections 3 and 10 against it (report `reports/C/0005-*`). Open for D: `search-clear.test.js` has one 150 ms `waitForTimeout`.
 - [ ] D: 10 inline handlers listed in `INLINE_EXCEPTIONS` (`tools/tests/ui-handlers.test.js`) are still in source. D owns the conversion decision; C's test enforces that the count only goes down.
 - [ ] Keep each patch small. Check its diff, run focused tests, and update this board and `tools/change.log.txt` after verification.
 - [ ] Do not delete tests unless the report explains why the test is obsolete or identifies the remaining test that covers its behavior.
@@ -48,11 +48,11 @@ Update this board manually after each patch is applied and verified. Do not mark
 
 | ID   | Task                                                        | Dependencies           | Status           | Notes                                                                                                                                                                                                                                 |
 | ---- | ----------------------------------------------------------- | ---------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| C-01 | Remove dead or stale tests with documented justification    | None                   | in progress      | Done: the skipped `storage` getter test is unskipped; the repeated `typeof` guard is removed. Not done: the duplicate-assertion check is a text scan only, not a read of each test file. `scroll` skip stays (B-02 owns it).                 |
+| C-01 | Remove dead or stale tests with documented justification    | None                   | applied + verified | Storage getter test unskipped, `typeof` guard removed (report 0001). In-file duplicates: scanned all 57 files for repeated test titles (none) and repeated assertion lines, and read every flagged site (all are before/after or different-scenario checks, nothing removed); not a line-by-line read of each file. `scroll` skip stays (timing-sensitive, B-02 owns it). Report `reports/C/0005-*`. |
 | C-02 | Consolidate the window contract test                        | None                   | applied + verified | Added tools/tests/window-contract.test.js; focused test passed, 11/11. |
 | C-03 | Consolidate the inline-handler static rule                  | None                   | applied + verified | One static test over `src/` and the page template; mutation checks done (report `reports/C/0002-inline-handler-rule.md`). 10 known inline handlers listed as exceptions (for D to convert).                                              |
-| C-04 | Merge order checks and trim redundant tool tests            | None                   | in progress      | Done: listener-order and event-subscribers load one page; lint and app-fixture cuts made; 43 -> 38 tests. Open: the test that real ESLint fails on an undefined name (not written, ESLint was not runnable). Report `reports/C/0003-*`.       |
-| C-05 | Review remaining fixed sleeps and update test documentation | C-02, C-03, C-04, B-06 | blocked          | C-02 verified; waiting on C-04 (in progress) and B-06 (todo).                                                                                                                                                                             |
+| C-04 | Merge order checks and trim redundant tool tests            | None                   | applied + verified | Order checks merged, tool tests trimmed (report 0003); real-ESLint undefined-name test added in `lint.test.js` and shown to fail with `no-undef` off (report `reports/C/0005-*`). |
+| C-05 | Review remaining fixed sleeps and update test documentation | C-02, C-03, C-04, B-06 | in progress      | Sleeps replaced in the six files (3 runs, 34/34 pass); README matches `npm run test:list` and the commands that exist now. Waiting on B-06 only to re-check the README against its final commands (report `reports/C/0005-*`). |
 
 ### Agent D — Product-code leftovers
 

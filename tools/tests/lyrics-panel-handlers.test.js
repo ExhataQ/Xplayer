@@ -201,8 +201,8 @@ describe('lyrics, metadata and panel views converted to data-action', { concurre
             });
             return openMetadataEditor();
         });
-        await page.waitForTimeout(300);
         const input = page.locator('.metadata-multi-input').first();
+        await input.waitFor();
         const before = await page.locator('.metadata-multi-chip').count();
         await input.fill('Zed');
         await input.press('Enter');
@@ -217,8 +217,7 @@ describe('lyrics, metadata and panel views converted to data-action', { concurre
         if (!guard(t)) return;
         const { page, errors } = await openApp();
         await page.evaluate(() => { currentView = VIEWS.FAVORITES; switchRightPanelTab('tags'); });
-        await page.locator('#right-panel-header-title').click();
-        await page.waitForTimeout(100);
+        await page.locator('#right-panel-header-title').click(); // the handler is synchronous: nothing to wait for
         assert.ok(await page.evaluate(() => currentView), 'a view is shown');
         assert.deepEqual(errors, []);
         await page.close();

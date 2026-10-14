@@ -2,7 +2,9 @@
 //   1. tools/lint.js exit codes: errors fail `npm run lint`, warnings fail only `--strict`, "cannot run" is 2.
 //      The real script is copied next to a stand-in `eslint` module that returns canned results, so this checks
 //      the script itself, not ESLint.
-//   2. tools/lint-globals.js: the one name published as `window.<name> = ...` (updateExternalScrollbar) is a
+//   2. tools/lint.js with the real ESLint and eslint.config.js (skipped when eslint is not installed): an undefined
+//      name fails with no-undef, a registered global and a browser built-in pass.
+//   3. tools/lint-globals.js: the one name published as `window.<name> = ...` (updateExternalScrollbar) is a
 //      global, it is validated against the file that publishes it, and no other window.* assignment becomes a global.
 // Needs: acorn, acorn-walk (devDependencies; tools/dep-map.js needs them as well).
 const { test, describe } = require('node:test');
@@ -82,6 +84,51 @@ describe('tools/lint.js as a script (stand-in ESLint)', () => {
             eslintModule: 'class ESLint { async lintFiles() { throw new Error("config error"); } } module.exports = { ESLint };'
         });
         assert.equal(broken.status, 2);
+    });
+});
+
+describe('tools/lint.js with the real ESLint and the real eslint.config.js', () => {
+    let eslintInstalled = true;
+    try {
+        require.resolve('eslint', { paths: [ROOT] });
+        require.resolve('globals', { paths: [ROOT] });
+    } catch {
+        eslintInstalled = false;
+    }
+
+    // A tiny tree: the lint tools and config copied from the repository, a module entry that imports the file
+    // that publishes updateExternalScrollbar plus one test file, and an empty electron/ file.
+    function lintTree(t, code) {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lint-real-'));
+        t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+        fs.mkdirSync(path.join(dir, 'src', 'js'), { recursive: true });
+        fs.mkdirSync(path.join(dir, 'electron'));
+        fs.cpSync(path.join(ROOT, 'tools'), path.join(dir, 'tools'), { recursive: true, filter: (src) => !src.includes(`${path.sep}tests`) });
+        fs.copyFileSync(path.join(ROOT, 'eslint.config.js'), path.join(dir, 'eslint.config.js'));
+        fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(dir, 'node_modules'), 'junction');
+        fs.writeFileSync(path.join(dir, 'src', 'manifest.json'), JSON.stringify({ css: [], entry: 'main.js' }));
+        fs.writeFileSync(path.join(dir, 'src', 'js', 'main.js'), "import './06c-scrollbar-widget.js';\nimport './probe.js';\n");
+        fs.writeFileSync(path.join(dir, 'src', 'js', '99-player.js'), '');
+        fs.writeFileSync(path.join(dir, 'src', 'js', '06c-scrollbar-widget.js'), 'export function init() { window.updateExternalScrollbar = () => {}; }\n');
+        fs.writeFileSync(path.join(dir, 'src', 'js', 'probe.js'), code);
+        fs.writeFileSync(path.join(dir, 'electron', 'ok.js'), "'use strict';\nmodule.exports = {};\n");
+        const run = spawnSync(process.execPath, [path.join(dir, 'tools', 'lint.js')], { encoding: 'utf8', cwd: dir });
+        return { status: run.status, out: run.stdout + run.stderr };
+    }
+
+    test('a name that is not defined anywhere fails the lint with no-undef', (t) => {
+        if (!eslintInstalled) return void t.skip('eslint or globals is not installed (npm install)');
+        const run = lintTree(t, 'export const x = notDefinedAnywhere;\n');
+        assert.equal(run.status, 1, run.out);
+        assert.match(run.out, /no-undef/);
+        assert.match(run.out, /notDefinedAnywhere/);
+    });
+
+    test('a name another module registers as a global, and a browser built-in, pass', (t) => {
+        if (!eslintInstalled) return void t.skip('eslint or globals is not installed (npm install)');
+        const run = lintTree(t, 'export const x = [updateExternalScrollbar, document, window];\n');
+        assert.equal(run.status, 0, run.out);
+        assert.match(run.out, /0 error\(s\), 0 warning\(s\)/);
     });
 });
 

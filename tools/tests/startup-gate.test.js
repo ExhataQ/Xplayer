@@ -47,7 +47,8 @@ describe('start-up gate for messages from the main process', { concurrency: fals
             Object.defineProperty(window, 'electronAPI', { get: () => fake, set: () => {}, configurable: true });
         }, batches);
         await page.goto('file://' + path.join(dir, 'index.html').replace(/\\/g, '/'));
-        await page.waitForTimeout(1200);
+        // Queued after the early messages, so it runs after every one of them has been applied.
+        await page.evaluate(() => new Promise((resolve) => whenAppReady(resolve)));
         return { page, errors, consoleErrors };
     }
 

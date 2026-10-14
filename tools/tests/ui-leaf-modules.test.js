@@ -9,7 +9,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { loadPlaywright, launch, buildApp } = require('./helpers/app-fixture');
+const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
 const manifest = require('../lib/manifest').readManifest(ROOT);
@@ -48,8 +48,7 @@ describe('D-09b: real page', () => {
         const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
         const errors = [];
         page.on('pageerror', (e) => errors.push(e.message));
-        await page.goto('file://' + path.join(dir, 'index.html'));
-        await page.waitForTimeout(600);
+        await gotoApp(page, dir);
         return { page, errors };
     }
 
@@ -105,7 +104,9 @@ describe('D-09b: real page', () => {
         assert.equal(result.tip, 'Shuffle');
         assert.equal(result.leftTitles, 0);
         await page.hover('#shuffle-btn');
-        await page.waitForTimeout(1200);
+        await page
+            .waitForFunction(() => [...document.querySelectorAll('.custom-tooltip')].some((e) => e.textContent.trim() === 'Shuffle' && e.style.opacity === '1'), null, { timeout: 5000 })
+            .catch(() => {}); // the assertion below reports it
         const shown = await page.evaluate(() => [...document.querySelectorAll('.custom-tooltip')].some((e) => e.textContent.trim() === 'Shuffle' && e.style.opacity === '1'));
         assert.equal(shown, true);
         assert.deepEqual(errors, []);

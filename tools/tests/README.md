@@ -8,12 +8,12 @@ All commands are PowerShell, run from the repository root (the folder with `pack
 
 | Group | What it is | Files |
 | --- | --- | --- |
-| **unit** | Pure Node: no browser. Fast (most files finish in under a second). | `event-bus`, `language-detect`, `lint`, `lrc-parser`, `main-process-safety`, `manifest`, `metadata-backend`, `music-folders`, `online-metadata`, `recents`, `scan-folder-tags`, `scanner`, `search-engine`, `setters`, `shuffle`, `storage-core`, `storage` (`*.test.js`) |
-| **browser** | Builds a throwaway copy of the real app, opens it in headless Chromium with a stubbed Electron API, and drives it. Each test file launches its own browser. | everything else in `tools/tests/*.test.js` |
-| **sequence suites** | A kind of browser test: runs scenarios and compares the recorded order of UI calls with `tools/tests/expected/*.json`. | `events-a`, `events-b`, `events-c`, `events-d` (scenarios live in `helpers/scenarios-*.js`) |
+| **unit** | Pure Node: no browser. Fast (most files finish in under a second; `online-metadata` about 0.3 s). | `drag-drop-modules`, `event-bus`, `language-detect`, `lint`, `lrc-parser`, `main-process-safety`, `manifest`, `metadata-backend`, `music-folders`, `online-metadata`, `output-dir`, `recents`, `scan-folder-tags`, `scanner`, `search-engine`, `setters`, `shuffle`, `storage-core`, `storage` (`*.test.js`; 19 files) |
+| **browser** | Builds a throwaway copy of the real app, opens it in headless Chromium with a stubbed Electron API, and drives it. Each test file launches its own browser. | everything else in `tools/tests/*.test.js` (38 files). `window-contract.test.js` is in this group because of its one page load; most of its tests are static (acorn) and need no browser. `songs-store.test.js` is in this group because it imports the fixture. |
+| **sequence suites** | A kind of browser test: runs scenarios and compares the recorded order of UI calls with `tools/tests/expected/*.json`. | `events-a`, `events-b`, `events-c`, `events-d` (scenarios live in `helpers/scenarios-*.js`; `events-wiring` checks the event wiring itself) |
 | **Python logic test** | `metadata_backend_logic.py`, started by `metadata-backend.test.js`. Uses a stand-in for `mutagen` (`helpers/fake_mutagen.py`). | |
 
-The runner decides unit vs browser by looking at what a file imports (`helpers/app-fixture`, `helpers/sequence-suite` or `playwright` means browser). See `npm run test:list` for the current split.
+The runner decides unit vs browser by looking at what a file imports (`helpers/app-fixture`, `helpers/sequence-suite` or `playwright` means browser). See `npm run test:list` for the current split (57 files: 19 unit, 38 browser).
 
 Test framework: Node's built-in `node:test` with `node:assert/strict`. No Jest, Mocha or other runner.
 
@@ -51,7 +51,7 @@ npm run test:unit                                # quick end-to-end check of the
 | `node --test --test-reporter=spec tools/tests/shuffle.test.js` | Same, but prints one line per test (names, pass/fail, time) instead of the compact TAP output. |
 | `npm run test:timing` | Runs files one at a time and prints seconds, test counts and failures per file, slowest first. Use to find what got slow. |
 | `node tools/tests/run.js --concurrency=2` | Runs two files at once. Default is 1. Browser files are timing-sensitive (see below), so check failures with 1 before blaming the code. |
-| `$env:SEQUENCE_PAGES=3; node --test tools/tests/events-b.test.js` | Opt-in: the sequence suites open up to 3 scenario pages at once. Default 1. |
+| `$env:SEQUENCE_PAGES=1; node --test tools/tests/events-b.test.js` | The sequence suites run their scenarios in up to 4 pages at once (at least 2, at most the number of cores). `SEQUENCE_PAGES=<n>` sets the number; `1` runs one after the other, which is what to use when you need to compare timings or suspect load. If a scenario differs from its recorded order while pages ran in parallel, it is run again alone and the alone result counts. Recording a baseline (`EVENT_BASELINE`) always uses one page. |
 | `node --check src/js/04a-ui-render-core.js` | Syntax check of one JavaScript file (no linter needed). |
 | `npm run lint` | ESLint. Exits 1 if there is any error; warnings are only reported. See "Lint". |
 | `npm run lint:strict` | Same, but also exits 1 on any warning. |
@@ -144,7 +144,7 @@ Rules that keep tests honest:
 * **Don't use a browser for logic.** A browser test costs about a second of page load plus the start-up settle. If a function can be `require()`d, test it in Node.
 * **Reading results.**
   * *fail* with an assertion message: the behavior changed; read the diff between expected and actual first.
-  * *skipped*: the test chose not to run. Expected today: 2 hard-coded skips (one in `scroll.test.js`, one in `storage.test.js`). More skips than that usually means a missing browser or Python.
+  * *skipped*: the test chose not to run. Expected today: 1 hard-coded skip (`scroll.test.js`, "a tiny thumb nudge shows real rows only", marked timing-sensitive). More skips than that usually means a missing browser or Python.
   * *timeout* (`--test-timeout=120000` per test file run by the runner): something never became true, or the machine is overloaded. Re-run alone before changing anything.
   * *browser setup error / everything skipped*: install a browser (`npx playwright install chromium`).
   * `Cannot find module '...'`: run `npm install`.
@@ -174,7 +174,7 @@ Mandatory:
 
 Optional diagnostics: `npm run test:timing` (what got slower), `--test-reporter=spec` (per-test lines), `npm run lint` (missing imports and typos), repeated runs of a flaky test.
 
-For the `src/js` module conversion, the gate files are `scroll`, `manifest`, `converted-modules`, `ui-handlers` (and `search-ui`, `view-switch-song-list-cleanup`) plus the manual page `tools/placeholder-test/test-placeholders.html`; run them 5 times in a row after each patch.
+When a change touches how renderer files load, register names or order their listeners, the gate files are `window-contract`, `manifest`, `listener-order`, `event-subscribers-modules`, `converted-modules`, `ui-handlers`, `scroll`, `search-ui` and `view-switch-song-list-cleanup`, plus the manual page `tools/placeholder-test/test-placeholders.html`; run them 5 times in a row after each patch.
 
 ## 7. Maintenance
 
@@ -182,6 +182,12 @@ For the `src/js` module conversion, the gate files are `scroll`, `manifest`, `co
 * **Discovery and groups:** `tools/tests/run.js` lists `*.test.js` in `tools/tests/` and puts a file in the *browser* group if its text matches `app-fixture`, `sequence-suite` or `require('playwright')`. Change `BROWSER_MARKER` in `run.js` if you add another browser helper.
 * **Scripts live in** the root `package.json` (`test*`, `lint*`). `electron/package.json` keeps its older `test` script for compatibility.
 * **Browser launch.** `helpers/app-fixture.js` `launch()` tries bundled Chromium, then Edge, then Chrome. `node --test` runs every file in its own process, so nothing in memory is shared between files. When started through `npm test`, the runner sets `XPLAYER_TEST_RUN_ID` and the files of that run share a small file in the temp folder that records which option worked, so later files try it first. A total failure is never recorded. When you run a single file by hand, nothing is cached.
+* **Which test owns which fact (so a fact is checked in one place):**
+  * `manifest.test.js`: the static facts about `src/js/main.js` (`core/legacy.js` first, each file imported once, every file imported) and about the rendered page template (one module entry, no hand-written script or stylesheet tags).
+  * `window-contract.test.js`: every name that must be on `window`. The name lists are read from the sources, so adding an exported function to a module needs no edit there; only `REQUIRED_SHARED` and the table of constant values are written by hand. Do not add "is a function on window" checks to other files.
+  * `event-subscribers-modules.test.js` and `listener-order.test.js`: the subscribers' order and registration, and the order the document and window listeners run in. Each loads the page once.
+  * `ui-handlers.test.js`: one static rule over `src/` and the page template that no inline `on...=` handler or `setAttribute('on...')` exists, except the entries in `INLINE_EXCEPTIONS` (the list may only get shorter), plus the browser tests of handler behavior.
+  * `lint.test.js`: the exit codes of `tools/lint.js` with a stand-in ESLint, `tools/lint-globals.js`, and two tests with the real ESLint and the real `eslint.config.js` (an undefined name fails with `no-undef`; a registered global and a browser built-in pass). The real-ESLint tests skip when `eslint` or `globals` is not installed.
 * **`scroll.test.js`** still has its own copy of `loadPlaywright` and `buildApp` (different fake song data); only `launch` and `gotoApp` come from the shared fixture.
 * **Docs:** when you change scripts, discovery, helpers or prerequisites, update this file in the same change. If the repository workflow asks for it, add a line to `tools/change.log.txt`.
 
@@ -194,7 +200,7 @@ ESLint exists to catch missing imports and typos in the renderer, which is now o
 * **One name is published on `window` instead of registered:** `updateExternalScrollbar`. `initExternalScrollbar('main-content', ...)` in `src/js/06c-scrollbar-widget.js` assigns `window.updateExternalScrollbar` during start-up and other files use it as a bare global. `WINDOW_PUBLISHED_GLOBALS` in `tools/lint-globals.js` lists it together with the one file allowed to publish it, and every lint run checks that file's syntax tree for a plain `window.updateExternalScrollbar = ...`; the run fails (exit 2, with a message) if the assignment is gone or the file is not in the manifest. A `window.x = ...` anywhere else does **not** become a global. Add a name there only for a real run-time publication, and update `tools/tests/lint.test.js`, which pins the list. Behavior of the published function (start-up order, which scrollbar it updates) is covered by `scrollbar-publication.test.js`.
 * Every file `main.js` imports is linted as an ES module, `electron/` as CommonJS with Node globals (`electron/preload.js` also gets browser globals).
 * Skipped: `src/js/99-player.js` (it contains the build token `{{SONGS_DATA}}`, which is not valid JavaScript), `tools/` and `tools/tests/`.
-* Exit codes of `tools/lint.js`: `npm run lint` exits **1 if there is any error** (a parse error counts as one) and 0 otherwise, so warnings are only reported; `npm run lint:strict` exits 1 on any error **or warning**; 2 means ESLint could not run (not installed, or it threw). It prints every problem and a count per rule. Nothing is ever fixed automatically. `tools/tests/lint.test.js` runs the real script against a stand-in ESLint to check these codes, so the test needs no ESLint install.
+* Exit codes of `tools/lint.js`: `npm run lint` exits **1 if there is any error** (a parse error counts as one) and 0 otherwise, so warnings are only reported; `npm run lint:strict` exits 1 on any error **or warning**; 2 means ESLint could not run (not installed, or it threw). It prints every problem and a count per rule. Nothing is ever fixed automatically. `tools/tests/lint.test.js` runs the real script against a stand-in ESLint to check these codes, so those tests need no ESLint install. Two more tests there run the real ESLint with the real `eslint.config.js` on a small copy of the layout and check that an undefined name exits 1 with `no-undef`; they skip when `eslint` is not installed.
 * Needs `npm install` (adds `eslint` and `globals`; `globals` supplies the browser and Node built-in names, which ESLint does not include).
 
 **Baseline:** `node tools/lint.js --summary` reports 136 files, 0 errors and 1 warning (`no-unused-vars`), the same as before the flip. The older "21 errors" figure (20 for `updateExternalScrollbar`, 1 for `lyricsSavedView`) was fixed earlier and could not be reproduced. ESLint ran here with a `globals` package generated from Chromium's window properties, because the registry was unreachable; run it once with the real package. To check:
@@ -227,7 +233,9 @@ Minimal hook needed (main-process change, not made): one constant, for example `
 
 `.github/workflows/test.yml` runs on `windows-latest` for every push and pull request: checkout, Node 24, `npm ci`, `npx playwright install chromium`, `npm test`. It does not run lint or any Electron test. `npm ci` needs `package-lock.json` to match `package.json`: after adding `eslint` and `globals`, run `npm install` once and commit the updated lock file, or `npm ci` will fail. The workflow has not been run (nothing was committed or pushed).
 
-## 11. Measured results (record of the test-suite speed-up)
+## 11. Measured results (record of the first test-suite speed-up, before Plan 3)
+
+This section is a historical record. The commands, file counts and defaults above are current; the numbers below are not. For current timings run `npm run test:timing`; the Plan 3 numbers are in section 12.
 
 Environment: Linux sandbox, **1 CPU core**, Node v22.22.2, Chromium 141. Not measured on Windows. Each number is one run unless a count is given, so expect a few seconds of noise.
 
@@ -263,6 +271,20 @@ Slowest/most-changed files (seconds, before -> after):
 
 Why it was slow: every browser test opens a fresh page (about 0.8-1.2 s to load on one core) and then slept 500-1200 ms for start-up to finish; the sequence suites do that for each of their 97 scenarios. Start-up actually settles about 0.6 s after load, so `gotoApp` saves about a quarter of a second per page; the larger saving in `metadata-editor` came from waits after `await page.evaluate(asyncFn())`, which had already waited.
 
-Opt-in concurrency: `SEQUENCE_PAGES=3` ran `events-a` in 6.5 s (2 runs), `events-b` in 36.1/36.9 s and `events-c` in 33.9/32.1 s, all passing with the same recorded sequences. It is off by default.
+Concurrency (measured then, when it was opt-in; it is now on by default with a run-alone check for a scenario that differs, see the `SEQUENCE_PAGES` row above): `SEQUENCE_PAGES=3` ran `events-a` in 6.5 s (2 runs), `events-b` in 36.1/36.9 s and `events-c` in 33.9/32.1 s, all passing with the same recorded sequences. It is off by default.
 
 Remaining bottlenecks: page load per test (about 1 s each), the 28 intentional waits in `scroll.test.js` (simulated user timing, left alone), `online-metadata.test.js` (about 23 s of real retry back-off in the production code, not changed), and the 97 sequence-suite page opens. Run `npm run test:timing` to see the current numbers.
+
+## 12. Plan 3 results (test content and maintenance, Agent C)
+
+Environment: Linux sandbox, 1 CPU core, Node v22.22.0, Chromium 141 from `PLAYWRIGHT_BROWSERS_PATH`. npm's registry was not reachable, so `node_modules` was assembled from local copies: ESLint 10.1 (the repository asks for `^9`), Playwright 1.56.1 (`^1.63`), acorn and acorn-walk, and a `globals` stand-in generated from Chromium's and Node's global names. `sharp`, `jimp` and `music-metadata` were not installed; no test needed them. Compare your own numbers; these are one run each.
+
+| | Value |
+| --- | --- |
+| Test files | 57 (19 unit, 38 browser) |
+| `npm run test:timing`, one file after another | 472 s: 444 tests, 443 passed, 0 failed, 1 skipped (`scroll.test.js`, marked timing-sensitive) |
+| Slowest files | `scroll` 66 s, `events-b` 40 s, `events-wiring` 40 s, `events-c` 38 s, `drag-drop` 23 s, `ui-handlers` 23 s |
+| `waitForTimeout` in `tools/tests` (not counting comments) | `scroll.test.js` (every call has a comment saying it is the input or the observed window) and one 150 ms wait in `search-clear.test.js` (not reviewed by C) |
+| `node tools/lint.js --strict --summary` | 136 files, 0 errors, 0 warnings |
+| `node tools/event-audit.js --strict` | exit 0, total 0 (plus 70 allowed by `fileExceptions`) |
+| `node tools/dep-map.js` | 115 files; mutable globals assigned from other files 58; file-level cycles 2 + 69; load-time cross-file references 148, forward 0 |

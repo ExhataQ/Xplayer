@@ -34,7 +34,8 @@ describe('search and recents in the UI', { concurrency: false }, () => {
             document.getElementById('search-input').value = v;
             performSearch();
         }, text);
-        await page.waitForTimeout(450); // longer than the debounce
+        // performSearch is debounced; the search has run once searchQuery holds the typed text.
+        await page.waitForFunction((q) => searchQuery === q, text.toLowerCase().trim());
     };
 
     test('typing a search shows the best match first, and the list on screen is the list the app searches', TEST_OPTIONS, async (t) => {

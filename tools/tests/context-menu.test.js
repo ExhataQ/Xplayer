@@ -93,9 +93,12 @@ describe('context menus (real page)', { concurrency: false }, () => {
         if (skip) return void t.skip(skip);
         const { page, errors } = await open();
         try {
-            await rightClickSong(page, 2);
+            await rightClickSong(page, 2, '.song-duration'); // far right, so the menu sits where the narrower window cuts it off
             await page.setViewportSize({ width: 700, height: 500 });
-            await page.waitForTimeout(100);
+            // The resize handler repositions the menu; wait for that, and let the assertions below report if it never happens.
+            await page
+                .waitForFunction(() => document.querySelector('.context-menu').getBoundingClientRect().right <= window.innerWidth, null, { timeout: 2000 })
+                .catch(() => {});
             const r = await page.evaluate(() => {
                 const m = document.querySelector('.context-menu').getBoundingClientRect();
                 return { right: m.right, left: m.left, innerWidth: window.innerWidth };
