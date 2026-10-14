@@ -14,16 +14,15 @@ Update this board manually after each patch is applied and verified. Do not mark
 
 ## Next actions
 
-- [ ] Phase 1 is not finished. Open: B-03 verification, B-05, B-06, C-05 (see notes).
-- [ ] Owners to check the applied patches on their own machine: `npm run test:timing` (B: record the table on the real machine), `npm run lint:strict` (D-05), and the manual checks in each report under "For you (manual checks)".
-- [ ] B: B-02 is applied and focused tests pass; B-03 needs sequence-suite-specific verification and Windows timing measurements.
-- [ ] C: C-01 to C-04 are applied + verified. C-05: the sleeps and the README are done for the commands that exist today; after B-06 lands, re-read the README sections 3 and 10 against it (report `reports/C/0005-*`). Open for D: `search-clear.test.js` has one 150 ms `waitForTimeout`.
-- [ ] D: 10 inline handlers listed in `INLINE_EXCEPTIONS` (`tools/tests/ui-handlers.test.js`) are still in source. D owns the conversion decision; C's test enforces that the count only goes down.
+- [ ] Phase 1 remains open: B-03 timing/sequence checks, B-05 timing decision, and C-05 README reconciliation.
+- [ ] B-06 is applied and locally verified: shard-runner tests 8/8 passed, lint checked 136 files with 0 errors and 0 warnings, and the user reports the test suite passes. GitHub Actions has not been confirmed here.
+- [ ] B: B-03 remains open for the Windows timing measurements and manual checks listed in report `reports/B/0006-fast-commands-ci.md`. B-05 remains open until its Windows fixture-build measurement is recorded or the shared-build optimization is explicitly waived.
+- [ ] C: C-01 to C-04 are applied + verified. C-05 remains open: update `tools/tests/README.md` sections 3 and 10 for the new commands and CI workflow, correct the concurrency and `SEQUENCE_PAGES` descriptions, and reconcile the historical timing note in section 11.
+- [ ] D: 10 inline handlers listed in `INLINE_EXCEPTIONS` (`tools/tests/ui-handlers.test.js`) remain. D owns the conversion decision; C's test enforces that the count only goes down.
 - [ ] Keep each patch small. Check its diff, run focused tests, and update this board and `tools/change.log.txt` after verification.
 - [ ] Do not delete tests unless the report explains why the test is obsolete or identifies the remaining test that covers its behavior.
 - [ ] Start Phase 2 only after every Phase 1 task is `applied + verified` and no other agent has a patch in flight.
 - [ ] After Phase 2, run the full test suite, the smoke checklist and the real Electron application. Record the results before declaring the plan complete.
-
 ## Phase 1 — Parallel cleanup and improvements
 
 ### Agent A — Housekeeping and documentation
@@ -42,7 +41,7 @@ Update this board manually after each patch is applied and verified. Do not mark
 | B-03 | Parallelize independent sequence suites                                              | B-01         | in progress | Patch applied locally. Sequence-suite-specific verification and Windows timing comparison pending. Confirm events-b.json and events-c.json remain byte-identical. |
 | B-04 | Mock the 700 ms backoff in `online-metadata.test.js`                                 | B-01         | applied + verified | File 23.3 s -> 0.3 s; 11 of 11 pass, same titles. Mutation check done. Still to run once on Node v24 (report `reports/B/0002-online-metadata-fast.md`).                                                                              |
 | B-05 | Optimize fixture building and investigate modal-close test slowdown                  | B-01         | in progress      | `modal-close`: 42.5 s -> 4.7 s, 26 of 26 (done). Not done: shared fixture build (skipped, buildApp takes about 11 ms here; your Windows check is in the report). Before/after for 3 other browser files not measured. Keep open until those are recorded or waived. |
-| B-06 | Add fast test commands and CI support                                                | B-04, B-05   | todo             | Waiting on B-05 (B-04 is done).                                                                                                                                                                                                     |
+| B-06 | Add fast test commands and CI support | B-04, B-05 | applied + verified | Commit `532de76` pushed. Shard-runner tests 8/8 pass; lint: 136 files, 0 errors, 0 warnings; user reports tests pass. GitHub Actions and outstanding Windows measurements are tracked separately in Next actions. |
 
 ### Agent C — Test consolidation and maintenance
 
@@ -52,7 +51,7 @@ Update this board manually after each patch is applied and verified. Do not mark
 | C-02 | Consolidate the window contract test                        | None                   | applied + verified | Added tools/tests/window-contract.test.js; focused test passed, 11/11. |
 | C-03 | Consolidate the inline-handler static rule                  | None                   | applied + verified | One static test over `src/` and the page template; mutation checks done (report `reports/C/0002-inline-handler-rule.md`). 10 known inline handlers listed as exceptions (for D to convert).                                              |
 | C-04 | Merge order checks and trim redundant tool tests            | None                   | applied + verified | Order checks merged, tool tests trimmed (report 0003); real-ESLint undefined-name test added in `lint.test.js` and shown to fail with `no-undef` off (report `reports/C/0005-*`). |
-| C-05 | Review remaining fixed sleeps and update test documentation | C-02, C-03, C-04, B-06 | in progress      | Sleeps replaced in the six files (3 runs, 34/34 pass); README matches `npm run test:list` and the commands that exist now. Waiting on B-06 only to re-check the README against its final commands (report `reports/C/0005-*`). |
+| C-05 | Review remaining fixed sleeps and update test documentation | C-02, C-03, C-04, B-06 | in progress | Sleep replacements and file counts are done, but README sections 3 and 10 still describe the old commands/workflow. Correct the concurrency and `SEQUENCE_PAGES` descriptions and section 11 historical note before marking verified (report `reports/C/0005-*`). |
 
 ### Agent D — Product-code leftovers
 
