@@ -5,9 +5,10 @@ on:
   pull_request:
 
 jobs:
-  test:
-    runs-on: windows-latest
-    timeout-minutes: 30
+  # The no-browser tests and lint: cheap, and the same on any operating system.
+  unit-and-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -16,7 +17,32 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Unit tests and lint
+        run: npm run test:quick
+
+  # Every browser test file, in 3 parts that run at the same time (run.js --shard splits them without overlap).
+  # If the number of parts changes, change the matrix and the /3 below together (tools/tests/run-shards.test.js checks this).
+  browser:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Cache the Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Install the Playwright browser
         run: npx playwright install chromium
-      - name: Run the tests
-        run: npm test
+      - name: Browser tests, part ${{ matrix.shard }} of 3
+        run: node tools/tests/run.js browser --shard=${{ matrix.shard }}/3

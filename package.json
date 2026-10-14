@@ -16,6 +16,8 @@
     "test:browser": "node tools/tests/run.js browser",
     "test:list": "node tools/tests/run.js --list",
     "test:timing": "node tools/tests/run.js --timing",
+    "test:quick": "node tools/tests/run.js unit && node tools/lint.js",
+    "test:fast": "node tools/tests/run.js browser --concurrency=4",
     "lint": "node tools/lint.js",
     "lint:strict": "node tools/lint.js --strict"
   },

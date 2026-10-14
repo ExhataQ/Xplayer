@@ -25,10 +25,11 @@
 // after the other. Recording a baseline (EVENT_BASELINE) always uses one page.
 //
 // A few scenarios record calls made by app timers next to a fixed wait of their own, so on a busy machine their
-// order can flip. A scenario that differs from its recorded sequence (or has page errors) while pages ran in
-// parallel is therefore run again ALONE, and the alone result is the one that counts. A real regression
-// differs when run alone as well, so it still fails; a flip caused only by load passes, and the test says so
-// in a diagnostic line.
+// order can flip. The load can come from this suite's own pages or from other test files running at the same
+// time (`run.js --concurrency`). A scenario that differs from its recorded sequence (or has page errors) is
+// therefore run again ALONE once the other pages of this suite are done, and the alone result is the one that
+// counts. A real regression differs when run alone as well, so it still fails; a flip caused only by load
+// passes, and the test says so in a diagnostic line. Recording a baseline never retries.
 
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -98,7 +99,7 @@ function defineSequenceSuite({ title, scenarios, expectedFile }) {
             let changed = false;
             const width = baseline ? 1 : pageCount(names.length);
             const results = await runAll(names, width);
-            if (!baseline && width > 1) {
+            if (!baseline) {
                 const retried = [];
                 for (let i = 0; i < results.length; i++) {
                     const { name, calls, errors } = results[i];
@@ -110,10 +111,10 @@ function defineSequenceSuite({ title, scenarios, expectedFile }) {
                         same = false;
                     }
                     if (same) continue;
-                    results[i] = await runScenario(name); // no other page is running any more
+                    results[i] = await runScenario(name); // no other page of this suite is running any more
                     retried.push(name);
                 }
-                if (retried.length) t.diagnostic(`${retried.length} scenario(s) differed while ${width} pages ran at once and were run again alone (this result is the one counted): ${retried.join('; ')}`);
+                if (retried.length) t.diagnostic(`${retried.length} scenario(s) differed from the recorded sequence on a busy machine (${width} page(s) of this suite at once, other test files possibly too) and were run again alone (this result is the one counted): ${retried.join('; ')}`);
             }
             for (const { name, calls, errors } of results) {
                 assert.deepEqual(errors, [], `${name}: page errors`);

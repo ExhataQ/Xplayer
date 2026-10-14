@@ -1,3 +1,5 @@
+﻿2026-10-14
+- B-0006 (Agent B): test runner supports deterministic browser-test sharding and CPU-aware concurrency. Added shard distribution and workflow consistency tests; CI separates unit tests plus lint from three parallel Windows browser shards. Updated the test workflow and package scripts.
 2026-10-12
 - A-01 (Agent A): removed tools/spike-modules/ and tools/test-shuffle/ (dead; nothing in package.json, .github, eslint config, lint tools, tests or build names them). tools/placeholder-test/ kept.
 - A-02 (Agent A): triaged tools/prompt.txt (report only, file not changed).
