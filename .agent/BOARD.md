@@ -17,7 +17,8 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 | D6 | Fonts (IBM Plex Sans, Newsreader) | Approved | Recommendation accepted, 2026-10-16 |
 | D7 | Cutover policy | Approved | Recommendation accepted, 2026-10-16 |
 | D8 | Title bar: logo menu, back and forward, notification bell | Approved | Recommendation accepted, 2026-10-16 |
-| D9 | Library panel: filter chips on top, one list below | Approved | Recommendation accepted, 2026-10-16 |
+| D9 | Library panel: filter chips on top, one list below | Approved |
+| D10 | Engine contract: compatibility shim (provide the engine's element IDs and classes), not an event rewrite | Proposed, see ui-redesign/ENGINE-CONTRACT.md | | Recommendation accepted, 2026-10-16 |
 
 ## Phase 0: Decisions and safety
 
@@ -32,7 +33,8 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 | Task | Owner | Status | Depends on | Notes |
 |---|---|---|---|---|
 | A-01 Tokens, base CSS, fonts, icons | A | In review | P0-03 | |
-| A-02 Entry HTML, `--ui=next` flag, build copy list | A | In review | P0-03 | Touches `electron/` and `build/` |
+| A-02 Entry HTML, `--ui=next` flag, build copy list | A | Done (applied by you) | P0-03 | Touches `electron/` and `build/` |
+| A-04a Engine contract map (probe) | A | In review | A-02 | Playback and state load with 25 IDs; see ENGINE-CONTRACT.md |
 | A-03 Shell: title bar (logo menu, back and forward, bell), rail, panel host, player host | A | Not started | A-01, A-02 | |
 | A-04 Adapter v1 and DOM-id compatibility layer | A | Not started | A-02 | |
 | A-05 Component set with all states | A | Not started | A-01 | |
