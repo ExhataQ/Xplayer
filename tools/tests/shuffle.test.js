@@ -20,8 +20,8 @@ const smartShuffleSettings = {
 };
 
 async function loadShuffleFunctions() {
-    const { createShuffleOrder } = await importModule('10a-playback-shuffle.js');
-    const { generateSmartShuffleJourney } = await importModule('10b-playback-smart-shuffle.js');
+    const { createShuffleOrder } = await importModule('playback/10a-playback-shuffle.js');
+    const { generateSmartShuffleJourney } = await importModule('playback/10b-playback-smart-shuffle.js');
     return { createShuffleOrder, generateSmartShuffleJourney };
 }
 

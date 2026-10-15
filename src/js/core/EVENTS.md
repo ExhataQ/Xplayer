@@ -13,7 +13,7 @@ There is no separate `off()` function: `on()` returns the unsubscribe function. 
 - `emit` with no detail gives subscribers `e.detail === null` (platform behavior, not `undefined`).
 - Handlers run synchronously, in the order they subscribed, before `emit()` returns.
 - An error in a handler is reported by the platform but does not stop the emitter or other handlers.
-- Load order: `00b-events.js` loads second, so every later file may call `emit`/`on`.
+- Load order: `core/00b-events.js` loads second, so every later file may call `emit`/`on`.
 
 ## Rules
 

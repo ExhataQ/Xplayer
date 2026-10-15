@@ -18,10 +18,10 @@ const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
 // has. A file that is not listed must have none, and a listed file may not gain any; lower or
 // remove an entry when its handlers are converted to data-action.
 const INLINE_EXCEPTIONS = {
-    'src/js/03l-import-export.js': 2,
-    'src/js/03m-library-folder-render.js': 1,
-    'src/js/08d-panel-right-tabs.js': 1,
-    'src/js/09-folders-playlists.js': 6
+    'src/js/library/03l-import-export.js': 2,
+    'src/js/library/03m-library-folder-render.js': 1,
+    'src/js/ui/08d-panel-right-tabs.js': 1,
+    'src/js/playlists/09-folders-playlists.js': 6
 };
 const INLINE = /(?<![\w.])on(?:click|dblclick|contextmenu|mousedown|mouseup|mouseover|mouseout|change|input|focus|blur|submit|keydown|keyup|keypress|error|load|drag\w*|drop|wheel|scroll)\s*=\s*\\?["'`]|setAttribute\(\s*['"]on/g;
 

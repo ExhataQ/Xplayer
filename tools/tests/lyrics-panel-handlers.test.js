@@ -53,8 +53,8 @@ describe('lyrics, metadata and panel views converted to data-action', { concurre
     const times = (page) => page.evaluate(() => syncEditorState.lines.map((l) => l.time));
 
     test('no inline on...= handler is left in the converted files', () => {
-        const files = ['08b-panel-album-art.js', '08e-panel-settings.js', '08g-panel-saved-lyrics.js', '11b-lyrics-import.js',
-            '11c-sync-editor-shell.js', '11d-sync-editor-lines.js', '18-lyrics-editor.js', '19-online-lyrics.js', '20-metadata-editor.js'];
+        const files = ['ui/08b-panel-album-art.js', 'ui/08e-panel-settings.js', 'lyrics/08g-panel-saved-lyrics.js', 'lyrics/11b-lyrics-import.js',
+            'lyrics/11c-sync-editor-shell.js', 'lyrics/11d-sync-editor-lines.js', 'lyrics/18-lyrics-editor.js', 'lyrics/19-online-lyrics.js', 'library/20-metadata-editor.js'];
         for (const file of files) {
             const text = fs.readFileSync(path.join(SRC, file), 'utf8');
             const found = text.match(/\bon(click|change|input|keydown|mousedown|contextmenu|dblclick|blur|error)\s*=\s*["'\\]|setAttribute\(\s*['"]on/g);
@@ -62,7 +62,7 @@ describe('lyrics, metadata and panel views converted to data-action', { concurre
         }
         // 08d keeps one: the close button of the extended info panel sits inside #extended-info-content, which
         // stops clicks inline in build/music_player.html, so a delegated click could never reach it.
-        const d = fs.readFileSync(path.join(SRC, '08d-panel-right-tabs.js'), 'utf8').match(/\bon[a-z]+\s*=\s*"/g);
+        const d = fs.readFileSync(path.join(SRC, 'ui/08d-panel-right-tabs.js'), 'utf8').match(/\bon[a-z]+\s*=\s*"/g);
         assert.deepEqual(d, ['onclick="']);
     });
 

@@ -31,11 +31,11 @@ const html = fs.readFileSync(path.join(ROOT, 'build', 'music_player.html'), 'utf
 // Constants and state objects that other files read by bare name. They are not exported, so the sources cannot say
 // which of them other files use; they are listed here with the file that has to register each.
 const REQUIRED_SHARED = {
-    '05a-lazy-load-main-list.js': ['DEFAULT_VIRTUAL_SCROLL_THRESHOLD', 'MIN_VIRTUAL_SCROLL_THRESHOLD', 'MAX_VIRTUAL_SCROLL_THRESHOLD', 'ITEM_HEIGHT', 'virtualScrollState', 'VIRTUAL_SCROLL_SETTLE_MS'],
-    '05b-lazy-load-left-panel.js': ['LEFT_ITEM_HEIGHT', 'LEFT_OVERSCAN_COUNT', 'leftPanelVirtualState'],
-    '05c-lazy-load-smart-lyrics.js': ['SMART_LYRICS_ITEM_HEIGHT', 'smartLyricsVirtualState'],
-    '07-views.js': ['VIEWS', 'listProviders'],
-    '04a-ui-render-core.js': ['selectedSongIds']
+    'ui/05a-lazy-load-main-list.js': ['DEFAULT_VIRTUAL_SCROLL_THRESHOLD', 'MIN_VIRTUAL_SCROLL_THRESHOLD', 'MAX_VIRTUAL_SCROLL_THRESHOLD', 'ITEM_HEIGHT', 'virtualScrollState', 'VIRTUAL_SCROLL_SETTLE_MS'],
+    'ui/05b-lazy-load-left-panel.js': ['LEFT_ITEM_HEIGHT', 'LEFT_OVERSCAN_COUNT', 'leftPanelVirtualState'],
+    'ui/05c-lazy-load-smart-lyrics.js': ['SMART_LYRICS_ITEM_HEIGHT', 'smartLyricsVirtualState'],
+    'ui/07-views.js': ['VIEWS', 'listProviders'],
+    'ui/04a-ui-render-core.js': ['selectedSongIds']
 };
 
 // Values the classic code reads from window and relies on.

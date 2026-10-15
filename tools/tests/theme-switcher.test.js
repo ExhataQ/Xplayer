@@ -15,7 +15,7 @@ const { pathToFileURL } = require('url');
 const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
-const MODULE_URL = pathToFileURL(path.join(ROOT, 'src/js/06i-theme-switcher.js')).href;
+const MODULE_URL = pathToFileURL(path.join(ROOT, 'src/js/ui/06i-theme-switcher.js')).href;
 const THEMES = ['green', 'pink', 'purple', 'yellow', 'white'];
 
 // A document with just what the module uses: .settings-theme-btn buttons and a body.

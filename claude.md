@@ -45,6 +45,8 @@ The renderer files under `Source/src/js/` and `Source/src/css/` are copied into 
 
 `Source/src/js/main.js` is the single renderer entry: a list of `import` lines whose order is the load order. `Source/src/js/99-player.js` is only the build-time data template (`{{SONGS_DATA}}`, `{{PLACEHOLDER_IMAGE}}`); `core/build-data.js` reads it. The library itself is read from `MusicPlayerOutput/songs.json` (see `electron/songs-store.js`); the placeholder list is only the fallback for a plain browser and the tests. The start-up code is `core/startup.js`.
 
+Renderer files are grouped by area under `Source/src/js/`: `core/` (state, event bus, storage, start-up), `library/`, `playlists/`, `search/`, `playback/`, `lyrics/`, `ui/` (with `ui/subscribers/` for the `04h`–`04v` event subscribers) and `api/`. File names keep their number prefix; `main.js` imports each by its folder path.
+
 `Source/tools/change.log.txt` is the append-only project change log.
 
 `Source/tools/tests/` contains the project's tests.
@@ -56,21 +58,24 @@ Before changing something, identify which layer owns the behavior.
 * Audio scanning / tag extraction / supported formats / cover extraction → `electron/scan-folder.js`
 * Metadata reading/writing → `electron/metadata-editor.py` and its Node wrapper
 * MusicBrainz / Cover Art Archive → `electron/online-metadata.js`
-* LRCLIB → `electron/online-lyrics.js` and `src/js/19-online-lyrics.js`
+* LRCLIB → `electron/online-lyrics.js` and `src/js/lyrics/19-online-lyrics.js`
 * Electron IPC / application bootstrap → `electron/main.js`
 * Window behavior → `electron/window-manager.js`
-* Renderer playback / queue / shuffle → `src/js/10a-playback-shuffle.js`, `10a0-shuffle-state.js`, `10b-playback-smart-shuffle.js`, `10c-playback-queue.js`, `10d-playback-song.js`
-* Playback controls → `src/js/15a-controls-time-play.js` to `15g-controls-volume-fade.js` (state in `15a0-controls-state.js`)
-* Song navigation / highlight → `src/js/14-song-navigation.js`, `13-song-highlight.js`
-* Metadata editor UI → `src/js/20-metadata-editor.js`
-* Storage / settings → `src/js/core/storage.js` (limits in `03-storage.js`, favorites and settings in `03f-favorites-settings.js`)
-* Views → `src/js/07-views.js`
-* Panels → `src/js/08a` to `08g` (`08e-panel-settings.js`, `08h-panel-search.js` for search)
-* Virtual scrolling → `src/js/05a-lazy-load-main-list.js`, `05b-lazy-load-left-panel.js`, `05c-lazy-load-smart-lyrics.js`
-* Main renderer UI → `src/js/04a-ui-render-core.js` and the renderers `04b` to `04g`; event subscribers `04h` to `04v`
-* Lyrics display / sync editor → `src/js/11a-lrc-parser-display.js` and `11b` to `11g`; the LRC parser is `src/js/lyrics/lrc-parser.js`
-* Online lyrics UI → `src/js/19-online-lyrics.js`
-* Language detection → `src/js/21-language-detect.js`
+* Renderer playback / queue / shuffle → `src/js/playback/10a-playback-shuffle.js`, `10a0-shuffle-state.js`, `10b-playback-smart-shuffle.js`, `10c-playback-queue.js`, `10d-playback-song.js`
+* Playback controls → `src/js/playback/15a-controls-time-play.js` to `15g-controls-volume-fade.js` (state in `15a0-controls-state.js`)
+* Song navigation / highlight → `src/js/playback/14-song-navigation.js`, `13-song-highlight.js`
+* Metadata editor UI → `src/js/library/20-metadata-editor.js`
+* Library data (recents, albums/artists, favorites, locations, cover sync, import/export) → `src/js/library/03*.js`
+* Playlists / pinned items / folders → `src/js/playlists/03c-playlists.js`, `03g-pinned-items.js`, `03h-folders.js`, `09-folders-playlists.js`
+* Search → `src/js/search/03b-search-engine.js`, `03i-search-history.js`, `08h-panel-search.js`
+* State, event bus, storage / settings → `src/js/core/00-state.js`, `00b-events.js`, `storage.js` (limits in `03-storage.js`); favorites and settings in `src/js/library/03f-favorites-settings.js`
+* Views → `src/js/ui/07-views.js`
+* Panels → `src/js/ui/08a-panel-layout.js` to `08f-panel-extended-metadata.js` (`08e-panel-settings.js` for settings); track and saved lyrics panels are `src/js/lyrics/08c-panel-track-lyrics.js` and `08g-panel-saved-lyrics.js`; search panel is `src/js/search/08h-panel-search.js`
+* Virtual scrolling → `src/js/ui/05a-lazy-load-main-list.js`, `05b-lazy-load-left-panel.js`, `05c-lazy-load-smart-lyrics.js`
+* Main renderer UI → `src/js/ui/04a-ui-render-core.js` and the renderers `04b` to `04g` in the same folder; event subscribers `04h` to `04v` in `src/js/ui/subscribers/`
+* Lyrics display / sync editor → `src/js/lyrics/11a-lrc-parser-display.js` and `11b` to `11g`; the LRC parser is `src/js/lyrics/lrc-parser.js`
+* Online lyrics UI → `src/js/lyrics/19-online-lyrics.js`
+* Language detection → `src/js/lyrics/21-language-detect.js`
 * Styling → the appropriate file in `src/css/`
 
 Do not duplicate functionality into another file merely because it is convenient. Follow the existing architecture.
@@ -359,7 +364,7 @@ When a change affects scanner behavior, treat `electron/scan-folder.js` as the p
 
 When a change affects build-time assembly, use `build/music_player.py`.
 
-When a change affects renderer behavior, modify the appropriate numbered file in `src/js/` and preserve its dependency/load-order assumptions.
+When a change affects renderer behavior, modify the appropriate numbered file in its `src/js/<area>/` folder and preserve its dependency/load-order assumptions.
 
 ## Token-Efficient Investigation
 

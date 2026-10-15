@@ -59,49 +59,49 @@ describe('listener registration order (real page)', { concurrency: false }, () =
     test('document keydown: bridge, then 04a, the context menu, and the keyboard shortcuts last', async (t) => {
         if (skip) return void t.skip(skip);
         const list = await registrations();
-        assert.deepEqual(order(list, 'document.keydown', ['core/legacy.js', '04a-ui-render-core.js', '06a-context-menus.js', '06k-keyboard-shortcuts.js']), [
+        assert.deepEqual(order(list, 'document.keydown', ['core/legacy.js', 'ui/04a-ui-render-core.js', 'ui/06a-context-menus.js', 'ui/06k-keyboard-shortcuts.js']), [
             'core/legacy.js',
-            '04a-ui-render-core.js',
-            '06a-context-menus.js',
-            '06k-keyboard-shortcuts.js'
+            'ui/04a-ui-render-core.js',
+            'ui/06a-context-menus.js',
+            'ui/06k-keyboard-shortcuts.js'
         ]);
     });
 
     test('document mousedown: bridge, the context menu, then the mouse navigation buttons', async (t) => {
         if (skip) return void t.skip(skip);
         const list = await registrations();
-        assert.deepEqual(order(list, 'document.mousedown', ['core/legacy.js', '06a-context-menus.js', '06k-keyboard-shortcuts.js']), [
+        assert.deepEqual(order(list, 'document.mousedown', ['core/legacy.js', 'ui/06a-context-menus.js', 'ui/06k-keyboard-shortcuts.js']), [
             'core/legacy.js',
-            '06a-context-menus.js',
-            '06k-keyboard-shortcuts.js'
+            'ui/06a-context-menus.js',
+            'ui/06k-keyboard-shortcuts.js'
         ]);
     });
 
     test('document click: bridge, the context menu, the tooltip system, then folders/playlists', async (t) => {
         if (skip) return void t.skip(skip);
         const list = await registrations();
-        assert.deepEqual(order(list, 'document.click', ['core/legacy.js', '06a-context-menus.js', '06d-tooltip-system.js', '09-folders-playlists.js']), [
+        assert.deepEqual(order(list, 'document.click', ['core/legacy.js', 'ui/06a-context-menus.js', 'ui/06d-tooltip-system.js', 'playlists/09-folders-playlists.js']), [
             'core/legacy.js',
-            '06a-context-menus.js',
-            '06d-tooltip-system.js',
-            '09-folders-playlists.js'
+            'ui/06a-context-menus.js',
+            'ui/06d-tooltip-system.js',
+            'playlists/09-folders-playlists.js'
         ]);
     });
 
     test('window resize: the context menu first, then layout and online lyrics', async (t) => {
         if (skip) return void t.skip(skip);
         const list = await registrations();
-        assert.deepEqual(order(list, 'window.resize', ['06a-context-menus.js', 'ui/layout.js', '19-online-lyrics.js']), [
-            '06a-context-menus.js',
+        assert.deepEqual(order(list, 'window.resize', ['ui/06a-context-menus.js', 'ui/layout.js', 'lyrics/19-online-lyrics.js']), [
+            'ui/06a-context-menus.js',
             'ui/layout.js',
-            '19-online-lyrics.js'
+            'lyrics/19-online-lyrics.js'
         ]);
     });
 
     test('the recording sees the files it is meant to (so the checks above cannot pass on an empty list)', async (t) => {
         if (skip) return void t.skip(skip);
         const list = await registrations();
-        for (const needle of ['document.keydown <- 06k-keyboard-shortcuts.js', 'document.click <- 06a-context-menus.js', 'window.resize <- 06a-context-menus.js']) {
+        for (const needle of ['document.keydown <- ui/06k-keyboard-shortcuts.js', 'document.click <- ui/06a-context-menus.js', 'window.resize <- ui/06a-context-menus.js']) {
             assert.ok(list.includes(needle), `${needle} not recorded`);
         }
     });

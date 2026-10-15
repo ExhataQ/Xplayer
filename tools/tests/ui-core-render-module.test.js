@@ -12,7 +12,7 @@ const acorn = require('acorn');
 const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 
 const SRC = path.resolve(__dirname, '..', '..', 'src');
-const FILE = '04a-ui-render-core.js';
+const FILE = 'ui/04a-ui-render-core.js';
 const manifest = require('../lib/manifest').readManifest(path.resolve(SRC, '..'));
 const text = fs.readFileSync(path.join(SRC, 'js', FILE), 'utf8');
 const ast = acorn.parse(text, { ecmaVersion: 'latest', sourceType: 'module' });
@@ -25,14 +25,14 @@ describe('04a module: manifest', () => {
 
     test('it runs after the renderers and 07a and before 06a, so its keydown listener stays ahead of 06a and 06k', () => {
         const m = manifest.modules;
-        assert.ok(m.indexOf('07a-ui-actions.js') < m.indexOf(FILE));
-        assert.ok(m.indexOf(FILE) < m.indexOf('06a-context-menus.js'));
-        assert.ok(m.indexOf(FILE) < m.indexOf('06k-keyboard-shortcuts.js'));
+        assert.ok(m.indexOf('ui/07a-ui-actions.js') < m.indexOf(FILE));
+        assert.ok(m.indexOf(FILE) < m.indexOf('ui/06a-context-menus.js'));
+        assert.ok(m.indexOf(FILE) < m.indexOf('ui/06k-keyboard-shortcuts.js'));
     });
 
     test('the state it uses by bare name is declared in 04a0-ui-state.js, which loads first and publishes it', () => {
-        assert.ok(manifest.modules.indexOf('04a0-ui-state.js') >= 0);
-        assert.ok(manifest.modules.indexOf('04a0-ui-state.js') < manifest.modules.indexOf(FILE));
+        assert.ok(manifest.modules.indexOf('ui/04a0-ui-state.js') >= 0);
+        assert.ok(manifest.modules.indexOf('ui/04a0-ui-state.js') < manifest.modules.indexOf(FILE));
         assert.ok(!/^let (hoveredSongIndex|selectedSongId|lastSelectedIndex|selectionHighlights)\b/m.test(text));
     });
 });

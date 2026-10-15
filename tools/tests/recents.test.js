@@ -1,4 +1,4 @@
-// Tests for the recently-played logic (src/js/03a-recents.js) and how 03e-recents-history.js
+// Tests for the recently-played logic (src/js/library/03a-recents.js) and how 03e-recents-history.js
 // saves it. Runs in Node, no browser needed.
 //
 // 03a-recents.js and 03-storage.js are ES modules, imported directly. Only the last two tests
@@ -16,8 +16,8 @@ const JS = path.join(__dirname, '../../src/js');
 // as plain scripts, so the export keywords are dropped. Their functions behave the same.
 const { stripExports } = require('../lib/strip-exports');
 const legacySource = (file) => stripExports(fs.readFileSync(file, 'utf8'));
-const recentsModule = import(pathToFileURL(path.join(JS, '03a-recents.js')).href);
-const storageModule = import(pathToFileURL(path.join(JS, '03-storage.js')).href);
+const recentsModule = import(pathToFileURL(path.join(JS, 'library/03a-recents.js')).href);
+const storageModule = import(pathToFileURL(path.join(JS, 'core/03-storage.js')).href);
 const schemaModule = import(pathToFileURL(path.join(JS, 'core/storage-schema.js')).href);
 
 // 03e-recents-history.js (classic) in a context with a fake localStorage.
@@ -44,11 +44,11 @@ async function loadRecentsHistory({ stored = {}, failWrites = false, library = [
     };
     vm.createContext(context);
     // STORAGE_KEYS lives in 00-state.js, which needs a DOM; take just that constant.
-    const stateSource = fs.readFileSync(path.join(JS, '00-state.js'), 'utf8');
+    const stateSource = fs.readFileSync(path.join(JS, 'core/00-state.js'), 'utf8');
     const keys = stateSource.match(/const STORAGE_KEYS = \{[\s\S]*?\n\};/);
     if (!keys) throw new Error('recents.test.js: could not find STORAGE_KEYS in 00-state.js - did it move or get renamed?');
     vm.runInContext(keys[0], context);
-    for (const file of ['core/storage.js', '00b-events.js', 'core/state-ghost-list.js', '03e-recents-history.js']) {
+    for (const file of ['core/storage.js', 'core/00b-events.js', 'core/state-ghost-list.js', 'library/03e-recents-history.js']) {
         vm.runInContext(legacySource(path.join(JS, file)), context);
     }
     context.__stored = stored;

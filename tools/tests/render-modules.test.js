@@ -14,13 +14,13 @@ const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fix
 const SRC = path.resolve(__dirname, '..', '..', 'src');
 const manifest = require('../lib/manifest').readManifest(path.resolve(SRC, '..'));
 const FILES = {
-    '04b-render-playlists-folders.js': ['renderPlaylistsView', 'renderFoldersView', 'renderFolderContents', 'renderPlaylistDetailView'],
-    '04c-render-albums.js': ['renderAlbumsView', 'renderAlbumDetailView', 'renderAlbumLeftPanelItems'],
-    '04d-render-artists.js': ['renderArtistDetailView', 'renderArtistLeftPanelItems'],
-    '04e-render-favorites-history.js': ['renderFavoritesView', 'renderHistoryView', 'renderRecentlyPlayed', 'renderPortableRecentlyPlayed'],
-    '04f-render-search-history.js': ['renderSearchHistoryView'],
-    '04g-render-lyrics-view.js': ['renderLyricsView', 'teardownLyricsView'],
-    '07a-ui-actions.js': ['applyActionAttrs']
+    'ui/04b-render-playlists-folders.js': ['renderPlaylistsView', 'renderFoldersView', 'renderFolderContents', 'renderPlaylistDetailView'],
+    'ui/04c-render-albums.js': ['renderAlbumsView', 'renderAlbumDetailView', 'renderAlbumLeftPanelItems'],
+    'ui/04d-render-artists.js': ['renderArtistDetailView', 'renderArtistLeftPanelItems'],
+    'ui/04e-render-favorites-history.js': ['renderFavoritesView', 'renderHistoryView', 'renderRecentlyPlayed', 'renderPortableRecentlyPlayed'],
+    'ui/04f-render-search-history.js': ['renderSearchHistoryView'],
+    'ui/04g-render-lyrics-view.js': ['renderLyricsView', 'teardownLyricsView'],
+    'ui/07a-ui-actions.js': ['applyActionAttrs']
 };
 const parse = (file) => acorn.parse(fs.readFileSync(path.join(SRC, 'js', file), 'utf8'), { ecmaVersion: 'latest', sourceType: 'module' });
 
@@ -34,8 +34,8 @@ describe('D-09e: manifest', () => {
     test('they sit after 06i and before 06c, so 06a can still be inserted before 06c', () => {
         const m = manifest.modules;
         for (const file of Object.keys(FILES)) {
-            assert.ok(m.indexOf('06i-theme-switcher.js') < m.indexOf(file), `${file} after 06i`);
-            assert.ok(m.indexOf(file) < m.indexOf('06c-scrollbar-widget.js'), `${file} before 06c`);
+            assert.ok(m.indexOf('ui/06i-theme-switcher.js') < m.indexOf(file), `${file} after 06i`);
+            assert.ok(m.indexOf(file) < m.indexOf('ui/06c-scrollbar-widget.js'), `${file} before 06c`);
         }
     });
 });
@@ -51,7 +51,7 @@ describe('D-09e: module shape', () => {
     }
 
     test('the renderers (04b to 04g) do nothing at load time except declare functions and register them', () => {
-        for (const file of Object.keys(FILES).filter((f) => f.startsWith('04'))) {
+        for (const file of Object.keys(FILES).filter((f) => f.split('/').pop().startsWith('04'))) {
             const kinds = parse(file).body.map((n) => n.type);
             assert.ok(kinds.every((k) => k === 'ExportNamedDeclaration' || k === 'IfStatement'), `${file}: ${kinds.join(',')}`);
         }

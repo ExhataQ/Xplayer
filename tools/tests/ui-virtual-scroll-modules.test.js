@@ -13,7 +13,7 @@ const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fix
 
 const SRC = path.resolve(__dirname, '..', '..', 'src');
 const manifest = require('../lib/manifest').readManifest(path.resolve(SRC, '..'));
-const FILES = ['05a-lazy-load-main-list.js', '05b-lazy-load-left-panel.js', '05c-lazy-load-smart-lyrics.js'];
+const FILES = ['ui/05a-lazy-load-main-list.js', 'ui/05b-lazy-load-left-panel.js', 'ui/05c-lazy-load-smart-lyrics.js'];
 const read = (file) => fs.readFileSync(path.join(SRC, 'js', file), 'utf8');
 const parse = (file) => acorn.parse(read(file), { ecmaVersion: 'latest', sourceType: 'module' });
 
@@ -26,16 +26,16 @@ describe('virtual scroll modules: manifest', () => {
 
     test('order: 04a, then 05a, 05b, 05c, then 06a (05c reads ITEM_HEIGHT while loading)', () => {
         const m = manifest.modules;
-        const order = ['04a-ui-render-core.js', '05a-lazy-load-main-list.js', '05b-lazy-load-left-panel.js', '05c-lazy-load-smart-lyrics.js', '06a-context-menus.js'].map((f) => m.indexOf(f));
+        const order = ['ui/04a-ui-render-core.js', 'ui/05a-lazy-load-main-list.js', 'ui/05b-lazy-load-left-panel.js', 'ui/05c-lazy-load-smart-lyrics.js', 'ui/06a-context-menus.js'].map((f) => m.indexOf(f));
         assert.ok(order.every((i) => i >= 0));
         assert.deepEqual(order, [...order].sort((a, b) => a - b));
     });
 
     test('the threshold variable stays declared in 04a0-ui-state.js (loaded first), which 05a assigns at load', () => {
-        assert.ok(manifest.modules.indexOf('04a0-ui-state.js') >= 0);
-        assert.ok(manifest.modules.indexOf('04a0-ui-state.js') < manifest.modules.indexOf('05a-lazy-load-main-list.js'));
-        assert.ok(!/^(let|const|var) VIRTUAL_SCROLL_THRESHOLD\b/m.test(read('05a-lazy-load-main-list.js')));
-        assert.match(read('05a-lazy-load-main-list.js'), /^VIRTUAL_SCROLL_THRESHOLD = /m);
+        assert.ok(manifest.modules.indexOf('ui/04a0-ui-state.js') >= 0);
+        assert.ok(manifest.modules.indexOf('ui/04a0-ui-state.js') < manifest.modules.indexOf('ui/05a-lazy-load-main-list.js'));
+        assert.ok(!/^(let|const|var) VIRTUAL_SCROLL_THRESHOLD\b/m.test(read('ui/05a-lazy-load-main-list.js')));
+        assert.match(read('ui/05a-lazy-load-main-list.js'), /^VIRTUAL_SCROLL_THRESHOLD = /m);
     });
 });
 

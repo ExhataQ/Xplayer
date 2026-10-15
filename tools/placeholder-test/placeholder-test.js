@@ -74,7 +74,7 @@ function syncAlbumPlaceholderAlignment() {
 }
 
 // ==============================================================================
-// External scrollbar — ported from src/js/06c-scrollbar-widget.js, trimmed to just
+// External scrollbar — ported from src/js/ui/06c-scrollbar-widget.js, trimmed to just
 // the pieces needed for the test page (no drag-to-track animation, no shared
 // state across pages).
 // ==============================================================================
@@ -188,7 +188,7 @@ function initExternalScrollbar(contentId, scrollbarId, thumbId) {
 
 // ==============================================================================
 // Panel resize — ported from src/js/99-player.js's initPanelResize and
-// src/js/01-sizes.js's panel width management. Trimmed to the essentials
+// src/js/core/01-sizes.js's panel width management. Trimmed to the essentials
 // needed for the test page to resize its two panels.
 // ==============================================================================
 const SCREEN_WIDTH = window.screen.width;
@@ -407,7 +407,7 @@ function initTracklistScrollEffect() {
 
 // ==============================================================================
 // Panel collapse — ported from src/js/99-player.js's collapseLeftPanel and
-// src/js/08a-panel-layout.js's collapseRightPanel. Toggles the .collapsed class and
+// src/js/ui/08a-panel-layout.js's collapseRightPanel. Toggles the .collapsed class and
 // updates panel widths so the app's collapse CSS applies to the placeholders.
 // ==============================================================================
 function collapseLeftPanel() {

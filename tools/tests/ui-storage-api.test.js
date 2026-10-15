@@ -23,7 +23,7 @@ const code = (file) =>
     fs.readFileSync(path.join(JS, file), 'utf8').split(/\r?\n/).filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
 
 describe('D files: no direct storage or Electron access', () => {
-    const files = fs.readdirSync(JS).filter((f) => D_FILE.test(f));
+    const files = fs.readdirSync(JS, { recursive: true }).filter((f) => D_FILE.test(path.basename(f)));
     test('the UI shell files are found', () => assert.ok(files.length >= 30, `found ${files.length}`));
     for (const word of ['localStorage', 'sessionStorage', 'electronAPI']) {
         test(`no ${word} in 04*, 05*, 06*, 07*`, () => {

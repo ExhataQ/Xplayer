@@ -107,9 +107,10 @@ describe('tools/lint.js with the real ESLint and the real eslint.config.js', () 
         fs.copyFileSync(path.join(ROOT, 'eslint.config.js'), path.join(dir, 'eslint.config.js'));
         fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(dir, 'node_modules'), 'junction');
         fs.writeFileSync(path.join(dir, 'src', 'manifest.json'), JSON.stringify({ css: [], entry: 'main.js' }));
-        fs.writeFileSync(path.join(dir, 'src', 'js', 'main.js'), "import './06c-scrollbar-widget.js';\nimport './probe.js';\n");
+        fs.writeFileSync(path.join(dir, 'src', 'js', 'main.js'), "import './ui/06c-scrollbar-widget.js';\nimport './probe.js';\n");
         fs.writeFileSync(path.join(dir, 'src', 'js', '99-player.js'), '');
-        fs.writeFileSync(path.join(dir, 'src', 'js', '06c-scrollbar-widget.js'), 'export function init() { window.updateExternalScrollbar = () => {}; }\n');
+        fs.mkdirSync(path.join(dir, 'src', 'js', 'ui'));
+        fs.writeFileSync(path.join(dir, 'src', 'js', 'ui', '06c-scrollbar-widget.js'), 'export function init() { window.updateExternalScrollbar = () => {}; }\n');
         fs.writeFileSync(path.join(dir, 'src', 'js', 'probe.js'), code);
         fs.writeFileSync(path.join(dir, 'electron', 'ok.js'), "'use strict';\nmodule.exports = {};\n");
         const run = spawnSync(process.execPath, [path.join(dir, 'tools', 'lint.js')], { encoding: 'utf8', cwd: dir });
@@ -152,7 +153,7 @@ describe('lint-globals: names published as window.<name> = ...', () => {
     });
 
     test('the real repository: updateExternalScrollbar is a global, and it is the only window-published one', () => {
-        assert.deepEqual(WINDOW_PUBLISHED_GLOBALS, { updateExternalScrollbar: '06c-scrollbar-widget.js' });
+        assert.deepEqual(WINDOW_PUBLISHED_GLOBALS, { updateExternalScrollbar: 'ui/06c-scrollbar-widget.js' });
         const result = buildLintGlobals(ROOT);
         assert.equal(result.globals.updateExternalScrollbar, 'readonly');
         assert.equal(result.counts.fromWindowPublication, 1);
@@ -170,15 +171,18 @@ describe('lint-globals: names published as window.<name> = ...', () => {
         fs.writeFileSync(path.join(dir, 'src', 'manifest.json'), JSON.stringify({ css: [], entry: 'main.js' }));
         fs.writeFileSync(path.join(dir, 'src', 'js', 'main.js'), imports.map((name) => `import './${name}';\n`).join(''));
         fs.writeFileSync(path.join(dir, 'src', 'js', '99-player.js'), '');
-        for (const [name, code] of Object.entries(files)) fs.writeFileSync(path.join(dir, 'src', 'js', name), code);
+        for (const [name, code] of Object.entries(files)) {
+            fs.mkdirSync(path.dirname(path.join(dir, 'src', 'js', name)), { recursive: true });
+            fs.writeFileSync(path.join(dir, 'src', 'js', name), code);
+        }
         return dir;
     }
 
     test('the publishing file is accepted, and window.* assignments elsewhere add no global', (t) => {
         const dir = fixture(t, {
-            imports: ['06c-scrollbar-widget.js', 'b.js'],
+            imports: ['ui/06c-scrollbar-widget.js', 'b.js'],
             files: {
-                '06c-scrollbar-widget.js': 'export function init() { window.updateExternalScrollbar = () => {}; window.alsoPublished = 1; }\n',
+                'ui/06c-scrollbar-widget.js': 'export function init() { window.updateExternalScrollbar = () => {}; window.alsoPublished = 1; }\n',
                 'b.js': 'export const x = 1; window.sneaky = x; registerLegacyGlobals({ viaRegistration: x }); registerLegacyState({ viaState: [() => x] });\n'
             }
         });
@@ -187,8 +191,8 @@ describe('lint-globals: names published as window.<name> = ...', () => {
 
     test('it fails loudly when the publishing file no longer assigns the name', (t) => {
         const dir = fixture(t, {
-            imports: ['06c-scrollbar-widget.js'],
-            files: { '06c-scrollbar-widget.js': "export function init() { window['updateExternalScrollbar'] = () => {}; }\n" }
+            imports: ['ui/06c-scrollbar-widget.js'],
+            files: { 'ui/06c-scrollbar-widget.js': "export function init() { window['updateExternalScrollbar'] = () => {}; }\n" }
         });
         assert.throws(() => buildLintGlobals(dir), /no longer contains/);
     });

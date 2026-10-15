@@ -13,7 +13,7 @@ const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fix
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
 const manifest = require('../lib/manifest').readManifest(ROOT);
-const FILES = ['06c-scrollbar-widget.js', '06d-tooltip-system.js', '06e-tooltip-titles.js', '06h-fullscreen-viewer.js', '06j-notification-system.js'];
+const FILES = ['ui/06c-scrollbar-widget.js', 'ui/06d-tooltip-system.js', 'ui/06e-tooltip-titles.js', 'ui/06h-fullscreen-viewer.js', 'ui/06j-notification-system.js'];
 
 describe('D-09b: manifest', () => {
     test('the five files are modules and no longer classic scripts', () => {

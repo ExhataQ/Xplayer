@@ -1,4 +1,4 @@
-// Context menus (src/js/06a-context-menus.js): opening, and the document / window listeners the file adds while it
+// Context menus (src/js/ui/06a-context-menus.js): opening, and the document / window listeners the file adds while it
 // loads (Escape, a click outside, window resize), plus the state the other files read (currentContextSongId).
 // What each menu item does is covered in ui-handlers.test.js. Passes on the classic-script version and on the
 // module version (D-09d).

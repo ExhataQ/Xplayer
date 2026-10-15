@@ -12,7 +12,7 @@ const acorn = require('acorn');
 
 const SRC = path.resolve(__dirname, '..', '..', 'src');
 const manifest = require('../lib/manifest').readManifest(path.resolve(SRC, '..'));
-const FILES = { '06f-drag-drop-songs.js': 'initSongDragToLeftPanel', '06g-drag-drop-left-panel.js': 'initLeftPanelDragAndDrop' };
+const FILES = { 'ui/06f-drag-drop-songs.js': 'initSongDragToLeftPanel', 'ui/06g-drag-drop-left-panel.js': 'initLeftPanelDragAndDrop' };
 
 describe('D-09c: manifest', () => {
     test('both files are modules and no longer classic scripts', () => {
@@ -24,9 +24,9 @@ describe('D-09c: manifest', () => {
     test('they sit between 06e and 06h, in their old order', () => {
         const m = manifest.modules;
         const at = (f) => m.indexOf(f);
-        assert.ok(at('06e-tooltip-titles.js') < at('06f-drag-drop-songs.js'));
-        assert.ok(at('06f-drag-drop-songs.js') < at('06g-drag-drop-left-panel.js'));
-        assert.ok(at('06g-drag-drop-left-panel.js') < at('06h-fullscreen-viewer.js'));
+        assert.ok(at('ui/06e-tooltip-titles.js') < at('ui/06f-drag-drop-songs.js'));
+        assert.ok(at('ui/06f-drag-drop-songs.js') < at('ui/06g-drag-drop-left-panel.js'));
+        assert.ok(at('ui/06g-drag-drop-left-panel.js') < at('ui/06h-fullscreen-viewer.js'));
     });
 });
 

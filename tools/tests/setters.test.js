@@ -28,7 +28,7 @@ function topLevelLetNames() {
     const acorn = require('acorn');
     const names = new Map();
     // 99-player.js is the player.js template (it has {{placeholders}}), so it cannot be parsed as is.
-    for (const file of fs.readdirSync(JS_DIR).filter((f) => f.endsWith('.js') && f !== '99-player.js')) {
+    for (const file of fs.readdirSync(JS_DIR, { recursive: true }).filter((f) => f.endsWith('.js') && f !== '99-player.js')) {
         const ast = acorn.parse(require('../lib/strip-exports').stripExports(fs.readFileSync(path.join(JS_DIR, file), 'utf8')), { ecmaVersion: 'latest', sourceType: 'script' });
         for (const node of ast.body) {
             if (node.type !== 'VariableDeclaration' || node.kind !== 'let') continue;
@@ -61,7 +61,7 @@ describe('core/state-*.js setters', () => {
     test('setters assign the variable and the documented ones emit their event', () => {
         const context = { CustomEvent, EventTarget };
         vm.createContext(context);
-        for (const file of ['00b-events.js', 'core/state-queue.js', 'core/state-navigation.js', 'core/state-ui.js']) {
+        for (const file of ['core/00b-events.js', 'core/state-queue.js', 'core/state-navigation.js', 'core/state-ui.js']) {
             vm.runInContext(require('../lib/strip-exports').stripExports(fs.readFileSync(path.join(JS_DIR, file), 'utf8')), context);
         }
         const seen = [];

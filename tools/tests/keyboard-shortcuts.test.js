@@ -1,4 +1,4 @@
-// Keyboard shortcuts and mouse back/forward buttons (src/js/06k-keyboard-shortcuts.js).
+// Keyboard shortcuts and mouse back/forward buttons (src/js/ui/06k-keyboard-shortcuts.js).
 // Drives synthetic key and mouse events at the document, like the browser would, and checks what the app does.
 // Passes on the classic-script version and on the module version (D-09d).
 // Needs playwright + a browser; skips itself if missing (see scroll.test.js for setup).

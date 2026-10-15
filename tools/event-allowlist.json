@@ -108,7 +108,7 @@
         "why": "Narrow exceptions: this file may call these names directly because the CALLS are view handlers or start-up, not reactions to data. Anything else in the file still counts. D reviews every entry (EB-D2). An exception is for a (file, name) pair, so it also hides a future real reaction of that name in that file: re-check the file when you edit it.",
         "entries": [
             {
-                "file": "09-folders-playlists.js",
+                "file": "playlists/09-folders-playlists.js",
                 "names": [
                     "updateHeroCover",
                     "updateSubheroPlayButton",
@@ -119,7 +119,7 @@
                 "why": "openPlaylist() sets up the playlist view when the user opens it: view entry, same kind as switchView. No data changed."
             },
             {
-                "file": "09-folders-playlists.js",
+                "file": "playlists/09-folders-playlists.js",
                 "names": [
                     "refreshLeftPanelItems",
                     "renderLeftPanelMainList",
@@ -153,7 +153,7 @@
                 "why": "First paint in the DOMContentLoaded handler at app start. Runs once; setup, not a reaction."
             },
             {
-                "file": "09-folders-playlists.js",
+                "file": "playlists/09-folders-playlists.js",
                 "names": [
                     "renderFolderContents",
                     "renderPlaylistDetailView"
@@ -168,7 +168,7 @@
                 "why": "togglePlaylistsFilter() (filter button click) redraws the open folder. View handler, not a reaction to data. Not start-up as first written; D corrected the reason in report 0004."
             },
             {
-                "file": "08e-panel-settings.js",
+                "file": "ui/08e-panel-settings.js",
                 "names": [
                     "setSubheroVisibility",
                     "updateHeroCover",
@@ -178,7 +178,7 @@
                 "why": "EB-C2 (Agent C report 0002): openSettingsPanel, enterSettingsFromHistory, enterAdvancedSettingsFromHistory and toggleSettingsPanel set up the settings view the user just opened. Scoped to this file instead of the global navigation list so it does not hide the same names in A's and B's files. updateActiveHighlight here is C's judgment; B's EB-B5 decision about the same name in 13 and 17 is separate and still waits for D."
             },
             {
-                "file": "08e-panel-settings.js",
+                "file": "ui/08e-panel-settings.js",
                 "names": [
                     "switchToHistoryFromSettings",
                     "switchToSearchHistoryFromSettings"
@@ -186,7 +186,7 @@
                 "why": "C-04 (Agent C report 0008): the Settings buttons 'History' and 'Search history' open those views. They are registered as click actions in 08e and only forward to the view functions in 07; no data changed. Before C-04 the same calls sat in inline onclick strings that the audit could not see."
             },
             {
-                "file": "13-song-highlight.js",
+                "file": "playback/13-song-highlight.js",
                 "names": [
                     "updateActiveHighlight",
                     "updateSelectionHighlight",
@@ -195,7 +195,7 @@
                 "why": "EB-B5 (Agent B report 0005, approved by D report 0004): these paint the active-song and selection highlight layers. 13 and 04a are one subsystem split over two files. applyStoredHighlight() runs from renderVisibleItems() on virtual-scroll frames, so no events (EVENTS.md rule 4). Revisit in Plan 2 by moving ownership."
             },
             {
-                "file": "17-song-selection.js",
+                "file": "ui/17-song-selection.js",
                 "names": [
                     "updateActiveHighlight",
                     "updateSelectionHighlight"

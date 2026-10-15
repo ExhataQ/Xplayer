@@ -31,7 +31,7 @@ const { readManifest } = require('./lib/manifest');
 const WINDOW_PUBLISHED_GLOBALS = {
     // initExternalScrollbar('main-content', ...) in 06c-scrollbar-widget.js publishes it during start-up (called from
     // the DOMContentLoaded handler in 99-player.js). Other files call it directly or behind a typeof guard.
-    updateExternalScrollbar: '06c-scrollbar-widget.js'
+    updateExternalScrollbar: 'ui/06c-scrollbar-widget.js'
 };
 
 // Names assigned with a plain `window.<name> = ...` in one parsed file. Computed keys (window[x]) and other

@@ -60,7 +60,7 @@ describe('playback controls converted to data-action', { concurrency: false }, (
     const shuffleState = (page) => page.evaluate(() => ({ isShuffled, shuffleMode }));
 
     test('no inline on...= handler is left in 15b and 10c', (t) => {
-        for (const file of ['15b-controls-shuffle-btn.js', '10c-playback-queue.js']) {
+        for (const file of ['playback/15b-controls-shuffle-btn.js', 'playback/10c-playback-queue.js']) {
             const text = fs.readFileSync(path.join(__dirname, '../../src/js', file), 'utf8');
             const found = text.match(/\bon(click|change|input|keydown|mousedown|contextmenu|dblclick|blur|error)\s*=\s*["'\\]/g);
             assert.equal(found, null, `${file} still has an inline handler: ${found}`);

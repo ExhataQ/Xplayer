@@ -7,7 +7,7 @@ const path = require('path');
 const vm = require('vm');
 
 function loadEventBus() {
-    const source = fs.readFileSync(path.join(__dirname, '../../src/js/00b-events.js'), 'utf8');
+    const source = fs.readFileSync(path.join(__dirname, '../../src/js/core/00b-events.js'), 'utf8');
     const context = { CustomEvent, EventTarget };
     vm.createContext(context);
     vm.runInContext(require('../lib/strip-exports').stripExports(source), context);

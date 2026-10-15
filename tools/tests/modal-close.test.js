@@ -1,4 +1,4 @@
-// Modal dialogs in src/js/06b-modals.js: what has to be cleaned up when a dialog closes (D-09d-1).
+// Modal dialogs in src/js/ui/06b-modals.js: what has to be cleaned up when a dialog closes (D-09d-1).
 // Each of these dialogs attaches a document keydown listener while it is open, and the edit-playlist dialog also puts
 // window.handleEditPlaylistCover / window._editPlaylistTempCover on window. Closing the dialog, by any route
 // (Cancel button, Escape, click on the overlay, or opening another dialog and closing that one), has to remove

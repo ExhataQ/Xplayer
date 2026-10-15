@@ -1,6 +1,6 @@
 # Storage
 
-`core/storage.js` is the only file that touches `localStorage`. It is an ES module imported right after `core/legacy.js` in `src/js/main.js`, because `00-state.js` and `01-sizes.js` read saved values while they load. Keys are the `STORAGE_KEYS` values from `00-state.js`; stored values keep the format they always had, so data saved by older builds loads.
+`core/storage.js` is the only file that touches `localStorage`. It is an ES module imported right after `core/legacy.js` in `src/js/main.js`, because `core/00-state.js` and `core/01-sizes.js` read saved values while they load. Keys are the `STORAGE_KEYS` values from `core/00-state.js`; stored values keep the format they always had, so data saved by older builds loads.
 
 ## API (globals)
 
@@ -44,4 +44,4 @@ Do not use `localStorage` anywhere else; `tools/tests/storage-core.test.js` fail
 
 ## Direct `localStorage` use
 
-None. Every file that used to read or write `localStorage` (`16-context-menu-actions.js`, `05a-lazy-load-main-list.js`, `08f-panel-extended-metadata.js`, `18-lyrics-editor.js`, `08a-panel-layout.js`) now goes through `core/storage.js`, and the `notYet` list in `storage-core.test.js` is empty. Keep it that way: the test fails for any other file that mentions `localStorage`.
+None. Every file that used to read or write `localStorage` (`ui/16-context-menu-actions.js`, `ui/05a-lazy-load-main-list.js`, `ui/08f-panel-extended-metadata.js`, `lyrics/18-lyrics-editor.js`, `ui/08a-panel-layout.js`) now goes through `core/storage.js`, and the `notYet` list in `storage-core.test.js` is empty. Keep it that way: the test fails for any other file that mentions `localStorage`.

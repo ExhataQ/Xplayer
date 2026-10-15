@@ -1,4 +1,4 @@
-// Tests for src/js/03b-search-engine.js (the one search/rank/filter function used everywhere).
+// Tests for src/js/search/03b-search-engine.js (the one search/rank/filter function used everywhere).
 // Pure logic: runs in Node, no browser needed.
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -6,7 +6,7 @@ const path = require('path');
 const { pathToFileURL } = require('url');
 
 // 03b-search-engine.js is an ES module: imported directly, no fake globals.
-const engineModule = import(pathToFileURL(path.join(__dirname, '../../src/js/03b-search-engine.js')).href);
+const engineModule = import(pathToFileURL(path.join(__dirname, '../../src/js/search/03b-search-engine.js')).href);
 const titles = (list) => Array.from(list, (s) => s.title);
 
 test('normalization ignores case, accents, apostrophes and extra spaces', async () => {

@@ -1,4 +1,4 @@
-// Tests for src/js/21-language-detect.js (offline script and stop-word language detection).
+// Tests for src/js/lyrics/21-language-detect.js (offline script and stop-word language detection).
 // Pure logic: runs in Node, no browser needed.
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -6,7 +6,7 @@ const path = require('path');
 const { pathToFileURL } = require('url');
 
 // 21-language-detect.js is an ES module: imported directly, no fake globals.
-const detectModule = import(pathToFileURL(path.join(__dirname, '../../src/js/21-language-detect.js')).href);
+const detectModule = import(pathToFileURL(path.join(__dirname, '../../src/js/lyrics/21-language-detect.js')).href);
 const language = (result) => result.language;
 
 test('empty or symbol-only text is undetected', async () => {

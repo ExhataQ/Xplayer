@@ -11,7 +11,7 @@ const acorn = require('acorn');
 const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 
 const SRC = path.resolve(__dirname, '..', '..', 'src');
-const FILE = '07-views.js';
+const FILE = 'ui/07-views.js';
 const manifest = require('../lib/manifest').readManifest(path.resolve(SRC, '..'));
 const source = fs.readFileSync(path.join(SRC, 'js', FILE), 'utf8');
 const ast = acorn.parse(source, { ecmaVersion: 'latest', sourceType: 'module' });
@@ -24,15 +24,15 @@ describe('07-views module: manifest', () => {
 
     test('order: the bridge and 07a come before it, 04a and 06a after it', () => {
         const m = manifest.modules;
-        const order = ['07a-ui-actions.js', FILE, '04a-ui-render-core.js', '06a-context-menus.js'].map((f) => m.indexOf(f));
+        const order = ['ui/07a-ui-actions.js', FILE, 'ui/04a-ui-render-core.js', 'ui/06a-context-menus.js'].map((f) => m.indexOf(f));
         assert.ok(order.every((i) => i >= 0));
         assert.deepEqual(order, [...order].sort((a, b) => a - b));
         assert.equal(m.indexOf('core/legacy.js'), 0);
     });
 
     test('isNavigatingHistory stays declared in 04a0-ui-state.js, which loads before it', () => {
-        assert.ok(manifest.modules.indexOf('04a0-ui-state.js') >= 0);
-        assert.ok(manifest.modules.indexOf('04a0-ui-state.js') < manifest.modules.indexOf(FILE));
+        assert.ok(manifest.modules.indexOf('ui/04a0-ui-state.js') >= 0);
+        assert.ok(manifest.modules.indexOf('ui/04a0-ui-state.js') < manifest.modules.indexOf(FILE));
         assert.ok(!/^(let|const|var) isNavigatingHistory\b/m.test(source));
     });
 });

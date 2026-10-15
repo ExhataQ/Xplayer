@@ -9,7 +9,7 @@ const { pathToFileURL } = require('url');
 // (03c playlists, 03e-03i: favorites, recents, folders, search history...) export plain
 // functions, so the getter tests below load them into a small vm and hand it the module's
 // names, the same thing registerLegacyGlobals does in the app.
-const storageModule = import(pathToFileURL(path.join(__dirname, '../../src/js/03-storage.js')).href);
+const storageModule = import(pathToFileURL(path.join(__dirname, '../../src/js/core/03-storage.js')).href);
 const schemaModule = import(pathToFileURL(path.join(__dirname, '../../src/js/core/storage-schema.js')).href);
 
 async function loadStorageWith(values) {
@@ -20,15 +20,15 @@ async function loadStorageWith(values) {
     // 03i search history). None of these have top-level DOM/window references, so they are
     // safe to vm-load alongside 03-storage.js the same way 00-state.js's STORAGE_KEYS
     // constant is below.
-    const splitSources = ['03c-playlists.js', '03e-recents-history.js', '03f-favorites-settings.js',
-        '03g-pinned-items.js', '03h-folders.js', '03i-search-history.js']
+    const splitSources = ['playlists/03c-playlists.js', 'library/03e-recents-history.js', 'library/03f-favorites-settings.js',
+        'playlists/03g-pinned-items.js', 'playlists/03h-folders.js', 'search/03i-search-history.js']
         .map((name) => require('../lib/strip-exports').stripExports(fs.readFileSync(path.join(__dirname, '../../src/js/' + name), 'utf8')));
     // 03-storage.js references STORAGE_KEYS, defined in 00-state.js (the single
     // source of truth for localStorage keys). Pull just that constant out rather than vm-loading the whole
     // of 00-state.js, which has top-level document.getElementById(...) calls this plain vm
     // context doesn't provide - same "load exactly what's needed, nothing more" approach
     // already used for getPlaylists() below.
-    const stateSource = fs.readFileSync(path.join(__dirname, '../../src/js/00-state.js'), 'utf8');
+    const stateSource = fs.readFileSync(path.join(__dirname, '../../src/js/core/00-state.js'), 'utf8');
     const storageKeysMatch = stateSource.match(/const STORAGE_KEYS = \{[\s\S]*?\n\};/);
     if (!storageKeysMatch) {
         throw new Error('storage.test.js: could not find STORAGE_KEYS in 00-state.js - did it move or get renamed?');

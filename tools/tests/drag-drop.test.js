@@ -1,4 +1,4 @@
-// Drag and drop (src/js/06f-drag-drop-songs.js, 06g-drag-drop-left-panel.js): behavior in the real page.
+// Drag and drop (src/js/ui/06f-drag-drop-songs.js, 06g-drag-drop-left-panel.js): behavior in the real page.
 // These tests drive the real mouse (mousedown, move past the 5px threshold, move over a target, mouseup) and check
 // what the user can see and what gets stored. They were written against the classic-script version and must keep
 // passing unchanged when the two files are ES modules (D-09c), which is the point: the conversion must not change

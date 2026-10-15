@@ -16,18 +16,18 @@ const { ROOT, loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/a
 
 const manifest = require('../lib/manifest').readManifest(ROOT);
 const SUBSCRIBER_FILES = [
-    '04h-recents-history-events.js',
-    '04i-library-rebuild-events.js',
-    '04j-pinned-items-events.js',
-    '04k-playlists-events.js',
-    '04l-search-history-events.js',
-    '04m-playback-settings-events.js',
-    '04n-import-export-events.js',
-    '04o-folders-events.js',
-    '04p-playback-events.js',
-    '04t-lyrics-events.js',
-    '04u-search-events.js',
-    '04v-right-panel-events.js'
+    'ui/subscribers/04h-recents-history-events.js',
+    'ui/subscribers/04i-library-rebuild-events.js',
+    'ui/subscribers/04j-pinned-items-events.js',
+    'ui/subscribers/04k-playlists-events.js',
+    'ui/subscribers/04l-search-history-events.js',
+    'ui/subscribers/04m-playback-settings-events.js',
+    'ui/subscribers/04n-import-export-events.js',
+    'ui/subscribers/04o-folders-events.js',
+    'ui/subscribers/04p-playback-events.js',
+    'ui/subscribers/04t-lyrics-events.js',
+    'ui/subscribers/04u-search-events.js',
+    'ui/subscribers/04v-right-panel-events.js'
 ];
 
 // [ [file, eventName], ... ] in source order, read from the files themselves.
@@ -87,7 +87,7 @@ describe('UI event subscribers in the real page', { concurrency: false }, () => 
                     .split('\n')
                     .map((line) => (line.match(/\/js\/([\w\-./]+\.js)/) || [])[1])
                     .filter(Boolean);
-                return files.find((f) => f !== '00b-events.js') || '(other)';
+                return files.find((f) => f !== 'core/00b-events.js') || '(other)';
             };
             const add = EventTarget.prototype.addEventListener;
             EventTarget.prototype.addEventListener = function (type, listener, options) {
@@ -132,6 +132,6 @@ describe('UI event subscribers in the real page', { concurrency: false }, () => 
     test('the recording sees the bus (so the checks above cannot pass on an empty list)', async (t) => {
         if (skip) return void t.skip(skip);
         const { log } = await record();
-        assert.ok(log.some(([kind, type, file]) => kind === 'on' && type === 'lyrics:changed' && file === '04t-lyrics-events.js'));
+        assert.ok(log.some(([kind, type, file]) => kind === 'on' && type === 'lyrics:changed' && file === 'ui/subscribers/04t-lyrics-events.js'));
     });
 });
