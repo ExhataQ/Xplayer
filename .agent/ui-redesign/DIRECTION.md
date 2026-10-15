@@ -8,6 +8,8 @@ A dark, quiet interface like a piece of hi-fi equipment. Everything is graphite 
 
 ## Tokens (three layers)
 
+Implemented in `src/ui-next/tokens.css` (task A-01). The names there (`--c-*` for primitives, `--surface-*`, `--text-*`, `--border-*`, `--accent*` for semantic) are authoritative; the tables below explain the values. `tools/tests/ui-next-tokens.test.js` enforces the contrast floor for every theme. The preview's tertiary text value was raised from `#858A94` to `#8A8F99` because the old value was 4.4:1 on a selected row.
+
 **Primitive**
 
 | Token | Value |
@@ -20,7 +22,7 @@ A dark, quiet interface like a piece of hi-fi equipment. Everything is graphite 
 | `--gray-line` | `#242932` |
 | `--ink-100` | `#ECE9E3` |
 | `--ink-400` | `#959AA5` |
-| `--ink-500` | `#858A94` |
+| `--ink-500` | `#8A8F99` |
 | `--amber-400` | `#EBA43A` |
 
 **Semantic**
@@ -49,7 +51,7 @@ The old themes (green `#1db954`, pink `#ff6b9d`, purple `#9d4edd`, yellow `#ffd4
 |---|---|
 | text-primary on ground | 15.7 |
 | text-secondary on ground / panel / raised | 6.8 / 6.4 / 5.9 |
-| text-tertiary on ground / panel / raised | 5.5 / 5.2 / 4.8 |
+| text-tertiary on ground / panel / raised / selected | 5.9 / 5.6 / 5.1 / 4.7 |
 | accent on ground / panel | 9.0 / 8.6 |
 
 ## Themes

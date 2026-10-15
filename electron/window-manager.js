@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 const { configPath: settingsFile, getOutputDir } = require('./storage-paths');
+const { resolveUiEntry } = require('./ui-entry');
 const thumbarIconPath = path.join(getOutputDir(), 'icons');
 
 function loadWindowState() {
@@ -73,7 +74,7 @@ function createWindow() {
         }
     });
 
-    mainWindow.loadFile(path.join(getOutputDir(), 'music_player.html'));
+    mainWindow.loadFile(path.join(getOutputDir(), ...resolveUiEntry({ argv: process.argv, env: process.env }).split('/')));
 
     mainWindow.setThumbarButtons([
         {

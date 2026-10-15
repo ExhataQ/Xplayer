@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en" data-theme="warm-graphite">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Xplayer</title>
+    <link rel="stylesheet" href="tokens.css">
+    <link rel="stylesheet" href="base.css">
+    <style>
+        .placeholder {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-3);
+            text-align: center;
+            padding: var(--space-8);
+        }
+        .placeholder h1 {
+            font-family: var(--font-serif);
+            font-weight: var(--weight-regular);
+            font-size: var(--text-3xl);
+            letter-spacing: -0.01em;
+        }
+        .placeholder p {
+            max-width: 440px;
+            color: var(--text-secondary);
+            line-height: 1.55;
+        }
+        .placeholder a {
+            color: var(--text-primary);
+            font-weight: var(--weight-medium);
+        }
+    </style>
+</head>
+<body>
+    <main class="placeholder">
+        <h1>The new Xplayer screen is switched on</h1>
+        <p>This page loads because Xplayer was started with the new interface flag. The shell, library and player arrive in the next tasks. Start Xplayer without the flag to use the current interface.</p>
+        <p><a href="dev/kitchen-sink.html">Open the design token preview</a></p>
+    </main>
+</body>
+</html>

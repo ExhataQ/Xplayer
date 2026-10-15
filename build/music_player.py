@@ -198,7 +198,7 @@ def generate_html_template(songs_data, placeholder_image):
 
     electron_dir = os.path.join(source_root, "electron")
     if os.path.exists(electron_dir):
-        for config_file in ["main.js", "preload.js", "package.json", "scan-folder.js", "tag-builder.js", "full-scan.js", "incremental-scan.js", "fast-scan.js", "single-file-rescan.js", "window-manager.js", "loading-window.js", "scanner.js", "music-folders.js", "downloads.js", "file-operations.js", "online-lyrics.js", "online-metadata.js", "metadata-editor.js", "metadata-editor.py", "songs-data.js", "storage-paths.js", "ipc-checks.js", "songs-store.js"]:
+        for config_file in ["main.js", "preload.js", "package.json", "scan-folder.js", "tag-builder.js", "full-scan.js", "incremental-scan.js", "fast-scan.js", "single-file-rescan.js", "window-manager.js", "loading-window.js", "scanner.js", "music-folders.js", "downloads.js", "file-operations.js", "online-lyrics.js", "online-metadata.js", "metadata-editor.js", "metadata-editor.py", "songs-data.js", "storage-paths.js", "ipc-checks.js", "songs-store.js", "ui-entry.js"]:
             src = os.path.join(electron_dir, config_file)
             dst = os.path.join(app_dir, config_file)
             if os.path.exists(src):
@@ -230,6 +230,15 @@ def generate_html_template(songs_data, placeholder_image):
         print(f"  ✅  node_modules synced from {node_modules_src} ({time.time() - nm_start:.2f}s)")
     else:
         print(f"  ⚠️  node_modules source not found at {node_modules_src} — skipping sync")
+
+    # The new interface (src/ui-next/) ships as a whole folder next to the current one. It loads only when the
+    # app starts with --ui=next (electron/ui-entry.js). The old copy is removed first so deleted files do not linger.
+    ui_next_src = os.path.join(source_root, "src", "ui-next")
+    if os.path.isdir(ui_next_src):
+        ui_next_dst = os.path.join(output_dir, "ui-next")
+        if os.path.exists(ui_next_dst):
+            shutil.rmtree(ui_next_dst)
+        shutil.copytree(ui_next_src, ui_next_dst)
 
     icon_src = os.path.join(source_root, "src", "assets", "icon.png")
     if os.path.exists(icon_src):

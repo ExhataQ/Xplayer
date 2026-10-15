@@ -122,6 +122,7 @@ Shared contract: `adapter/` API and `components/` are owned by A. B, C, D may re
 | Build copy list misses new files | A-02 early, rechecked at each phase exit |
 | Four agents drift visually | Phase 1 components and `DIRECTION.md` are the only source of look |
 | Fonts or icons licensing | D5 and D6 vendored with license files |
+| Persian, Arabic and other right-to-left text (lyrics, titles) | Bundled fonts are latin only; other scripts use the system font. Text areas use `dir="auto"`. Lyrics and list rows need a right-to-left check in Phase 2 (tasks B-03, D-01) |
 | Performance on large libraries | List and panels reuse existing lazy-load logic; measure before and after |
 
 ## 8. Delivery

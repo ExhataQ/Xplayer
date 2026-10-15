@@ -3,36 +3,36 @@
 Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file per task.
 
 **Statuses:** Not started, In progress, In review, Blocked, Done.
-**Current phase:** 0, waiting for decisions.
+**Current phase:** 1, in progress (A-01 and A-02 in review).
 
 ## Decisions
 
 | ID | Decision | Status | Answer |
 |---|---|---|---|
-| D1 | Location of new screen (`src/ui-next/`) | Awaiting approval | |
-| D2 | Default look (dark, amber accent) | Awaiting approval | |
-| D3 | Themes: Warm Graphite default, Deep Forest and Espresso and Copper as alternatives, old accents kept | Awaiting approval | |
-| D4 | Navigation rail items | Awaiting approval | |
-| D5 | Icon set (Lucide) | Awaiting approval | |
-| D6 | Fonts (IBM Plex Sans, Newsreader) | Awaiting approval | |
-| D7 | Cutover policy | Awaiting approval | |
-| D8 | Title bar: logo menu, back and forward, notification bell | Awaiting approval | |
-| D9 | Library panel: filter chips on top, one list below | Awaiting approval | |
+| D1 | Location of new screen (`src/ui-next/`) | Approved | Recommendation accepted, 2026-10-16 |
+| D2 | Default look (dark, amber accent) | Approved | Recommendation accepted, 2026-10-16 |
+| D3 | Themes: Warm Graphite default, Deep Forest and Espresso and Copper as alternatives, old accents kept | Approved | Recommendation accepted, 2026-10-16 |
+| D4 | Navigation rail items | Approved | Recommendation accepted, 2026-10-16 |
+| D5 | Icon set (Lucide) | Approved | Recommendation accepted, 2026-10-16 |
+| D6 | Fonts (IBM Plex Sans, Newsreader) | Approved | Recommendation accepted, 2026-10-16 |
+| D7 | Cutover policy | Approved | Recommendation accepted, 2026-10-16 |
+| D8 | Title bar: logo menu, back and forward, notification bell | Approved | Recommendation accepted, 2026-10-16 |
+| D9 | Library panel: filter chips on top, one list below | Approved | Recommendation accepted, 2026-10-16 |
 
 ## Phase 0: Decisions and safety
 
 | Task | Owner | Status | Depends on | Notes |
 |---|---|---|---|---|
-| P0-01 Introduce plan, board, direction | A | In review | none | This patch |
-| P0-02 Record decisions D1 to D9 | You | Not started | P0-01 | |
-| P0-03 Archive project, record baseline checks | A | Not started | P0-02 | `npm run test:quick` |
+| P0-01 Introduce plan, board, direction | A | Done | none | Applied by you |
+| P0-02 Record decisions D1 to D9 | You | Done | P0-01 | |
+| P0-03 Archive project, record baseline checks | A | In review | P0-02 | Archive not done by the agent (project folder not reachable); you snapshot before applying patches. Baseline: unit group had 3 failing files (`drag-drop-modules`, `lint`, `setters`) in the supplied zip, which has no `node_modules`; after `npm i acorn acorn-walk eslint globals` all 165 tests passed |
 
 ## Phase 1: Foundation (A)
 
 | Task | Owner | Status | Depends on | Notes |
 |---|---|---|---|---|
-| A-01 Tokens, base CSS, fonts, icons | A | Not started | P0-03 | |
-| A-02 Entry HTML, `--ui=next` flag, build copy list | A | Not started | P0-03 | Touches `electron/` and `build/` |
+| A-01 Tokens, base CSS, fonts, icons | A | In review | P0-03 | |
+| A-02 Entry HTML, `--ui=next` flag, build copy list | A | In review | P0-03 | Touches `electron/` and `build/` |
 | A-03 Shell: title bar (logo menu, back and forward, bell), rail, panel host, player host | A | Not started | A-01, A-02 | |
 | A-04 Adapter v1 and DOM-id compatibility layer | A | Not started | A-02 | |
 | A-05 Component set with all states | A | Not started | A-01 | |
@@ -85,3 +85,4 @@ None yet.
 | Task | Report | Status |
 |---|---|---|
 | P0-01 | `reports/UI-P0-01-plan-introduction.md` | Written |
+| P0-03, A-01, A-02 | `reports/UI-A01-A02-foundation-start.md` | Written |
