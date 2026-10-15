@@ -14,10 +14,9 @@ Update this board manually after each patch is applied and verified. Do not mark
 
 ## Next actions
 
-- [ ] Phase 1 remains open: B-03 timing/sequence checks, B-05 timing decision, and C-05 README reconciliation.
-- [ ] B-06 is applied and locally verified: shard-runner tests 8/8 passed, lint checked 136 files with 0 errors and 0 warnings, and the user reports the test suite passes. GitHub Actions has not been confirmed here.
-- [ ] B: B-03 remains open for the Windows timing measurements and manual checks listed in report `reports/B/0006-fast-commands-ci.md`. B-05 remains open until its Windows fixture-build measurement is recorded or the shared-build optimization is explicitly waived.
-- [ ] C: C-01 to C-04 are applied + verified. C-05: the README patch (report `reports/C/0006-*`) is applied but not yet verified; run the checks listed in that report on your machine. B-03 and B-05 remain open pending their Windows checks and timing decision.
+- [x] Phase 1 verification complete: B-01 to B-06 accepted with documented non-blocking exceptions; C-05 README checks passed on Windows.
+- [x] B-01 to B-06 are applied + verified for project progression. The owner accepts the B-02 half-time target and B-05 shared-build optimization as waived; B-06's 18.7 s `test:quick` time and inaccessible cache-hit logs are recorded as non-blocking notes.
+- [x] C: C-01 to C-05 are applied + verified. C-05 Windows checks are recorded in report `reports/C/0006-readme-b06-commands-ci.md`. B has no remaining work blocking Phase 2.
 - [ ] D: 10 inline handlers listed in `INLINE_EXCEPTIONS` (`tools/tests/ui-handlers.test.js`) remain. D owns the conversion decision; C's test enforces that the count only goes down.
 - [ ] Keep each patch small. Check its diff, run focused tests, and update this board and `tools/change.log.txt` after verification.
 - [ ] Do not delete tests unless the report explains why the test is obsolete or identifies the remaining test that covers its behavior.
@@ -34,14 +33,16 @@ Update this board manually after each patch is applied and verified. Do not mark
 
 ### Agent B — Test speed and infrastructure
 
+**B status:** Accepted as complete for Phase 2/3. All implemented B changes passed their recorded checks; the scroll half-time target and shared fixture optimization are explicitly waived, and the quick-command timing/cache-log limitations are non-blocking. See `reports/B/0008-windows-verification.md`.
+
 | ID   | Task                                                                                 | Dependencies | Status           | Notes                                                                                                                                                                                                                              |
 | ---- | ------------------------------------------------------------------------------------ | ------------ | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| B-01 | Establish and record test-timing baseline                                            | None         | applied + verified | Recorded in `reports/B/0001-timing-baseline.md`. Sandbox numbers only (1 vCPU, missing modules); the real-machine table is still to be recorded by you.                                                                              |
-| B-02 | Replace fixed sleeps in `scroll.test.js` and `view-switch-song-list-cleanup.test.js` | B-01         | applied + verified | Focused tests: scroll 15 passed, 1 skipped; view-switch 6 passed. Windows timing comparison pending. |
-| B-03 | Parallelize independent sequence suites                                              | B-01         | in progress | Patch applied locally. Sequence-suite-specific verification and Windows timing comparison pending. Confirm events-b.json and events-c.json remain byte-identical. |
-| B-04 | Mock the 700 ms backoff in `online-metadata.test.js`                                 | B-01         | applied + verified | File 23.3 s -> 0.3 s; 11 of 11 pass, same titles. Mutation check done. Still to run once on Node v24 (report `reports/B/0002-online-metadata-fast.md`).                                                                              |
-| B-05 | Optimize fixture building and investigate modal-close test slowdown                  | B-01         | in progress      | `modal-close`: 42.5 s -> 4.7 s, 26 of 26 (done). Not done: shared fixture build (skipped, buildApp takes about 11 ms here; your Windows check is in the report). Before/after for 3 other browser files not measured. Keep open until those are recorded or waived. |
-| B-06 | Add fast test commands and CI support | B-04, B-05 | applied + verified | Commit `532de76` pushed. Shard-runner tests 8/8 pass; lint: 136 files, 0 errors, 0 warnings; user reports tests pass. GitHub Actions and outstanding Windows measurements are tracked separately in Next actions. |
+| B-01 | Establish and record test-timing baseline                                            | None         | applied + verified | Real-machine before/current timing tables are recorded in `reports/B/0008-windows-verification.md`; both whole-suite runs had zero failures. |
+| B-02 | Replace fixed sleeps in `scroll.test.js` and `view-switch-song-list-cleanup.test.js` | B-01         | applied + verified | Three scroll runs passed (15 passed, 1 skipped each); view-switch passed 6/6. The 0.84 baseline ratio misses the half-time target, explicitly waived by the owner as non-blocking. |
+| B-03 | Parallelize independent sequence suites                                              | B-01         | applied + verified | Windows runs passed at default and one page, with no retries; events-b/c are below half their baseline. The B-03 commit changed no expected-sequence files. |
+| B-04 | Mock the 700 ms backoff in `online-metadata.test.js`                                 | B-01         | applied + verified | On Node v24.14.0, 11/11 pass in 0.3 s (before: 23.4 s). |
+| B-05 | Optimize fixture building and investigate modal-close test slowdown                  | B-01         | applied + verified | Modal-close passed 26/26 and improved from 33.5 s to 3.5 s. Shared fixture build explicitly waived: measured `buildApp(50)` average is 130.7 ms, below the ~200 ms threshold. |
+| B-06 | Add fast test commands and CI support | B-04, B-05 | applied + verified | `test:quick`, three `test:fast` runs, and both checked GitHub Actions runs pass. `test:quick` takes 18.7 s (over the <10 s target); cache-hit log output was inaccessible. Both are recorded as non-blocking notes for Phase 2/3. |
 
 ### Agent C — Test consolidation and maintenance
 
