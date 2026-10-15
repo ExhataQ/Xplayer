@@ -1,4 +1,7 @@
-﻿2026-10-14
+﻿2026-10-15
+- Developer tooling documentation: added current project context, replaced the stale agent prompt, renamed the change log while preserving prior history, and documented per-task evidence with integration-owner changelog updates. Clarified flat test discovery and groups. Verified: 58 tests discovered (20 unit, 38 browser); shard checks 8/8; test:quick 165 unit tests passed, lint 136 files with 0 errors and 0 warnings; dependency-map baseline/current both 148 references, 0 forward. Details: .agent/reports/20261015-tooling-cleanup.md.
+
+2026-10-14
 - B-0006 (Agent B): test runner supports deterministic browser-test sharding and CPU-aware concurrency. Added shard distribution and workflow consistency tests; CI separates unit tests plus lint from three parallel Windows browser shards. Updated the test workflow and package scripts.
 2026-10-12
 - A-01 (Agent A): removed tools/spike-modules/ and tools/test-shuffle/ (dead; nothing in package.json, .github, eslint config, lint tools, tests or build names them). tools/placeholder-test/ kept.

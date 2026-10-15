@@ -77,7 +77,7 @@ Important source locations:
 * `Source/build/music_player.py` — build-time application assembly.
 * `Source/build/music_player.html` — build template.
 * `Source/tools/tests/` — the canonical automated test suite.
-* `Source/tools/change.log.txt` — project change log.
+* `Source/tools/CHANGELOG.md` — concise integrated change history. Detailed task evidence belongs in unique reports under `.agent/reports/`.
 * `Source/.agent/` — agent workflow documents: this file, `PLAN.md` (the current plan), `BOARD.md` (status), `reports/` (one report per patch, plus `TEMPLATE.md`), `archive/` (finished plans with their boards and reports; the refactor is in `archive/refactor/`).
 * `Source/tools/` — development tools, test pages, playgrounds, and supporting files.
 * `App/` — generated/deployed application output.
@@ -295,17 +295,13 @@ Do not claim the entire task is verified until the required manual checks have a
 
 ---
 
-## 10. Change Log
+## 10. Task Reports and Change Log
 
-When modifying project source code, update:
+Every task or agent records its detailed evidence in a distinct report under `.agent/reports/`, using `.agent/reports/TEMPLATE.md`. Use a unique task identifier in the report filename and include changed files, exact checks and outcomes, environment, skipped or unrun checks, follow-ups, and commit or PR details when known.
 
-`Source/tools/change.log.txt`
+Task agents do not edit the shared `Source/tools/CHANGELOG.md`. Only the designated integration owner updates it after integration and verification, with a concise summary linking to the task report. Do not report unrun or skipped checks as passing. Preserve historical entries; resolve any conflict explicitly rather than dropping an entry.
 
-Keep the entry concise.
-
-Describe what actually changed rather than writing a long explanation.
-
-Do not modify the change log for unrelated reasons.
+The board tracks current plan status. Reports are the detailed evidence; the changelog is the integrated summary.
 
 ---
 
@@ -319,7 +315,7 @@ A patch should:
 
 * contain only the intended changes,
 * preserve unrelated files,
-* include the change-log update when appropriate,
+* include the task report; include a changelog entry only when you are the designated integration owner,
 * identify all changed files,
 * clearly identify anything intentionally excluded.
 

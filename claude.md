@@ -47,7 +47,7 @@ The renderer files under `Source/src/js/` and `Source/src/css/` are copied into 
 
 Renderer files are grouped by area under `Source/src/js/`: `core/` (state, event bus, storage, start-up), `library/`, `playlists/`, `search/`, `playback/`, `lyrics/`, `ui/` (with `ui/subscribers/` for the `04h`–`04v` event subscribers) and `api/`. File names keep their number prefix; `main.js` imports each by its folder path.
 
-`Source/tools/change.log.txt` is the append-only project change log.
+`Source/tools/CHANGELOG.md` is the concise integrated change history. Detailed task evidence belongs in unique reports under `Source/.agent/reports/`.
 
 `Source/tools/tests/` contains the project's tests.
 
@@ -158,7 +158,7 @@ Do not add large explanatory comment blocks.
 
 Whenever you modify a source file, update:
 
-`Source/tools/change.log.txt`
+`Source/tools/CHANGELOG.md`
 
 Use the existing format:
 
@@ -324,7 +324,7 @@ Important source areas:
 * `Source/build/music_player.py` — build-time script that assembles the application. It is not the runtime music scanner.
 * `Source/build/music_player.html` — build template.
 * `Source/tools/tests/` — automated tests.
-* `Source/tools/change.log.txt` — project change log.
+* `Source/tools/CHANGELOG.md` — concise integrated change history; detailed verification is in task reports under `Source/.agent/reports/`.
 * `Source/tools/` — development tools, test pages, playgrounds, and supporting files.
 * `App/` — generated/deployed output. Do not treat generated `App` files as the source of truth or edit them instead of `Source`.
 
@@ -425,13 +425,11 @@ If a build is actually required, state why it is required and verify the relevan
 
 ## Change Log
 
-When modifying project source code, update:
+Every task or agent records detailed changes and verification in a distinct report under `Source/.agent/reports/`, using its template and a unique task identifier. Include exact commands and outcomes, environment, skipped or unrun checks, follow-ups, and commit or PR details when known.
 
-`Source/tools/change.log.txt`
+Task agents do not edit the shared `Source/tools/CHANGELOG.md`. Only the designated integration owner updates it after integration and verification, with a concise summary linking to the task report. Do not present skipped or unrun checks as passing. Preserve historical entries and resolve conflicts explicitly rather than dropping entries.
 
-Keep the entry concise and describe what actually changed.
-
-Do not create lengthy documentation for small fixes.
+The board tracks current plan status; reports are the detailed evidence; the changelog is the integrated summary.
 
 ## Manual Verification
 
@@ -483,7 +481,7 @@ If producing a patch:
 
 * include only the intended changes,
 * do not include unrelated files,
-* include `tools/change.log.txt` when it was part of the requested source changes,
+* include the task report; include a `tools/CHANGELOG.md` entry only when you are the designated integration owner,
 * clearly state which files the patch changes,
 * clearly state whether any changes were intentionally excluded.
 

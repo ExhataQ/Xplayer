@@ -13,6 +13,14 @@ All commands are PowerShell, run from the repository root (the folder with `pack
 | **sequence suites** | A kind of browser test: runs scenarios and compares the recorded order of UI calls with `tools/tests/expected/*.json`. | `events-a`, `events-b`, `events-c`, `events-d` (scenarios live in `helpers/scenarios-*.js`; `events-wiring` checks the event wiring itself) |
 | **Python logic test** | `metadata_backend_logic.py`, started by `metadata-backend.test.js`. Uses a stand-in for `mutagen` (`helpers/fake_mutagen.py`). | |
 
+**Why the test files stay flat:** `tools/tests/run.js` discovers only top-level
+`*.test.js` files and classifies them by the runtime they need. The unit and
+browser groups below are execution groups, not directories. Sequence suites
+are a browser-test subtype; the Python logic check is launched by its Node test.
+Keeping tests in this one flat directory preserves focused name-based selection
+and existing CI sharding without adding path-specific discovery rules. Shared
+helpers and expected sequence data already live in their own support folders.
+
 The runner decides unit vs browser by looking at what a file imports (`helpers/app-fixture`, `helpers/sequence-suite` or `playwright` means browser). See `npm run test:list` for the current split (58 files: 20 unit, 38 browser).
 
 Test framework: Node's built-in `node:test` with `node:assert/strict`. No Jest, Mocha or other runner.
@@ -194,7 +202,7 @@ When a change touches how renderer files load, register names or order their lis
   * `lint.test.js`: the exit codes of `tools/lint.js` with a stand-in ESLint, `tools/lint-globals.js`, and two tests with the real ESLint and the real `eslint.config.js` (an undefined name fails with `no-undef`; a registered global and a browser built-in pass). The real-ESLint tests skip when `eslint` or `globals` is not installed.
   * `run-shards.test.js`: that for 1, 2, 3, 4 and 7 shards the parts are disjoint and together are every file, that the split does not depend on the order of the file list, that `--shard` is validated, and that the CI workflow agrees with the code: the matrix is `1..N` and the command says `/N`, and `test:quick` and `test:fast` are the commands this guide describes. If you add or remove a shard, change the workflow matrix and the `/N` together.
 * **`scroll.test.js`** still has its own copy of `loadPlaywright` and `buildApp` (different fake song data); only `launch` and `gotoApp` come from the shared fixture.
-* **Docs:** when you change scripts, discovery, helpers or prerequisites, update this file in the same change. If the repository workflow asks for it, add a line to `tools/change.log.txt`.
+* **Docs:** when you change scripts, discovery, helpers or prerequisites, update this file in the same change. Record detailed task evidence in a unique `.agent/reports/` file; only the integration owner updates `tools/CHANGELOG.md`.
 
 ## 8. Lint (errors fail, warnings are reported)
 

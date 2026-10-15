@@ -14,11 +14,13 @@ The refactor plan (setters, event bus, ES modules, the final flip) is finished a
 | `online-metadata.test.js` (a unit test) | 23 s: real backoff sleeps, no browser |
 | Fixed sleeps (`waitForTimeout`) | 42 (28 in `scroll.test.js`, 5 in `view-switch-song-list-cleanup.test.js`) |
 | Lint | 0 errors, 1 warning (`currentContextPlaylistId` unused in `06a`) |
-| `node tools/dep-map.js` | 115 files; load-time cross-file references 27, none forward; mutable globals assigned from other files 58; file-level cycles 2 + 69 |
+| `node tools/dep-map.js` | 115 files; 148 unique top-level cross-file global-name references (0 forward); mutable globals assigned from other files 58; file-level cycles 2 + 69. Reproduced on the baseline commit and current tree with Node v24.13.1, Acorn 8.18.0, and acorn-walk 8.3.5. |
 | `node tools/event-audit.js --strict` | exits 0 |
 | Loose files in `src/js/` | 92 (plus `main.js` and the `99-player.js` template) |
 
 Run `npm run test:timing` and `node tools/dep-map.js` at the start of your session and again at the end; the report records both. Your machine will be slower or faster than the sandbox: compare your own before and after, not these numbers.
+
+The dependency-map load-time count is the number of unique `(consumer file, referenced global name)` pairs found at top level outside function bodies where the name is defined in another renderer file. It is a static heuristic, not a runtime-reference count. The earlier value 27 was incorrect for this metric: a controlled run of the baseline commit and current tree produced 148 for both.
 
 ## 2. What is in this plan and what is not
 
@@ -34,7 +36,7 @@ The recorded call-sequence tests (`events-a` to `events-d`, `events-wiring`) and
 |---|---|---|---|
 | 1 | A, B, C, D in parallel | Four independent areas (section 4). No agent edits another's files. | none |
 | 2 | A alone | Move `src/js` into folders (section 5). Nobody else has a patch in flight. | every Phase 1 patch applied and verified |
-| 3 | You | Full suite, the smoke checklist, one Electron start. Record the numbers in `tools/change.log.txt`. | Phase 2 applied |
+| 3 | You | Full suite, the smoke checklist, one Electron start. Record the evidence in the task report; the integration owner summarizes it in `tools/CHANGELOG.md`. | Phase 2 applied |
 
 Phase 2 is a single mechanical change on its own so that a failure is easy to read: it only changes folders and the paths that name them. File names stay as they are (the `event-audit` owner groups and `event-allowlist.json` key on the number prefix and the file name).
 
@@ -50,7 +52,7 @@ Phase 2 is a single mechanical change on its own so that a failure is easy to re
 Rules:
 
 - An agent edits only its own files. If a step needs a change in someone else's file, stop and say so in the report under "Needs from other agents"; you route it.
-- Shared files: `tools/change.log.txt` (append-only) and `package.json` (only B edits it, the `scripts` block only). When you apply several patches, expect small conflicts there; keep both sides.
+- Shared files: `package.json` (only B edits the `scripts` block). Each task owns a uniquely named report under `.agent/reports/`; task agents do not edit `tools/CHANGELOG.md`. The designated integration owner updates the shared summary after integration and verification.
 - One exception for D: if a D change breaks a C or B test only because it names a renamed event or a removed duplicate call, D may change that string in the test (one line each, listed in the report). The owner rebases.
 - Steps marked *Needs* wait for those steps to be applied and verified.
 - Never delete a test without the report saying which remaining test covers what it checked (C) or why the check is obsolete.
@@ -83,7 +85,7 @@ Why this is cheap: only two files import another renderer file by path (`10b` im
 1. Archive the project first (`.agent/AGENTS.md`).
 2. Smallest reasonable diff; one step per patch where possible.
 3. Run the focused tests named in the step, and say what you did not run. Do not run the whole suite to prove the baseline.
-4. Append to `tools/change.log.txt` in the existing format.
+4. Record detailed changes and verification in the task's unique report. The integration owner updates `tools/CHANGELOG.md` after integration and verification.
 5. Deliver one `.patch` from the actual repository state, with the report inside it.
 6. Record `npm run test:timing` for the files you touched and, for D, the `dep-map` and `event-audit` numbers.
 
@@ -179,8 +181,8 @@ agent's steps in 8), .agent/BOARD.md, tools/tests/README.md, and the latest repo
 any step yours depends on (.agent/reports/). The finished refactor plan is in
 .agent/archive/refactor/ if you need background; you do not need to read it.
 
-Your files: <row for your agent in PLAN.md section 4>. Edit nothing else, except your entry
-in tools/change.log.txt and your report in .agent/reports/<X>/.
+Your files: <row for your agent in PLAN.md section 4>. Edit nothing else, except your
+uniquely named report in .agent/reports/.
 
 This session: <mini step IDs, for example B-02>.
 
@@ -189,7 +191,7 @@ Rules:
 - Comments in code describe the code. Never write agent names, step IDs or plan names in them.
 - Run the focused tests the step names. Say plainly what you did not run.
 - Record timings (npm run test:timing for the files you touched) before and after.
-- Append to tools/change.log.txt in the existing format.
+- Record detailed changes and verification in your unique report; do not edit tools/CHANGELOG.md.
 - Deliver one patch named <X>-NNNN-slug.patch (NNNN counts your own patches).
 - Write .agent/reports/<X>/NNNN-slug.md from .agent/reports/TEMPLATE.md and include it in the patch.
 - If the step needs a file you do not own, stop and describe it in the report.
@@ -198,7 +200,7 @@ Rules:
 ## 10. What you do after each patch
 
 1. Save the patch and read its report (`.agent/reports/<X>/NNNN-slug.md`).
-2. `git apply --check <patch>`; if it passes, `git apply <patch>`. If `change.log.txt` or `package.json` conflict, keep both sides.
+2. `git apply --check <patch>`; if it passes, `git apply <patch>`. If the shared changelog conflicts, retain the task reports and have the integration owner resolve the summary explicitly; do not silently discard either entry.
 3. Run the tests the report lists under "For you", and the one manual check if there is one.
 4. Update `.agent/BOARD.md` (status and patch name).
 5. Read "Needs from other agents" and "Next step" in the report, and start the next session with the brief from section 9.

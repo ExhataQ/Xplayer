@@ -1,7 +1,9 @@
 # Agent <X> report NNNN: <short title>
 
+Task ID: <globally unique task identifier; use it in this report's filename>.
 Steps: <step IDs, for example B-02>. Applies on top of: <patch or zip this was made against>.
 Archive (.agent/AGENTS.md section 1): <done / not done and why>.
+Environment and revision: <OS, runtime/tool versions, and commit or source revision>.
 
 ## Changes
 
@@ -33,3 +35,5 @@ D, and A in Phase 2: `node tools/dep-map.js` before and after: mutable globals w
 ## Next step
 
 <the step ID this unblocks, or what the same agent should do next>
+
+Task agents do not edit `tools/CHANGELOG.md`. The designated integration owner adds a concise summary after integration and verification.

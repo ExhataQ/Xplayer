@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Cross-file dependency map for the classic-script renderer (src/js).
+// Cross-file global dependency map for the renderer loaded from src/js/main.js.
 // Needs: npm i -D acorn acorn-walk
 //
 //   node tools/dep-map.js                 summary report

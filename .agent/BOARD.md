@@ -16,11 +16,11 @@ Update this board manually after each patch is applied and verified. Do not mark
 
 - [x] Phase 1 verification accepted for project progression. B-01 to B-06 and C-01 to C-05 have been applied and verified, with the documented non-blocking exceptions and waived targets retained below.
 - [x] Phase 2 completed: A-03 and A-04 applied and verified. The renderer files were moved into the approved folders, paths and tests were updated, and the changes were committed and pushed.
-- [x] Phase 3 final verification recorded in `tools/change.log.txt` on 2026-10-15. Full suite: 452 tests, 451 passed, 0 failed, 1 skipped. Strict lint passed with 136 files, 0 errors and 0 warnings. Dependency map and strict event audit completed.
+- [x] Phase 3 final verification recorded in `tools/CHANGELOG.md` on 2026-10-15. Full suite: 452 tests, 451 passed, 0 failed, 1 skipped. Strict lint passed with 136 files, 0 errors and 0 warnings. Dependency map and strict event audit completed.
 - [ ] D: Review and decide how to handle the 10 inline handlers listed in `INLINE_EXCEPTIONS` in `tools/tests/ui-handlers.test.js`. C's test enforces that the count only goes down.
-- [ ] Keep each patch small. Check its diff, run focused tests, and update this board and `tools/change.log.txt` after verification.
+- [ ] Keep each patch small. Check its diff, run focused tests, and update this board and the task's unique report after verification. Only the integration owner updates `tools/CHANGELOG.md`.
 - [ ] Do not delete tests unless the report explains why the test is obsolete or identifies the remaining test that covers its behavior.
-- [ ] Resolve or explain the dependency-map baseline discrepancy: `PLAN.md` reports 27 load-time cross-file references, while the before-and-after folder-move report records 148. The measured count remained 148 after the move; do not assume these baselines are comparable without checking their definitions or measurement context.
+- [x] Resolve the dependency-map baseline discrepancy: controlled runs at `bebc6a1` and the current tree both report 148 unique top-level cross-file global-name references (0 forward) using Node v24.13.1, Acorn 8.18.0, and acorn-walk 8.3.5. The earlier 27 value was incorrect for this metric; see `reports/20261015-tooling-cleanup.md`.
 - [ ] Review the remaining product-code and documentation follow-ups listed in the task notes before starting any new broad refactor.
 
 ## Phase 1 — Parallel cleanup and improvements
@@ -76,15 +76,15 @@ Agent A performed this phase after the Phase 1 work was accepted for project pro
 
 ## Phase 3 — Final verification
 
-These checks were performed against the post-move tree. Results were recorded in `tools/change.log.txt` on 2026-10-15.
+These checks were performed against the post-move tree. Results were recorded in `tools/CHANGELOG.md` on 2026-10-15.
 
 | ID | Task | Dependencies | Status | Notes |
 | --- | --- | --- | --- | --- |
 | V-01 | Run the complete test suite | A-03, A-04 | applied + verified | 452 tests; 451 passed, 0 failed, 1 skipped; duration approximately 361.9 seconds. |
-| V-02 | Run lint and the required dependency-map and event-audit checks | A-03, A-04 | applied + verified | `npm run lint:strict`: 136 files, 0 errors, 0 warnings. Dependency map: 115 files, 58 mutable globals assigned across files, cycles reported as 2 + 69, 148 load-time cross-file references, 0 forward references. `node tools/event-audit.js --strict`: 0 direct reaction calls; 70 allowlisted exceptions. Baseline discrepancy (27 vs. 148 references) remains documented for investigation. |
+| V-02 | Run lint and the required dependency-map and event-audit checks | A-03, A-04 | applied + verified | `npm run lint:strict`: 136 files, 0 errors, 0 warnings. Dependency map: 115 files, 58 mutable globals assigned across files, cycles reported as 2 + 69, 148 unique top-level cross-file global-name references, 0 forward references. `node tools/event-audit.js --strict`: 0 direct reaction calls; 70 allowlisted exceptions. The 27 baseline entry was corrected after controlled baseline/current comparison. |
 | V-03 | Complete `tools/smoke-checklist.md` | A-03, A-04 | applied + verified | Owner reported the manual smoke checklist completed and working, with no issues reported. |
 | V-04 | Start and verify the actual Electron application | A-03, A-04 | applied + verified | Owner reported the actual Electron application started and worked, with no issues reported. |
-| V-05 | Record final timings and verification results in `tools/change.log.txt` | V-01 to V-04 | applied + verified | Final verification results and the dependency-map baseline discrepancy were recorded on 2026-10-15. |
+| V-05 | Record final timings and verification results in `tools/CHANGELOG.md` | V-01 to V-04 | applied + verified | Final verification results and the dependency-map comparison were recorded on 2026-10-15. |
 
 ## Completion rule
 
