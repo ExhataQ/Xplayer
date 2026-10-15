@@ -53,4 +53,41 @@ Update this board manually after each patch is applied and verified. Do not mark
 | C-02 | Consolidate the window contract test | None | applied + verified | Added `tools/tests/window-contract.test.js`; focused test passed, 11/11. |
 | C-03 | Consolidate the inline-handler static rule | None | applied + verified | One static test over `src/` and the page template; mutation checks done (report `reports/C/0002-inline-handler-rule.md`). Ten known inline handlers remain listed as exceptions for D to review. |
 | C-04 | Merge order checks and trim redundant tool tests | None | applied + verified | Order checks merged, tool tests trimmed (report 0003); real-ESLint undefined-name test added in `lint.test.js` and shown to fail with `no-undef` off (report `reports/C/0005-*`). |
-| C-05 | Review remaining fixed sleeps and update test documentation | C-02, C-03, C-04, B-06 | applied + verified | README updated for B-06: counts (58 files, 20 unit, 38 browser), new commands, shards, `--concurrency`, `SEQUENCE_PAGES`, CI workflow, historical notes and section 12 timings. Sleeps in C's six files re-checked: none left without a comment. Windows
+| C-05 | Review remaining fixed sleeps and update test documentation | C-02, C-03, C-04, B-06 | applied + verified | README updated for B-06: counts (58 files, 20 unit, 38 browser), new commands, shards, `--concurrency`, `SEQUENCE_PAGES`, CI workflow, historical notes and section 12 timings. Sleeps in C's six files re-checked: none left without a comment. Windows checks recorded in `reports/C/0006-*`; see `reports/C/0006-*` and the 2026-10-15 change log. |
+
+### Agent D — Product-code leftovers
+
+| ID | Task | Dependencies | Status | Notes |
+| --- | --- | --- | --- | --- |
+| D-01 | Fix the search-clear bug in `08h-panel-search.js` | None | applied + verified | Fixed; new `search-clear.test.js` fails on old code. Manual check in report `reports/D/0001-search-clear.md` remains a follow-up unless separately confirmed. |
+| D-02 | Remove duplicate left-panel refreshes | None | applied + verified | Duplicates removed in 04k, 04h, 15e; 24 DOM states compared, identical. Manual checks in report `reports/D/0002-*` remain a follow-up unless separately confirmed. |
+| D-03 | Rename `recents:count-changed` to `recents:countChanged` | D-02 | applied + verified | Renamed in source, `EVENTS.md` and tests; no other user of the old name. Manual check documented in `reports/D/0003-*`. |
+| D-04 | Add a helper for left-panel list writes | D-02, D-03 | applied + verified | `refreshLeftPanelItems` added and used at six sites; 34 states compared, identical. Drag-and-drop checked by tests; manual checks in `reports/D/0004-*` remain a follow-up unless separately confirmed. |
+| D-05 | Remove dead code and resolve applicable lint warnings | None | applied + verified | Dead code removed; lint reported 0 errors and 0 warnings on the combined tree. Strict lint subsequently passed on the final tree. See `reports/D/0005-*`. |
+
+## Phase 2 — Renderer folder move
+
+Agent A performed this phase after the Phase 1 work was accepted for project progression.
+
+| ID | Task | Dependencies | Status | Notes |
+| --- | --- | --- | --- | --- |
+| A-03 | Move renderer files into the folders specified in `.agent/PLAN.md`, section 5 | Phase 1 accepted for progression | applied + verified | The 92 loose renderer files were moved into `core/`, `library/`, `playlists/`, `search/`, `playback/`, `lyrics/`, `ui/` and `ui/subscribers/`. File names and load order were preserved. See `reports/A/0002-folder-move.md`. |
+| A-04 | Update and verify documentation after the move | A-03 | applied + verified | Updated `main.js` paths, lint/event allowlist paths, affected tests and documentation. The folder-move report records before/after dependency-map measurements, strict event audit and lint results. Commit `0b1c6bc`. |
+
+## Phase 3 — Final verification
+
+These checks were performed against the post-move tree. Results were recorded in `tools/change.log.txt` on 2026-10-15.
+
+| ID | Task | Dependencies | Status | Notes |
+| --- | --- | --- | --- | --- |
+| V-01 | Run the complete test suite | A-03, A-04 | applied + verified | 452 tests; 451 passed, 0 failed, 1 skipped; duration approximately 361.9 seconds. |
+| V-02 | Run lint and the required dependency-map and event-audit checks | A-03, A-04 | applied + verified | `npm run lint:strict`: 136 files, 0 errors, 0 warnings. Dependency map: 115 files, 58 mutable globals assigned across files, cycles reported as 2 + 69, 148 load-time cross-file references, 0 forward references. `node tools/event-audit.js --strict`: 0 direct reaction calls; 70 allowlisted exceptions. Baseline discrepancy (27 vs. 148 references) remains documented for investigation. |
+| V-03 | Complete `tools/smoke-checklist.md` | A-03, A-04 | applied + verified | Owner reported the manual smoke checklist completed and working, with no issues reported. |
+| V-04 | Start and verify the actual Electron application | A-03, A-04 | applied + verified | Owner reported the actual Electron application started and worked, with no issues reported. |
+| V-05 | Record final timings and verification results in `tools/change.log.txt` | V-01 to V-04 | applied + verified | Final verification results and the dependency-map baseline discrepancy were recorded on 2026-10-15. |
+
+## Completion rule
+
+Plan 3's Phase 2 and Phase 3 work is complete and committed. Phase 1 tasks are recorded as applied and verified for project progression, with explicit exceptions and follow-ups preserved above. The ten inline-handler exceptions and the dependency-map baseline discrepancy remain follow-up items; they do not invalidate the completed folder move or its recorded verification.
+
+The archived refactoring board is historical. Update only this active `.agent/BOARD.md` when tracking Plan 3 progress.
