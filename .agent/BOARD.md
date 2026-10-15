@@ -17,7 +17,7 @@ Update this board manually after each patch is applied and verified. Do not mark
 - [ ] Phase 1 remains open: B-03 timing/sequence checks, B-05 timing decision, and C-05 README reconciliation.
 - [ ] B-06 is applied and locally verified: shard-runner tests 8/8 passed, lint checked 136 files with 0 errors and 0 warnings, and the user reports the test suite passes. GitHub Actions has not been confirmed here.
 - [ ] B: B-03 remains open for the Windows timing measurements and manual checks listed in report `reports/B/0006-fast-commands-ci.md`. B-05 remains open until its Windows fixture-build measurement is recorded or the shared-build optimization is explicitly waived.
-- [ ] C: C-01 to C-04 are applied + verified. C-05 remains open: update `tools/tests/README.md` sections 3 and 10 for the new commands and CI workflow, correct the concurrency and `SEQUENCE_PAGES` descriptions, and reconcile the historical timing note in section 11.
+- [ ] C: C-01 to C-04 are applied + verified. C-05: the README patch (report `reports/C/0006-*`) is applied but not yet verified; run the checks listed in that report on your machine. B-03 and B-05 remain open pending their Windows checks and timing decision.
 - [ ] D: 10 inline handlers listed in `INLINE_EXCEPTIONS` (`tools/tests/ui-handlers.test.js`) remain. D owns the conversion decision; C's test enforces that the count only goes down.
 - [ ] Keep each patch small. Check its diff, run focused tests, and update this board and `tools/change.log.txt` after verification.
 - [ ] Do not delete tests unless the report explains why the test is obsolete or identifies the remaining test that covers its behavior.
@@ -51,7 +51,7 @@ Update this board manually after each patch is applied and verified. Do not mark
 | C-02 | Consolidate the window contract test                        | None                   | applied + verified | Added tools/tests/window-contract.test.js; focused test passed, 11/11. |
 | C-03 | Consolidate the inline-handler static rule                  | None                   | applied + verified | One static test over `src/` and the page template; mutation checks done (report `reports/C/0002-inline-handler-rule.md`). 10 known inline handlers listed as exceptions (for D to convert).                                              |
 | C-04 | Merge order checks and trim redundant tool tests            | None                   | applied + verified | Order checks merged, tool tests trimmed (report 0003); real-ESLint undefined-name test added in `lint.test.js` and shown to fail with `no-undef` off (report `reports/C/0005-*`). |
-| C-05 | Review remaining fixed sleeps and update test documentation | C-02, C-03, C-04, B-06 | in progress | Sleep replacements and file counts are done, but README sections 3 and 10 still describe the old commands/workflow. Correct the concurrency and `SEQUENCE_PAGES` descriptions and section 11 historical note before marking verified (report `reports/C/0005-*`). |
+| C-05 | Review remaining fixed sleeps and update test documentation | C-02, C-03, C-04, B-06 | patch received | README updated for B-06: counts (58 files, 20 unit, 38 browser), new commands, shards, `--concurrency` and `SEQUENCE_PAGES`, CI workflow, section 11 historical note, and fresh section 12 numbers. Sleeps in C's six files re-checked: none left without a comment. Run the checks in report `reports/C/0006-*` on your machine before marking verified. |
 
 ### Agent D — Product-code leftovers
 

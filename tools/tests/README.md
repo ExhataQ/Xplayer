@@ -8,12 +8,12 @@ All commands are PowerShell, run from the repository root (the folder with `pack
 
 | Group | What it is | Files |
 | --- | --- | --- |
-| **unit** | Pure Node: no browser. Fast (most files finish in under a second; `online-metadata` about 0.3 s). | `drag-drop-modules`, `event-bus`, `language-detect`, `lint`, `lrc-parser`, `main-process-safety`, `manifest`, `metadata-backend`, `music-folders`, `online-metadata`, `output-dir`, `recents`, `scan-folder-tags`, `scanner`, `search-engine`, `setters`, `shuffle`, `storage-core`, `storage` (`*.test.js`; 19 files) |
+| **unit** | Pure Node: no browser. Fast (most files finish in under a second; `online-metadata` about 0.3 s). | `drag-drop-modules`, `event-bus`, `language-detect`, `lint`, `lrc-parser`, `main-process-safety`, `manifest`, `metadata-backend`, `music-folders`, `online-metadata`, `output-dir`, `recents`, `run-shards`, `scan-folder-tags`, `scanner`, `search-engine`, `setters`, `shuffle`, `storage-core`, `storage` (`*.test.js`; 20 files) |
 | **browser** | Builds a throwaway copy of the real app, opens it in headless Chromium with a stubbed Electron API, and drives it. Each test file launches its own browser. | everything else in `tools/tests/*.test.js` (38 files). `window-contract.test.js` is in this group because of its one page load; most of its tests are static (acorn) and need no browser. `songs-store.test.js` is in this group because it imports the fixture. |
 | **sequence suites** | A kind of browser test: runs scenarios and compares the recorded order of UI calls with `tools/tests/expected/*.json`. | `events-a`, `events-b`, `events-c`, `events-d` (scenarios live in `helpers/scenarios-*.js`; `events-wiring` checks the event wiring itself) |
 | **Python logic test** | `metadata_backend_logic.py`, started by `metadata-backend.test.js`. Uses a stand-in for `mutagen` (`helpers/fake_mutagen.py`). | |
 
-The runner decides unit vs browser by looking at what a file imports (`helpers/app-fixture`, `helpers/sequence-suite` or `playwright` means browser). See `npm run test:list` for the current split (57 files: 19 unit, 38 browser).
+The runner decides unit vs browser by looking at what a file imports (`helpers/app-fixture`, `helpers/sequence-suite` or `playwright` means browser). See `npm run test:list` for the current split (58 files: 20 unit, 38 browser).
 
 Test framework: Node's built-in `node:test` with `node:assert/strict`. No Jest, Mocha or other runner.
 
@@ -44,14 +44,17 @@ npm run test:unit                                # quick end-to-end check of the
 | `npm test` | Every test file, one file at a time. Run before committing. |
 | `npm run test:unit` | Only the no-browser files. Use while developing. |
 | `npm run test:browser` | Only the files that start a browser. |
+| `npm run test:quick` | The unit files, then lint (`node tools/tests/run.js unit && node tools/lint.js`). The check to run while you work, and what the first CI job runs. Needs `npm install` (ESLint); without it the lint half exits 2. |
+| `npm run test:fast` | Only the browser files, up to 4 at once (`node tools/tests/run.js browser --concurrency=4`). Meant for a machine with several cores: the runner never starts more files than the machine has cores and prints a line when it lowers the number, so on one core this is the same as `npm run test:browser`. |
 | `npm run test:list` | Shows which files would run and their group. Changes nothing. |
 | `npm test -- shuffle` | Files whose name contains `shuffle`. Several words are allowed: `npm test -- shuffle scroll`. |
 | `node --test tools/tests/shuffle.test.js` | One file, directly, with Node's own runner. |
 | `node --test --test-name-pattern="several processes" tools/tests/songs-store.test.js` | One test (or a group) by name. The pattern is a regular expression matched against the test title. |
 | `node --test --test-reporter=spec tools/tests/shuffle.test.js` | Same, but prints one line per test (names, pass/fail, time) instead of the compact TAP output. |
 | `npm run test:timing` | Runs files one at a time and prints seconds, test counts and failures per file, slowest first. Use to find what got slow. |
-| `node tools/tests/run.js --concurrency=2` | Runs two files at once. Default is 1. Browser files are timing-sensitive (see below), so check failures with 1 before blaming the code. |
-| `$env:SEQUENCE_PAGES=1; node --test tools/tests/events-b.test.js` | The sequence suites run their scenarios in up to 4 pages at once (at least 2, at most the number of cores). `SEQUENCE_PAGES=<n>` sets the number; `1` runs one after the other, which is what to use when you need to compare timings or suspect load. If a scenario differs from its recorded order while pages ran in parallel, it is run again alone and the alone result counts. Recording a baseline (`EVENT_BASELINE`) always uses one page. |
+| `node tools/tests/run.js --concurrency=2` | Runs two files at once. Default is 1, and the number is capped at the number of cores: when it is lowered the runner prints `Running 1 file(s) at once instead of 4 ...`. With more than one file at once, each sequence suite uses one page unless `SEQUENCE_PAGES` is set. Browser files are timing-sensitive: measured by Agent B on a one-core machine with four files at once, `events-b`, `events-c` and `scroll` timed out or differed from their recorded order, and all pass alone. Check a failure with 1 before blaming the code. |
+| `node tools/tests/run.js browser --shard=2/3` | Part 2 of 3 of the selected files (here the browser files). The parts are disjoint and together are every selected file; the split is by an approximate run time and is the same on every machine. This is what each browser job in CI runs. Works with `--list` and `--timing`. A bad value (`0/3`, `4/3`, `abc`) or an empty part exits 2 with a message. |
+| `$env:SEQUENCE_PAGES=1; node --test tools/tests/events-b.test.js` | The sequence suites run their scenarios in several pages at once: the number of cores, but at least 2 and at most 4. `SEQUENCE_PAGES=<n>` sets the number, and the runner sets 1 when it runs more than one file at once. A scenario that differs from its recorded order (or has a page error) is run again alone, with any number of pages, and the alone result counts; the test prints a diagnostic line naming those scenarios. So `SEQUENCE_PAGES=1` is not a strict check any more. A real regression also differs when run alone and still fails. Recording a baseline (`EVENT_BASELINE`) always uses one page and never retries. |
 | `node --check src/js/04a-ui-render-core.js` | Syntax check of one JavaScript file (no linter needed). |
 | `npm run lint` | ESLint. Exits 1 if there is any error; warnings are only reported. See "Lint". |
 | `npm run lint:strict` | Same, but also exits 1 on any warning. |
@@ -144,7 +147,7 @@ Rules that keep tests honest:
 * **Don't use a browser for logic.** A browser test costs about a second of page load plus the start-up settle. If a function can be `require()`d, test it in Node.
 * **Reading results.**
   * *fail* with an assertion message: the behavior changed; read the diff between expected and actual first.
-  * *skipped*: the test chose not to run. Expected today: 1 hard-coded skip (`scroll.test.js`, "a tiny thumb nudge shows real rows only", marked timing-sensitive). More skips than that usually means a missing browser or Python.
+  * *skipped*: the test chose not to run. Expected today: 1 hard-coded skip (`scroll.test.js`, "a tiny thumb nudge shows real rows only", marked timing-sensitive). More skips than that usually means a missing browser or Python. Two more are expected when ESLint is not installed: the two real-ESLint tests in `lint.test.js` skip themselves.
   * *timeout* (`--test-timeout=120000` per test file run by the runner): something never became true, or the machine is overloaded. Re-run alone before changing anything.
   * *browser setup error / everything skipped*: install a browser (`npx playwright install chromium`).
   * `Cannot find module '...'`: run `npm install`.
@@ -168,7 +171,7 @@ Mandatory:
 1. Write or update the test that covers the change.
 2. Run it alone (`node --test <file>` or with `--test-name-pattern`) and see it fail without your change and pass with it.
 3. Run the whole file, then the related group (`npm run test:unit` or `npm run test:browser`).
-4. Run `npm test` before committing (the full suite; about 10 minutes on a slow single-core machine, see the numbers below).
+4. Run `npm test` before committing (the full suite; about 6 minutes on a slow single-core machine, see section 12). On a machine with several cores `npm run test:fast` runs the browser files in parallel; `npm run test:quick` is the short check while you work.
 5. `git diff --check`, then read the final diff.
 6. Report the exact commands you ran and their results (pass/fail/skipped counts), including anything you could not run.
 
@@ -180,6 +183,7 @@ When a change touches how renderer files load, register names or order their lis
 
 * **Adding a test file:** create `tools/tests/<name>.test.js`. Nothing else to register: the runner discovers it. Check with `npm run test:list` that it appears in the group you expect.
 * **Discovery and groups:** `tools/tests/run.js` lists `*.test.js` in `tools/tests/` and puts a file in the *browser* group if its text matches `app-fixture`, `sequence-suite` or `require('playwright')`. Change `BROWSER_MARKER` in `run.js` if you add another browser helper.
+* **Shards and the weight table.** `run.js --shard=i/n` spreads the selected files over `n` parts by `SHARD_SECONDS`, an approximate run time per file taken from `npm run test:timing` (files not in the table count as `DEFAULT_SECONDS`, 3 s). When a file gets much slower or a slow file is added, update the table. A wrong number only makes the parts uneven; it never drops a file, because every file is in exactly one part whatever the numbers are.
 * **Scripts live in** the root `package.json` (`test*`, `lint*`). `electron/package.json` keeps its older `test` script for compatibility.
 * **Browser launch.** `helpers/app-fixture.js` `launch()` tries bundled Chromium, then Edge, then Chrome. `node --test` runs every file in its own process, so nothing in memory is shared between files. When started through `npm test`, the runner sets `XPLAYER_TEST_RUN_ID` and the files of that run share a small file in the temp folder that records which option worked, so later files try it first. A total failure is never recorded. When you run a single file by hand, nothing is cached.
 * **Which test owns which fact (so a fact is checked in one place):**
@@ -188,6 +192,7 @@ When a change touches how renderer files load, register names or order their lis
   * `event-subscribers-modules.test.js` and `listener-order.test.js`: the subscribers' order and registration, and the order the document and window listeners run in. Each loads the page once.
   * `ui-handlers.test.js`: one static rule over `src/` and the page template that no inline `on...=` handler or `setAttribute('on...')` exists, except the entries in `INLINE_EXCEPTIONS` (the list may only get shorter), plus the browser tests of handler behavior.
   * `lint.test.js`: the exit codes of `tools/lint.js` with a stand-in ESLint, `tools/lint-globals.js`, and two tests with the real ESLint and the real `eslint.config.js` (an undefined name fails with `no-undef`; a registered global and a browser built-in pass). The real-ESLint tests skip when `eslint` or `globals` is not installed.
+  * `run-shards.test.js`: that for 1, 2, 3, 4 and 7 shards the parts are disjoint and together are every file, that the split does not depend on the order of the file list, that `--shard` is validated, and that the CI workflow agrees with the code: the matrix is `1..N` and the command says `/N`, and `test:quick` and `test:fast` are the commands this guide describes. If you add or remove a shard, change the workflow matrix and the `/N` together.
 * **`scroll.test.js`** still has its own copy of `loadPlaywright` and `buildApp` (different fake song data); only `launch` and `gotoApp` come from the shared fixture.
 * **Docs:** when you change scripts, discovery, helpers or prerequisites, update this file in the same change. If the repository workflow asks for it, add a line to `tools/change.log.txt`.
 
@@ -203,7 +208,7 @@ ESLint exists to catch missing imports and typos in the renderer, which is now o
 * Exit codes of `tools/lint.js`: `npm run lint` exits **1 if there is any error** (a parse error counts as one) and 0 otherwise, so warnings are only reported; `npm run lint:strict` exits 1 on any error **or warning**; 2 means ESLint could not run (not installed, or it threw). It prints every problem and a count per rule. Nothing is ever fixed automatically. `tools/tests/lint.test.js` runs the real script against a stand-in ESLint to check these codes, so those tests need no ESLint install. Two more tests there run the real ESLint with the real `eslint.config.js` on a small copy of the layout and check that an undefined name exits 1 with `no-undef`; they skip when `eslint` is not installed.
 * Needs `npm install` (adds `eslint` and `globals`; `globals` supplies the browser and Node built-in names, which ESLint does not include).
 
-**Baseline:** `node tools/lint.js --summary` reports 136 files, 0 errors and 1 warning (`no-unused-vars`), the same as before the flip. The older "21 errors" figure (20 for `updateExternalScrollbar`, 1 for `lyricsSavedView`) was fixed earlier and could not be reproduced. ESLint ran here with a `globals` package generated from Chromium's window properties, because the registry was unreachable; run it once with the real package. To check:
+**Baseline:** when this section was written, `node tools/lint.js --summary` reported 136 files, 0 errors and 1 warning (`no-unused-vars`), the same as before the flip; a later run reports 0 warnings (section 12). The older "21 errors" figure (20 for `updateExternalScrollbar`, 1 for `lyricsSavedView`) was fixed earlier and could not be reproduced. ESLint ran here with a `globals` package generated from Chromium's window properties, because the registry was unreachable; run it once with the real package. To check:
 
 ```powershell
 npm install
@@ -231,7 +236,16 @@ Minimal hook needed (main-process change, not made): one constant, for example `
 
 ## 10. Continuous integration
 
-`.github/workflows/test.yml` runs on `windows-latest` for every push and pull request: checkout, Node 24, `npm ci`, `npx playwright install chromium`, `npm test`. It does not run lint or any Electron test. `npm ci` needs `package-lock.json` to match `package.json`: after adding `eslint` and `globals`, run `npm install` once and commit the updated lock file, or `npm ci` will fail. The workflow has not been run (nothing was committed or pushed).
+`.github/workflows/test.yml` runs on every push and pull request, in two jobs:
+
+* **`unit-and-lint`** (`ubuntu-latest`): checkout, Node 24 with the npm cache, `npm ci`, `npm run test:quick`. That is the 20 unit files and then lint (errors fail the job, warnings do not). No browser is installed.
+* **`browser`** (`windows-latest`, matrix `shard: [1, 2, 3]`, `fail-fast: false`): checkout, Node 24, `npm ci`, a cache of the Playwright browser folder (`~\AppData\Local\ms-playwright`, keyed by the OS and `package-lock.json`), `npx playwright install chromium`, then `node tools/tests/run.js browser --shard=<n>/3`. The three parts run at the same time on separate machines.
+
+Every test file runs exactly once: the unit files in the first job, each browser file in exactly one of the three parts. `run-shards.test.js` fails if the matrix and the `/3` in the command disagree. No job starts the real Electron application.
+
+`npm ci` needs `package-lock.json` to match `package.json`: after adding packages, run `npm install` once and commit the updated lock file, or `npm ci` will fail.
+
+Not checked: the workflow file parses as YAML (checked by Agent B), but it has not been confirmed to run green on GitHub, so the cache, the three parts and their run times there are unknown.
 
 ## 11. Measured results (record of the first test-suite speed-up, before Plan 3)
 
@@ -248,7 +262,7 @@ Environment: Linux sandbox, **1 CPU core**, Node v22.22.2, Chromium 141. Not mea
 | test names (same TAP reporter) | 322 | 329: **0 lost**, 7 added (5 tests, 2 suites) |
 | `waitForTimeout` mentions in `tools/tests` | 73 | 39 (2 are comments) |
 
-The one counted failure and a second suite-level failure (`data-action names written in the source are all registered`, `legacy-bridge.test.js`) are identical before and after: both are `Cannot find module 'acorn'` because `acorn` is not installed in the sandbox. The 2 skips are the same two hard-coded ones. Run `npm install` to get these tests to run.
+The one counted failure and a second suite-level failure (`data-action names written in the source are all registered`, then in `legacy-bridge.test.js`, now in `window-contract.test.js`) are identical before and after: both are `Cannot find module 'acorn'` because `acorn` is not installed in the sandbox. The 2 skips are the same two hard-coded ones. Run `npm install` to get these tests to run.
 
 Slowest/most-changed files (seconds, before -> after):
 
@@ -271,20 +285,24 @@ Slowest/most-changed files (seconds, before -> after):
 
 Why it was slow: every browser test opens a fresh page (about 0.8-1.2 s to load on one core) and then slept 500-1200 ms for start-up to finish; the sequence suites do that for each of their 97 scenarios. Start-up actually settles about 0.6 s after load, so `gotoApp` saves about a quarter of a second per page; the larger saving in `metadata-editor` came from waits after `await page.evaluate(asyncFn())`, which had already waited.
 
-Concurrency (measured then, when it was opt-in; it is now on by default with a run-alone check for a scenario that differs, see the `SEQUENCE_PAGES` row above): `SEQUENCE_PAGES=3` ran `events-a` in 6.5 s (2 runs), `events-b` in 36.1/36.9 s and `events-c` in 33.9/32.1 s, all passing with the same recorded sequences. It is off by default.
+Concurrency (measured then with `SEQUENCE_PAGES=3`, when it was opt-in; today the default is 2 to 4 pages depending on the cores, a scenario that differs is run again alone in every mode, and the runner uses 1 page when it runs several files at once, see the `SEQUENCE_PAGES` row in section 3): `SEQUENCE_PAGES=3` ran `events-a` in 6.5 s (2 runs), `events-b` in 36.1/36.9 s and `events-c` in 33.9/32.1 s, all passing with the same recorded sequences.
 
-Remaining bottlenecks: page load per test (about 1 s each), the 28 intentional waits in `scroll.test.js` (simulated user timing, left alone), `online-metadata.test.js` (about 23 s of real retry back-off in the production code, not changed), and the 97 sequence-suite page opens. Run `npm run test:timing` to see the current numbers.
+Remaining bottlenecks (at the time): page load per test (about 1 s each), the 28 intentional waits in `scroll.test.js` (simulated user timing; 8 calls are left today, each with a comment), `online-metadata.test.js` (about 23 s of real retry back-off in the production code; its test now replaces the back-off and takes 0.2 to 0.3 s), and the 97 sequence-suite page opens. Run `npm run test:timing` to see the current numbers.
 
 ## 12. Plan 3 results (test content and maintenance, Agent C)
 
-Environment: Linux sandbox, 1 CPU core, Node v22.22.0, Chromium 141 from `PLAYWRIGHT_BROWSERS_PATH`. npm's registry was not reachable, so `node_modules` was assembled from local copies: ESLint 10.1 (the repository asks for `^9`), Playwright 1.56.1 (`^1.63`), acorn and acorn-walk, and a `globals` stand-in generated from Chromium's and Node's global names. `sharp`, `jimp` and `music-metadata` were not installed; no test needed them. Compare your own numbers; these are one run each.
+Environment of the numbers below (measured for step C-05, on the tree with the Phase 1 patches applied so far): Linux sandbox, 1 CPU core, Node v22.22.2, Playwright 1.56.0 with Chromium 141. npm's registry was not reachable: `acorn` and `acorn-walk` came from other local packages, and ESLint, `globals`, `jimp` and `music-metadata` were not installed (`sharp` was). So lint and the two real-ESLint tests could not run here (`node tools/lint.js` exits 2), and `scan-folder-tags` and `scanner` run without `jimp` and `music-metadata`. Each number is one run. Earlier runs of this suite in similar one-core sandboxes took 472 s (report C 0005, 57 files) and 414.8 s (report B 0006, 57 files), so expect the total to move by more than ten percent with the load of the machine. Not measured at all: Windows, a machine with several cores, GitHub Actions. Run `npm install` and repeat `npm run test:timing` once on your machine.
 
 | | Value |
 | --- | --- |
-| Test files | 57 (19 unit, 38 browser) |
-| `npm run test:timing`, one file after another | 472 s: 444 tests, 443 passed, 0 failed, 1 skipped (`scroll.test.js`, marked timing-sensitive) |
-| Slowest files | `scroll` 66 s, `events-b` 40 s, `events-wiring` 40 s, `events-c` 38 s, `drag-drop` 23 s, `ui-handlers` 23 s |
-| `waitForTimeout` in `tools/tests` (not counting comments) | `scroll.test.js` (every call has a comment saying it is the input or the observed window) and one 150 ms wait in `search-clear.test.js` (not reviewed by C) |
-| `node tools/lint.js --strict --summary` | 136 files, 0 errors, 0 warnings |
+| Test files | 58 (20 unit, 38 browser) |
+| `npm run test:timing`, one file after another | 359 s: 452 tests, 449 passed, 0 failed, 3 skipped (`scroll.test.js`, marked timing-sensitive, and the two real-ESLint tests in `lint.test.js`, which skip because ESLint is not installed here) |
+| Slowest files | `scroll` 48 s, `events-wiring` 36 s, `events-b` 32 s, `events-c` 29 s, `ui-handlers` 17 s, `drag-drop` 17 s |
+| Unit group, `node tools/tests/run.js unit` | 20 files, 165 tests (163 passed, 2 skipped: the real-ESLint tests), 2.7 s |
+| Browser files in 3 shards (`--shard=i/3`) | 13, 13 and 12 files; measured seconds per part 117.5, 123.1 and 114.5 (355 s in all) |
+| `waitForTimeout` in `tools/tests` (not counting comments) | `scroll.test.js` (8 calls, each with a comment saying it is the input or the observed window) and one 150 ms wait in `search-clear.test.js` (not reviewed by C) |
+| `node tools/lint.js --strict --summary` | 136 files, 0 errors, 0 warnings (report C 0005; not repeated here, see the environment) |
 | `node tools/event-audit.js --strict` | exit 0, total 0 (plus 70 allowed by `fileExceptions`) |
 | `node tools/dep-map.js` | 115 files; mutable globals assigned from other files 58; file-level cycles 2 + 69; load-time cross-file references 148, forward 0 |
+
+`npm run test:fast` was run three times by Agent B (report 0006): exit 0 each time, 287 tests, 1 skipped, in about 460 s. On that one-core machine the runner lowered the number of files at once to 1, so those runs show that the command works and the whole browser set passes with it, not how parallel runs behave. Four files at once on one core, forced before the cap existed, made `events-b`, `events-c` and `scroll` fail. Not measured: four files at once on a machine with four or more cores, and whether `npm run test:quick` finishes in under 10 s (the unit half takes 2.7 to 3.6 s; lint was not run).
