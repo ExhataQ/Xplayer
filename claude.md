@@ -1,538 +1,251 @@
-# ExhataQ Music Player — Project Instructions
+# Xplayer — Project Instructions
 
-## Project
+**Public repository:** https://github.com/ExhataQ/Xplayer
 
-Public repository: https://github.com/ExhataQ/ExhataQ
-Keep the repository public when sharing it.
+**Project name:** Xplayer  
+**Developer / GitHub account:** ExhataQ
 
-This is a free, local Electron music player for Windows.
+Keep the repository public when sharing it.it.
 
-The repository root contains `Source/`, which is the development source, and `App/`, which contains the built/runtime application.
+Xplayer is a free, local-first Electron music player for Windows. Its primary goals are reliable playback, practical music-library management, and useful metadata and lyrics tools.
 
-Main source structure:
+The repository contains:
 
-* `Source/build/` — Python build system and HTML template.
-* `Source/src/js/` — renderer JavaScript.
-* `Source/src/css/` — renderer CSS.
-* `Source/src/assets/` — fonts, icons, and other static assets bundled into the app.
-* `Source/electron/` — Electron main process, IPC, scanner, metadata, downloads, lyrics, and other backend functionality.
-* `Source/tools/` — tests, development utilities, and change log.
-* `Source/.agent/` — agent workflow documents (`AGENTS.md`, the current `PLAN.md`, `BOARD.md`, `reports/`). Read `Source/.agent/AGENTS.md` before changing anything.
+- `Source/` — development source, tests, documentation, and build system.
+- `App/` — deployed and generated application files.
 
-The application is built by running:
+The project should remain free. Do not introduce paid services or premium-only functionality.
 
-`Source/build/music_player.py`
+## 2. Architecture and File Ownership
 
-The build script generates the application under:
+Read `Source/.agent/AGENTS.md` before making changes. Also consult the current `Source/.agent/PLAN.md`, `BOARD.md`, and relevant task reports when the requested work relates to an active development plan.
 
-`App/MusicPlayerOutput/`
+### Build and runtime
 
-The runtime is launched through:
+- `Source/build/music_player.py` — Python build system. It assembles the application and preserves existing song data when appropriate.
+- `Source/build/music_player.html` — build template.
+- `App/MusicPlayerOutput/` — generated application output.
+- `App/electron.exe` — deployed Electron executable.
+- `Source/electron/scan-folder.js` — runtime audio scanner. It uses `music-metadata` and handles importing files, changing folders, downloads, rebuilds, and metadata scanning.
 
-`App/electron.exe`
+Do not confuse build-time processing with runtime scanning. Changes to source files do not automatically update the deployed application.
 
-Do not confuse build-time processing with runtime processing.
+### Renderer
 
-### Important architecture mapping
+Renderer JavaScript is organized by responsibility under `Source/src/js/`:
 
-`Source/electron/scan-folder.js` is the runtime audio scanner. It uses `music-metadata` and handles importing files, changing folders, downloads, rebuilds, and metadata scanning.
+- `core/` — application state, event bus, storage, startup, and build data.
+- `library/` — library data, favorites, settings, metadata editing, and related features.
+- `playlists/` — playlists, pinned items, and folders.
+- `search/` — search engine, search history, and search panel.
+- `playback/` — playback controls, song navigation, queue, and shuffle.
+- `lyrics/` — lyrics display, parsing, synchronization, and online lyrics.
+- `ui/` — views, panels, rendering, layout, and UI behavior.
+- `ui/subscribers/` — event subscribers for UI rendering and related state changes.
+- `api/` — renderer-facing API modules.
 
-`Source/build/music_player.py` is the build system. It does not perform audio metadata scanning. It generates the deployed application and preserves existing song data when appropriate.
+`Source/src/js/main.js` is the renderer entry point. Its import order determines module load order. Preserve that order and its dependency assumptions.
 
-The Electron files under `Source/electron/` are copied into the built application.
+JavaScript filenames retain their numeric prefixes. Follow the existing naming and folder conventions when adding or moving files.
 
-The renderer files under `Source/src/js/` and `Source/src/css/` are copied into `App/MusicPlayerOutput/`.
+`Source/src/js/99-player.js` is a build-time data template containing placeholders such as `{{SONGS_DATA}}` and `{{PLACEHOLDER_IMAGE}}`. `core/build-data.js` reads it. Do not treat it as the primary runtime library store.
 
-`Source/src/js/main.js` is the single renderer entry: a list of `import` lines whose order is the load order. `Source/src/js/99-player.js` is only the build-time data template (`{{SONGS_DATA}}`, `{{PLACEHOLDER_IMAGE}}`); `core/build-data.js` reads it. The library itself is read from `MusicPlayerOutput/songs.json` (see `electron/songs-store.js`); the placeholder list is only the fallback for a plain browser and the tests. The start-up code is `core/startup.js`.
+The runtime library is stored in `MusicPlayerOutput/songs.json`, managed by `Source/electron/songs-store.js`. The template's placeholder song data is used as a fallback for plain-browser operation and tests.
 
-Renderer files are grouped by area under `Source/src/js/`: `core/` (state, event bus, storage, start-up), `library/`, `playlists/`, `search/`, `playback/`, `lyrics/`, `ui/` (with `ui/subscribers/` for the `04h`–`04v` event subscribers) and `api/`. File names keep their number prefix; `main.js` imports each by its folder path.
-
-`Source/tools/CHANGELOG.md` is the concise integrated change history. Detailed task evidence belongs in unique reports under `Source/.agent/reports/`.
-
-`Source/tools/tests/` contains the project's tests.
+Startup logic is in `Source/src/js/core/startup.js`.
 
 ### Important file ownership
 
-Before changing something, identify which layer owns the behavior.
+Inspect the existing implementation before deciding where a change belongs.
 
-* Audio scanning / tag extraction / supported formats / cover extraction → `electron/scan-folder.js`
-* Metadata reading/writing → `electron/metadata-editor.py` and its Node wrapper
-* MusicBrainz / Cover Art Archive → `electron/online-metadata.js`
-* LRCLIB → `electron/online-lyrics.js` and `src/js/lyrics/19-online-lyrics.js`
-* Electron IPC / application bootstrap → `electron/main.js`
-* Window behavior → `electron/window-manager.js`
-* Renderer playback / queue / shuffle → `src/js/playback/10a-playback-shuffle.js`, `10a0-shuffle-state.js`, `10b-playback-smart-shuffle.js`, `10c-playback-queue.js`, `10d-playback-song.js`
-* Playback controls → `src/js/playback/15a-controls-time-play.js` to `15g-controls-volume-fade.js` (state in `15a0-controls-state.js`)
-* Song navigation / highlight → `src/js/playback/14-song-navigation.js`, `13-song-highlight.js`
-* Metadata editor UI → `src/js/library/20-metadata-editor.js`
-* Library data (recents, albums/artists, favorites, locations, cover sync, import/export) → `src/js/library/03*.js`
-* Playlists / pinned items / folders → `src/js/playlists/03c-playlists.js`, `03g-pinned-items.js`, `03h-folders.js`, `09-folders-playlists.js`
-* Search → `src/js/search/03b-search-engine.js`, `03i-search-history.js`, `08h-panel-search.js`
-* State, event bus, storage / settings → `src/js/core/00-state.js`, `00b-events.js`, `storage.js` (limits in `03-storage.js`); favorites and settings in `src/js/library/03f-favorites-settings.js`
-* Views → `src/js/ui/07-views.js`
-* Panels → `src/js/ui/08a-panel-layout.js` to `08f-panel-extended-metadata.js` (`08e-panel-settings.js` for settings); track and saved lyrics panels are `src/js/lyrics/08c-panel-track-lyrics.js` and `08g-panel-saved-lyrics.js`; search panel is `src/js/search/08h-panel-search.js`
-* Virtual scrolling → `src/js/ui/05a-lazy-load-main-list.js`, `05b-lazy-load-left-panel.js`, `05c-lazy-load-smart-lyrics.js`
-* Main renderer UI → `src/js/ui/04a-ui-render-core.js` and the renderers `04b` to `04g` in the same folder; event subscribers `04h` to `04v` in `src/js/ui/subscribers/`
-* Lyrics display / sync editor → `src/js/lyrics/11a-lrc-parser-display.js` and `11b` to `11g`; the LRC parser is `src/js/lyrics/lrc-parser.js`
-* Online lyrics UI → `src/js/lyrics/19-online-lyrics.js`
-* Language detection → `src/js/lyrics/21-language-detect.js`
-* Styling → the appropriate file in `src/css/`
+- Audio scanning, tag extraction, supported formats, and cover extraction: `Source/electron/scan-folder.js`
+- Metadata reading and writing: `Source/electron/metadata-editor.py` and its Node wrapper
+- MusicBrainz and Cover Art Archive: `Source/electron/online-metadata.js`
+- LRCLIB backend: `Source/electron/online-lyrics.js`
+- Online lyrics UI: `Source/src/js/lyrics/19-online-lyrics.js`
+- Electron IPC and application bootstrap: `Source/electron/main.js`
+- Window behavior: `Source/electron/window-manager.js`
+- Playback and shuffle: `Source/src/js/playback/10a-playback-shuffle.js`, `10a0-shuffle-state.js`, `10b-playback-smart-shuffle.js`, `10c-playback-queue.js`, and `10d-playback-song.js`
+- Playback controls: `Source/src/js/playback/15a-controls-time-play.js` through `15g-controls-volume-fade.js`; related state is in `15a0-controls-state.js`
+- Song navigation and highlighting: `Source/src/js/playback/14-song-navigation.js` and `13-song-highlight.js`
+- Library data and related operations: `Source/src/js/library/03*.js`
+- Playlists, pinned items, and folders: `Source/src/js/playlists/03c-playlists.js`, `03g-pinned-items.js`, `03h-folders.js`, and `09-folders-playlists.js`
+- Search: `Source/src/js/search/03b-search-engine.js`, `03i-search-history.js`, and `08h-panel-search.js`
+- State, events, storage, and settings: `Source/src/js/core/00-state.js`, `00b-events.js`, `storage.js`, and `Source/src/js/library/03f-favorites-settings.js`
+- Views: `Source/src/js/ui/07-views.js`
+- Panels: `Source/src/js/ui/08a-panel-layout.js` through `08f-panel-extended-metadata.js`; settings are in `08e-panel-settings.js`
+- Track and saved lyrics panels: `Source/src/js/lyrics/08c-panel-track-lyrics.js` and `08g-panel-saved-lyrics.js`
+- Virtual scrolling: `Source/src/js/ui/05a-lazy-load-main-list.js`, `05b-lazy-load-left-panel.js`, and `05c-lazy-load-smart-lyrics.js`
+- Main UI rendering: `Source/src/js/ui/04a-ui-render-core.js` through `04g`, with event subscribers `04h` through `04v` under `Source/src/js/ui/subscribers/`
+- Lyrics parsing and synchronization: `Source/src/js/lyrics/11a-lrc-parser-display.js`, `11b` through `11g`, and `lrc-parser.js`
+- Language detection: `Source/src/js/lyrics/21-language-detect.js`
+- Styling: the relevant file under `Source/src/css/`
 
-Do not duplicate functionality into another file merely because it is convenient. Follow the existing architecture.
+These mappings are navigation aids, not permission to ignore the actual implementation. If a responsibility has moved, follow the current code and update the relevant documentation.
 
-## Workflow
+Do not duplicate existing functionality in another module simply because it is convenient.
 
-### 1. Understand first
+### Electron security
 
-When I give you code, a patch, an error, or a requested change:
+Preserve the existing security model, including `nodeIntegration: false` and `contextIsolation: true`. Follow the existing main-process, preload, IPC, and renderer API boundaries.
 
-* Inspect the relevant existing implementation first.
-* Identify the actual code path responsible for the behavior.
-* Make the smallest reasonable change.
-* Preserve existing behavior unless the requested change requires otherwise.
-* Do not refactor unrelated code.
-* Do not redesign working systems unnecessarily.
+Do not introduce direct Node.js or Electron access into the renderer where the architecture prohibits it.
 
-Do not run the entire test suite at the beginning of every conversation.
+## 3. Development Workflow
 
-I normally provide code from a state that I have already tested.
+### Understand, then implement
 
-### 2. Implement first, test after changes
+When given a requested change, patch, error, or code sample:
 
-When I provide code and ask for a modification:
+1. Read the relevant implementation and identify the actual code path.
+2. Inspect only the related files and tests.
+3. Make the smallest reasonable change.
+4. Preserve unrelated behavior and existing user work.
+5. Run focused verification after implementation.
+6. Report the result concisely.
 
-1. Inspect the relevant code.
-2. Make the requested changes.
-3. Then run the tests relevant to the changed functionality.
-4. Report what was tested and the result.
+Do not repeatedly summarize the architecture or test an unchanged baseline. The existing project is assumed to have been tested unless there is evidence of a baseline problem.
 
-Do not test the unchanged baseline simply to prove that it worked before the conversation.
+Avoid broad searches, unrelated refactoring, unnecessary abstractions, and new dependencies unless the change justifies them.
 
-If a test is expensive, unrelated, or known to be irrelevant, do not run it unless there is a reason.
+### Comments and documentation
 
-Prefer focused tests over the entire test suite.
+Add comments only when they explain non-obvious behavior, important constraints, or deliberate workarounds. Do not narrate obvious code.
 
-For example:
+Update architectural documentation when a responsibility, interface, or dependency materially changes. Do not rewrite the entire project description for a small change.
 
-* Scanner change → scanner tests.
-* Metadata/cover change → metadata/online-metadata tests.
-* Storage change → storage tests.
-* Shuffle change → shuffle tests.
-* Virtual scrolling/layout change → scroll test.
-* Renderer-only change with no applicable automated test → perform the appropriate static/syntax checks and explain what was verified.
+### Agent workflow
 
-If a relevant test does not exist, consider adding a focused regression test when appropriate.
+- `Source/.agent/AGENTS.md` — shared instructions and agent responsibilities.
+- `Source/.agent/PLAN.md` — current development plan.
+- `Source/.agent/BOARD.md` — current task status.
+- `Source/.agent/reports/` — detailed evidence for individual tasks.
+- `Source/.agent/reports/TEMPLATE.md` — report format.
+- `Source/tools/CHANGELOG.md` — concise history of integrated changes.
 
-### 3. Do not waste tokens
+Plan 3's completed work and historical agent material belong in the appropriate archive. Do not reactivate archived tasks or overwrite historical reports unless explicitly requested.
 
-Optimize for useful work rather than lengthy narration.
+For new agent tasks, use a unique report filename and record the actual changes, commands, results, environment, skipped checks, and unresolved issues. Do not claim an unrun test passed.
 
-Before editing, spend tokens understanding the relevant code, not explaining obvious things to me.
+Task agents should not edit the shared changelog. The designated integration owner updates it after integration and verification, preserving historical entries and using the existing format:
 
-Do not repeatedly restate the project architecture.
+- Date on its own line.
+- File name on its own line.
+- Bullets describing actual changes.
 
-Do not explain unchanged code.
+Keep the changelog concise. Put detailed implementation and test evidence in the task report.
 
-Do not dump entire files.
+## 4. Testing
 
-Do not regenerate code that has not changed.
+Tests validate changes; they are not a ritual to repeat at the beginning of every task.
 
-Do not perform broad searches or inspect unrelated files unless necessary.
-
-Keep responses concise and report only:
-
-* what changed
-* why it changed
-* what was tested
-* any remaining issue
-
-### 4. Comments
-
-Do not add comments to code unless the comment is genuinely useful for explaining non-obvious behavior, an important constraint, or a deliberate workaround.
-
-Do not add comments that merely restate what the code does.
-
-Do not add large explanatory comment blocks.
-
-### 5. Change log
-
-Whenever you modify a source file, update:
-
-`Source/tools/CHANGELOG.md`
-
-Use the existing format:
-
-* date on its own line
-* file name on its own line
-* bullet list describing the changes
-
-Only describe actual changes made.
-
-Do not rewrite old entries.
-
-### 6. Prompt/project documentation
-
-If a file's responsibility or architecture materially changes, update the corresponding project documentation/reference so the description remains accurate.
-
-Do not rewrite the entire project description after every small code change.
-
-Only update the relevant mapping when its responsibility actually changes.
-
-## Git and patches
-
-Git is the source of truth.
-
-Before creating a commit, inspect:
-
-`git status`
-
-and the relevant diff.
-
-Keep unrelated changes separate.
-
-Do not accidentally include existing user changes in a commit.
-
-When I ask for a patch or when changes need to be transferred between environments, provide a `.patch` file rather than a ZIP containing modified source files.
-
-Prefer Git patches generated from the actual repository changes.
-
-Use clear patch filenames describing the change, for example:
-
-`0001-fix-cover-art.patch`
-`0002-fix-scanner-tags.patch`
-
-If multiple independent changes are being delivered, keep them as separate patches when practical.
-
-If I give you a patch file, inspect/apply it against the current Git state rather than assuming the patch still matches the current source.
-
-After applying a patch, verify:
-
-* what files changed
-* whether unrelated files were touched
-* whether conflicts occurred
-* whether the resulting diff is correct
-
-Do not force a patch through conflicts without first understanding what changed.
-
-### Commits
-
-Use focused commit messages.
-
-Do not create commits containing unrelated work.
-
-Before committing:
-
-* inspect `git status`
-* inspect the relevant diff
-* run relevant tests
-* check `git diff --check`
-
-After committing, report the commit hash and summary.
-
-## Build verification
-
-When a change affects the built application or build process, run:
-
-`Source/build/music_player.py`
-
-when appropriate, then verify the generated output.
-
-Do not rebuild unnecessarily for changes that are purely source/test/documentation changes.
-
-Remember that changing source files does not automatically change `App/MusicPlayerOutput/` until the build is run.
-
-## Testing philosophy
-
-Tests are for validating changes, not for repeatedly validating the unchanged starting point.
-
-Do not begin every new task with:
-
-`npm test`
-
-or another full-suite run.
-
-Instead:
-
-* modify
-* run the smallest relevant test(s)
-* expand testing only if the change warrants it
-
-If a test fails, investigate whether it is caused by the current change before modifying unrelated code.
-
-Never modify tests simply to make a legitimate implementation failure disappear.
-
-## Output style
-
-When explaining implementation changes, be direct.
-
-For code changes, prefer showing only the changed section rather than the entire file.
-
-However, when changes are being delivered as Git patches, the patch is the primary artifact; do not waste tokens reproducing large code blocks in the response.
-
-When useful, explain changes as:
-
-`Changed: ...`
-`Reason: ...`
-`Tested: ...`
-
-Do not provide generic praise or lengthy explanations unless I ask for them.
-
-## Important constraints
-
-* Preserve the existing UI unless the task specifically changes the UI.
-* Preserve existing functionality unless the task specifically changes it.
-* Avoid unnecessary dependencies.
-* Prefer existing project utilities and architecture.
-* Do not introduce paid services or premium functionality.
-* Do not replace working systems with a different architecture without a reason.
-* Keep changes incremental and reversible.
-* Treat performance regressions seriously, especially scanning, cover processing, rendering, virtual scrolling, and playback.
-
-If uncertain about an architectural decision, inspect the existing implementation and explain the tradeoff before making a large change.
-
-When I provide code and say to proceed, start working on the requested change rather than asking me to repeat the project context.
-
-## Ready state
-
-The project context above is the baseline.
-
-When I send code, inspect it and begin the requested change.
-
-Do not run baseline tests before making the change unless I specifically ask for that.
-
-After making the change, run the relevant tests and report the results.
-# Music Player Development Workflow
-
-## Role
-
-Work directly on the requested change in the Electron music-player project. Start implementing the requested change rather than spending the beginning of the task repeatedly testing or re-verifying the already-working baseline.
-
-The user will handle Git, commits, pushes, and patch application on their own. Do not perform or instruct Git/commit workflows unless specifically requested.
-
-The goal is to make correct, focused changes while minimizing unnecessary token usage, tool calls, repeated testing, and large code dumps.
-
-## Project Structure
-
-The project is an Electron desktop music player.
-
-Important source areas:
-
-* `Source/electron/` — Electron main-process code, scanner, metadata backends, downloads, windows, etc.
-* `Source/electron/scan-folder.js` — runtime music scanner and metadata/cover extraction. Changes involving supported formats, scanned metadata fields, duration, cover extraction, cover hashing, and file URLs normally belong here.
-* `Source/src/js/` — renderer JavaScript. Every file is an ES module; `src/js/main.js` imports them in the order they must run (the numeric names are a hint, the imports decide).
-* `Source/src/css/` — renderer styles.
-* `Source/build/music_player.py` — build-time script that assembles the application. It is not the runtime music scanner.
-* `Source/build/music_player.html` — build template.
-* `Source/tools/tests/` — automated tests.
-* `Source/tools/CHANGELOG.md` — concise integrated change history; detailed verification is in task reports under `Source/.agent/reports/`.
-* `Source/tools/` — development tools, test pages, playgrounds, and supporting files.
-* `App/` — generated/deployed output. Do not treat generated `App` files as the source of truth or edit them instead of `Source`.
-
-The application uses Electron with `nodeIntegration: false` and `contextIsolation: true`.
-
-The renderer is split across multiple numbered JavaScript files. Preserve the existing load-order architecture.
-
-Current relevant systems include:
-
-* local music scanning
-* metadata editing
-* MusicBrainz / Cover Art Archive metadata lookup
-* LRCLIB online lyrics
-* cover extraction and thumbnail generation
-* Sharp as the primary thumbnail engine with Jimp as fallback
-* playback, queue, recents, search, and shuffle systems
-
-## Implementation Rules
-
-Start implementing the requested change after understanding the relevant code.
-
-Do not begin every task by running the entire test suite or rebuilding the application. The user has already verified the existing baseline.
-
-Before editing:
-
-* Inspect only the files relevant to the requested change.
-* Search for the relevant functions, symbols, selectors, or data flow instead of reading unrelated large files.
-* Preserve existing behavior outside the requested scope.
-* Do not perform broad refactors unless they are necessary for the requested change.
-* Preserve existing UI dimensions, spacing, behavior, and styling unless the request specifically changes them.
-* Do not add unnecessary comments.
-* Do not duplicate existing functionality. Reuse existing helpers and systems when appropriate.
-* Do not modify generated `App` output as the primary implementation.
-* Protect unrelated existing/uncommitted work.
-
-When a change affects scanner behavior, treat `electron/scan-folder.js` as the primary runtime location unless the architecture clearly requires another file.
-
-When a change affects build-time assembly, use `build/music_player.py`.
-
-When a change affects renderer behavior, modify the appropriate numbered file in its `src/js/<area>/` folder and preserve its dependency/load-order assumptions.
-
-## Token-Efficient Investigation
-
-Prefer targeted inspection:
-
-* Search for exact function names, selectors, variables, and event handlers.
-* Read only the relevant sections of large files.
-* Use existing tests and existing utilities instead of creating redundant infrastructure.
-* Do not repeatedly rediscover project architecture that is already established above.
-* Do not repeatedly summarize the entire project.
-* Do not paste complete files into the response.
-* Do not generate large explanations when a concise implementation summary is sufficient.
-
-Make multiple related edits before testing rather than testing after every tiny edit.
-
-## Testing Strategy
-
-Testing happens AFTER implementation, not as a baseline ritual.
-
-Run the smallest relevant automated tests after the requested changes.
+Run the smallest relevant tests after implementation. Expand verification only when failures, shared functionality, cross-module effects, or the scope of the change warrant it.
 
 Examples:
 
-* Scanner changes → scanner/tag/metadata tests.
-* Online metadata changes → online metadata tests.
-* Metadata editor changes → metadata editor/backend tests.
-* Playback changes → relevant playback tests or focused runtime checks.
-* Pure CSS/UI changes → automated tests only if relevant; otherwise inspect the affected UI logic and provide a manual test checklist.
-* Changes touching shared/core functionality → expand testing when justified.
+- Scanner changes: scanner and metadata tests.
+- Metadata editor changes: metadata editor and backend tests.
+- Lyrics changes: lyrics parsing, synchronization, or online-lyrics tests.
+- Playback changes: relevant playback, queue, or shuffle tests.
+- UI or CSS changes: relevant renderer tests and static checks, followed by a focused manual inspection.
+- Build-system changes: relevant build checks and generated-output verification.
 
-Do not repeatedly run the same test suite after every small correction. Batch related fixes and test again.
+Use the current test scripts defined in `Source/package.json` and follow `Source/tools/tests/README.md`. Do not assume old commands, test counts, or test discovery rules remain current without checking the project configuration.
 
-Run broader tests only when:
+The last recorded Plan 3 verification reported 452 tests, with 451 passing, none failing, and one skipped. Strict linting checked 136 files with zero warnings or errors. These are historical results, not a guarantee that the current checkout has identical results.
 
-* the focused tests fail,
-* a shared/core system was changed,
-* the change crosses multiple subsystems,
-* or broader verification is specifically useful.
+Never change a test merely to conceal a legitimate implementation failure.
 
-Use `git diff --check` only if Git is available and useful for checking the edited diff; do not make Git operations part of the normal workflow.
+### Build verification
 
-## Build Verification
+Run `Source/build/music_player.py` when the change affects build assembly, generated output, packaging, source-to-output copying, or build-time data injection.
 
-Do NOT automatically rebuild the entire application after every change.
+For ordinary source, documentation, test, or renderer changes that do not depend on generated output, do not rebuild automatically.
 
-Perform build verification only when the requested change affects:
+When a build is required, verify the relevant generated files under `App/MusicPlayerOutput/`. Do not edit generated output as a substitute for changing the source.
 
-* the build process,
-* generated output,
-* packaging/deployment behavior,
-* source-to-output copying,
-* build-time data injection,
-* or another area where the build itself is part of the requested behavior.
+### Manual verification
 
-For ordinary renderer, scanner, metadata, or UI changes, focused tests plus code inspection are normally sufficient.
+For changes that affect behavior visible in the application, provide a short, specific manual checklist with expected results.
 
-If a build is actually required, state why it is required and verify the relevant result.
+Do not claim full verification when a required manual check has not been performed.
 
-## Change Log
+## 5. UI Redesign
 
-Every task or agent records detailed changes and verification in a distinct report under `Source/.agent/reports/`, using its template and a unique task identifier. Include exact commands and outcomes, environment, skipped or unrun checks, follow-ups, and commit or PR details when known.
+The goal is to improve the existing Xplayer interface, not create a separate application or replace working functionality with a mockup.
 
-Task agents do not edit the shared `Source/tools/CHANGELOG.md`. Only the designated integration owner updates it after integration and verification, with a concise summary linking to the task report. Do not present skipped or unrun checks as passing. Preserve historical entries and resolve conflicts explicitly rather than dropping entries.
+Read `.agent/ui-redesign/USER_PREFERENCES.md` when available. Follow `.claude/skills/xplayer-ui-redesign/SKILL.md` when using that Claude skill. Consult more specific design notes when they exist.
 
-The board tracks current plan status; reports are the detailed evidence; the changelog is the integrated summary.
+These documents serve different purposes:
 
-## Manual Verification
+- `USER_PREFERENCES.md` records the user's evolving ideas, preferences, and dislikes.
+- The skill defines the workflow and implementation guardrails.
+- Specific design notes can document individual areas such as the sidebar, tooltips, song list, or notifications.
 
-After implementation and automated testing, ALWAYS provide a concise manual inspection checklist when the change affects behavior that the user can test in the actual application.
+Treat brainstorms as guidance, not immutable specifications. Use design judgment and explain important trade-offs.
 
-The checklist should contain concrete actions and expected results.
+For a major redesign, first inspect the actual UI and existing functionality, then propose a cohesive design system and obtain approval before substantial restructuring. Once approved, implement the design in the real source files.
 
-For example:
+Priorities:
 
-Manual test:
+1. Reliable playback and performance.
+2. Clear navigation and practical library management.
+3. A cohesive visual system across views, panels, dialogs, tooltips, and notifications.
+4. Responsive layouts and consistent interaction states.
+5. Maintainability without unnecessary architectural complexity.
 
-1. Open the application.
-2. Open the Metadata Editor.
-3. Select a song containing multiple artists.
-4. Change the artist field and save.
-5. Reopen the editor.
-6. Confirm the exact value remains unchanged.
-7. Reload/rebuild the library if relevant.
-8. Confirm the scanner still displays the expected metadata.
+Preserve the existing application behavior unless a change is approved. Avoid adding a new framework or redesign-specific architecture without a clear justification.
 
-Do not give generic instructions such as "test everything."
+When redesign work is performed in another environment, deliver a Git patch whenever practical. Provide an updated project archive only when explicitly requested. Include actual source changes and relevant verification evidence, not just screenshots or a standalone prototype.
 
-The checklist should specifically target the risks introduced by the change.
+## 6. Git and Patch Handling
 
-If there are several independent areas affected, separate them into short test groups.
+The user normally handles Git operations, commits, pushes, and patch application. Do not perform or prescribe a Git workflow unless explicitly requested.
 
-## Final Verification Flow
+When Git inspection or patch creation is part of the requested task:
 
-After implementation:
+- Inspect the working-tree status and relevant diff first.
+- Protect unrelated user changes.
+- Do not stage or commit unrelated files.
+- Inspect patches against the current repository state before applying them.
+- Do not force a patch through conflicts without understanding the differences.
+- After applying a patch, inspect the resulting file changes and diff.
+- Run relevant tests and `git diff --check` when appropriate.
 
-1. Inspect the changed code for obvious regressions.
-2. Run the smallest relevant automated tests.
-3. Fix failures caused by the implementation.
-4. Re-run the relevant tests after fixes.
-5. If a build is genuinely required, perform the relevant build verification.
-6. Give the user a short manual-testing checklist.
-7. Clearly state what was tested automatically and what still requires manual testing.
-8. Do not claim the feature is fully verified until the manual checks have been performed by the user.
+When asked to create a patch, generate it from the actual repository changes. Include only the intended changes and use a descriptive filename, such as `0001-fix-cover-art.patch`. Keep independent changes separate when practical.
 
-The user will decide whether the manual results are acceptable and will handle Git/commits themselves.
+Do not create commits containing unrelated work. If a commit is explicitly requested, report its hash and summary. If a push is explicitly requested, report the actual outcome rather than assuming it succeeded.
 
-## Patch Files
+## 7. Reporting
 
-When delivering completed changes for the user to apply elsewhere, prefer a `.patch` file or patch-ready diff as the primary deliverable.
+Keep responses concise and factual. Prefer:
 
-Do NOT package completed source changes into a ZIP unless the user explicitly asks for a ZIP.
+**Changed:** Files and behavior modified.
 
-If producing a patch:
+**Reason:** Why the change was necessary.
 
-* include only the intended changes,
-* do not include unrelated files,
-* include the task report; include a `tools/CHANGELOG.md` entry only when you are the designated integration owner,
-* clearly state which files the patch changes,
-* clearly state whether any changes were intentionally excluded.
+**Automated tests:** Exact relevant tests run and their results.
 
-The patch should be usable for applying the actual implementation, not merely a conceptual example.
+**Build:** Mention only when a build was required or performed.
 
-## Reporting Results
+**Manual testing:** Specific steps and expected outcomes.
 
-Keep the final report concise.
+**Deliverable:** Patch or other requested artifact, plus any limitations.
 
-Use this structure:
+Do not paste entire files or repeat unchanged code when a patch or focused diff is sufficient. Distinguish verified facts from assumptions and clearly identify skipped or unrun checks.
 
-Implementation:
+## 8. Core Constraints
 
-* What changed.
-* Exact relevant file paths.
+- Keep the application free.
+- Preserve existing functionality unless a change requires otherwise and is approved.
+- Preserve Electron security boundaries.
+- Follow renderer module load order and existing architecture.
+- Avoid unnecessary dependencies and unrelated refactors.
+- Take performance regressions seriously, particularly in scanning, cover processing, rendering, virtual scrolling, and playback.
+- Protect unrelated work.
+- Prefer incremental, reversible changes.
+- If a major architectural decision is uncertain, inspect the implementation and explain the trade-off before proceeding.
 
-Automated tests:
+## Ready State
 
-* Tests run.
-* Pass/fail result.
-* Important failures, if any.
-
-Build:
-
-* Only mention build verification if it was actually necessary/performed.
-
-Manual testing:
-
-* Concrete steps the user should perform.
-* Expected results.
-
-Deliverable:
-
-* Patch file if one was requested/created.
-* Any important notes or known limitations.
-
-Do not include long code listings unless specifically requested.
-
-## Important Principle
-
-Prioritize implementation and useful verification over ceremony.
-
-Do not:
-
-* test the untouched baseline just because a new conversation started,
-* rebuild unnecessarily,
-* repeatedly reread the whole project,
-* repeatedly run the same tests,
-* dump entire files into responses,
-* perform Git/commit operations,
-* create ZIPs when a patch is sufficient,
-* refactor unrelated code.
-
-Implement → focused automated test → inspect → manual test checklist → user verifies.
+The project context above is the baseline. When the user provides code and asks for a change, inspect the relevant implementation and begin working. Do not ask the user to repeat information already provided, run the entire test suite before changing anything, or spend the opening response restating this document.
