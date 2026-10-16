@@ -9,7 +9,7 @@ const WARM_WINDOW = 300; // after one tooltip hides, the next one opens without 
 let tip = null; // the shared element, { node, name, state, shortcut, description }
 let activeTarget = null;
 let showTimer = 0;
-let lastHiddenAt = 0;
+let lastHiddenAt = -Infinity;
 
 function ensure() {
     if (tip) return tip;

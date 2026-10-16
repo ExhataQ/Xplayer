@@ -236,7 +236,14 @@ describe('ui-next components in a real page', { concurrency: false }, () => {
     });
 
     describe('tooltip', () => {
-        const mount = (pressed) =>
+        // An earlier test can leave the pointer where the next button appears; the browser then sends a late pointerenter
+        // that would open (or reopen) a tooltip behind the test's back. Park the pointer first, and let that event pass.
+        const mount = async (pressed) => {
+            await page.mouse.move(2, 2);
+            await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+            return mountButton(pressed);
+        };
+        const mountButton = (pressed) =>
             inPage((isToggle) => {
                 const b = ui.iconButton({ icon: 'shuffle', label: 'Shuffle', pressed: isToggle ? false : undefined, tooltip: { state: 'Off', shortcut: 'S', description: 'Play in random order' }, onClick: () => b.tooltip.update({ state: 'On' }) });
                 b.style.margin = '60px';

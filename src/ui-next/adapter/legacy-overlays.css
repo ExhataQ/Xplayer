@@ -1,0 +1,194 @@
+/* Interim look for the overlays the engine builds itself (register entry L-10, decision D14).
+ *
+ * The engine creates dialogs, context menus and editor overlays with its own class names and styled them from the
+ * old css/ files, which ui-next does not load. Without this file they render unstyled below the visible window and a
+ * button such as Shuffle seems to do nothing. This file only makes them visible, readable and usable, with tokens.
+ * Each one gets its real design in its owning task (A-05 menu, D-03 lyrics editors, D-04 metadata modal, D-06 dialogs);
+ * when that task replaces an overlay, delete its block here. Not styled: the lyrics and sync editor insides, the
+ * metadata form insides and extended info, which keep the engine's own markup until D-03 and D-04.
+ */
+
+/* Overlay shells: cover the window, center the box, sit above the shell and below tooltips. */
+.playlist-modal-overlay,
+.lyrics-editor-overlay,
+.sync-editor-overlay,
+.extended-info-overlay,
+.song-metadata-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--layer-menu);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+    box-sizing: border-box;
+    background: var(--surface-scrim);
+}
+
+/* Dialog box and its parts (shuffle mode, create and edit playlist and folder, import choice). */
+.playlist-modal,
+.song-metadata-modal {
+    box-sizing: border-box;
+    width: min(var(--dialog-width), 100%);
+    max-height: 100%;
+    overflow: auto;
+    padding: var(--space-6);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-raised);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: var(--text-md);
+}
+
+.song-metadata-modal {
+    width: min(var(--dialog-width-wide), 100%);
+}
+
+.playlist-modal-title {
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+}
+
+.playlist-modal-input {
+    box-sizing: border-box;
+    width: 100%;
+    height: var(--input-height);
+    margin: var(--space-3) 0;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font: inherit;
+}
+
+.playlist-modal-input:hover {
+    border-color: var(--input-border-hover);
+}
+
+.playlist-modal-buttons {
+    display: flex;
+    gap: var(--space-2);
+    justify-content: flex-end;
+}
+
+.playlist-modal-cancel-btn,
+.playlist-modal-create-btn {
+    min-height: var(--button-height);
+    padding: 0 var(--space-4);
+    border-radius: var(--radius-md);
+    font: inherit;
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+}
+
+.playlist-modal-cancel-btn {
+    border: 1px solid var(--button-outline-border);
+    background: transparent;
+    color: var(--text-primary);
+}
+
+.playlist-modal-cancel-btn:hover {
+    background: var(--control-hover-bg);
+}
+
+.playlist-modal-create-btn {
+    border: 1px solid transparent;
+    background: var(--button-primary-bg);
+    color: var(--button-primary-fg);
+}
+
+.playlist-modal-create-btn:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+
+.playlist-modal-create-btn:disabled {
+    opacity: var(--control-disabled-opacity);
+    cursor: default;
+}
+
+/* Context menus (songs, albums, playlists, lyrics lines). The engine positions them with inline left and top. */
+.context-menu,
+.sync-line-context-menu {
+    position: fixed;
+    z-index: var(--layer-menu);
+    box-sizing: border-box;
+    min-width: var(--menu-min-width);
+    max-width: calc(100vw - var(--space-4));
+    padding: var(--space-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--menu-bg);
+    box-shadow: var(--shadow-raised);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: var(--text-md);
+}
+
+.context-menu-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--menu-item-height);
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.context-menu-item:hover {
+    background: var(--control-hover-bg);
+}
+
+.context-menu-item .fas,
+.context-menu-item .far,
+.context-menu-item .fab,
+.context-menu-item .material-symbols-outlined {
+    display: none;
+}
+
+.context-menu-item span {
+    flex: 1;
+}
+
+.context-menu-separator {
+    margin: var(--space-1) 0;
+    border-top: 1px solid var(--border-subtle);
+}
+
+/* Submenus: opened by hovering the parent; the engine adds right-aligned, bottom-aligned or bottom-right-aligned. */
+.context-submenu {
+    position: absolute;
+    top: calc(-1 * var(--space-1));
+    left: 100%;
+    display: none;
+    min-width: var(--menu-min-width);
+    max-height: calc(100vh - var(--space-4));
+    overflow: auto;
+    padding: var(--space-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--menu-bg);
+    box-shadow: var(--shadow-raised);
+}
+
+.submenu-parent:hover > .context-submenu {
+    display: block;
+}
+
+.context-submenu.right-aligned,
+.context-submenu.bottom-right-aligned {
+    left: auto;
+    right: 100%;
+}
+
+.context-submenu.bottom-aligned,
+.context-submenu.bottom-right-aligned {
+    top: auto;
+    bottom: calc(-1 * var(--space-1));
+}

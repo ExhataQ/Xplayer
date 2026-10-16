@@ -5,7 +5,7 @@ import { el, iconEl } from './dom.js';
 import { button, iconButton } from './button.js';
 
 const DURATION = { info: 4000, success: 4000, error: 8000 };
-const ICON = { info: 'bell', success: 'check', error: 'circle-alert' };
+const ICON = { info: 'info', success: 'circle-check', error: 'circle-alert' };
 
 /**
  * Creates the toast region. Returns { show, dismiss, clear, el }.

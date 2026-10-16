@@ -184,7 +184,7 @@ Each entry says what it blocks. Phase 2 replaces an entry only when its "Blocks"
 | L-07 | Layout code (`core/01-sizes.js`) queries `.container`, `.player-*-section`, `#main-content`, `.settings-panel-content`, `.library-location-item`, and `applyFooterWidths()` writes inline `width`/`max-width` onto the three player sections (measured: it capped the left column at 187px) | Yes | Any re-nesting of the hidden host; a player layout that is not the old flex row | The hidden host keeps the old nesting. The visible player does **not** use the three `.player-*-section` classes, which turns `applyFooterWidths()` into a no-op. |
 | L-08 | The 8 template elements outside the playback layer that break boot (5 hero cover elements, `#album-art-image`, `#external-scrollbar-thumb`, `.left-panel-main-list`) | Yes | A shell that omits panels the old UI has | Provide them, hidden if the design has no use for them. Track each for removal. |
 | L-09 | Unguarded `.player-song-info` (`10c:195`, `10d:57`) | Yes | Moving the player bar markup | Keep the class on one persistent element. |
-| L-10 | **Engine-created overlays have no styling in ui-next.** The engine builds context menus (`context-menu`, `sync-line-context-menu`), the shuffle and playlist dialogs (`playlist-modal-overlay`), lyrics and sync editors, the metadata modal, extended-info and toasts, and styles them from the old `css/` files, which ui-next does not load (they restyle global classes such as `.container` and `.player-btn`) | Yes, for the Phase 1 exit (A-06) | Using any of these actions in the new shell: they work in the DOM and are tested, but render unstyled below the visible window, so for a user the button appears to do nothing. Measured: the shuffle dialog is `position: static`, 122px high, off screen | Owning tasks: A-05 (menu), A-07 (toasts), D-06 (dialogs), D-03 (lyrics editors), D-04 (metadata modal). Decision D14 asks whether to add a small interim stylesheet before then. |
+| L-10 | **Engine-created overlays have no styling in ui-next.** The engine builds context menus (`context-menu`, `sync-line-context-menu`), the shuffle and playlist dialogs (`playlist-modal-overlay`), lyrics and sync editors, the metadata modal, extended-info and toasts, and styles them from the old `css/` files, which ui-next does not load (they restyle global classes such as `.container` and `.player-btn`) | Resolved for the Phase 1 exit (A-06, D14); full styling stays with the owning tasks | Using any of these actions in the new shell: they work in the DOM and are tested, but render unstyled below the visible window, so for a user the button appears to do nothing. Measured: the shuffle dialog is `position: static`, 122px high, off screen | Owning tasks: A-05 (menu), A-07 (toasts), D-06 (dialogs), D-03 (lyrics editors), D-04 (metadata modal). Decision D14: an interim stylesheet, `adapter/legacy-overlays.css`, was added in A-06 so they are visible and usable (dialogs, context menus and submenus, overlay shells). The editor and metadata insides stay unstyled until D-03 and D-04. |
 
 ---
 
@@ -252,7 +252,7 @@ Mutation check: with `adapter/legacy-icons.css` unlinked 2 tests fail; with `#re
 | D11 | Fix seek and volume in the engine (D-1, D-2), not in the shell | Approved; done in this patch |
 | D12 | Engine-written icons: CSS-map the four transport glyphs to Lucide for Phase 1; neutral engine class is a Phase 2 item (L-02) | Approved; applies in A-04 |
 | D13 | `legacy-dom-adapter` line budget 250 lines (code only). Over budget means revisit D10 | Approved; enforced by gate 14 |
-| D14 | Interim styling for engine-created overlays (L-10) before A-05, A-07 and D-06 | **Open, needs your decision** |
+| D14 | Interim styling for engine-created overlays (L-10) before A-05, A-07 and D-06 | Approved (2026-10-17); implemented in A-06 via `adapter/legacy-overlays.css` and its link in `index.html` |
 
 ---
 
@@ -271,15 +271,16 @@ The scripts were delivered separately as `xplayer-a03-probes.zip` and are not pa
 | Part | File | Notes |
 |---|---|---|
 | Adapter | `adapter/legacy-dom-adapter.js` | 4 slots: `nav`, `window`, `player`, `host`. About 140 code lines of the 250 budget. Builds every engine element. |
+| Overlay look (interim) | `adapter/legacy-overlays.css` | Engine-created dialogs, context menus and overlay shells, tokens only (D14, L-10). Delete block by block as D-03, D-04, D-06 and A-05 replace each overlay |
 | Glyph map | `adapter/legacy-icons.css` | `fa-play`, `fa-pause`, `fa-volume-up`, `fa-volume-mute` drawn as Lucide masks (D12) |
 | Shell | `shell/shell.css`, `shell/shell.js`, `index.html` | Title bar (logo menu, back, forward, bell, window controls), 7-item rail, panel host (compact or expanded, remembered in `localStorage` key `xplayer.ui-next.panel`), empty views, player host |
 
 **Visible vs hidden.** In the visible shell: back and forward, the three window buttons, all transport and seek and volume controls, song info, and the lyrics button (disabled until the engine enables it). In the hidden host (`#legacy-host`, `hidden`): `#song-list`, `#queue-list`, the old panels, the hero covers and `#search-btn`. The new views must not read the hidden host (gate 13).
 
 **Known limits.**
-- L-10: engine-created overlays are unstyled (D14).
+- L-10: engine-created overlays: dialogs, context menus and overlay shells are styled by the interim `adapter/legacy-overlays.css` (D14, A-06). Lyrics and sync editor insides, the metadata form insides and extended info keep the engine's own markup and are not styled until D-03 and D-04.
 - The queue button (`toggleRightPanel`) and the lyrics panel are not in the new player bar: they need C-03 and D-01. `#lyrics-toggle-btn` exists but its action switches to a panel that is hidden.
 - `#subhero-play-btn` is not provided (optional, tolerated in every scenario).
-- The logo is a placeholder (task A-09). Logo menu items are disabled placeholders (decision D8 names the groups only).
+- The title bar logo is still a placeholder: the X mark and the startup view from A-09 exist (`startup/`) but are not wired into the shell yet (A-09 is Phase 3). Logo menu items are disabled placeholders (decision D8 names the groups only).
 - Not run in Electron. The new test file runs in headless Chromium with a stubbed `electronAPI`; click through the shell once in the real app (window drag, minimize, maximize, close, back and forward).
 - The old UI is untouched and remains the default.
