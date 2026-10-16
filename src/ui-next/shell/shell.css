@@ -1,0 +1,491 @@
+/* ui-next shell (task A-03): title bar, nav rail, panel host, view host, player host. Tokens only, no raw colors.
+ *
+ * Engine elements (adapter/legacy-dom-adapter.js) keep their old class names because the engine looks them up by
+ * name. They are styled here through the shell's wrapper (.player-host, .titlebar) and never renamed. The engine also
+ * writes some inline styles (display, width, left, opacity), so nothing below fights those with !important or transform
+ * on the same property (ENGINE-CONTRACT.md L-05).
+ */
+
+.app {
+    display: grid;
+    grid-template-columns: var(--rail-width) auto minmax(0, 1fr);
+    grid-template-rows: var(--titlebar-height) minmax(0, 1fr) var(--player-height);
+    grid-template-areas:
+        'titlebar titlebar titlebar'
+        'rail panel view'
+        'player player player';
+    height: 100vh;
+    min-width: var(--window-min-width);
+}
+
+/* ---------- shared: icon buttons ---------- */
+
+.icon-btn,
+.nav-btn,
+.rail-btn,
+.player-host .player-btn,
+.player-host .lyrics-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex: none;
+    width: var(--icon-button-size);
+    height: var(--icon-button-size);
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-secondary);
+    transition: background-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+}
+.icon-btn:hover,
+.nav-btn:not(:disabled):hover,
+.rail-btn:hover,
+.player-host .player-btn:hover,
+.player-host .lyrics-toggle-btn:not(:disabled):hover {
+    background: var(--surface-selected);
+    color: var(--text-primary);
+}
+.nav-btn:disabled,
+.player-host .lyrics-toggle-btn:disabled {
+    color: var(--text-tertiary);
+    cursor: default;
+}
+.xp-icon {
+    display: inline-flex;
+    pointer-events: none;
+}
+
+/* ---------- title bar ---------- */
+
+.titlebar {
+    grid-area: titlebar;
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 0 0 0 var(--space-2);
+    background: var(--surface-ground);
+    border-bottom: 1px solid var(--border-subtle);
+    -webkit-app-region: drag;
+    user-select: none;
+    position: relative;
+}
+.titlebar button,
+.titlebar .logo-menu {
+    -webkit-app-region: no-drag;
+}
+.titlebar .nav-btn,
+.titlebar .icon-btn {
+    width: 28px;
+    height: 28px;
+}
+.titlebar__spacer {
+    flex: 1;
+}
+.logo-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-right: var(--space-1);
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--accent);
+}
+.logo-btn:hover,
+.logo-btn[aria-expanded='true'] {
+    background: var(--surface-selected);
+}
+.window-control-btn,
+.close-app-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: var(--titlebar-height);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-secondary);
+}
+.window-control-btn:hover {
+    background: var(--surface-selected);
+    color: var(--text-primary);
+}
+.close-app-btn:hover {
+    background: var(--danger);
+    color: var(--surface-ground);
+}
+.titlebar__window {
+    display: flex;
+    margin-left: var(--space-2);
+}
+
+/* logo menu */
+.logo-menu {
+    position: absolute;
+    top: calc(var(--titlebar-height) - 2px);
+    left: var(--space-2);
+    z-index: 20;
+    min-width: 200px;
+    padding: var(--space-1);
+    border: 1px solid var(--tooltip-border);
+    border-radius: var(--radius-lg);
+    background: var(--menu-bg);
+}
+.logo-menu[hidden] {
+    display: none;
+}
+.logo-menu__group {
+    padding: var(--space-2) var(--space-3) var(--space-1);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+}
+.logo-menu__item {
+    display: block;
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-tertiary);
+    font-size: var(--text-sm);
+    text-align: left;
+    cursor: default;
+}
+
+/* ---------- nav rail ---------- */
+
+.rail {
+    grid-area: rail;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-2) 0;
+    background: var(--surface-ground);
+    border-right: 1px solid var(--border-subtle);
+}
+.rail-btn {
+    width: 40px;
+    height: 40px;
+}
+.rail-btn[aria-current='page'] {
+    background: var(--surface-selected);
+    color: var(--text-primary);
+}
+.rail-btn[aria-current='page']::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 10px;
+    bottom: 10px;
+    width: 2px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+}
+.rail-btn--end {
+    margin-top: auto;
+}
+
+/* ---------- panel host (contextual, compact or expanded) ---------- */
+
+.panel-host {
+    grid-area: panel;
+    display: flex;
+    flex-direction: column;
+    width: var(--panel-width);
+    min-width: 0;
+    background: var(--surface-panel);
+    border-right: 1px solid var(--border-subtle);
+    overflow: hidden;
+}
+.panel-host[data-panel='compact'] {
+    width: 72px;
+}
+.panel-host__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    height: 48px;
+    padding: 0 var(--space-3) 0 var(--space-4);
+}
+.panel-host[data-panel='compact'] .panel-host__header {
+    justify-content: center;
+    padding: 0;
+}
+.panel-host__title {
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+}
+.panel-host__body {
+    flex: 1;
+    min-height: 0;
+    padding: var(--space-4);
+    overflow: auto;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.panel-host[data-panel='compact'] .panel-host__title,
+.panel-host[data-panel='compact'] .panel-host__body {
+    display: none;
+}
+
+/* ---------- view host ---------- */
+
+.view-host {
+    grid-area: view;
+    min-width: 0;
+    overflow: auto;
+    background: var(--surface-ground);
+}
+.empty-view {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    height: 100%;
+    padding: var(--space-8);
+    text-align: center;
+}
+.empty-view h1 {
+    font-family: var(--font-serif);
+    font-weight: var(--weight-regular);
+    font-size: var(--text-3xl);
+    letter-spacing: -0.01em;
+}
+.empty-view p {
+    max-width: 420px;
+    color: var(--text-secondary);
+    line-height: 1.55;
+}
+
+/* ---------- player host ---------- */
+
+.player-host {
+    grid-area: player;
+    background: var(--surface-panel);
+    border-top: 1px solid var(--border-subtle);
+    min-width: 0;
+}
+.player-host .player-container {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(300px, 560px) minmax(180px, 1fr);
+    align-items: center;
+    gap: var(--space-4);
+    height: 100%;
+    padding: 0 var(--space-4);
+}
+
+/* song info (left) */
+.player-host .player-left {
+    min-width: 0;
+}
+.player-host .player-song-info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+}
+.player-host #player-cover {
+    flex: none;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-raised);
+    object-fit: cover;
+    cursor: pointer;
+}
+.player-host .player-text-info {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.player-host #player-title,
+.player-host #player-artist {
+    /* The engine scrolls long text with .marquee-inner, .marquee-active and .marquee-masked (06k, register L-03).
+       It positions the text with an inline translateX, so the box must clip, not ellipsize, and keep this 3px gutter. */
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: clip;
+    padding: 0 3px;
+    margin: 0 -3px;
+}
+.player-host #player-title {
+    font-size: var(--text-md);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+}
+.player-host #player-title:hover,
+.player-host #player-title:hover .marquee-inner {
+    text-decoration: underline;
+}
+.player-host #player-artist {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+.player-host .marquee-inner {
+    display: inline;
+    white-space: nowrap;
+}
+.player-host .marquee-active .marquee-inner {
+    display: inline-block;
+    will-change: transform;
+}
+.player-host #player-artist.marquee-active.marquee-masked {
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+}
+.player-host #player-artist .player-artist-name {
+    cursor: pointer;
+}
+.player-host #player-artist .player-artist-name:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
+}
+.player-host .player-song-info:not(.has-song) #player-title {
+    color: var(--text-secondary);
+}
+
+/* transport (center) */
+.player-host .player-center {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+}
+.player-host .player-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+}
+.player-host .player-btn.active {
+    color: var(--accent);
+}
+.player-host #play-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-pill);
+    background: var(--button-primary-bg);
+    color: var(--button-primary-fg);
+}
+.player-host #play-btn:hover {
+    background: var(--button-primary-bg);
+    color: var(--button-primary-fg);
+    opacity: 0.88;
+}
+.player-host .repeat-one {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    font-size: 9px;
+    font-weight: var(--weight-semibold);
+    line-height: 1;
+    color: var(--accent);
+}
+
+/* progress */
+.player-host .progress-section {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-2);
+}
+.player-host .time-display {
+    min-width: 36px;
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+}
+.player-host #current-time {
+    text-align: right;
+    cursor: pointer;
+}
+.player-host .progress-container,
+.player-host #volume-slider {
+    position: relative;
+    height: 16px;
+    cursor: pointer;
+}
+.player-host .progress-container::before,
+.player-host #volume-slider::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 4px;
+    margin-top: -2px;
+    border-radius: var(--radius-pill);
+    background: var(--border-strong);
+}
+.player-host #progress-bar,
+.player-host #volume-fill {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    height: 4px;
+    margin-top: -2px;
+    border-radius: var(--radius-pill);
+    background: var(--text-primary);
+}
+.player-host .progress-container:hover #progress-bar,
+.player-host .progress-container.dragging #progress-bar {
+    background: var(--accent);
+}
+.player-host #progress-knob,
+.player-host #volume-knob {
+    position: absolute;
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    margin: -6px 0 0 -6px;
+    border-radius: var(--radius-pill);
+    background: var(--text-primary);
+    opacity: 0;
+    transition: opacity var(--motion-fast) var(--motion-ease);
+}
+.player-host .progress-container:hover #progress-knob,
+.player-host .progress-container.dragging #progress-knob,
+.player-host #volume-slider:hover #volume-knob {
+    opacity: 1;
+}
+
+/* right controls */
+.player-host .player-right {
+    min-width: 0;
+}
+.player-host .player-right-controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-2);
+}
+.player-host .volume-container {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+.player-host #volume-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--icon-button-size);
+    height: var(--icon-button-size);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+.player-host #volume-icon:hover {
+    background: var(--surface-selected);
+    color: var(--text-primary);
+}
+.player-host #volume-slider {
+    width: 96px;
+}

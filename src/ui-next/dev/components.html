@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" data-theme="warm-graphite">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Xplayer components</title>
+    <link rel="stylesheet" href="../tokens.css">
+    <link rel="stylesheet" href="../base.css">
+    <link rel="stylesheet" href="../components/components.css">
+    <style>
+        /* gallery layout only: the components themselves are styled by components.css */
+        body { overflow: auto; }
+        .page { max-width: 1080px; margin: 0 auto; padding: var(--space-8); display: flex; flex-direction: column; gap: var(--space-8); }
+        .bar { display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: center; padding: var(--space-4); background: var(--surface-panel); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); position: sticky; top: var(--space-2); z-index: 5; }
+        .bar .group { display: flex; gap: var(--space-2); align-items: center; }
+        .bar .group > span { color: var(--text-secondary); font-size: var(--text-sm); margin-right: var(--space-1); }
+        section > h2 { font-size: var(--text-lg); font-weight: var(--weight-semibold); margin-bottom: var(--space-1); }
+        section > p { color: var(--text-secondary); font-size: var(--text-sm); margin-bottom: var(--space-3); }
+        .surface { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-4); background: var(--surface-panel); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); }
+        .row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-6); }
+        .cell { display: flex; flex-direction: column; gap: var(--space-2); align-items: flex-start; }
+        .cell > small { color: var(--text-tertiary); font-size: var(--text-xs); }
+        .cell--field { width: 228px; align-items: stretch; }
+        .cell--wide { width: 440px; align-items: stretch; }
+        .tooltip.static { position: static; display: block; width: max-content; }
+        .toaster.static { position: static; width: var(--toast-width); }
+        .empty-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-4); }
+        .empty-row > div { border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--surface-ground); }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="bar">
+            <div class="group" id="themes"><span>Theme</span></div>
+            <div class="group" id="accents"><span>Accent</span></div>
+            <div class="group" id="directions"><span>Direction</span></div>
+        </div>
+        <div id="gallery"></div>
+    </div>
+    <script type="module" src="components-gallery.js"></script>
+</body>
+</html>

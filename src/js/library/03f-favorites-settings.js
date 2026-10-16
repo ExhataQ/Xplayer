@@ -106,6 +106,33 @@ export function getWindowSettings() {
 }
 
 
+// Startup screen of the new interface (ui-next). The ids match STARTUP_OPTIONS in src/ui-next/startup/startup.js;
+// tools/tests/ui-next-startup.test.js fails if the two lists drift apart. 'random' is a choice, not a background:
+// the startup view picks one animated background per start.
+export const STARTUP_BACKGROUNDS = [
+    { id: 'playhead', label: 'Playhead sweep' },
+    { id: 'vinyl', label: 'Vinyl grooves' },
+    { id: 'equalizer', label: 'Equalizer horizon' },
+    { id: 'light', label: 'Light leaks' },
+    { id: 'constellation', label: 'Constellation of songs' },
+    { id: 'plain', label: 'Plain, no animation' },
+    { id: 'random', label: 'Random each start' }
+];
+export const DEFAULT_STARTUP_BACKGROUND = 'vinyl';
+
+
+export function getStartupBackground() {
+    const saved = storageRead(STORAGE_KEYS.STARTUP_BACKGROUND, DEFAULT_STARTUP_BACKGROUND);
+    return STARTUP_BACKGROUNDS.some((o) => o.id === saved) ? saved : DEFAULT_STARTUP_BACKGROUND;
+}
+
+
+export function setStartupBackground(id) {
+    if (!STARTUP_BACKGROUNDS.some((o) => o.id === id)) return false;
+    return storageWrite(STORAGE_KEYS.STARTUP_BACKGROUND, id);
+}
+
+
 export function setMinimizeOnClose(enabled) {
     const value = Boolean(enabled);
     storageWriteBool(STORAGE_KEYS.MINIMIZE_ON_CLOSE, value);
@@ -152,6 +179,9 @@ if (typeof registerLegacyGlobals === 'function') {
         setAudioPlaybackSetting,
         getWindowSettings,
         setMinimizeOnClose,
+        STARTUP_BACKGROUNDS,
+        getStartupBackground,
+        setStartupBackground,
         saveSmartShuffleSetting,
         saveFavorite,
         removeFavorite,

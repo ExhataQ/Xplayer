@@ -26,7 +26,8 @@ export const STORAGE_KEYS = {
     PANEL_WIDTHS: 'panelWidths',
     FOLDERS: 'folders',
     EXPANDED_FOLDERS: 'expandedFolders',
-    AUDIO_PLAYBACK_SETTINGS: 'audioPlaybackSettings'
+    AUDIO_PLAYBACK_SETTINGS: 'audioPlaybackSettings',
+    STARTUP_BACKGROUND: 'startupBackground'
 };
 
 export function getSongById(id) {

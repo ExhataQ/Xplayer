@@ -34,6 +34,9 @@ registerActions({
     },
     setReplayGainTrimSetting,
     setSmartShuffleSetting,
+    setStartupBackground: function (...args) {
+        return setStartupBackground.apply(this, args);
+    },
     switchToHistoryFromSettings: function (...args) {
         return switchToHistoryFromSettings.apply(this, args);
     },
@@ -130,6 +133,12 @@ export function openSettingsPanel() {
                         >
                         <span>Minimize to taskbar when closed</span>
                         </label>
+                    </div>
+                    <div class="settings-section">
+                        <div class="settings-section-title">Startup screen</div>
+                        <div class="settings-threshold-row"><span>Background (new interface)</span><select data-action-change="setStartupBackground" data-args-change='["$value"]' aria-label="Startup screen background">
+                            ${STARTUP_BACKGROUNDS.map((o) => `<option value="${o.id}" ${getStartupBackground() === o.id ? 'selected' : ''}>${o.label}</option>`).join('')}
+                        </select></div>
                     </div>
                     <div class="settings-section">
                         <div class="settings-section-title">Playback & Audio</div>

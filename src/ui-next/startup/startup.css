@@ -1,0 +1,231 @@
+/* Startup view (task A-09). Tokens only: no raw colors, no primitive names.
+ * Animation budget: transform and opacity only, one slow loop per background. prefers-reduced-motion stops them (base.css). */
+
+.startup {
+    position: absolute;
+    inset: 0;
+    background: var(--surface-ground);
+    overflow: hidden;
+    transition: opacity 240ms var(--motion-ease);
+}
+.startup.is-done {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ---- window controls and logo menu float above the background (D8) ---- */
+.su-titlebar {
+    position: absolute;
+    inset: 0 0 auto 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    height: var(--titlebar-height);
+    padding-left: var(--space-2);
+    -webkit-app-region: drag;
+}
+.su-drag { flex: 1; }
+.su-menu,
+.su-win {
+    -webkit-app-region: no-drag;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    border: 0;
+    background: transparent;
+    color: var(--text-secondary);
+    transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+}
+.su-menu { height: 28px; padding: 0 var(--space-2); border-radius: var(--radius-md); }
+.su-win { width: 46px; height: var(--titlebar-height); }
+.su-menu:hover,
+.su-win:hover { background: var(--surface-selected); color: var(--text-primary); }
+.su-menu:active,
+.su-win:active { background: var(--surface-raised); }
+.su-close:hover { background: var(--danger); color: var(--text-on-accent); }
+
+/* ---- logo, then the loading line and status below it ---- */
+.su-mark {
+    position: absolute;
+    z-index: 2;
+    left: 50%;
+    top: calc(50% - 20px);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+.su-foot {
+    position: absolute;
+    z-index: 2;
+    left: 0;
+    right: 0;
+    top: calc(50% + 50px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    pointer-events: none;
+}
+.su-line {
+    width: 220px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--border-strong);
+    overflow: hidden;
+}
+.su-line i {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    transform-origin: left center;
+    transform: scaleX(0);
+    transition: transform 300ms var(--motion-ease);
+}
+.startup.is-indeterminate .su-line i { width: 40%; transform: none; animation: su-slide 1.4s var(--motion-ease) infinite; }
+@keyframes su-slide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(250%); }
+}
+.su-label { display: flex; gap: var(--space-2); align-items: baseline; color: var(--text-secondary); font-size: var(--text-sm); }
+.su-percent { color: var(--text-tertiary); min-width: 3ch; }
+.su-percent:empty { display: none; }
+
+/* ---- backgrounds ---- */
+.su-bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+.su-bg > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* Keeps the center calm: the background fades out toward the logo and toward the window edges. */
+.su-vignette {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: radial-gradient(ellipse 45% 45% at 50% 48%, color-mix(in srgb, var(--surface-ground) 75%, transparent), transparent 75%),
+        radial-gradient(ellipse 90% 90% at 50% 50%, transparent 55%, var(--surface-ground) 100%);
+}
+.startup[data-variant='plain'] .su-vignette { display: none; }
+.startup[data-variant='vinyl'] .su-vignette { display: none; }
+/* The waveform runs through the middle, so the center gets a stronger veil to keep the logo and status text readable. */
+.startup[data-variant='playhead'] .su-vignette {
+    background: radial-gradient(ellipse 30% 36% at 50% 52%, var(--surface-ground) 35%, transparent 100%),
+        radial-gradient(ellipse 90% 90% at 50% 50%, transparent 55%, var(--surface-ground) 100%);
+}
+
+/* 1. playhead: an amber line crosses the screen and lights the waveform behind it, then the cycle starts again.
+   The lit layer slides in from the left while its picture slides the other way by the same amount, so the bars stay
+   put and only the lit area grows. Both use the same duration and easing. */
+.su-wave-dim { fill: var(--border-strong); opacity: 0.35; }
+.su-wave-lit { fill: var(--accent); opacity: 0.5; }
+.su-lit {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    transform: translateX(-100%);
+    animation: su-lit 20s linear infinite;
+}
+.su-lit > svg { position: absolute; inset: 0; width: 100%; height: 100%; animation: su-lit-inner 20s linear infinite; }
+.su-head {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 2px;
+    background: var(--accent);
+    box-shadow: -40px 0 60px 10px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+@keyframes su-lit {
+    0% { transform: translateX(-100%); opacity: 1; }
+    90% { transform: translateX(0); opacity: 1; }
+    100% { transform: translateX(0); opacity: 0; }
+}
+@keyframes su-lit-inner {
+    0% { transform: translateX(100%); }
+    90%, 100% { transform: translateX(0); }
+}
+
+/* 2. vinyl: fine grooves over the whole screen, a light reflection turning slowly, the logo on the label */
+.su-groove { fill: none; stroke: var(--text-primary); stroke-opacity: 0.045; }
+.su-groove-major { stroke-opacity: 0.09; }
+.su-label-disc { fill: var(--surface-panel); stroke: var(--border-strong); }
+.su-label-edge { fill: none; stroke: var(--accent); stroke-opacity: 0.5; }
+.su-sheen {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 160vmax;
+    height: 160vmax;
+    margin: -80vmax 0 0 -80vmax;
+    background: conic-gradient(from 35deg, transparent 0 8%, color-mix(in srgb, var(--accent) 16%, transparent) 14%, transparent 22% 58%, color-mix(in srgb, var(--text-primary) 8%, transparent) 64%, transparent 72%);
+    animation: su-turn 60s linear infinite;
+}
+@keyframes su-turn { to { transform: rotate(360deg); } }
+.startup[data-variant='vinyl'] .su-mark { top: 50%; }
+.startup[data-variant='vinyl'] .su-foot { top: auto; bottom: 56px; }
+
+/* 3. equalizer: a skyline of thin bars that breathe at their own pace, tallest and amber in the middle */
+.su-eq {
+    position: absolute;
+    left: var(--space-6);
+    right: var(--space-6);
+    bottom: 0;
+    height: 24vh;
+    min-height: 140px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+.su-eq i {
+    display: block;
+    flex: 1 1 0;
+    max-width: 5px;
+    height: 100%;
+    border-radius: 2px 2px 0 0;
+    background: color-mix(in srgb, var(--text-primary) 16%, transparent);
+    transform-origin: 50% 100%;
+    transform: scaleY(var(--h));
+    animation: su-eq var(--t) ease-in-out infinite;
+    animation-delay: var(--d);
+}
+.su-eq i.is-center { background: color-mix(in srgb, var(--accent) 55%, transparent); }
+@keyframes su-eq {
+    0%, 100% { transform: scaleY(var(--h)); }
+    50% { transform: scaleY(calc(var(--h) * 0.6)); }
+}
+.su-bg-equalizer::after {
+    content: '';
+    position: absolute;
+    inset: 55% 0 0 0;
+    background: linear-gradient(transparent, color-mix(in srgb, var(--accent) 7%, transparent));
+}
+
+/* 4. light leaks: large soft shapes of light that drift in and out at the corners, no lines at all */
+.su-leak {
+    position: absolute;
+    width: 60vmax;
+    height: 60vmax;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 30%, transparent), transparent);
+}
+.su-leak-a { left: -22vmax; top: -26vmax; animation: su-leak-a 26s ease-in-out infinite alternate; }
+.su-leak-b { right: -20vmax; top: -24vmax; opacity: 0.7; animation: su-leak-b 32s ease-in-out infinite alternate; }
+.su-leak-c { left: -16vmax; bottom: -28vmax; opacity: 0.6; animation: su-leak-c 38s ease-in-out infinite alternate; }
+.su-leak-d {
+    right: -18vmax;
+    bottom: -26vmax;
+    opacity: 0.8;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--text-primary) 13%, transparent), transparent);
+    animation: su-leak-d 30s ease-in-out infinite alternate;
+}
+@keyframes su-leak-a { to { transform: translate(14vmax, 10vmax) scale(1.12); } }
+@keyframes su-leak-b { to { transform: translate(-12vmax, 12vmax) scale(0.9); } }
+@keyframes su-leak-c { to { transform: translate(12vmax, -10vmax) scale(1.1); } }
+@keyframes su-leak-d { to { transform: translate(-10vmax, -8vmax) scale(1.15); } }
+
+/* 5. constellation: a library of connected songs, drifting very slowly; the brighter stars twinkle */
+.su-bg-constellation > svg { animation: su-drift 48s ease-in-out infinite alternate; }
+.su-bg-constellation line { stroke: var(--text-primary); stroke-opacity: 0.14; stroke-width: 1; }
+.su-dot { fill: var(--text-primary); opacity: 0.4; }
+.su-star { fill: var(--accent); animation: su-twinkle 5s ease-in-out infinite; animation-delay: var(--d, 0s); }
+@keyframes su-drift { to { transform: translate(-18px, -12px) scale(1.02); } }
+@keyframes su-twinkle {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 1; }
+}

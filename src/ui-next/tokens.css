@@ -184,4 +184,34 @@
     --tooltip-border: var(--border-strong);
     --toast-bg: var(--surface-raised);
     --menu-bg: var(--surface-raised);
+
+    /* shared control states (A-05) */
+    --control-hover-bg: var(--surface-selected);
+    --control-active-bg: var(--border-strong);
+    --control-disabled-opacity: 0.45;
+
+    --button-height-sm: 28px;
+    --icon-button-size-sm: 28px;
+    --icon-button-size-lg: 40px;
+
+    --input-height: 34px;
+    --input-bg: var(--surface-ground);
+    --input-border: var(--border-strong);
+    --input-border-hover: var(--text-tertiary);
+
+    --tab-height: 36px;
+    --segmented-bg: var(--surface-ground);
+    --segmented-active-bg: var(--surface-selected);
+
+    --menu-min-width: 208px;
+    --menu-item-height: 32px;
+    --toast-width: 340px;
+    --dialog-width: 440px;
+    --dialog-width-wide: 640px;
+    --progress-height: 4px;
+    --shadow-raised: 0 8px 24px rgb(5 6 8 / 0.45);
+
+    --layer-toast: 50;
+    --layer-menu: 60;
+    --layer-tooltip: 70;
 }

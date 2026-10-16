@@ -3,7 +3,7 @@
 Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file per task.
 
 **Statuses:** Not started, In progress, In review, Blocked, Done.
-**Current phase:** 1, in progress (A-01 and A-02 in review).
+**Current phase:** 1, in progress (A-01, A-04a, A-04b and A-05 in review).
 
 ## Decisions
 
@@ -41,7 +41,7 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 | A-04b Seek and volume fix (D11) | A | In review | A-04a | Fixes D-1, D-2 in `15f`, `15g`; new `seek-volume.test.js`. D-3 recorded, not fixed |
 | A-03 Shell: title bar (logo menu, back and forward, bell), rail, panel host, player host | A | Not started | A-01, A-02 | |
 | A-04 Adapter v1 and DOM-id compatibility layer | A | Not started | A-04a, A-04b | `legacy-dom-adapter`, 250-line budget (D13); gates 1 to 14 in ENGINE-CONTRACT.md section 10 are the exit criterion. Needs the A-03 shell markup to test against |
-| A-05 Component set with all states | A | Not started | A-01 | |
+| A-05 Component set with all states | A | In review | A-01 | `src/ui-next/components/` (12 components), gallery `dev/components.html`, 89 new tests. Icon gap: no info, circle-check or triangle-alert icons yet (see report) |
 | A-06 Phase 1 gate: boots, plays, resizes, old UI intact | A | Not started | A-03, A-04, A-05 | Releases B, C, D |
 
 ## Phase 2: Surfaces
@@ -93,3 +93,4 @@ None. Known and unscheduled: D-3 (a volume change during a new track's fade-in i
 | P0-01 | `reports/UI-P0-01-plan-introduction.md` | Written |
 | P0-03, A-01, A-02 | `reports/UI-A01-A02-foundation-start.md` | Written |
 | A-04a, A-04b | `reports/UI-A04-engine-contract-and-seek-fix.md` | Written |
+| A-05 | `reports/UI-A05-components.md` | Written |

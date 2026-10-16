@@ -1,0 +1,34 @@
+/* Font Awesome glyphs the engine writes, drawn as Lucide icons (decision D12, register entry L-02).
+ *
+ * The engine replaces the content of #play-btn and #volume-icon with <i class="fas fa-play|fa-pause|fa-volume-up|
+ * fa-volume-mute"> (10c, 10d, 15e, 04i, 15g). ui-next does not load Font Awesome, so those <i> elements are empty
+ * boxes; here each class draws the matching Lucide shape with a CSS mask, so the icon follows the text color.
+ * The four shapes come from icons/icons.js (generated, ISC license). Only these two elements are mapped.
+ *
+ * Phase 2: replace this file by having the engine write a neutral class, then delete it (L-02).
+ */
+#play-btn .fas,
+#volume-icon .fas {
+    display: inline-block;
+    width: var(--glyph-size, 18px);
+    height: var(--glyph-size, 18px);
+    background-color: currentColor;
+    -webkit-mask: var(--glyph) center / contain no-repeat;
+    mask: var(--glyph) center / contain no-repeat;
+}
+
+#play-btn .fa-play {
+    --glyph: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27black%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M5%205a2%202%200%200%201%203.008-1.728l11.997%206.998a2%202%200%200%201%20.003%203.458l-12%207A2%202%200%200%201%205%2019z%27%2F%3E%3C%2Fsvg%3E");
+}
+
+#play-btn .fa-pause {
+    --glyph: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27black%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%2714%27%20y%3D%273%27%20width%3D%275%27%20height%3D%2718%27%20rx%3D%271%27%2F%3E%3Crect%20x%3D%275%27%20y%3D%273%27%20width%3D%275%27%20height%3D%2718%27%20rx%3D%271%27%2F%3E%3C%2Fsvg%3E");
+}
+
+#volume-icon .fa-volume-up {
+    --glyph: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M11%204.702a.705.705%200%200%200-1.203-.498L6.413%207.587A1.4%201.4%200%200%201%205.416%208H3a1%201%200%200%200-1%201v6a1%201%200%200%200%201%201h2.416a1.4%201.4%200%200%201%20.997.413l3.383%203.384A.705.705%200%200%200%2011%2019.298z%27%2F%3E%3Cpath%20d%3D%27M16%209a5%205%200%200%201%200%206%27%2F%3E%3Cpath%20d%3D%27M19.364%2018.364a9%209%200%200%200%200-12.728%27%2F%3E%3C%2Fsvg%3E");
+}
+
+#volume-icon .fa-volume-mute {
+    --glyph: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M11%204.702a.7.7%200%200%200-1.203-.498L6.413%207.587A1.4%201.4%200%200%201%205.416%208H3a1%201%200%200%200-1%201v6a1%201%200%200%200%201%201h2.416a1.4%201.4%200%200%201%20.997.413l3.383%203.384A.7.7%200%200%200%2011%2019.298z%27%2F%3E%3Cpath%20d%3D%27m16.5%2014.5%205-5%27%2F%3E%3Cpath%20d%3D%27m16.5%209.5%205%205%27%2F%3E%3C%2Fsvg%3E");
+}

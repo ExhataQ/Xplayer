@@ -16,7 +16,7 @@
 | Option B would *introduce* `player:stateChanged`, `queue:changed` | The engine already has an event bus (`core/00b-events.js`, `core/EVENTS.md`) with 38 events, including `playback:stateChanged`, `queue:changed`, `queue:indexChanged`, `queue:songsChanged`, `shuffle:changed`, `lyrics:changed`. | Phase 2 does not need an engine change to give new components something to subscribe to. See section 7. |
 | Seek is part of the playback contract | Seek and volume are wired by `data-action-mousedown` **attributes in the HTML**, not by the engine. Seek by mouse was **broken in the supplied build** (fixed by the patch that carries this file, section 6). | The shell must carry the attributes. `tools/tests/seek-volume.test.js` is the guard. |
 
-Also a labelling correction from me: the board defines **A-03 = Shell** and **A-04 = Adapter and DOM-id layer**. In my last message I called the audit "A-03". This document is the A-04a follow-up (contract), not the shell. The shell is still Not started.
+Labelling: the board defines **A-03 = Shell** and **A-04 = Adapter and DOM-id layer**. This document is task A-04a (the contract). The shell (A-03) and the adapter (A-04) are built in `src/ui-next/` and checked against section 10; see section 13.
 
 ---
 
@@ -59,7 +59,7 @@ Removing these breaks boot. Where the error message names the container itself I
 - **Direct** (error is on the container): `#main-content` (innerHTML), `#song-list-container` (innerHTML), `#right-panel` (innerHTML), `#right-panel-content` (innerHTML), `#queue-content` (innerHTML), `#tags-content` (classList), `#volume-slider` (addEventListener at load), `#left-panel`.
 - **Ancestors or unconfirmed:** `.container`, `.content`, `.content-wrapper`, `.content-gradient-wrapper`, `.main-content-inner`, `#left-panel-main-content`, `#external-scrollbar`, `#playlist-hero-section`, `.playlist-hero-cover`, `.panel-content`, `.right-panel-content-wrapper`, `.album-art-container`, `.search-box`, `.player-container`, `.player-left-section`, `.player-center-section`, `.player-right-section`, `.player-song-info`.
 
-`.player-container` and the three `.player-*-section` classes are read by `core/01-sizes.js` (layout code), not only by playback.
+`.player-container` is read by `core/01-sizes.js` (layout code). The three `.player-left-section`, `.player-center-section` and `.player-right-section` classes are **not required** (verified by booting the new shell without them, section 13): `applyFooterWidths()` writes inline widths onto them for the old flex layout and returns early when one is missing, and `core/startup.js:128` guards its lookup. The new shell leaves them out so the engine cannot size its player.
 
 ---
 
@@ -177,13 +177,14 @@ Each entry says what it blocks. Phase 2 replaces an entry only when its "Blocks"
 |---|---|---|---|---|
 | L-01 | Engine renders rows into `#song-list` as `.song-item` / `.song-item.playing` / `.song-number-item`. **`.song-item` is queried by 11 files, not only playback:** `04a`, `04b`, `05a` (virtual scroll), `05c`, `06a` (context menus), `06f` (drag and drop), `17` (selection), `03k` (cover sync), `13`, `14`, `15e` | Yes | Any new song-list layout (B-03): columns, density, row markup. Also context menu, selection and drag-drop behavior on rows | The rule "only the adapter touches these classes" can only apply to **new** code. The 11 existing consumers stay as they are, and B-01 (list map) must cover all of them before B-03 changes row markup. Style via wrapper selectors. |
 | L-02 | Engine writes Font Awesome markup (`<i class="fas fa-play">`) into `#play-btn`, `#volume-icon`, and row/panel buttons in 7 files | Yes, for transport | D5 (Lucide). The new look cannot use Lucide in these buttons without a mapping | **Decided (D12): (b)** CSS-map `.fa-play`, `.fa-pause`, `.fa-volume-up`, `.fa-volume-mute` to Lucide glyphs via mask in the shell's stylesheet, for Phase 1. Changing the engine to write a neutral class stays on this register for Phase 2. |
-| L-03 | `#player-title` / `#player-artist` receive injected marquee and name wrappers (`06k:249`, `10d:59`) and artist is HTML | Yes | Truncation and typography in the new player bar | Style `.marquee-inner` and `.player-artist-name` as engine output. |
+| L-03 | `#player-title` / `#player-artist` receive injected marquee and name wrappers (`06k:249`, `10d:59`) and artist is HTML. The marquee scrolls with an inline `translateX` and needs `text-overflow: clip`, a 3px padding and `-3px` margin on both boxes, and `display` switches on `.marquee-active` | Yes | Truncation (ellipsis cannot be used) and typography in the new player bar | Done in `shell/shell.css`. Style `.marquee-inner`, `.marquee-active`, `.marquee-masked` and `.player-artist-name` as engine output. |
 | L-04 | Progress and time are read from `#audio` directly; no event for time | Yes, by design (EVENTS.md rule 4) | Waveform seek (C-02) | One adapter-owned `timeupdate` reader; no other component listens. |
 | L-05 | Inline `style` writes (`display`, `width`, `left`) and `.onclick =` assignments on controls | Yes | CSS that needs `!important` or `transform` on those elements | Do not override inline styles; do not assign `.onclick` from new code. |
 | L-06 | Seek and volume wired through `data-action` attributes on elements | Yes (D-1/D-2 fixed) | Replacing the seek bar markup | The shell carries the attributes (section 5.3). Guard: `seek-volume.test.js`. |
-| L-07 | Layout code (`core/01-sizes.js`) queries `.container`, `.player-*-section`, `#main-content`, `.settings-panel-content`, `.library-location-item` | Yes | Any re-nesting of the shell | Keep these class names and nesting in the shell until `01-sizes` is reviewed. |
+| L-07 | Layout code (`core/01-sizes.js`) queries `.container`, `.player-*-section`, `#main-content`, `.settings-panel-content`, `.library-location-item`, and `applyFooterWidths()` writes inline `width`/`max-width` onto the three player sections (measured: it capped the left column at 187px) | Yes | Any re-nesting of the hidden host; a player layout that is not the old flex row | The hidden host keeps the old nesting. The visible player does **not** use the three `.player-*-section` classes, which turns `applyFooterWidths()` into a no-op. |
 | L-08 | The 8 template elements outside the playback layer that break boot (5 hero cover elements, `#album-art-image`, `#external-scrollbar-thumb`, `.left-panel-main-list`) | Yes | A shell that omits panels the old UI has | Provide them, hidden if the design has no use for them. Track each for removal. |
 | L-09 | Unguarded `.player-song-info` (`10c:195`, `10d:57`) | Yes | Moving the player bar markup | Keep the class on one persistent element. |
+| L-10 | **Engine-created overlays have no styling in ui-next.** The engine builds context menus (`context-menu`, `sync-line-context-menu`), the shuffle and playlist dialogs (`playlist-modal-overlay`), lyrics and sync editors, the metadata modal, extended-info and toasts, and styles them from the old `css/` files, which ui-next does not load (they restyle global classes such as `.container` and `.player-btn`) | Yes, for the Phase 1 exit (A-06) | Using any of these actions in the new shell: they work in the DOM and are tested, but render unstyled below the visible window, so for a user the button appears to do nothing. Measured: the shuffle dialog is `position: static`, 122px high, off screen | Owning tasks: A-05 (menu), A-07 (toasts), D-06 (dialogs), D-03 (lyrics editors), D-04 (metadata modal). Decision D14 asks whether to add a small interim stylesheet before then. |
 
 ---
 
@@ -221,16 +222,64 @@ Run each against (a) the old UI, to set the baseline, then (b) the new shell. Sa
 
 ---
 
+### 10.1 Status in the new shell
+
+Run by `tools/tests/ui-next-shell.test.js` (17 tests, about 21 s). Real browser, real mouse, real generated WAV, the unmodified engine.
+
+| Gate | Test | Result |
+|---|---|---|
+| 1, 2 | start, pause, resume; engine-written glyphs draw as Lucide masks | pass |
+| 3, 4 | next, previous, auto-advance at end of track | pass |
+| 5 | real-mouse seek | pass |
+| 6 | real-mouse volume (after fade-in, D-3) | pass |
+| 7 | mute and unmute, glyph and state | pass |
+| 8 | repeat 0, 1, 2, 0; `#repeat-one` visible only for 2 | pass |
+| 9 | shuffle dialog, shuffle on, button marked | pass (logic only, see L-10) |
+| 10 | queue add, remove, empty resets the player | pass |
+| 11 | 27 IDs and 2 classes keep node identity | pass |
+| 12 | `library:rebuilt` resets the player | pass |
+| 13 | boundary: no list classes or hidden host outside `adapter/`; no JS lookup of adapter ids | pass |
+| 14 | adapter within 250 code lines | pass (see section 13 for the current size) |
+
+Mutation check: with `adapter/legacy-icons.css` unlinked 2 tests fail; with `#repeat-one` removed from the adapter 8 tests fail.
+
+---
+
 ## 11. Decisions (resolved)
 
 | ID | Decision | Status |
 |---|---|---|
 | D11 | Fix seek and volume in the engine (D-1, D-2), not in the shell | Approved; done in this patch |
 | D12 | Engine-written icons: CSS-map the four transport glyphs to Lucide for Phase 1; neutral engine class is a Phase 2 item (L-02) | Approved; applies in A-04 |
-| D13 | `legacy-dom-adapter` line budget 250 lines (code only). Over budget means revisit D10 | Approved; applies in A-04 |
+| D13 | `legacy-dom-adapter` line budget 250 lines (code only). Over budget means revisit D10 | Approved; enforced by gate 14 |
+| D14 | Interim styling for engine-created overlays (L-10) before A-05, A-07 and D-06 | **Open, needs your decision** |
 
 ---
 
 ## 12. Reproducing the audit
 
 The scripts were delivered separately as `xplayer-a03-probes.zip` and are not part of the patch. They need Playwright with Chromium and write only to the OS temp folder and their own directory. Order: `mkwav.js` (test audio), `removal-probe.js`, `classify.js`, `runtime-probe.js`, `runtime-removal.js`, `seek-check.js`. Machine-readable results are in `removal-results.json`, `classified.json`, `ownership.json`, `runtime-removal-results.json`.
+
+---
+
+## 13. State after A-03 and A-04
+
+**Boot.** `src/ui-next/index.html` loads `../player.js` and `../js/main.js` (the same engine files), after an inline module that calls `mountLegacyDom()`. Result: zero page errors, zero failed requests, zero console errors, `aria-busy` cleared by the engine, 30 fixture songs loaded.
+
+**What is where.**
+
+| Part | File | Notes |
+|---|---|---|
+| Adapter | `adapter/legacy-dom-adapter.js` | 4 slots: `nav`, `window`, `player`, `host`. About 140 code lines of the 250 budget. Builds every engine element. |
+| Glyph map | `adapter/legacy-icons.css` | `fa-play`, `fa-pause`, `fa-volume-up`, `fa-volume-mute` drawn as Lucide masks (D12) |
+| Shell | `shell/shell.css`, `shell/shell.js`, `index.html` | Title bar (logo menu, back, forward, bell, window controls), 7-item rail, panel host (compact or expanded, remembered in `localStorage` key `xplayer.ui-next.panel`), empty views, player host |
+
+**Visible vs hidden.** In the visible shell: back and forward, the three window buttons, all transport and seek and volume controls, song info, and the lyrics button (disabled until the engine enables it). In the hidden host (`#legacy-host`, `hidden`): `#song-list`, `#queue-list`, the old panels, the hero covers and `#search-btn`. The new views must not read the hidden host (gate 13).
+
+**Known limits.**
+- L-10: engine-created overlays are unstyled (D14).
+- The queue button (`toggleRightPanel`) and the lyrics panel are not in the new player bar: they need C-03 and D-01. `#lyrics-toggle-btn` exists but its action switches to a panel that is hidden.
+- `#subhero-play-btn` is not provided (optional, tolerated in every scenario).
+- The logo is a placeholder (task A-09). Logo menu items are disabled placeholders (decision D8 names the groups only).
+- Not run in Electron. The new test file runs in headless Chromium with a stubbed `electronAPI`; click through the shell once in the real app (window drag, minimize, maximize, close, back and forward).
+- The old UI is untouched and remains the default.

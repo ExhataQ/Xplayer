@@ -6,39 +6,43 @@
     <title>Xplayer</title>
     <link rel="stylesheet" href="tokens.css">
     <link rel="stylesheet" href="base.css">
-    <style>
-        .placeholder {
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: var(--space-3);
-            text-align: center;
-            padding: var(--space-8);
-        }
-        .placeholder h1 {
-            font-family: var(--font-serif);
-            font-weight: var(--weight-regular);
-            font-size: var(--text-3xl);
-            letter-spacing: -0.01em;
-        }
-        .placeholder p {
-            max-width: 440px;
-            color: var(--text-secondary);
-            line-height: 1.55;
-        }
-        .placeholder a {
-            color: var(--text-primary);
-            font-weight: var(--weight-medium);
-        }
-    </style>
+    <link rel="stylesheet" href="shell/shell.css">
+    <link rel="stylesheet" href="adapter/legacy-icons.css">
 </head>
 <body>
-    <main class="placeholder">
-        <h1>The new Xplayer screen is switched on</h1>
-        <p>This page loads because Xplayer was started with the new interface flag. The shell, library and player arrive in the next tasks. Start Xplayer without the flag to use the current interface.</p>
-        <p><a href="dev/kitchen-sink.html">Open the design token preview</a></p>
-    </main>
+    <div class="app">
+        <!-- Title bar: the logo button, menu and bell are added by shell/shell.js. The slots are filled by the adapter. -->
+        <header class="titlebar">
+            <div class="titlebar__nav" data-legacy-slot="nav" style="display: contents"></div>
+            <div class="titlebar__spacer"></div>
+            <div class="titlebar__window" data-legacy-slot="window"></div>
+        </header>
+
+        <nav class="rail" aria-label="Main"></nav>
+
+        <aside class="panel-host" aria-label="Panel">
+            <div class="panel-host__header">
+                <h2 class="panel-host__title"></h2>
+            </div>
+            <div class="panel-host__body"></div>
+        </aside>
+
+        <main class="view-host" id="view-host"></main>
+
+        <footer class="player-host" aria-label="Player" data-legacy-slot="player"></footer>
+    </div>
+
+    <!-- The old panels the engine renders lists and queues into. Hidden; filled by the adapter. -->
+    <div data-legacy-slot="host"></div>
+
+    <!-- Order matters (ENGINE-CONTRACT.md): the adapter must build the engine's elements before js/main.js runs.
+         Module scripts run in document order after the page is parsed. player.js is the classic build-data script. -->
+    <script src="../player.js"></script>
+    <script type="module">
+        import { mountLegacyDom } from './adapter/legacy-dom-adapter.js';
+        mountLegacyDom();
+    </script>
+    <script type="module" src="shell/shell.js"></script>
+    <script type="module" src="../js/main.js"></script>
 </body>
 </html>
