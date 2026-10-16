@@ -22,6 +22,11 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 | D11 | Fix seek and volume (defects D-1, D-2) in the engine, not in the shell | Approved | Recommendation accepted, 2026-10-16 |
 | D12 | Engine-written icons: CSS-map the four transport glyphs to Lucide for Phase 1; neutral engine class in Phase 2 | Approved | Recommendation accepted, 2026-10-16 |
 | D13 | `legacy-dom-adapter` budget: 250 lines of code. Over budget means revisit D10 | Approved | Recommendation accepted, 2026-10-16 |
+| D14 | Engine-created overlays (dialogs, context menus, toasts, editors) have no styling in ui-next until A-05, A-07, D-06, D-03, D-04. Add a small interim stylesheet now, or accept it until then? | Open | Proposed by A. Recommendation: accept until A-06 and add the interim stylesheet only if you will use the new shell day to day before then. See ENGINE-CONTRACT.md L-10 |
+| D15 | Waveform source: ffmpeg in the main process (needs packaging and licence check by you), or renderer decode with limits | Open | Proposed by A. Recommendation: ffmpeg if acceptable, else renderer with limits. See research/C-02-waveform-source.md |
+| D16 | List and views strategy for Phase 2: S1 reuse engine views and restyle, S2 own rows, S3 S1 first then replace per view | Open | Proposed by A. Recommendation: S3. See research/B-01-list-and-views-map.md |
+| D17 | May A fix D-3 (a volume change during a track's fade-in is overwritten), which is outside the approved scope | Open | Proposed by A. Small and testable (PATCH-PLAN.md P4) |
+| D18 | Adapter API budget: 300 lines of code across `store`, `actions`, `events`; over budget means revisit | Open | Proposed by A |
 
 ## Phase 0: Decisions and safety
 
@@ -41,6 +46,7 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 | A-04b Seek and volume fix (D11) | A | In review | A-04a | Fixes D-1, D-2 in `15f`, `15g`; new `seek-volume.test.js`. D-3 recorded, not fixed |
 | A-03 Shell: title bar (logo menu, back and forward, bell), rail, panel host, player host | A | Not started | A-01, A-02 | |
 | A-04 Adapter v1 and DOM-id compatibility layer | A | Not started | A-04a, A-04b | `legacy-dom-adapter`, 250-line budget (D13); gates 1 to 14 in ENGINE-CONTRACT.md section 10 are the exit criterion. Needs the A-03 shell markup to test against |
+| A-04c Adapter API: `store`, `actions`, `events`, view bridge | A | Not started | A-04 | The part of A-04 that PLAN.md section 4 promises and P2 did not build. Budget D18. See PATCH-PLAN.md P5 |
 | A-05 Component set with all states | A | In review | A-01 | `src/ui-next/components/` (12 components), gallery `dev/components.html`, 89 new tests. Icon gap: no info, circle-check or triangle-alert icons yet (see report) |
 | A-06 Phase 1 gate: boots, plays, resizes, old UI intact | A | Not started | A-03, A-04, A-05 | Releases B, C, D |
 
@@ -48,13 +54,13 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 
 | Task | Owner | Status | Depends on | Notes |
 |---|---|---|---|---|
-| B-01 Map of list and virtual scroll behavior | B | Not started | A-06 | Map before code |
+| B-01 Map of list and virtual scroll behavior | B | Research draft by A | A-06 | `ui-redesign/research/B-01-list-and-views-map.md`. B to confirm and extend before code |
 | B-02 Library panel: filter chips, find, sort, one list | B | Not started | A-06 | Compact and expanded; pinned items first |
 | B-03 Song list: columns, resize, compact mode | B | Not started | B-01 | |
 | B-04 Search | B | Not started | A-06 | |
 | B-05 Album, artist, playlist, folder views | B | Not started | B-03 | |
 | C-01 Player bar and transport | C | Not started | A-06 | |
-| C-02 Waveform seek (compute and cache) | C | Not started | C-01 | Decide source: decode vs precomputed, report first |
+| C-02 Waveform seek (compute and cache) | C | Not started | C-01 | Report drafted by A: `ui-redesign/research/C-02-waveform-source.md`. Waits for D15 |
 | C-03 Queue and volume | C | Not started | C-01 | |
 | C-04 Fullscreen viewer | C | Not started | C-01 | |
 | D-01 Lyrics panel: view, empty state, four modes | D | Not started | A-06 | |
@@ -94,3 +100,4 @@ None. Known and unscheduled: D-3 (a volume change during a new track's fade-in i
 | P0-03, A-01, A-02 | `reports/UI-A01-A02-foundation-start.md` | Written |
 | A-04a, A-04b | `reports/UI-A04-engine-contract-and-seek-fix.md` | Written |
 | A-05 | `reports/UI-A05-components.md` | Written |
+| Research and patch plan | `ui-redesign/PATCH-PLAN.md`, `ui-redesign/research/` | Written |
