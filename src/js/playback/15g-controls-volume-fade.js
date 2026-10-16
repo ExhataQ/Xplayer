@@ -180,7 +180,10 @@ export function cancelPendingCrossfade() {
 }
 
 export function setVolume(e) {
-    const rect = e.currentTarget.getBoundingClientRect();
+    // Called through data-action, where e.currentTarget is document (core/LEGACY.md, point 2).
+    const slider = document.getElementById('volume-slider');
+    if (!slider) return;
+    const rect = slider.getBoundingClientRect();
     const progress = (e.clientX - rect.left) / rect.width;
     updateVolume(progress);
 }

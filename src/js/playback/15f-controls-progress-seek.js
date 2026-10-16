@@ -13,6 +13,12 @@ let seekAnimationId = null;
 export function startSeek(e) {
     if (!audioElement.duration) return;
 
+    // Called through data-action, where e.currentTarget is document (core/LEGACY.md, point 2), so the
+    // bar is looked up by class like the rest of this file. Done before pausing, so a missing bar can
+    // never leave playback paused.
+    const progressContainer = document.querySelector('.progress-container');
+    if (!progressContainer) return;
+
     isSeeking = true;
     setWasPlaying(!audioElement.paused);
 
@@ -23,7 +29,7 @@ export function startSeek(e) {
     window.originalTimeUpdate = audioElement.ontimeupdate;
     audioElement.ontimeupdate = null;
 
-    e.currentTarget.classList.add('dragging');
+    progressContainer.classList.add('dragging');
     document.body.classList.add('dragging-progress');
     document.body.classList.add('no-select');
 

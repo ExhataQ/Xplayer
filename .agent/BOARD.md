@@ -18,7 +18,10 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 | D7 | Cutover policy | Approved | Recommendation accepted, 2026-10-16 |
 | D8 | Title bar: logo menu, back and forward, notification bell | Approved | Recommendation accepted, 2026-10-16 |
 | D9 | Library panel: filter chips on top, one list below | Approved |
-| D10 | Engine contract: compatibility shim (provide the engine's element IDs and classes), not an event rewrite | Proposed, see ui-redesign/ENGINE-CONTRACT.md | | Recommendation accepted, 2026-10-16 |
+| D10 | Engine contract: compatibility shim (provide the engine's element IDs and classes), not an event rewrite. Phase 1 migration strategy, not permanent architecture; amended by D11 to D13 | Approved | Recommendation accepted, 2026-10-16. Contract: `ui-redesign/ENGINE-CONTRACT.md` (v2) |
+| D11 | Fix seek and volume (defects D-1, D-2) in the engine, not in the shell | Approved | Recommendation accepted, 2026-10-16 |
+| D12 | Engine-written icons: CSS-map the four transport glyphs to Lucide for Phase 1; neutral engine class in Phase 2 | Approved | Recommendation accepted, 2026-10-16 |
+| D13 | `legacy-dom-adapter` budget: 250 lines of code. Over budget means revisit D10 | Approved | Recommendation accepted, 2026-10-16 |
 
 ## Phase 0: Decisions and safety
 
@@ -34,9 +37,10 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 |---|---|---|---|---|
 | A-01 Tokens, base CSS, fonts, icons | A | In review | P0-03 | |
 | A-02 Entry HTML, `--ui=next` flag, build copy list | A | Done (applied by you) | P0-03 | Touches `electron/` and `build/` |
-| A-04a Engine contract map (probe) | A | In review | A-02 | Playback and state load with 25 IDs; see ENGINE-CONTRACT.md |
+| A-04a Engine contract map and audit | A | In review | A-02 | Contract v2: measured boot-required and runtime-required elements, ownership map, legacy register L-01 to L-09, behavioral gate. See ENGINE-CONTRACT.md |
+| A-04b Seek and volume fix (D11) | A | In review | A-04a | Fixes D-1, D-2 in `15f`, `15g`; new `seek-volume.test.js`. D-3 recorded, not fixed |
 | A-03 Shell: title bar (logo menu, back and forward, bell), rail, panel host, player host | A | Not started | A-01, A-02 | |
-| A-04 Adapter v1 and DOM-id compatibility layer | A | Not started | A-02 | |
+| A-04 Adapter v1 and DOM-id compatibility layer | A | Not started | A-04a, A-04b | `legacy-dom-adapter`, 250-line budget (D13); gates 1 to 14 in ENGINE-CONTRACT.md section 10 are the exit criterion. Needs the A-03 shell markup to test against |
 | A-05 Component set with all states | A | Not started | A-01 | |
 | A-06 Phase 1 gate: boots, plays, resizes, old UI intact | A | Not started | A-03, A-04, A-05 | Releases B, C, D |
 
@@ -80,7 +84,7 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 
 ## Blockers and questions
 
-None yet.
+None. Known and unscheduled: D-3 (a volume change during a new track's fade-in is overwritten when the fade ends; ENGINE-CONTRACT.md section 6).
 
 ## Reports
 
@@ -88,3 +92,4 @@ None yet.
 |---|---|---|
 | P0-01 | `reports/UI-P0-01-plan-introduction.md` | Written |
 | P0-03, A-01, A-02 | `reports/UI-A01-A02-foundation-start.md` | Written |
+| A-04a, A-04b | `reports/UI-A04-engine-contract-and-seek-fix.md` | Written |
