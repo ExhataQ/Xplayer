@@ -145,8 +145,14 @@ export function collectAllLeftPanelItems() {
     const pinnedIds = getPinnedItems();
     const playedOrder = getPlayedItemOrder();
 
+    // The new library panel sets `types`; with null (the old screen) the old filter-mode rules below apply unchanged.
+    const viewTypes = typeof getLeftPanelView === 'function' ? getLeftPanelView().types : null;
+    const wants = (type) => !viewTypes || viewTypes.includes(type);
+    // Without the Folders type, playlists that live inside folders would be unreachable, so they are listed flat.
+    const listNested = !!viewTypes && !viewTypes.includes('folder');
+
     const allSongsCount = getActiveSongs().length;
-    items.push({
+    if (wants('all-songs')) items.push({
         type: 'all-songs',
         title: 'All Songs',
         viewId: VIEWS.ALL_SONGS,
@@ -157,7 +163,7 @@ export function collectAllLeftPanelItems() {
     });
 
     const favoritesCount = getActiveFavoritesCount();
-    items.push({
+    if (wants('favorites')) items.push({
         type: 'favorites',
         title: 'Liked Songs',
         viewId: VIEWS.FAVORITES,
@@ -169,7 +175,7 @@ export function collectAllLeftPanelItems() {
 
     const playlists = getPlaylists();
     playlists.forEach((playlist) => {
-        if (!isItemInAnyFolder(playlist.id, 'playlist')) {
+        if (wants('playlist') && (listNested || !isItemInAnyFolder(playlist.id, 'playlist'))) {
             items.push({
                 type: 'playlist',
                 id: playlist.id,
@@ -186,7 +192,7 @@ export function collectAllLeftPanelItems() {
 
     const folders = getFolders();
     folders.forEach((folder) => {
-        if (!isItemInAnyFolder(folder.id, 'folder')) {
+        if (wants('folder') && !isItemInAnyFolder(folder.id, 'folder')) {
             items.push({
                 type: 'folder',
                 id: folder.id,
@@ -200,7 +206,7 @@ export function collectAllLeftPanelItems() {
         }
     });
 
-    if (leftPanelFilterMode === 'albums' || leftPanelFilterMode === 'all') {
+    if (viewTypes ? wants('album') : leftPanelFilterMode === 'albums' || leftPanelFilterMode === 'all') {
         const albums = getAlbums();
         albums.forEach((album) => {
             items.push({
@@ -217,7 +223,7 @@ export function collectAllLeftPanelItems() {
         });
     }
 
-    if (leftPanelFilterMode === 'artists' || leftPanelFilterMode === 'all') {
+    if (viewTypes ? wants('artist') : leftPanelFilterMode === 'artists' || leftPanelFilterMode === 'all') {
         const artists = getArtists();
         artists.forEach((artist) => {
             items.push({

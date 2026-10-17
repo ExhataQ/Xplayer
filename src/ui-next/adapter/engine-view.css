@@ -1,0 +1,23 @@
+/* Layout for the engine's main content while it sits in the view host (adapter/engine-view.js).
+ * The engine's virtual scroll needs a scroll container with a constrained height (B-01 section 4): the wrapper fills the host and
+ * .content scrolls. The engine's own scrollbar widget is hidden; the native one is used. Tokens only. */
+
+.view-host[data-engine] {
+    overflow: hidden;
+}
+.view-host[data-engine] > .content-wrapper {
+    position: relative;
+    height: 100%;
+}
+.view-host[data-engine] .content {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-color: var(--border-strong) transparent;
+}
+.view-host[data-engine] #external-scrollbar {
+    display: none;
+}
+.view-host[data-engine] .playlist-hero-section {
+    display: none;
+}

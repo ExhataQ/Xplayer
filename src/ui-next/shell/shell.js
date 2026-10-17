@@ -5,16 +5,18 @@
 // (adapter/legacy-dom-adapter.js).
 
 import { icon } from '../icons/icons.js';
+import { showEngineView, releaseEngineView, syncAccentFromEngine } from '../adapter/engine-view.js';
+import { mountLibraryPanel } from '../views/library/library-panel.js';
 
 // Rail order follows decision D4.
 const VIEWS = [
     { id: 'home', label: 'Home', icon: 'house', note: 'Not built yet.' },
-    { id: 'library', label: 'Library', icon: 'library', note: 'The library panel and song list are planned in tasks B-02 and B-03.' },
+    { id: 'library', label: 'Library', icon: 'library', note: 'The song list is planned in task B-03.', panel: true },
     { id: 'search', label: 'Search', icon: 'search', note: 'Search is planned in task B-04.' },
     { id: 'recent', label: 'Recently played', icon: 'clock', note: 'Not built yet.' },
     { id: 'lyrics', label: 'Lyrics', icon: 'text-align-start', note: 'The lyrics panel is planned in task D-01.' },
     { id: 'metadata', label: 'Metadata', icon: 'tag', note: 'The metadata editor is planned in task D-04.' },
-    { id: 'settings', label: 'Settings', icon: 'sliders-horizontal', note: 'Settings sections are planned in task D-05.', end: true }
+    { id: 'settings', label: 'Settings', icon: 'sliders-horizontal', note: 'Playback, library, backup and appearance.', engine: 'settings', end: true }
 ];
 
 // Decision D8 names the four groups. Their items are not decided yet, so each shows one disabled placeholder.
@@ -128,6 +130,8 @@ function buildPanelToggle(panel) {
     $('.panel-host__header').append(toggle);
 }
 
+let library = null;
+
 function showView(id) {
     const view = VIEWS.find((v) => v.id === id) || VIEWS[0];
     for (const button of document.querySelectorAll('.rail-btn')) {
@@ -135,10 +139,21 @@ function showView(id) {
         else button.removeAttribute('aria-current');
     }
     $('.panel-host__title').textContent = view.label;
-    $('.panel-host__body').textContent = view.note;
+    const body = $('.panel-host__body');
+    const note = body.querySelector('.panel-note') || body.appendChild(el('div', 'panel-note'));
+    if (view.panel) {
+        if (library) library.show();
+        else library = mountLibraryPanel(body);
+    } else if (library) {
+        library.hide();
+    }
+    note.hidden = Boolean(view.panel);
+    note.textContent = view.panel ? '' : view.note;
     const host = $('.view-host');
     host.dataset.view = view.id;
+    releaseEngineView(host); // the engine's content must be back in its host before anything else is drawn here
     host.replaceChildren();
+    if (view.engine && showEngineView(host, view.engine)) return;
     const section = el('section', 'empty-view');
     section.append(el('h1', '', view.label), el('p', '', view.note));
     host.append(section);
@@ -148,6 +163,7 @@ function init() {
     const panel = $('.panel-host');
     panel.dataset.panel = readPanelState();
     buildTitlebar();
+    syncAccentFromEngine();
     buildRail(showView);
     buildPanelToggle(panel);
     showView('library');

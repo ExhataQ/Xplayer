@@ -93,3 +93,13 @@ New shell, 1000 songs, `.content-wrapper` moved into `.view-host`, hidden-host l
 ## 11. Not verified
 
 Left panel internals (`05b`, `renderLeftPanelMainList`, `collectAllLeftPanelItems`) are B-02 and not read in depth. Search (`08h`), the queue panel renderer, the fullscreen viewer and the lyrics view internals are not read. The experiment ran in headless Chromium with generated fixture data; 1000 songs is far below a real library.
+
+## 12. Confirmed by B (2026-10-17), static reading only
+
+**Re-read against the source and found correct:** `switchView` in `ui/07-views.js` (line 898) and its lyrics teardown; `view:changed { view }` emitted from `core/state-navigation.js` (line 10); virtual scroll threshold default 200, range 0 to 2000 (`ui/05a`); `rebuildVirtualWindow` empties the list and rebuilds the window with spacers (`ui/05a`, line 94); the Artists placeholder text "view coming soon!" (`ui/07-views.js`, line 1077); row actions attached through `data-action`.
+
+**Correction:** section 3 says "Eight actions in total" but names nine: `selectSongItem`, `playSongFromList`, `songContextMenu`, `playSongFromListOnEnter`, `handleNumberCellClick`, `addSongToQueueNext`, `toggleFavorite`, `openAlbum`, `openArtist`. The grep over `buildSongItemHTML` shows six of them directly; the other three come from the number cell and the artist and album link helpers (`buildSongArtistHTML`, `buildSongAlbumHTML`).
+
+**Not re-checked by B:** the section 7 experiment (not re-run), section 6 selection claims, the section 5 list of 15 views, the 22-file table in section 2, the icon counts in section 10. They stay as A's findings until B runs or reads them again before B-03 code.
+
+**Added for B-02:** the left panel is a separate virtual list with its own rules, mapped in `B-02-library-panel-map.md`.

@@ -28,6 +28,32 @@ let leftPanelVirtualState = {
     lastScrollTop: 0
 };
 
+// View model for the library panel of the new screen (ui-next). Every field defaults to "off", and with the
+// defaults the list is exactly what the old screen has always shown: the old chips and find box never set it.
+// types: null, or an array of item types ('all-songs', 'favorites', 'playlist', 'folder', 'album', 'artist').
+// query: text matched against the item title (an empty string means no filter).
+// sort: 'recent' (pinned first, then last played) or 'name' (pinned first, then A to Z).
+let leftPanelView = { types: null, query: '', sort: 'recent' };
+
+export function getLeftPanelView() {
+    return { types: leftPanelView.types ? [...leftPanelView.types] : null, query: leftPanelView.query, sort: leftPanelView.sort };
+}
+
+export function setLeftPanelView(patch = {}) {
+    const next = Object.assign({}, leftPanelView);
+    if ('types' in patch) next.types = Array.isArray(patch.types) && patch.types.length ? [...patch.types] : null;
+    if ('query' in patch) next.query = String(patch.query || '').trim();
+    if ('sort' in patch) next.sort = patch.sort === 'name' ? 'name' : 'recent';
+    leftPanelView = next;
+    if (leftPanelVirtualState.container) leftPanelVirtualState.container.scrollTop = 0;
+    renderLeftPanelMainList();
+    // With no items the renderers return early and would leave the previous rows on screen.
+    if (!currentOpenFolderId && getLeftPanelItemsArray().length === 0) {
+        const list = document.querySelector('.left-panel-main-list');
+        if (list) list.replaceChildren();
+    }
+}
+
 export function buildLeftPanelItemAt(index, currentOpenFolderId) {
     const items = leftPanelVirtualState.currentItems;
     if (!items[index]) return '';
@@ -347,10 +373,22 @@ export function getLeftPanelItemsArray() {
 
     pinnedItems.sort((a, b) => pinnedIds.indexOf(a.pinId) - pinnedIds.indexOf(b.pinId));
 
+    if (leftPanelView.sort === 'name') {
+        // All Songs and Liked Songs stay on top of the unpinned items, everything else goes A to Z.
+        const special = (item) => item.type === 'all-songs' || item.type === 'favorites';
+        const byName = (a, b) => String(a.title).localeCompare(String(b.title), undefined, { numeric: true, sensitivity: 'base' });
+        unpinnedItems.sort((a, b) => (special(b) - special(a)) || (special(a) && special(b) ? 0 : byName(a, b)));
+    }
+
     const base = [...pinnedItems, ...unpinnedItems];
     const flat = [];
     flattenLeftPanelItems(base, 0, 'root', flat, new Set());
-    return flat;
+
+    if (!leftPanelView.query) return flat;
+    // The text filter works on the item list, not on the rows in the DOM: the list is virtual, so most rows
+    // do not exist in the DOM. Items inside a collapsed folder are not searched.
+    const needle = normalizeSearchText(leftPanelView.query);
+    return flat.filter((item) => normalizeSearchText(String(item.title)).includes(needle));
 }
 
 if (typeof registerLegacyGlobals === 'function') {
@@ -363,6 +401,8 @@ if (typeof registerLegacyGlobals === 'function') {
         teardownLeftPanelLazyLoading,
         refreshLeftPanelLazy,
         refreshLeftPanelItems,
-        getLeftPanelItemsArray
+        getLeftPanelItemsArray,
+        getLeftPanelView,
+        setLeftPanelView
     });
 }

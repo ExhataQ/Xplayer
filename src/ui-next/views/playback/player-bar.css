@@ -1,0 +1,57 @@
+/* Player bar, Agent C (task C-01). Tokens only, no raw colors. Load after shell/shell.css and adapter/legacy-icons.css.
+ *
+ * The player's elements are built by adapter/legacy-dom-adapter.js and keep the engine's names, so everything here is
+ * scoped through the shell's wrapper (.player-host) or targets a node the engine creates itself. Nothing below fights an
+ * inline style the engine writes (display, width, left, transform: ENGINE-CONTRACT.md L-05). shell.css still carries the
+ * base player rules; this file only adds or corrects, so it can be dropped in without removing anything.
+ */
+
+/* ---------- seek tooltip ----------
+ * The engine appends .custom-tooltip.progress-tooltip to <body> while the pointer is over the seek bar or the bar is
+ * dragged (15f updateProgressTooltip). It sets left, top and transform in viewport pixels but relies on the old
+ * stylesheet for position: without it the node is static and renders at the bottom of the page, off the visible window
+ * (measured at 1400x860: x -700, y 840). Same look as the shared tooltip component. */
+.custom-tooltip.progress-tooltip {
+    position: fixed;
+    z-index: var(--layer-tooltip);
+    width: max-content;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--tooltip-border);
+    border-radius: var(--radius-md);
+    background: var(--tooltip-bg);
+    color: var(--text-primary);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    line-height: 1.4;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+/* ---------- toggles ----------
+ * The engine marks shuffle and repeat with .active (15b, 15c). The accent color alone is not enough of a signal, so an
+ * active toggle also gets a small dot under its glyph. */
+.player-host .player-btn.active::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 3px;
+    width: 4px;
+    height: 4px;
+    margin-left: -2px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+}
+.player-host #play-btn.active::after {
+    content: none;
+}
+
+/* ---------- nothing loaded ----------
+ * With an empty queue previous, next and seek do nothing (15d returns early; 15f startSeek needs a duration), so they
+ * read as unavailable. Play, shuffle and repeat stay normal: play starts playback and the two toggles set modes. They
+ * stay clickable; this only changes how they look, because the engine decides what a click does. */
+.player-host .player-container:has(.player-song-info:not(.has-song)) :is(#prev-btn, #next-btn, .progress-section) {
+    opacity: var(--control-disabled-opacity);
+}
+.player-host .player-container:has(.player-song-info:not(.has-song)) :is(.progress-container, #prev-btn, #next-btn) {
+    cursor: default;
+}

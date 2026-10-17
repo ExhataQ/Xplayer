@@ -1,0 +1,432 @@
+/* ui-next Settings (task D-05, agent D). Strategy S3: the engine renders the page (js/ui/08e-panel-settings.js); this file skins
+ * it through the engine's own class names, scoped to the view host so nothing leaks. Tokens only
+ * (tools/tests/ui-next-settings.test.js). Behavior and persistence stay in the engine.
+ *
+ * Layout: one centered column, sections separated by a subtle rule, a label on the left and its control on the right.
+ * Engine inline styles (the red Remove Folder button, hint margins) are left alone; see the report for the one that is overridden.
+ */
+
+.view-host[data-engine='settings'] .content-gradient-wrapper > div {
+    display: block !important; /* the engine sets display:flex + justify-content:center inline; the column below centers itself */
+}
+
+.view-host[data-engine='settings'] .settings-panel-content {
+    box-sizing: border-box;
+    width: min(680px, 100%);
+    margin: 0 auto;
+    padding: var(--space-8) var(--space-6) var(--space-8);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: var(--text-md);
+}
+
+.settings-panel-title {
+    margin: 0 0 var(--space-6);
+    font-family: var(--font-serif);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-regular);
+    line-height: 1.2;
+}
+
+.settings-panel-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+/* ---------- sections ---------- */
+
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--border-subtle);
+}
+.settings-section-title,
+.library-locations-title {
+    color: var(--text-primary);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+}
+.settings-threshold-hint {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+}
+
+/* ---------- buttons ---------- */
+
+.settings-action-btn,
+.library-locations-add-btn,
+.library-locations-rebuild-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    min-height: var(--button-height);
+    padding: 0 var(--space-4);
+    border: 1px solid var(--button-outline-border);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
+}
+.settings-action-btn:hover,
+.library-locations-add-btn:hover {
+    background: var(--control-hover-bg);
+}
+.settings-action-btn:active,
+.library-locations-add-btn:active {
+    background: var(--control-active-bg);
+}
+.settings-action-btn-full {
+    width: 100%;
+    justify-content: flex-start;
+}
+.settings-action-btn-half {
+    flex: 1;
+}
+.settings-backup-row,
+.settings-url-save-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* The one primary action of the page. */
+.library-locations-rebuild-btn {
+    border-color: transparent;
+    background: var(--button-primary-bg);
+    color: var(--button-primary-fg);
+}
+.library-locations-rebuild-btn:hover {
+    opacity: 0.88;
+}
+.library-locations-rebuild-btn:active {
+    opacity: 0.74;
+}
+
+/* The engine writes Remove Folder in a fixed red; use the theme's error color and keep it an outline. */
+.library-locations-header-buttons .library-locations-add-btn[style*='ff4444'] {
+    border-color: var(--danger) !important;
+    color: var(--danger) !important;
+}
+
+/* ---------- rows ---------- */
+
+.settings-toggle-row,
+.settings-threshold-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: var(--button-height);
+}
+.settings-toggle-row {
+    cursor: pointer;
+    border-radius: var(--radius-md);
+}
+.settings-toggle-row:hover {
+    color: var(--text-primary);
+}
+.settings-threshold-row {
+    justify-content: space-between;
+    color: var(--text-secondary);
+}
+.settings-threshold-row > span:first-child {
+    flex: 1;
+}
+.settings-threshold-row > span:last-child:not(:first-child) {
+    min-width: 56px;
+    color: var(--text-secondary);
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+}
+
+.settings-toggle-row input[type='checkbox'] {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--accent);
+}
+.settings-threshold-row input[type='range'] {
+    flex: 0 1 220px;
+    accent-color: var(--accent);
+}
+
+.settings-threshold-row select,
+.settings-threshold-row input[type='number'] {
+    box-sizing: border-box;
+    height: var(--input-height);
+    min-width: 140px;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+}
+.settings-threshold-row select:hover,
+.settings-threshold-row input[type='number']:hover {
+    border-color: var(--input-border-hover);
+}
+.settings-threshold-row select:focus,
+.settings-threshold-row input[type='number']:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+.settings-threshold-row select:focus-visible,
+.settings-threshold-row input[type='number']:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
+}
+
+/* ---------- accent swatches ---------- */
+
+.settings-theme-selector {
+    display: flex;
+    gap: var(--space-2);
+}
+.settings-theme-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--icon-button-size-lg);
+    height: var(--icon-button-size-lg);
+    padding: 0;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    cursor: pointer;
+}
+.settings-theme-btn:hover {
+    background: var(--control-hover-bg);
+}
+.settings-theme-btn.active {
+    border-color: var(--text-primary);
+    background: var(--surface-selected);
+}
+/* The engine gives each swatch its color inline (color on an <i class="fas fa-circle">); draw the dot from that color. */
+.settings-theme-btn .settings-theme-icon {
+    display: block;
+    width: 18px;
+    height: 18px;
+    border-radius: var(--radius-pill);
+    background: currentColor;
+    font-size: 0;
+}
+
+/* ---------- Play from URL save location ---------- */
+
+.settings-url-save-path {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--input-bg);
+    color: var(--text-secondary);
+    line-height: var(--input-height);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---------- music library folders ---------- */
+
+.library-locations-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--border-subtle);
+}
+.library-locations-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+.library-locations-header-buttons {
+    display: flex;
+    gap: var(--space-2);
+}
+.library-locations-list-container {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--surface-panel);
+}
+.library-locations-list {
+    max-height: 240px;
+    overflow-y: auto;
+    padding: var(--space-1);
+}
+.library-locations-list.drag-over-folder {
+    outline: 2px dashed var(--accent);
+    outline-offset: -2px;
+}
+.library-location-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+}
+.library-location-item:hover {
+    background: var(--control-hover-bg);
+}
+.library-location-item.selected {
+    background: var(--surface-selected);
+}
+.library-location-name,
+.library-location-path,
+.library-location-song-count,
+.library-location-added-time {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.library-location-name {
+    color: var(--text-primary);
+    font-size: var(--text-md);
+}
+.library-location-path {
+    overflow-wrap: anywhere;
+}
+.library-location-remove {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+.library-location-remove:hover {
+    color: var(--danger);
+}
+.library-locations-footer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* The engine's empty state inside the folder list */
+.library-locations-list .empty-queue {
+    color: var(--text-secondary);
+}
+.library-locations-list .empty-queue p {
+    margin: var(--space-2) 0 var(--space-1);
+    color: var(--text-primary);
+}
+
+/* ---------- Advanced Settings (a second page the engine draws into the same container) ---------- */
+
+/* The engine writes inline styles with the old token names here (the slider fill uses --accent and --bg-hover). */
+.view-host[data-engine='settings'] {
+    --bg-hover: var(--control-hover-bg);
+    --bg-card: var(--surface-ground);
+    --border: var(--border-subtle);
+}
+
+.settings-advanced-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-6);
+}
+.settings-advanced-header .settings-panel-title {
+    margin: 0 !important; /* the engine passes margin:0 inline; stated here so the intent survives its removal */
+}
+.settings-advanced-back-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--icon-button-size);
+    height: var(--icon-button-size);
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+.settings-advanced-back-btn:hover {
+    background: var(--control-hover-bg);
+}
+.settings-advanced-back-btn:active {
+    background: var(--control-active-bg);
+}
+/* Material Symbols text ("arrow_back") has no font here; draw the Lucide arrow-left instead (glyph-map follow-up, B-01 section 10). */
+.settings-advanced-back-btn .material-symbols-outlined {
+    display: block;
+    width: 18px;
+    height: 18px;
+    background-color: currentColor;
+    font-size: 0;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M19%2012H5%27%2F%3E%3Cpath%20d%3D%27m12%2019-7-7%207-7%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M19%2012H5%27%2F%3E%3Cpath%20d%3D%27m12%2019-7-7%207-7%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+}
+.settings-advanced-body {
+    display: flex;
+    flex-direction: column;
+}
+
+/* The threshold slider gets its fill from an inline gradient the engine updates; only size and thumb are styled here. */
+.settings-threshold-slider {
+    flex: 1 1 auto;
+    height: var(--progress-height);
+    border-radius: var(--radius-pill);
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+.settings-threshold-slider::-webkit-slider-thumb {
+    width: 14px;
+    height: 14px;
+    border: none;
+    border-radius: var(--radius-pill);
+    background: var(--text-primary);
+    -webkit-appearance: none;
+}
+.settings-threshold-slider::-webkit-slider-thumb:hover {
+    background: var(--accent);
+}
+.settings-threshold-value {
+    min-width: 56px;
+    color: var(--text-secondary);
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+}
+
+.extended-fields-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--space-1) var(--space-4);
+}
+.extended-fields-group-label {
+    grid-column: 1 / -1;
+    margin-top: var(--space-3);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+}
+.extended-field-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: var(--button-height);
+    cursor: pointer;
+}
+.extended-field-checkbox-row input[type='checkbox'] {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--accent);
+}

@@ -327,7 +327,8 @@ describe('ui-next shell with the real engine', { concurrency: false }, () => {
         const { page, problems } = await open({ play: true });
         await page.click('.rail-btn[data-view="settings"]');
         assert.equal(await page.locator('.rail-btn[aria-current="page"]').getAttribute('data-view'), 'settings');
-        assert.equal(await page.locator('.view-host h1').textContent(), 'Settings');
+        // Settings shows the engine's own page since D-05 (adapter/engine-view.js); the other rail items still show the empty view.
+        assert.equal(await page.locator('.view-host .settings-panel-title').textContent(), 'Settings');
         await page.click('.panel-host__header .icon-btn');
         assert.equal(await page.locator('.panel-host').getAttribute('data-panel'), 'compact');
         await page.click('.panel-host__header .icon-btn');
