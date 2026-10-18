@@ -278,9 +278,31 @@ The scripts were delivered separately as `xplayer-a03-probes.zip` and are not pa
 **Visible vs hidden.** In the visible shell: back and forward, the three window buttons, all transport and seek and volume controls, song info, and the lyrics button (disabled until the engine enables it). In the hidden host (`#legacy-host`, `hidden`): `#song-list`, `#queue-list`, the old panels, the hero covers and `#search-btn`. The new views must not read the hidden host (gate 13).
 
 **Known limits.**
+- L-12: the engine's metadata editor renders into `#metadata-editor-content` and does nothing when it is missing; the new shell's panel did not have it. The adapter now provides it (D-04). Fixed.
+- L-11: `updateAlbumArt` (ui/08b) returns when a `#tag-*` element is missing and is what makes the open Lyrics page follow the song. The adapter now provides the elements (D-01). Fixed.
 - L-10: engine-created overlays: dialogs, context menus and overlay shells are styled by the interim `adapter/legacy-overlays.css` (D14, A-06). Lyrics and sync editor insides, the metadata form insides and extended info keep the engine's own markup and are not styled until D-03 and D-04.
-- The queue button (`toggleRightPanel`) and the lyrics panel are not in the new player bar: they need C-03 and D-01. `#lyrics-toggle-btn` exists but its action switches to a panel that is hidden.
+- The queue button (`toggleRightPanel`) is not in the new player bar: it needs C-03. The lyrics button (`#lyrics-toggle-btn`) works since D-01: the shell follows the engine to the Lyrics view.
 - `#subhero-play-btn` is not provided (optional, tolerated in every scenario).
 - The title bar logo is still a placeholder: the X mark and the startup view from A-09 exist (`startup/`) but are not wired into the shell yet (A-09 is Phase 3). Logo menu items are disabled placeholders (decision D8 names the groups only).
 - Not run in Electron. The new test file runs in headless Chromium with a stubbed `electronAPI`; click through the shell once in the real app (window drag, minimize, maximize, close, back and forward).
 - The old UI is untouched and remains the default.
+
+## 14. Adapter API (P5 / A-04c)
+
+New UI code reads engine state through `adapter/store.js`, invokes engine behavior through `adapter/actions.js`, and subscribes only to the catalogued events in `core/EVENTS.md` through `adapter/events.js`. The event adapter passes each event's `detail` payload to its callback and returns the engine bus's unsubscribe function. It intentionally excludes per-frame media events.
+
+The shell connects `view:changed` to rail selection through `adapter/engine-view.js`; rail navigation calls the existing `switchView` action. Code outside `adapter/` and `components/` must not import from `src/js/` or access engine globals on `window`.
+
+---
+
+## 15. Findings from the playback surfaces (Agent C, 2026-10-17)
+
+Measured in the new shell with the real engine; each one is covered by a test in `tools/tests/ui-next-playback.test.js` or `ui-next-adapter-player.test.js`.
+
+- **The audio element is swapped.** With gapless playback on (the default, `library/03f` `gaplessEnabled: true`) the engine plays on one of two `<audio>` elements and swaps them at a track change (`playback/10c` `usePreloadedGaplessTrack`, `setAudioElement`). The page's own `#audio` then goes idle. Anything that listens to the audio element must follow `window.audioElement` and move its listeners when it changes; `adapter/player-parts.js` `onTime` does. A listener put on `#audio` once goes silent after the first track change.
+- **The user's volume is the slider, not the element.** `audioElement.volume` includes replay gain and fades (`15g`); the user's level is the width of `#volume-fill` (`updateVolume`). Ctrl+Up and Ctrl+Down start from `audioElement.volume`, so they can move the slider by a different step than 10 points when replay gain is on.
+- **A renderer cannot read audio files.** `fetch()` does not support `file://`; song urls are built raw (`'file:///' + path`, `tag-builder.js`, not percent-encoded). The page asks the main process: `desktopApi.files.readAudioBytes(url)` (`electron/audio-bytes.js`: audio extensions only, regular files only, 200 MB limit).
+- **Old tooltips.** `06d` shows any element that has a `title` and keeps rewriting `title` on the play button and the volume icon. The player's controls drop the attribute; the engine's system still runs for every other control (A-08).
+- **Space.** `06k` turns Space into play or pause for the whole page, so Space on a focused button presses nothing. The player's own buttons stop Space at the button (`views/playback/transport.js` `ownSpaceKey`) and press themselves; the engine is unchanged. Other buttons in the shell still have the problem.
+- **Not usable from the new shell.** `toggleRightPanel()` (needs `.queue-toggle-btn`) and `openImageViewer()` (needs `#image-viewer` and `#viewer-image`) throw; the queue drawer and cover viewer do not call them. The engine's queue list `#queue-list` is moved into the drawer by `adapter/playback-bridge.js` `mountQueueList`, like the library list.
+- **Updates to section 13.** The queue button and the cover viewer now exist (`views/playback/`). The adapter has two more files: `player-parts.js` (named access to the player's elements and one shared time reader) and `playback-bridge.js` (queue list, bytes call, cover check).

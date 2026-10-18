@@ -1,5 +1,7 @@
 # Report UI-C02: waveform source and data (part 1 of C-02)
 
+> **Update 2026-10-17:** the integration, the main-process read (R-C8) and the other C tasks are done; see `UI-C-playback-surfaces.md`. The track length limit is now 10 minutes, not 15.
+
 **Agent:** C  **Date:** 2026-10-17  **Status:** Ready for review. Part 1 only; the manual checklist is not done.
 
 ## Decision D15 (taken by C, the owner delegated it)

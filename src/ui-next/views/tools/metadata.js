@@ -1,0 +1,56 @@
+// Metadata view (task D-04, agent D). Strategy S3 (decision D16): the engine builds the tag form (js/library/20-metadata-editor.js);
+// it lives in the engine's right panel, so the bridge (adapter/engine-view.js showEnginePanel) moves that tab into the shell's view
+// host and metadata.css skins it. This file adds what the engine does not have:
+//
+//   - an empty state when nothing is playing (the engine just does nothing then),
+//   - the editor follows the song that is playing, unless the form holds unsaved changes,
+//   - leaving the view with unsaved changes asks first (the shell calls leaveMetadata()).
+//
+// Save, Cancel and Back are the engine's: it closes the editor and the shell goes back to the view the person came from.
+
+import { emptyState } from '../../components/index.js';
+import { engineAction, engineConfirm, engineEvent, metadataEditor, nowPlaying } from '../../adapter/engine-api.js';
+
+let stop = () => {};
+
+/** Fills the host that already holds the engine's editor tab. `options.fromEngine`: the engine opened it, so it is already filling it. */
+export function mountMetadata(host, options = {}) {
+    stop();
+    host.querySelector(':scope > .empty-state')?.remove();
+    const empty = emptyState({ icon: 'tag', title: 'No song playing', text: 'Play a song to edit its tags and cover.' });
+    empty.hidden = true;
+    host.append(empty);
+
+    // Opened from the rail the editor is started fresh: whatever form is still in the panel belongs to an earlier visit.
+    let openedFor = options.fromEngine ? nowPlaying()?.id : null;
+    if (!options.fromEngine && nowPlaying()) {
+        openedFor = nowPlaying().id;
+        engineAction('openMetadataEditor');
+    }
+
+    const paint = () => {
+        const song = nowPlaying();
+        host.dataset.metadata = song || metadataEditor().rendered ? 'editing' : 'empty';
+        empty.hidden = host.dataset.metadata !== 'empty';
+        // A new song while the form is clean: show that song. With unsaved changes the form stays on the song it was opened for.
+        if (song && song.id !== openedFor && !metadataEditor().dirty) {
+            openedFor = song.id;
+            engineAction('openMetadataEditor');
+        }
+    };
+
+    const offs = ['queue:indexChanged', 'rightPanel:tabChanged'].map((name) => engineEvent(name, () => (host.isConnected && host.dataset.view === 'metadata' ? paint() : stop())));
+    stop = () => {
+        for (const off of offs) off();
+        stop = () => {};
+    };
+    paint();
+}
+
+/** The shell calls this before it leaves the view. Returns false to stay. Closes the engine's editor when the person leaves. */
+export function leaveMetadata() {
+    if (metadataEditor().dirty && !engineConfirm('Discard unsaved metadata changes?')) return false;
+    stop();
+    engineAction('closeMetadataEditor');
+    return true;
+}

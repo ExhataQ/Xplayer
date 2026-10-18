@@ -1,0 +1,171 @@
+/* Song list header and column layout (task B-03): the header row, the Title and Album resize handle, and the host's column
+ * variables. Tokens only. The rows themselves are styled in adapter/songlist-rows.css (register L-01: only adapter/ names
+ * the engine's row classes). Both files read the same variables, so the header and the rows always line up.
+ */
+
+/* ---------- host layout ---------- */
+.view-host[data-songlist] {
+    display: flex;
+    flex-direction: column;
+    container: songhost / inline-size;
+    --sl-side: 25px;
+    --sl-number: 40px;
+    --sl-right: 188px;
+    --sl-title: var(--sl-title-w, 5fr);
+    --sl-album: var(--sl-album-w, 4fr);
+    --sl-gap: var(--space-4);
+}
+.view-host[data-songlist] > .content-wrapper {
+    height: auto;
+    flex: 1;
+    min-height: 0;
+    background: transparent;
+}
+.view-host[data-songlist][data-album='off'] {
+    --sl-album: 0px;
+}
+.view-host[data-songlist][data-time='off'] {
+    --sl-right: 128px;
+}
+.view-host[data-songlist][data-density='compact'] {
+    --song-item-height: var(--row-height-compact);
+}
+/* A narrow window drops the Album column without changing the saved choice. (A container query styles the container's
+   descendants, not the container itself, hence the selectors.) */
+@container songhost (max-width: 700px) {
+    .songlist-head {
+        --sl-album: 0px;
+    }
+}
+
+/* ---------- title bar: list name and song count ---------- */
+.songlist-bar {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    flex: none;
+    padding: var(--space-4) var(--sl-side) var(--space-2);
+    background: var(--surface-ground);
+}
+.songlist-bar[hidden] {
+    display: none;
+}
+.songlist-bar__title {
+    margin: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--text-xl);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+}
+.songlist-bar__count {
+    flex: none;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---------- header row ---------- */
+.songlist-head {
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--sl-number) minmax(0, var(--sl-title)) minmax(0, var(--sl-album)) var(--sl-right);
+    column-gap: var(--sl-gap);
+    align-items: center;
+    height: 36px;
+    flex: none;
+    padding: 0 calc(var(--sl-side) + var(--sl-scrollbar, 0px)) 0 var(--sl-side);
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-tertiary);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: var(--surface-ground);
+}
+.songlist-head[hidden] {
+    display: none;
+}
+.songlist-head__cell {
+    position: relative;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.songlist-head__cell--number {
+    text-align: right;
+}
+.view-host[data-album='off'] .songlist-head__cell--album,
+.view-host[data-songlist] .songlist-head__cell--album[hidden] {
+    visibility: hidden;
+}
+@container songhost (max-width: 700px) {
+    .songlist-head__cell--album {
+        visibility: hidden;
+    }
+}
+.songlist-head__tail {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    min-width: 0;
+}
+.songlist-head__time {
+    min-width: 44px;
+    text-align: right;
+}
+.view-host[data-time='off'] .songlist-head__time {
+    display: none;
+}
+
+/* The drag handle sits on the boundary between Title and Album, in the column gap. */
+.songlist-resizer {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: var(--space-4);
+    cursor: col-resize;
+    touch-action: none;
+    z-index: 2;
+}
+.songlist-resizer::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: var(--border-subtle);
+    transition: background var(--motion-fast) var(--motion-ease), top var(--motion-fast) var(--motion-ease), bottom var(--motion-fast) var(--motion-ease);
+}
+.songlist-resizer:hover::after,
+.songlist-resizer:focus-visible::after,
+.songlist-resizer[data-dragging]::after {
+    background: var(--accent);
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    margin-left: -1px;
+}
+.songlist-resizer:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+    border-radius: var(--radius-sm);
+}
+body.songlist-resizing {
+    cursor: col-resize;
+    user-select: none;
+}
+.view-host[data-album='off'] .songlist-resizer {
+    display: none;
+}
+@container songhost (max-width: 700px) {
+    .songlist-resizer {
+        display: none;
+    }
+}
+

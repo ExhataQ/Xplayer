@@ -13,12 +13,13 @@
 // the plain bar. The source can be replaced later (for example by ffmpeg in the main process) without changing callers.
 
 export const BINS = 1000;
-export const MAX_SECONDS = 15 * 60; // longer tracks are skipped: decoding holds the whole track as 32-bit PCM
+export const MAX_SECONDS = 10 * 60; // longer tracks are skipped: decoding holds the whole track as 32-bit PCM (about 210 MB at 10 minutes, stereo, 44.1 kHz)
 const MEMORY_LIMIT = 200; // 1 KB each
 
 const memory = new Map(); // key -> Uint8Array, insertion order doubles as least-recently-used order
 const pending = new Map(); // key -> Promise, so one track is never decoded twice at once
 let reader = readWithXhr;
+let decodeQueue = Promise.resolve(); // decodes run one at a time, so skipping quickly never stacks large decodes
 let persistent = null; // optional { get(key) -> Uint8Array | null, set(key, bytes) }, supplied by whoever owns storage
 
 /** Supply the function that returns a song's file bytes: (song) -> Promise<ArrayBuffer>. Pass null for the default. */
@@ -26,7 +27,7 @@ export function setBytesReader(fn) {
     reader = fn || readWithXhr;
 }
 
-function readWithXhr(song) {
+export function readWithXhr(song) {
     return new Promise((resolve, reject) => {
         const request = new XMLHttpRequest();
         request.open('GET', song.url);
@@ -45,6 +46,7 @@ export function setPeaksStore(store) {
 export function clearPeaksCache() {
     memory.clear();
     pending.clear();
+    decodeQueue = Promise.resolve();
 }
 
 const keyOf = (song) => `${song.id}:${Math.round(Number(song.duration) || 0)}:${song.url || song.path || ''}`;
@@ -99,7 +101,9 @@ export function getPeaks(song) {
     }
     if (pending.has(key)) return pending.get(key);
     const job = (async () => {
+        await decodeQueue.catch(() => {});
         try {
+            if (memory.has(key)) return memory.get(key); // finished while this one waited
             const stored = persistent ? await persistent.get(key) : null;
             if (stored && stored.length === BINS) {
                 remember(key, stored);
@@ -115,6 +119,7 @@ export function getPeaks(song) {
             pending.delete(key);
         }
     })();
+    decodeQueue = job;
     pending.set(key, job);
     return job;
 }
@@ -128,8 +133,10 @@ export function drawWaveform(canvas, peaks, { progress = 0, played, unplayed, ba
     const ratio = window.devicePixelRatio || 1;
     const cssWidth = canvas.clientWidth || canvas.width / ratio;
     const cssHeight = canvas.clientHeight || canvas.height / ratio;
-    canvas.width = Math.max(1, Math.round(cssWidth * ratio));
-    canvas.height = Math.max(1, Math.round(cssHeight * ratio));
+    const width = Math.max(1, Math.round(cssWidth * ratio));
+    const height = Math.max(1, Math.round(cssHeight * ratio));
+    if (canvas.width !== width) canvas.width = width; // assigning the size clears and reallocates the canvas: only when it changed
+    if (canvas.height !== height) canvas.height = height;
     const ctx = canvas.getContext('2d');
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     ctx.clearRect(0, 0, cssWidth, cssHeight);

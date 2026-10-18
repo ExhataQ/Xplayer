@@ -4,7 +4,7 @@
 // never look an id up themselves (gate 13, ENGINE-CONTRACT.md L-01).
 //
 //   playerPart(name) -> HTMLElement | null     the player's elements by a stable, view-facing name
-//   onTime(callback) -> unsubscribe()          callback({ currentTime, duration, playing }); ONE shared listener (L-04)
+//   onTime(callback) -> unsubscribe()          callback({ currentTime, duration, playing, src }); ONE shared listener (L-04)
 //
 // The names on the left are the contract with views; the ids on the right may change with the engine.
 
@@ -19,11 +19,14 @@ const PARTS = {
     seek: '.progress-container',
     'seek-fill': '#progress-bar',
     volume: '#volume-slider',
+    'volume-fill': '#volume-fill',
     'volume-icon': '#volume-icon',
     lyrics: '#lyrics-toggle-btn',
     cover: '#player-cover',
     title: '#player-title',
-    artist: '#player-artist'
+    artist: '#player-artist',
+    'song-info': '.player-song-info',
+    'right-controls': '.player-right-controls'
 };
 
 export const PLAYER_PART_NAMES = Object.freeze(Object.keys(PARTS));
@@ -35,9 +38,15 @@ export function playerPart(name) {
 
 const listeners = new Set();
 let audio = null;
+let watcher = 0;
+
+// The engine plays on one of two <audio> elements and swaps them at a track change when gapless playback is on, which is
+// the default (playback/10c usePreloadedGaplessTrack, setAudioElement). The page's own element then goes idle, so the
+// reader follows whichever element the engine reports as active and moves its listeners when that changes.
+const activeAudio = () => window.audioElement || document.getElementById('audio');
 
 function snapshot() {
-    return { currentTime: audio.currentTime || 0, duration: Number.isFinite(audio.duration) ? audio.duration : 0, playing: !audio.paused && !audio.ended };
+    return { currentTime: audio.currentTime || 0, duration: Number.isFinite(audio.duration) ? audio.duration : 0, playing: !audio.paused && !audio.ended, src: audio.currentSrc || '' };
 }
 
 function emit() {
@@ -45,18 +54,37 @@ function emit() {
     for (const listener of [...listeners]) listener(state);
 }
 
-const EVENTS = ['timeupdate', 'durationchange', 'loadedmetadata', 'emptied', 'seeked', 'play', 'pause', 'ended'];
+const EVENTS = ['timeupdate', 'durationchange', 'loadstart', 'loadedmetadata', 'emptied', 'seeked', 'play', 'pause', 'ended'];
+
+function bind(next) {
+    if (audio === next) return;
+    if (audio) for (const name of EVENTS) audio.removeEventListener(name, emit);
+    audio = next;
+    if (audio) for (const name of EVENTS) audio.addEventListener(name, emit);
+}
+
+function follow() {
+    const now = activeAudio();
+    if (now && now !== audio) {
+        bind(now);
+        emit();
+    }
+}
 
 /** Subscribes to playback position. The first subscriber attaches the single shared listeners; the last one removes them. */
 export function onTime(callback) {
     if (!listeners.size) {
-        audio = document.getElementById('audio');
-        if (!audio) return () => {};
-        for (const name of EVENTS) audio.addEventListener(name, emit);
+        const first = activeAudio();
+        if (!first) return () => {};
+        bind(first);
+        watcher = setInterval(follow, 150);
     }
     listeners.add(callback);
     return () => {
         listeners.delete(callback);
-        if (!listeners.size && audio) for (const name of EVENTS) audio.removeEventListener(name, emit);
+        if (!listeners.size) {
+            clearInterval(watcher);
+            bind(null);
+        }
     };
 }

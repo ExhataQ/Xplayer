@@ -153,9 +153,11 @@ describe('ui-next shell with the real engine', { concurrency: false }, () => {
         for (const selector of ['#play-btn', '#prev-btn', '#next-btn', '#shuffle-btn', '#repeat-btn', '.progress-container', '#volume-slider', '#volume-icon', '#player-title', '#back-btn', '#maximize-btn', '.rail-btn[data-view="library"]']) {
             assert.equal(await page.locator(selector).first().isVisible(), true, `${selector} is visible`);
         }
-        for (const selector of ['#song-list', '#queue-list', '#legacy-host']) {
+        for (const selector of ['#queue-list', '#legacy-host']) {
             assert.equal(await page.locator(selector).first().isVisible(), false, `${selector} is hidden`);
         }
+        // B-03: the Library view shows the engine's song list in the view host.
+        assert.equal(await page.locator('.view-host #song-list').first().isVisible(), true, '#song-list is shown in the view host');
         const inside = await page.evaluate(() => ['play-btn', 'progress-bar', 'volume-fill', 'player-cover'].every((id) => document.querySelector('.player-host').contains(document.getElementById(id))));
         assert.equal(inside, true, 'the player elements live in the player host');
         await page.close();
@@ -334,11 +336,69 @@ describe('ui-next shell with the real engine', { concurrency: false }, () => {
         await page.click('.panel-host__header .icon-btn');
         assert.equal(await page.locator('.panel-host').getAttribute('data-panel'), 'expanded');
         await page.click('.logo-btn');
-        assert.equal(await page.locator('.logo-menu').isVisible(), true);
+        assert.equal(await page.locator('.menu').isVisible(), true);
         await page.keyboard.press('Escape');
-        assert.equal(await page.locator('.logo-menu').isVisible(), false);
+        assert.equal(await page.locator('.menu').count(), 0);
+        assert.equal(await page.evaluate(() => document.activeElement.className), 'logo-btn', 'focus returns to the logo');
         assert.equal((await state(page)).paused, false, 'playback is unaffected');
         assert.deepEqual(problems.errors, []);
+        await page.close();
+    });
+
+    test('rail and title bar buttons have the component tooltip, not a native title', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, problems } = await open();
+        await page.hover('.rail-btn[data-view="search"]');
+        await page.waitForSelector('.tooltip:not([hidden])', { timeout: 3000 });
+        const tip = await page.evaluate(() => {
+            const box = document.querySelector('.tooltip').getBoundingClientRect();
+            const rail = document.querySelector('.rail-btn[data-view="search"]').getBoundingClientRect();
+            return { right: box.left >= rail.right, text: document.querySelector('.tooltip').textContent, hasTitle: document.querySelector('.rail-btn').hasAttribute('title') };
+        });
+        assert.equal(tip.right, true, 'rail tooltips open to the right');
+        assert.match(tip.text, /Search/);
+        assert.equal(tip.hasTitle, false);
+        await page.mouse.move(600, 400);
+        await page.hover('.close-app-btn');
+        await page.waitForSelector('.tooltip:not([hidden])', { timeout: 3000 });
+        assert.match(await page.locator('.tooltip').textContent(), /Close app/);
+        assert.deepEqual(problems.errors, []);
+        await page.close();
+    });
+
+    test('an engine context menu keeps its submenu arrow', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page } = await open();
+        const arrow = await page.evaluate(() => {
+            document.body.insertAdjacentHTML('beforeend', '<div class="context-menu active" style="left:40px;top:60px"><div class="context-menu-item submenu-parent"><i class="fas fa-plus"></i><span>Add to</span><i class="fas fa-chevron-right"></i></div></div>');
+            const mark = document.querySelector('.context-menu i.fa-chevron-right').getBoundingClientRect();
+            const plus = document.querySelector('.context-menu i.fa-plus').getBoundingClientRect();
+            return { arrowShown: mark.width > 0, otherIconHidden: plus.width === 0 };
+        });
+        assert.deepEqual(arrow, { arrowShown: true, otherIconHidden: true });
+        await page.close();
+    });
+
+    test('a narrow window collapses the panel, and widening brings the saved choice back', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page } = await open();
+        const panel = () => page.locator('.panel-host').getAttribute('data-panel');
+        const toggle = page.locator('.panel-host__header .icon-btn');
+        await page.setViewportSize({ width: 1400, height: 800 });
+        assert.equal(await panel(), 'expanded');
+        await page.setViewportSize({ width: 900, height: 800 });
+        await page.waitForFunction(() => document.querySelector('.panel-host').dataset.panel === 'compact');
+        assert.equal(await toggle.getAttribute('aria-pressed'), 'false');
+        await toggle.click(); // opening it in a narrow window must not overwrite the saved choice
+        assert.equal(await panel(), 'expanded');
+        assert.equal(await page.evaluate(() => localStorage.getItem('xplayer.ui-next.panel')), null);
+        await page.setViewportSize({ width: 1400, height: 800 });
+        await page.waitForFunction(() => document.querySelector('.panel-host').dataset.panel === 'expanded');
+        await toggle.click(); // a wide window saves the choice
+        await page.setViewportSize({ width: 900, height: 800 });
+        await page.setViewportSize({ width: 1400, height: 800 });
+        await page.waitForFunction(() => document.querySelector('.panel-host').dataset.panel === 'compact');
+        assert.equal(await page.evaluate(() => localStorage.getItem('xplayer.ui-next.panel')), 'compact');
         await page.close();
     });
 

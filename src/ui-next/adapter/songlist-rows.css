@@ -1,0 +1,404 @@
+/* Engine rows in the song list (task B-03, strategy S3, decision D16). Lives in adapter/ because it names the engine's row
+ * classes (register L-01). The column variables and the header are in views/library/song-list.css.
+ *
+ * Engine facts this file depends on (ENGINE-CONTRACT.md L-01, research/B-01):
+ *   - rows are .song-item > .song-number-item, .left-song-item (img.song-cover, .song-info), .song-album, .right-song-item;
+ *   - the engine ignores clicks within 25px of a row's left and right edge (ui/04a ROW_EDGE_INSET), so rows have 25px sides;
+ *   - the engine reads --song-item-height from :root once; ui/05a setSongItemHeight() changes it for density;
+ *   - the hover and selection highlights are separate absolutely placed divs with inline colors, restyled here with !important.
+ */
+
+/* The engine reads this once at load for its scroll math (ui/05a); one source: here. Compact density overrides it on the host. */
+:root {
+    --song-item-height: var(--row-height);
+}
+
+/* A narrow window drops the Album column (see song-list.css). */
+@container songhost (max-width: 700px) {
+    .view-host[data-songlist] .song-item {
+        --sl-album: 0px;
+    }
+}
+
+/* ---------- the list ---------- */
+/* The engine's own heading block is replaced by the title bar (song-list.css). It would also push the rows down, and the
+ * engine's scroll math assumes the list starts at the top of the scroller. The engine sets its display inline. */
+.view-host[data-songlist] .playlist-hero-section {
+    display: none !important;
+}
+.view-host[data-songlist] .song-list {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    position: relative;
+    z-index: 1; /* above the two highlight layers, which are siblings in the scroller */
+}
+.view-host[data-songlist] .song-list.song-list--virtual {
+    display: block;
+}
+.view-host[data-songlist] .song-list.song-list--virtual > .song-item {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+}
+.view-host[data-songlist] .song-item {
+    display: grid;
+    grid-template-columns: var(--sl-number) minmax(0, var(--sl-title)) minmax(0, var(--sl-album)) var(--sl-right);
+    column-gap: var(--sl-gap);
+    align-items: center;
+    box-sizing: border-box;
+    height: var(--song-item-height);
+    padding: 0 var(--sl-side);
+    min-width: 0;
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    outline: none;
+    cursor: default;
+}
+.view-host[data-songlist] .song-item:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--focus-ring);
+    border-radius: var(--radius-sm);
+}
+
+/* number cell: row number, the playing bars, or a play and pause mark on hover */
+.view-host[data-songlist] .song-number-item {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 0;
+    color: var(--text-tertiary);
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+.view-host[data-songlist] .song-number-item.hidden-number {
+    visibility: hidden;
+}
+.view-host[data-songlist] .song-item.selected .song-number-item {
+    visibility: visible;
+    color: var(--text-primary);
+}
+.view-host[data-songlist] .song-item.playing .song-number-item {
+    color: var(--accent);
+}
+.view-host[data-songlist] .now-playing-indicator {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: 2px;
+    width: 14px;
+    height: 14px;
+    overflow: hidden;
+}
+.view-host[data-songlist] .now-playing-indicator span {
+    display: block;
+    width: 2px;
+    height: 2px;
+    background: var(--accent);
+    border-radius: 1px;
+    animation: songlist-eq 1s linear infinite;
+}
+.view-host[data-songlist] .now-playing-indicator span:nth-child(1) { animation-delay: 0s; }
+.view-host[data-songlist] .now-playing-indicator span:nth-child(2) { animation-delay: -0.167s; }
+.view-host[data-songlist] .now-playing-indicator span:nth-child(3) { animation-delay: -0.333s; }
+.view-host[data-songlist] .now-playing-indicator span:nth-child(4) { animation-delay: -0.667s; }
+@keyframes songlist-eq {
+    0%, 78%, 100% { height: 2px; }
+    10%, 22% { height: 9px; }
+    50% { height: 14px; }
+}
+.view-host[data-songlist] .song-item.playing.paused-song .now-playing-indicator {
+    display: none;
+}
+.view-host[data-songlist] .song-item.playing.paused-song .song-number-item {
+    font-size: 0;
+}
+.view-host[data-songlist] .song-item.playing.paused-song .song-number-item::before {
+    content: '';
+    width: 12px;
+    height: 12px;
+    background: var(--accent);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27black%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M5%205a2%202%200%200%201%203.008-1.728l11.997%206.998a2%202%200%200%201%20.003%203.458l-12%207A2%202%200%200%201%205%2019z%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27black%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M5%205a2%202%200%200%201%203.008-1.728l11.997%206.998a2%202%200%200%201%20.003%203.458l-12%207A2%202%200%200%201%205%2019z%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+}
+/* hover or keyboard focus: the number turns into a play mark (or a pause mark for the playing, unpaused row) */
+.view-host[data-songlist] .song-item:not(.lazy-skeleton):is(.row-hover-active, .last-selected, :focus-visible) .song-number-item {
+    font-size: 0;
+    color: transparent;
+}
+.view-host[data-songlist] .song-item:not(.lazy-skeleton):is(.row-hover-active, .last-selected, :focus-visible) .song-number-item > * {
+    display: none;
+}
+.view-host[data-songlist] .song-item:not(.lazy-skeleton):is(.row-hover-active, .last-selected, :focus-visible) .song-number-item::before,
+.view-host[data-songlist] .song-item:not(.lazy-skeleton):is(.row-hover-active, .last-selected, :focus-visible) .song-number-item::after {
+    content: none;
+}
+.view-host[data-songlist] .song-item:not(.lazy-skeleton):is(.row-hover-active, .last-selected, :focus-visible) .song-number-item::after {
+    content: '';
+    display: block;
+    width: 14px;
+    height: 14px;
+    background: var(--text-primary);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27black%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M5%205a2%202%200%200%201%203.008-1.728l11.997%206.998a2%202%200%200%201%20.003%203.458l-12%207A2%202%200%200%201%205%2019z%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27black%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M5%205a2%202%200%200%201%203.008-1.728l11.997%206.998a2%202%200%200%201%20.003%203.458l-12%207A2%202%200%200%201%205%2019z%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+}
+.view-host[data-songlist] .song-item.playing:not(.paused-song):is(.row-hover-active, .last-selected, :focus-visible) .song-number-item::after {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27black%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%2714%27%20y%3D%273%27%20width%3D%275%27%20height%3D%2718%27%20rx%3D%271%27%2F%3E%3Crect%20x%3D%275%27%20y%3D%273%27%20width%3D%275%27%20height%3D%2718%27%20rx%3D%271%27%2F%3E%3C%2Fsvg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27black%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%2714%27%20y%3D%273%27%20width%3D%275%27%20height%3D%2718%27%20rx%3D%271%27%2F%3E%3Crect%20x%3D%275%27%20y%3D%273%27%20width%3D%275%27%20height%3D%2718%27%20rx%3D%271%27%2F%3E%3C%2Fsvg%3E");
+}
+
+/* title block: cover, title, artist */
+.view-host[data-songlist] .left-song-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+    overflow: hidden;
+}
+.view-host[data-songlist] .song-cover {
+    flex: none;
+    width: calc(var(--song-item-height) - var(--space-3) * 2);
+    height: calc(var(--song-item-height) - var(--space-3) * 2);
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    background: var(--surface-selected);
+}
+.view-host[data-songlist] .song-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+}
+.view-host[data-songlist] .song-title {
+    font-size: var(--text-md);
+    font-weight: var(--weight-medium);
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.view-host[data-songlist] .song-item.playing .song-title {
+    color: var(--accent);
+}
+.view-host[data-songlist] .song-artist {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.view-host[data-songlist] .song-artist-name,
+.view-host[data-songlist] .song-album-name {
+    cursor: pointer;
+}
+.view-host[data-songlist] .song-artist-name:hover,
+.view-host[data-songlist] .song-album-name:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
+}
+.view-host[data-songlist] .song-artist-sep {
+    color: var(--text-tertiary);
+}
+.view-host[data-songlist] .song-lang-badge {
+    margin-left: var(--space-1);
+    color: var(--text-tertiary);
+    font-size: var(--text-xs);
+}
+.view-host[data-songlist] .song-album {
+    min-width: 0;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.view-host[data-album='off'] .song-album {
+    visibility: hidden;
+}
+@container songhost (max-width: 700px) {
+    .view-host[data-songlist] .song-album {
+        visibility: hidden;
+    }
+}
+.view-host[data-songlist] .song-item:is(.selected, .row-hover-active) :is(.song-artist, .song-album) {
+    color: var(--text-primary);
+}
+
+/* column choices */
+.view-host[data-cover='off'] .song-cover {
+    display: none;
+}
+.view-host[data-artist='off'] .song-artist {
+    display: none;
+}
+
+/* compact density: no cover, title and artist on one line */
+.view-host[data-density='compact'] .song-cover {
+    display: none;
+}
+.view-host[data-density='compact'] .song-info {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--space-3);
+}
+.view-host[data-density='compact'] .song-title {
+    flex: 0 1 auto;
+    max-width: 70%;
+    font-size: var(--text-sm);
+}
+.view-host[data-density='compact'] .song-artist {
+    flex: 1 1 0;
+    min-width: 0;
+    font-size: var(--text-xs);
+}
+
+/* right cell: queue and favorite buttons, time, more */
+.view-host[data-songlist] .right-song-item {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    min-width: 0;
+}
+.view-host[data-songlist] .song-action-buttons {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+.view-host[data-songlist] .song-duration {
+    min-width: 44px;
+    text-align: right;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+}
+.view-host[data-time='off'] .song-duration {
+    display: none;
+}
+.view-host[data-songlist] :is(.add-to-queue-btn, .favorite-btn, .more-info) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: var(--icon-button-size-sm);
+    height: var(--icon-button-size-sm);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity var(--motion-fast) var(--motion-ease), background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+}
+.view-host[data-songlist] .song-item:is(.selected, .row-hover-active, :focus-within) :is(.add-to-queue-btn, .favorite-btn, .more-info),
+.view-host[data-songlist] :is(.add-to-queue-btn, .favorite-btn, .more-info):focus-visible,
+.view-host[data-songlist] .favorite-btn:has(.liked) {
+    opacity: 1;
+}
+.view-host[data-songlist] :is(.add-to-queue-btn, .favorite-btn, .more-info):hover {
+    background: var(--control-hover-bg);
+    color: var(--text-primary);
+}
+.view-host[data-songlist] :is(.add-to-queue-btn, .favorite-btn, .more-info):focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+}
+.view-host[data-songlist] .add-to-queue-btn.added {
+    color: var(--accent);
+    opacity: 1;
+}
+/* The engine writes Font Awesome and Material Symbols glyphs. Neither font is loaded here, so each is drawn as a Lucide mask
+ * (same technique as adapter/legacy-icons.css, register entry L-02). */
+.view-host[data-songlist] :is(.add-to-queue-btn, .favorite-btn) i,
+.view-host[data-songlist] .more-info .material-symbols-outlined {
+    display: block;
+    width: 16px;
+    height: 16px;
+    font-size: 0;
+    background-color: currentColor;
+    -webkit-mask: var(--glyph) center / contain no-repeat;
+    mask: var(--glyph) center / contain no-repeat;
+}
+.view-host[data-songlist] .add-to-queue-btn i {
+    --glyph: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M5%2012h14%27%2F%3E%3Cpath%20d%3D%27M12%205v14%27%2F%3E%3C%2Fsvg%3E");
+}
+.view-host[data-songlist] .favorite-btn i {
+    --glyph: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M2%209.5a5.5%205.5%200%200%201%209.591-3.676.56.56%200%200%200%20.818%200A5.49%205.49%200%200%201%2022%209.5c0%202.29-1.5%204-3%205.5l-5.492%205.313a2%202%200%200%201-3%20.019L5%2015c-1.5-1.5-3-3.2-3-5.5%27%2F%3E%3C%2Fsvg%3E");
+}
+.view-host[data-songlist] .favorite-btn i.liked {
+    --glyph: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27black%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M2%209.5a5.5%205.5%200%200%201%209.591-3.676.56.56%200%200%200%20.818%200A5.49%205.49%200%200%201%2022%209.5c0%202.29-1.5%204-3%205.5l-5.492%205.313a2%202%200%200%201-3%20.019L5%2015c-1.5-1.5-3-3.2-3-5.5%27%2F%3E%3C%2Fsvg%3E");
+    color: var(--accent);
+}
+.view-host[data-songlist] .more-info .material-symbols-outlined {
+    --glyph: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%271%27%2F%3E%3Ccircle%20cx%3D%2719%27%20cy%3D%2712%27%20r%3D%271%27%2F%3E%3Ccircle%20cx%3D%275%27%20cy%3D%2712%27%20r%3D%271%27%2F%3E%3C%2Fsvg%3E");
+    width: 18px;
+    height: 18px;
+}
+
+/* ---------- the engine's two highlight layers (inline colors, so !important) ---------- */
+.view-host[data-songlist] #hover-highlight-single {
+    background: color-mix(in srgb, var(--surface-selected) 60%, transparent) !important;
+    border-radius: var(--radius-sm) !important;
+}
+.view-host[data-songlist] #active-hover-styles-set > div:not(#hover-highlight-single) {
+    background: var(--row-playing-bg) !important;
+    border-radius: var(--radius-sm) !important;
+}
+.view-host[data-songlist] #selection-styles-set > div {
+    background: var(--surface-selected) !important;
+}
+
+/* ---------- placeholder rows (shown for about 150 ms during a fast scroll) ---------- */
+.view-host[data-songlist] .song-item.lazy-skeleton {
+    pointer-events: none;
+}
+.view-host[data-songlist] .skeleton-bar,
+.view-host[data-songlist] .song-item.lazy-skeleton .song-cover {
+    background: var(--surface-selected);
+    border-radius: var(--radius-sm);
+}
+.view-host[data-songlist] .song-item.lazy-skeleton .ph-number-placeholder {
+    width: 14px;
+    height: 12px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-selected);
+}
+.view-host[data-songlist] .song-item.lazy-skeleton .song-info {
+    gap: var(--space-2);
+}
+.view-host[data-songlist] .skeleton-bar.title { height: 10px; width: 60%; }
+.view-host[data-songlist] .skeleton-bar.artist { height: 9px; width: 40%; }
+.view-host[data-songlist] .song-album .skeleton-bar { height: 10px; width: 55%; }
+.view-host[data-songlist] .skeleton-bar.duration { height: 10px; width: 32px; margin-right: 0; }
+.view-host[data-songlist] .ph-action-placeholder,
+.view-host[data-songlist] .ph-more-placeholder {
+    visibility: hidden;
+}
+.view-host[data-density='compact'] .skeleton-bar.title { width: 30%; }
+.view-host[data-density='compact'] .skeleton-bar.artist { width: 20%; }
+
+/* ---------- empty list ---------- */
+.view-host[data-songlist] .empty-state-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-8) var(--space-4);
+    color: var(--text-secondary);
+    font-size: var(--text-md);
+}
+.view-host[data-songlist] .empty-state-container i {
+    display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .view-host[data-songlist] .now-playing-indicator span {
+        animation: none;
+        height: 8px;
+    }
+}

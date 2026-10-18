@@ -33,7 +33,7 @@ function fill(content) {
     t.description.hidden = !content.description;
 }
 
-function place(target) {
+function place(target, side) {
     const t = ensure();
     const host = overlayHost(target);
     if (t.node.parentNode !== host) host.append(t.node);
@@ -41,6 +41,13 @@ function place(target) {
     const anchor = target.getBoundingClientRect();
     const box = t.node.getBoundingClientRect();
     const gap = 8;
+    if (side === 'right') {
+        const pos = clampToViewport(anchor.right + gap, anchor.top + anchor.height / 2 - box.height / 2, box.width, box.height);
+        t.node.style.left = `${pos.x}px`;
+        t.node.style.top = `${pos.y}px`;
+        t.node.dataset.placement = 'right';
+        return;
+    }
     let y = anchor.bottom + gap;
     let placement = 'bottom';
     if (y + box.height > window.innerHeight - 8 && anchor.top - gap - box.height >= 8) {
@@ -65,9 +72,9 @@ export function hideTooltip() {
     lastHiddenAt = performance.now();
 }
 
-function show(target, read) {
+function show(target, read, side) {
     fill(read());
-    place(target);
+    place(target, side);
     target.setAttribute('aria-describedby', ensure().node.id);
     activeTarget = target;
 }
@@ -79,7 +86,7 @@ function show(target, read) {
  * `stayOnPress: true` (toggles) keeps the tooltip open on press and refreshes it after the click; any other
  * target hides it on press and shows it again on the next hover.
  */
-export function attachTooltip(target, content, { delay = TOOLTIP_DELAY, stayOnPress = false } = {}) {
+export function attachTooltip(target, content, { delay = TOOLTIP_DELAY, stayOnPress = false, placement } = {}) {
     let fixed = typeof content === 'function' ? null : { ...content };
     const read = () => (fixed ? fixed : content());
 
@@ -87,7 +94,7 @@ export function attachTooltip(target, content, { delay = TOOLTIP_DELAY, stayOnPr
         clearTimeout(showTimer);
         const warm = performance.now() - lastHiddenAt < WARM_WINDOW;
         const run = () => {
-            if (target.isConnected && !target.disabled) show(target, read);
+            if (target.isConnected && !target.disabled) show(target, read, placement);
         };
         if (immediate || warm || delay === 0) run();
         else showTimer = setTimeout(run, delay);
@@ -102,7 +109,7 @@ export function attachTooltip(target, content, { delay = TOOLTIP_DELAY, stayOnPr
     const refresh = () => {
         if (activeTarget === target) {
             fill(read());
-            place(target);
+            place(target, placement);
         }
     };
 
@@ -122,7 +129,7 @@ export function attachTooltip(target, content, { delay = TOOLTIP_DELAY, stayOnPr
             fixed = { ...(fixed || read()), ...partial };
             if (activeTarget === target) {
                 fill(fixed);
-                place(target);
+                place(target, placement);
             }
         },
         refresh,

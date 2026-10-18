@@ -71,7 +71,8 @@ export const desktopApi = (function () {
         },
         files: {
             showFileInExplorer: 'send',
-            deleteFile: 'send'
+            deleteFile: 'send',
+            readAudioBytes: 'invoke'
         },
         lyrics: {
             saveLyricsFile: 'invoke',

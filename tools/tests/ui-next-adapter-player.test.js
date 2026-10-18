@@ -32,6 +32,8 @@ describe('adapter/player-parts.js', { concurrency: false }, () => {
         fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('<script src="../player.js">', () => stub + '<script src="../player.js">'));
         wav = path.join(dir, 'tone.wav');
         writeWav(wav);
+        fs.mkdirSync(path.join(dir, 'ui-next', 'dev'), { recursive: true });
+        fs.writeFileSync(path.join(dir, 'ui-next', 'dev', 'blank.html'), '<!doctype html><meta charset="utf-8"><body></body>');
         moduleUrl = 'file://' + path.join(dir, 'ui-next', 'adapter', 'player-parts.js').replace(/\\/g, '/');
     });
     after(async () => {
@@ -64,7 +66,7 @@ describe('adapter/player-parts.js', { concurrency: false }, () => {
             play: P.playerPart('play').id, seek: P.playerPart('seek').className, volume: P.playerPart('volume').id,
             unknown: P.playerPart('nope'), frozen: Object.isFrozen(P.PLAYER_PART_NAMES)
         }));
-        assert.equal(out.names, 15);
+        assert.equal(out.names, 18);
         assert.deepEqual(out.inside, []);
         assert.deepEqual([out.play, out.seek, out.volume, out.unknown, out.frozen], ['play-btn', 'progress-container', 'volume-slider', null, true]);
         assert.deepEqual(errors, []);
@@ -91,7 +93,27 @@ describe('adapter/player-parts.js', { concurrency: false }, () => {
         await page.close();
     });
 
-    test('three subscribers share one set of listeners; the last unsubscribe removes them (L-04)', TEST_OPTIONS, async (t) => {
+    test('the time reader follows the engine when it swaps audio elements at a track change (gapless playback, on by default)', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open();
+        await page.evaluate(() => { window.seen = []; window.off = P.onTime((s) => window.seen.push(s)); });
+        await play(page);
+        const first = await page.evaluate(() => ({ same: audioElement === document.getElementById('audio'), src: audioElement.currentSrc }));
+        assert.equal(first.same, true, 'the first track plays on the page\'s own element');
+        await page.click('#next-btn');
+        await page.waitForFunction(() => document.getElementById('player-title').textContent.includes('number 2'), null, { timeout: 4000 });
+        await page.waitForFunction(() => audioElement !== document.getElementById('audio'), null, { timeout: 3000 });
+        // after the swap the reader still reports the playing element: time moves, play state is right
+        const before = await page.evaluate(() => window.seen.length);
+        await page.waitForFunction((n) => window.seen.length > n + 2 && window.seen[window.seen.length - 1].currentTime > 0.3 && window.seen[window.seen.length - 1].playing, before, { timeout: 5000 });
+        const now = await page.evaluate(() => ({ last: window.seen[window.seen.length - 1], active: audioElement.currentSrc }));
+        assert.equal(now.last.src, now.active, 'the reported source is the active element\'s');
+        assert.equal(now.last.playing, true);
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('subscribers share one set of listeners: the app already has some, three more add none (L-04)', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open();
         const out = await page.evaluate(() => {
@@ -101,12 +123,32 @@ describe('adapter/player-parts.js', { concurrency: false }, () => {
             audio.addEventListener = (n, ...r) => (added.push(n), add(n, ...r));
             audio.removeEventListener = (n, ...r) => (removed.push(n), remove(n, ...r));
             const offs = [P.onTime(() => {}), P.onTime(() => {}), P.onTime(() => {})];
+            offs.forEach((off) => off());
+            return { added: added.length, removed: removed.length };
+        });
+        assert.deepEqual(out, { added: 0, removed: 0 }, 'the player views already subscribed, so the listeners exist and stay');
+        await page.close();
+    });
+
+    test('on a page with no other subscriber the first one attaches the listeners and the last one removes them (L-04)', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const page = await browser.newPage();
+        await page.goto('file://' + path.join(dir, 'ui-next', 'index.html').replace(/\\/g, '/').replace('index.html', 'dev/blank.html'));
+        const out = await page.evaluate(async (m) => {
+            document.body.innerHTML = '<audio id="audio"></audio>';
+            const mod = await import(m);
+            const audio = document.getElementById('audio');
+            const added = [], removed = [];
+            const add = audio.addEventListener.bind(audio), remove = audio.removeEventListener.bind(audio);
+            audio.addEventListener = (n, ...r) => (added.push(n), add(n, ...r));
+            audio.removeEventListener = (n, ...r) => (removed.push(n), remove(n, ...r));
+            const offs = [mod.onTime(() => {}), mod.onTime(() => {}), mod.onTime(() => {})];
             const afterAdd = added.filter((n) => n === 'timeupdate').length;
             offs[0](); offs[1]();
             const midRemoved = removed.length;
             offs[2]();
             return { afterAdd, midRemoved, removedTimeupdate: removed.filter((n) => n === 'timeupdate').length, balanced: added.length === removed.length };
-        });
+        }, moduleUrl);
         assert.deepEqual(out, { afterAdd: 1, midRemoved: 0, removedTimeupdate: 1, balanced: true });
         await page.close();
     });

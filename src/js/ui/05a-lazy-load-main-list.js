@@ -53,7 +53,7 @@ export function setVirtualScrollThreshold(value) {
 // Single source of truth for the song row height is the CSS variable --song-item-height
 // (song-list.css). .song-item and placeholder rows both use it; JS reads it here so the
 // scroll math can never disagree with what is rendered. 56 is only a fallback.
-const ITEM_HEIGHT = (() => {
+let ITEM_HEIGHT = (() => {
     try {
         const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--song-item-height'));
         return v > 0 ? v : 56;
@@ -61,6 +61,21 @@ const ITEM_HEIGHT = (() => {
         return 56;
     }
 })();
+
+// Seam for ui-next density (task B-03): the row height can change after load. The caller changes the CSS variable
+// first, then passes the new pixel height. The first visible row stays first, and the window is rebuilt.
+export function setSongItemHeight(px) {
+    if (!(px > 0) || px === ITEM_HEIGHT) return;
+    const previous = ITEM_HEIGHT;
+    ITEM_HEIGHT = px;
+    const state = virtualScrollState;
+    if (!state.enabled || !state.container) return;
+    const content = state.container;
+    const topIndex = content.scrollTop / previous;
+    renderVirtualScrollImmediate(content);
+    content.scrollTop = topIndex * px;
+    renderVirtualScrollImmediate(content);
+}
 
 // The one rule for "does this list use virtual scrolling": strictly more songs than the
 // Advanced Settings threshold. Every list (including All Songs) follows it.
@@ -731,7 +746,7 @@ if (typeof registerLegacyGlobals === 'function') {
         DEFAULT_VIRTUAL_SCROLL_THRESHOLD,
         MIN_VIRTUAL_SCROLL_THRESHOLD,
         MAX_VIRTUAL_SCROLL_THRESHOLD,
-        ITEM_HEIGHT,
+        setSongItemHeight,
         virtualScrollState,
         VIRTUAL_SCROLL_SETTLE_MS,
         snapVirtualScrollThreshold,
@@ -753,4 +768,9 @@ if (typeof registerLegacyGlobals === 'function') {
         getLazyState,
         reapplySelectionState
     });
+}
+
+// ITEM_HEIGHT can change (setSongItemHeight), so other files read it through an accessor, not a copy.
+if (typeof registerLegacyState === 'function') {
+    registerLegacyState({ ITEM_HEIGHT: [() => ITEM_HEIGHT] });
 }

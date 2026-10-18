@@ -1,4 +1,6 @@
-/* Player bar, Agent C (task C-01). Tokens only, no raw colors. Load after shell/shell.css and adapter/legacy-icons.css.
+/* Playback surfaces, Agent C (tasks C-01 to C-04): player bar states, waveform seek bar, queue drawer, cover viewer.
+ * Tokens only, no raw colors. (The link may sit before or after shell/shell.css: every rule here that has to win over a
+ * shell rule is more specific than it.)
  *
  * The player's elements are built by adapter/legacy-dom-adapter.js and keep the engine's names, so everything here is
  * scoped through the shell's wrapper (.player-host) or targets a node the engine creates itself. Nothing below fights an
@@ -48,10 +50,244 @@
 /* ---------- nothing loaded ----------
  * With an empty queue previous, next and seek do nothing (15d returns early; 15f startSeek needs a duration), so they
  * read as unavailable. Play, shuffle and repeat stay normal: play starts playback and the two toggles set modes. They
- * stay clickable; this only changes how they look, because the engine decides what a click does. */
-.player-host .player-container:has(.player-song-info:not(.has-song)) :is(#prev-btn, #next-btn, .progress-section) {
+ * stay clickable; this only changes how they look, because the engine decides what a click does. The marker is set by
+ * views/playback/transport.js from the engine's own .has-song class. */
+.player-host[data-empty] :is(#prev-btn, #next-btn, .progress-section) {
     opacity: var(--control-disabled-opacity);
 }
-.player-host .player-container:has(.player-song-info:not(.has-song)) :is(.progress-container, #prev-btn, #next-btn) {
+.player-host[data-empty] :is(.progress-container, #prev-btn, #next-btn) {
     cursor: default;
+}
+
+/* ---------- waveform seek bar (C-02) ----------
+ * seek-waveform.js adds a canvas inside the engine's seek bar and the class has-waveform. The canvas is a picture
+ * (no pointer events), so a press on the bar reaches the engine as before; the engine still writes its own fill and
+ * knob, which stay in place but are hidden, the canvas draws the played part. */
+.waveform-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+.player-host .progress-container.has-waveform {
+    height: 32px;
+}
+.player-host .progress-container.has-waveform::before,
+.player-host .progress-container.has-waveform #progress-bar,
+.player-host .progress-container.has-waveform #progress-knob {
+    visibility: hidden;
+}
+
+/* ---------- slider focus (C-01) ---------- */
+.player-host .progress-container:focus-visible,
+.player-host #volume-slider:focus-visible,
+.player-host #volume-icon:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+/* ---------- queue button and cover button (C-03, C-04) ---------- */
+.player-host .queue-btn[aria-pressed='true'] {
+    color: var(--accent);
+}
+.player-host .player-song-info {
+    position: relative;
+}
+.player-host .cover-expand {
+    position: absolute;
+    left: var(--space-1);
+    top: var(--space-1);
+    background: var(--surface-scrim);
+    color: var(--text-primary);
+    opacity: 0;
+}
+.player-host .cover-expand[hidden] {
+    display: none;
+}
+.player-host .player-song-info:hover .cover-expand,
+.player-host .cover-expand:focus-visible {
+    opacity: 1;
+}
+
+/* ---------- queue drawer (C-03) ----------
+ * The engine's own queue list (#queue-list) is moved in here and its rows are restyled through this wrapper. Section
+ * labels, rows, the "more" button, empty cards and "Load more" are the engine's markup (ui/04a, playback/10c). */
+.queue-panel {
+    position: fixed;
+    right: var(--space-3);
+    bottom: calc(var(--player-height) + var(--space-2));
+    z-index: var(--layer-menu);
+    display: flex;
+    flex-direction: column;
+    width: min(380px, calc(100vw - var(--space-6)));
+    max-height: min(560px, calc(100vh - var(--player-height) - var(--space-8) - var(--space-8)));
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-raised);
+    color: var(--text-primary);
+}
+.queue-panel[hidden] {
+    display: none;
+}
+.queue-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+    border-bottom: 1px solid var(--border-subtle);
+}
+.queue-panel__title {
+    margin: 0;
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+}
+.queue-panel__body {
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--space-2);
+}
+.queue-panel .queue-lables {
+    padding: var(--space-3) var(--space-2) var(--space-1);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+}
+.queue-panel .queue-item {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+}
+.queue-panel .queue-item:hover,
+.queue-panel .queue-item:focus-visible {
+    background: var(--surface-selected);
+}
+.queue-panel .queue-item:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+}
+.queue-panel .queue-item-cover {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-ground);
+    object-fit: cover;
+}
+.queue-panel .queue-item-info {
+    min-width: 0;
+}
+.queue-panel .queue-item-title,
+.queue-panel .queue-item-artist {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.queue-panel .queue-item-title {
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+}
+.queue-panel .queue-item-artist {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+}
+/* The engine writes the Material Symbols name as text ("more_horiz"); that font is not loaded here, so the text is
+ * hidden and the three dots are drawn with a mask, like the glyph mapping in adapter/legacy-icons.css. */
+.queue-panel .more-info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--icon-button-size-sm);
+    height: var(--icon-button-size-sm);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+.queue-panel .more-info:hover {
+    background: var(--control-hover-bg);
+    color: var(--text-primary);
+}
+.queue-panel .more-info > span {
+    width: 18px;
+    height: 18px;
+    overflow: hidden;
+    font-size: 0;
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27black%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%271.8%27%2F%3E%3Ccircle%20cx%3D%2719%27%20cy%3D%2712%27%20r%3D%271.8%27%2F%3E%3Ccircle%20cx%3D%275%27%20cy%3D%2712%27%20r%3D%271.8%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27black%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%271.8%27%2F%3E%3Ccircle%20cx%3D%2719%27%20cy%3D%2712%27%20r%3D%271.8%27%2F%3E%3Ccircle%20cx%3D%275%27%20cy%3D%2712%27%20r%3D%271.8%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+}
+.queue-panel .empty-queue {
+    padding: var(--space-6) var(--space-4);
+    text-align: center;
+    color: var(--text-secondary);
+}
+.queue-panel .empty-queue i {
+    display: none;
+}
+.queue-panel .empty-queue p {
+    margin: 0 0 var(--space-1);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+}
+.queue-panel .empty-queue small {
+    font-size: var(--text-xs);
+}
+.queue-panel .queue-load-more-btn {
+    display: block;
+    width: 100%;
+    margin-top: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    cursor: pointer;
+}
+.queue-panel .queue-load-more-btn:hover {
+    background: var(--control-hover-bg);
+}
+
+/* ---------- cover viewer (C-04) ---------- */
+.dialog--cover {
+    width: min(92vw, 880px);
+}
+.cover-viewer {
+    margin: 0;
+}
+.cover-viewer__frame {
+    display: flex;
+    justify-content: center;
+    max-height: calc(100vh - 220px);
+    overflow: auto;
+    border-radius: var(--radius-md);
+    background: var(--surface-ground);
+}
+.cover-viewer__image {
+    display: block;
+    max-width: 100%;
+    max-height: calc(100vh - 220px);
+    object-fit: contain;
+    cursor: zoom-in;
+}
+.cover-viewer__frame--actual {
+    display: block;
+}
+.cover-viewer__frame--actual .cover-viewer__image {
+    max-width: none;
+    max-height: none;
+    cursor: zoom-out;
+}
+.cover-viewer__caption {
+    margin-top: var(--space-3);
+    text-align: center;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
 }

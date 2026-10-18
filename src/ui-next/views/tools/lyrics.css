@@ -1,0 +1,388 @@
+/* ui-next Lyrics (task D-01, agent D). Strategy S3: the engine draws the lyrics pages (js/ui/04g, js/lyrics/11a, 19); this file skins
+ * them through the engine's own class names, scoped to the view host while an engine lyrics page is shown, and styles the mode bar
+ * that views/tools/lyrics.js adds. Tokens only (tools/tests/ui-next-lyrics.test.js).
+ *
+ * The engine's own stylesheets are not loaded in ui-next and Material Symbols is not either, so every icon the engine writes as a
+ * word ("edit", "graphic_eq") is hidden here and the label carries the meaning.
+ * Find (the online search and the multi-song finder) only gets a readable baseline here; D-02 finishes it.
+ */
+
+.view-host[data-engine='lyrics'] {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.view-host[data-engine='lyrics'] > .content-wrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+}
+.view-host[data-engine='lyrics'] .material-symbols-outlined {
+    display: none;
+}
+
+/* ---------- mode bar ---------- */
+
+.lyrics-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+    padding: var(--space-3) var(--space-6);
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--surface-ground);
+}
+.lyrics-bar__song {
+    display: flex;
+    flex: 1 1 12rem;
+    flex-direction: column;
+    min-width: 0;
+}
+.lyrics-bar__title,
+.lyrics-bar__artist {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.lyrics-bar__title {
+    color: var(--text-primary);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+}
+.lyrics-bar__artist {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.lyrics-bar__editors {
+    display: flex;
+    gap: var(--space-2);
+}
+.lyrics-bar__hint {
+    flex-basis: 100%;
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.lyrics-bar__hint[hidden] {
+    display: none;
+}
+
+/* ---------- lyrics page ---------- */
+
+.view-host[data-engine='lyrics'] .content {
+    scrollbar-color: var(--border-strong) transparent;
+}
+.view-host[data-engine='lyrics'] .lyrics-view-container {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: min(46rem, 100%);
+    margin: 0 auto;
+    padding: var(--space-6) var(--space-6) var(--space-8);
+}
+/* The toolbar (display mode, import, paste) sits above the text so it never scrolls away with a long song. */
+.view-host[data-engine='lyrics'] .lyrics-view-footer {
+    order: -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-6);
+}
+.view-host[data-engine='lyrics'] .lyrics-view-footer :is([data-action='openLyricsEditor'], [data-action='openSyncEditor'], [data-action='openOnlineLyricsView']) {
+    display: none; /* the mode bar has Write, Sync and Find */
+}
+
+.view-host[data-engine='lyrics'] .lyrics-view-text {
+    color: var(--text-primary);
+    font-family: var(--font-serif);
+    font-size: calc(var(--lyrics-font-size, 40px) * 0.7);
+    line-height: var(--lyrics-line-height, 1.5);
+    overflow-wrap: anywhere;
+}
+.view-host[data-engine='lyrics'] .lyrics-line {
+    min-height: 1em;
+    margin: 0 0 0.4em;
+    unicode-bidi: plaintext; /* each line takes its own direction, so Persian and Arabic lines start on the right */
+    transition: color var(--motion-fast) var(--motion-ease);
+}
+.view-host[data-engine='lyrics'] .lyrics-line-empty {
+    height: 0.8em;
+    min-height: 0;
+    margin: 0;
+}
+.view-host[data-engine='lyrics'] .lyrics-line-instrumental::before,
+.view-host[data-engine='lyrics'] .lyrics-line-instrumental-block::before {
+    content: '\266A';
+    margin-inline-end: var(--space-2);
+}
+.view-host[data-engine='lyrics'] .lyrics-line-instrumental {
+    color: var(--accent);
+}
+.view-host[data-engine='lyrics'] .lyrics-line-instrumental-block {
+    color: var(--accent);
+    font-style: italic;
+}
+
+/* Synced: the line being sung is full strength, the rest recede. Clicking a line seeks (the engine does that). */
+.view-host[data-engine='lyrics'] .lyrics-view-synced .lyrics-line:not(.lyrics-line-empty) {
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+.view-host[data-engine='lyrics'] .lyrics-view-synced .lyrics-line.synced-past {
+    color: var(--text-tertiary);
+}
+.view-host[data-engine='lyrics'] .lyrics-view-synced .lyrics-line.synced-active {
+    color: var(--text-primary);
+}
+.view-host[data-engine='lyrics'] .lyrics-view-synced .lyrics-line:not(.lyrics-line-empty):hover {
+    color: var(--text-primary);
+}
+
+/* ---------- empty state: no song playing ---------- */
+
+.view-host[data-engine='lyrics'] .lyrics-view-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-height: 50vh;
+    text-align: center;
+}
+.view-host[data-engine='lyrics'] .lyrics-view-empty i {
+    display: none;
+}
+.view-host[data-engine='lyrics'] .lyrics-view-empty::before {
+    content: '';
+    width: 28px;
+    height: 28px;
+    margin-bottom: var(--space-2);
+    background-color: var(--text-tertiary);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M21%205H3%27%2F%3E%3Cpath%20d%3D%27M15%2012H3%27%2F%3E%3Cpath%20d%3D%27M17%2019H3%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M21%205H3%27%2F%3E%3Cpath%20d%3D%27M15%2012H3%27%2F%3E%3Cpath%20d%3D%27M17%2019H3%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+}
+.view-host[data-engine='lyrics'] .lyrics-view-empty p {
+    margin: 0;
+    color: var(--text-primary);
+    font-family: var(--font-serif);
+    font-size: var(--text-2xl);
+}
+.view-host[data-engine='lyrics'] .lyrics-view-empty small {
+    color: var(--text-secondary);
+    font-size: var(--text-md);
+}
+
+/* ---------- buttons the engine writes (toolbar, finder, Find) ---------- */
+
+.view-host[data-engine='lyrics'] .lyrics-view-edit-btn,
+.view-host[data-engine='lyrics'] .online-lyrics-search-btn,
+.view-host[data-engine='lyrics'] .online-lyrics-primary-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    min-height: var(--button-height);
+    padding: 0 var(--space-4);
+    border: 1px solid var(--button-outline-border);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
+}
+.view-host[data-engine='lyrics'] .lyrics-view-edit-btn:hover:not(:disabled),
+.view-host[data-engine='lyrics'] .online-lyrics-search-btn:hover:not(:disabled) {
+    background: var(--control-hover-bg);
+}
+.view-host[data-engine='lyrics'] .lyrics-view-edit-btn:active:not(:disabled) {
+    background: var(--control-active-bg);
+}
+.view-host[data-engine='lyrics'] .lyrics-view-edit-btn:focus-visible,
+.view-host[data-engine='lyrics'] .online-lyrics-search-btn:focus-visible,
+.view-host[data-engine='lyrics'] .online-lyrics-primary-btn:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+.view-host[data-engine='lyrics'] .lyrics-view-edit-btn:disabled {
+    opacity: var(--control-disabled-opacity);
+    cursor: default;
+}
+/* The display-mode toggle: the pressed one is filled. */
+.view-host[data-engine='lyrics'] .lyrics-view-mode-btn.active {
+    border-color: transparent;
+    background: var(--segmented-active-bg);
+}
+/* the engine disables the pressed one; it must not look unavailable */
+.view-host[data-engine='lyrics'] .lyrics-view-mode-btn.active:disabled {
+    opacity: 1;
+}
+.view-host[data-engine='lyrics'] :is(.lyrics-online-btn, .online-lyrics-primary-btn, .online-lyrics-search-btn):not(:disabled) {
+    border-color: transparent;
+    background: var(--button-primary-bg);
+    color: var(--button-primary-fg);
+}
+.view-host[data-engine='lyrics'] :is(.lyrics-online-btn, .online-lyrics-primary-btn, .online-lyrics-search-btn):hover:not(:disabled) {
+    background: var(--button-primary-bg);
+    opacity: 0.88;
+}
+
+/* ---------- synced variants ---------- */
+
+.view-host[data-engine='lyrics'] .synced-variants-list {
+    order: 3;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin-top: var(--space-8);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border-subtle);
+    font-size: var(--text-sm);
+}
+.view-host[data-engine='lyrics'] .synced-variant-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+}
+.view-host[data-engine='lyrics'] .synced-variant-row:hover {
+    background: var(--control-hover-bg);
+}
+.view-host[data-engine='lyrics'] .synced-variant-row.active {
+    background: var(--accent-soft);
+    color: var(--text-primary);
+}
+.view-host[data-engine='lyrics'] .synced-variant-radio {
+    color: var(--accent);
+    cursor: pointer;
+}
+.view-host[data-engine='lyrics'] .synced-variant-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.view-host[data-engine='lyrics'] .synced-variant-meta {
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+}
+.view-host[data-engine='lyrics'] .synced-variant-icon-btn {
+    padding: var(--space-1) var(--space-2);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: var(--text-xs);
+    cursor: pointer;
+}
+.view-host[data-engine='lyrics'] .synced-variant-icon-btn:hover {
+    background: var(--control-active-bg);
+    color: var(--text-primary);
+}
+.view-host[data-engine='lyrics'] .synced-variant-icon-btn[data-action='renameSyncedVariant']::after {
+    content: 'Rename';
+}
+.view-host[data-engine='lyrics'] .synced-variant-icon-btn[data-action='deleteSyncedVariant']::after {
+    content: 'Delete';
+}
+
+/* The engine adds this button to <body>, not to the page: it appears when the reader scrolls away from the line being sung. */
+.follow-lyrics-btn {
+    position: fixed;
+    bottom: calc(var(--player-height) + var(--space-4));
+    left: 50%;
+    z-index: var(--layer-toast);
+    padding: var(--space-2) var(--space-4);
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--button-primary-bg);
+    color: var(--button-primary-fg);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    box-shadow: var(--shadow-raised);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%) translateY(var(--space-3));
+    transition: opacity var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
+}
+.follow-lyrics-btn.visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%);
+}
+.follow-lyrics-btn .material-symbols-outlined {
+    display: none;
+}
+
+/* ---------- Find (baseline; D-02 finishes it) ---------- */
+
+.view-host[data-engine='lyrics'] .online-lyrics-view-container {
+    box-sizing: border-box;
+    width: min(46rem, 100%);
+    margin: 0 auto;
+    padding: var(--space-6) var(--space-6) var(--space-8);
+    color: var(--text-primary);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-header h2 {
+    margin: 0 0 var(--space-1);
+    font-family: var(--font-serif);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-regular);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-header p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-md);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-view-container input[type='text'],
+.view-host[data-engine='lyrics'] .online-lyrics-view-container input:not([type]),
+.view-host[data-engine='lyrics'] .online-lyrics-view-container input[type='search'] {
+    box-sizing: border-box;
+    flex: 1 1 10rem;
+    min-width: 0;
+    height: var(--input-height);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-view-container input:hover {
+    border-color: var(--input-border-hover);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-view-container input:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
+}
+.view-host[data-engine='lyrics'] .online-lyrics-search-panel,
+.view-host[data-engine='lyrics'] .smart-lyrics-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-status {
+    color: var(--text-secondary);
+    font-size: var(--text-md);
+}

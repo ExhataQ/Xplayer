@@ -1,0 +1,363 @@
+/* ui-next Metadata (task D-04, agent D). Strategy S3: the engine builds the tag form (js/library/20-metadata-editor.js); the bridge moves
+ * its tab of the right panel into the view host; this file skins it through the engine's own class names. Tokens only
+ * (tools/tests/ui-next-metadata.test.js). The engine's stylesheets and Material Symbols are not loaded in ui-next, so icon names
+ * written as words are hidden and the labels carry the meaning.
+ */
+
+.view-host[data-engine-panel='metadata'] {
+    overflow-y: auto;
+    scrollbar-color: var(--border-strong) transparent;
+}
+.view-host[data-engine-panel='metadata'] .material-symbols-outlined {
+    display: none !important; /* the engine also sets display inline on the cover placeholder */
+}
+.view-host[data-engine-panel='metadata'] > .panel-content {
+    box-sizing: border-box;
+    width: min(52rem, 100%);
+    margin: 0 auto;
+}
+.view-host[data-metadata='empty'] > .panel-content {
+    display: none;
+}
+.view-host[data-engine-panel='metadata'] > .empty-state {
+    min-height: 60%;
+}
+.view-host[data-engine-panel='metadata'] > .empty-state[hidden] {
+    display: none;
+}
+
+/* ---------- toolbar and actions: both stay in reach while the form scrolls ---------- */
+
+.view-host[data-engine-panel='metadata'] .metadata-editor-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-3) var(--space-6);
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--surface-ground);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-toolbar-title {
+    flex: 1 1 8rem;
+    min-width: 0;
+    color: var(--text-primary);
+    font-family: var(--font-serif);
+    font-size: var(--text-xl);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-back::after {
+    content: 'Back';
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-6);
+    border-top: 1px solid var(--border-subtle);
+    background: var(--surface-ground);
+}
+
+/* ---------- buttons and select ---------- */
+
+.view-host[data-engine-panel='metadata'] :is(.metadata-editor-toolbar, .metadata-editor-actions, .metadata-cover-info, .metadata-more-toggle-row, .metadata-online-releases) button,
+.view-host[data-engine-panel='metadata'] .metadata-search-scope {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    min-height: var(--button-height-sm);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--button-outline-border);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease);
+}
+.view-host[data-engine-panel='metadata'] .metadata-search-scope {
+    background: var(--input-bg);
+}
+.view-host[data-engine-panel='metadata'] :is(.metadata-editor-toolbar, .metadata-editor-actions, .metadata-cover-info, .metadata-more-toggle-row, .metadata-online-releases) button:hover:not(:disabled) {
+    background: var(--control-hover-bg);
+}
+.view-host[data-engine-panel='metadata'] :is(button, select, input, textarea):focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+.view-host[data-engine-panel='metadata'] :is(button, select, input, textarea):disabled {
+    opacity: var(--control-disabled-opacity);
+    cursor: default;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-save:not(:disabled) {
+    border-color: transparent;
+    background: var(--button-primary-bg);
+    color: var(--button-primary-fg);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-save:hover:not(:disabled) {
+    background: var(--button-primary-bg);
+    opacity: 0.88;
+}
+.view-host[data-engine-panel='metadata'] .metadata-more-toggle {
+    border-color: transparent;
+    color: var(--text-secondary);
+}
+
+/* ---------- cover ---------- */
+
+.view-host[data-engine-panel='metadata'] .metadata-editor-top {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-6) var(--space-6) var(--space-2);
+}
+.view-host[data-engine-panel='metadata'] .metadata-cover-box {
+    position: relative;
+    flex: none;
+    width: 112px;
+    height: 112px;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--surface-raised);
+    cursor: pointer;
+}
+.view-host[data-engine-panel='metadata'] .metadata-cover-box::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 32px;
+    height: 32px;
+    background-color: var(--text-tertiary);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M16%205H3%27%2F%3E%3Cpath%20d%3D%27M11%2012H3%27%2F%3E%3Cpath%20d%3D%27M11%2019H3%27%2F%3E%3Cpath%20d%3D%27M21%2016V5%27%2F%3E%3Ccircle%20cx%3D%2718%27%20cy%3D%2716%27%20r%3D%273%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M16%205H3%27%2F%3E%3Cpath%20d%3D%27M11%2012H3%27%2F%3E%3Cpath%20d%3D%27M11%2019H3%27%2F%3E%3Cpath%20d%3D%27M21%2016V5%27%2F%3E%3Ccircle%20cx%3D%2718%27%20cy%3D%2716%27%20r%3D%273%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+}
+.view-host[data-engine-panel='metadata'] .metadata-cover-box img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.view-host[data-engine-panel='metadata'] .metadata-cover-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+
+/* ---------- fields ---------- */
+
+.view-host[data-engine-panel='metadata'] .metadata-editor-fields {
+    padding: var(--space-2) var(--space-6) var(--space-8);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    gap: var(--space-3) var(--space-4);
+    margin-top: var(--space-6);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-section-title {
+    grid-column: 1 / -1;
+    padding-bottom: var(--space-1);
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field:has(textarea) {
+    grid-column: 1 / -1;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field > span {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field input,
+.view-host[data-engine-panel='metadata'] .metadata-editor-field textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field input {
+    height: var(--input-height);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field textarea {
+    padding: var(--space-2) var(--space-3);
+    resize: vertical;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field :is(input, textarea):hover:not(:disabled) {
+    border-color: var(--input-border-hover);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field input::placeholder {
+    color: var(--text-secondary);
+}
+
+/* Several values in one field (artists, genres ...): the chips, then a box to add one. */
+.view-host[data-engine-panel='metadata'] .metadata-multi {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi-values {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi-values:empty {
+    display: none;
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 2px var(--space-1) 2px var(--space-3);
+    border-radius: var(--radius-pill);
+    background: var(--surface-selected);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi-chip button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    cursor: pointer;
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi-chip button:hover:not(:disabled) {
+    background: var(--control-active-bg);
+    color: var(--text-primary);
+}
+
+/* Tags the form does not edit, shown for information. */
+.view-host[data-engine-panel='metadata'] .metadata-other-tags {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+.view-host[data-engine-panel='metadata'] .metadata-other-tag {
+    display: grid;
+    grid-template-columns: minmax(8rem, 12rem) 1fr;
+    gap: var(--space-3);
+    font-size: var(--text-sm);
+}
+.view-host[data-engine-panel='metadata'] .metadata-other-tag code {
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    text-overflow: ellipsis;
+}
+.view-host[data-engine-panel='metadata'] .metadata-other-tag span {
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+}
+
+/* The engine says what is happening (reading, no support, a file it could not read) in one of these. */
+.view-host[data-engine-panel='metadata'] .metadata-editor-state,
+.view-host[data-engine-panel='metadata'] .metadata-online-state {
+    margin: var(--space-4) var(--space-6);
+    color: var(--text-secondary);
+    font-size: var(--text-md);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-content > .metadata-editor-state {
+    color: var(--text-primary);
+    border-inline-start: 3px solid var(--danger);
+    padding-inline-start: var(--space-3);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-content.is-loading {
+    cursor: progress;
+}
+
+/* ---------- online search results ---------- */
+
+.view-host[data-engine-panel='metadata'] .metadata-online-results {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: 0 var(--space-6);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-results:empty {
+    display: none;
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-results .metadata-online-state {
+    margin: var(--space-3) 0 0;
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-result-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--surface-panel);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-result {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+    text-align: start;
+    cursor: pointer;
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-result small {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-regular);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-releases {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-releases button {
+    min-height: 28px;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-regular);
+}

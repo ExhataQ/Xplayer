@@ -404,6 +404,15 @@ describe('ui-next components in a real page', { concurrency: false }, () => {
             }
         });
 
+        t('keys inside a dialog do not reach the page (the engine shortcuts must not act)', async () => {
+            await inPage(() => { window.leaked = 0; document.addEventListener('keydown', () => window.leaked++); ui.openDialog({ title: 'T', body: 'b', actions: [{ label: 'One' }] }); });
+            await page.keyboard.press('m');
+            await page.keyboard.press('ArrowRight');
+            assert.equal(await page.evaluate(() => window.leaked), 0);
+            await page.keyboard.press('Escape');
+            await page.waitForFunction(() => !document.querySelector('dialog'));
+        });
+
         t('a destructive dialog focuses the safe action first', async () => {
             await inPage(() => { ui.confirmDialog({ title: 'Delete?', message: 'Gone for good', confirmLabel: 'Delete', destructive: true }); });
             assert.equal(await page.evaluate(() => document.activeElement.textContent), 'Cancel');

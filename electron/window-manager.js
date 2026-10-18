@@ -55,6 +55,10 @@ function setMinimizeOnClose(enabled) {
 function createWindow() {
     const windowState = loadWindowState();
 
+    const uiEntry = resolveUiEntry({ argv: process.argv, env: process.env });
+    // The new screen paints a dark graphite page: a black window behind it flashes between the two at startup.
+    const windowBackground = uiEntry.includes('ui-next') ? '#0e1013' : '#000000';
+
     mainWindow = new BrowserWindow({
         width: windowState.width,
         height: windowState.height,
@@ -62,7 +66,7 @@ function createWindow() {
         y: windowState.y,
         minWidth: 800,
         minHeight: 600,
-        backgroundColor: '#000000',
+        backgroundColor: windowBackground,
         frame: false,
         autoHideMenuBar: true,
         icon: path.join(__dirname, 'icon.png'),
@@ -74,7 +78,7 @@ function createWindow() {
         }
     });
 
-    mainWindow.loadFile(path.join(getOutputDir(), ...resolveUiEntry({ argv: process.argv, env: process.env }).split('/')));
+    mainWindow.loadFile(path.join(getOutputDir(), ...uiEntry.split('/')));
 
     mainWindow.setThumbarButtons([
         {

@@ -69,6 +69,7 @@ export function openDialog({ title, body = '', actions = [], wide = false, dismi
 
     // The browser keeps focus in the page behind a modal dialog but lets Tab leave it for the window controls, so wrap it here.
     dialog.addEventListener('keydown', (event) => {
+        event.stopPropagation(); // the engine's global shortcuts (space, m, s, arrows) must not act while a dialog is open
         if (event.key !== 'Tab') return;
         const items = [...dialog.querySelectorAll('button, input, textarea, select, a[href], [tabindex]:not([tabindex="-1"])')].filter((n) => !n.disabled && !n.hidden && n.offsetParent !== null);
         if (!items.length) return;

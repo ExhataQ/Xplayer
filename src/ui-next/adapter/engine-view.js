@@ -9,11 +9,16 @@
 //     document.getElementById, and the engine looks things up that way.
 //   - Only this folder touches the hidden host or engine globals (gate 13). Views call showEngineView(), not switchView().
 
+import { switchView } from './actions.js';
+import { on } from './events.js';
+
 const HOST_SELECTOR = '#legacy-host .container';
 const WRAPPER_SELECTOR = '.content-wrapper';
 
 let marker = null; // where the wrapper lived in the hidden host
 let wrapper = null;
+let panel = null; // a tab of the engine's right panel (the metadata editor), moved the same way
+let panelMarker = null;
 
 const find = () => wrapper || document.querySelector(`${HOST_SELECTOR} ${WRAPPER_SELECTOR}`);
 
@@ -31,14 +36,42 @@ export function showEngineView(host, view) {
         host.replaceChildren(node);
     }
     host.dataset.engine = view;
-    engine(view);
+    switchView(view);
     return true;
 }
 
-/** Puts the engine's main content back in the hidden host. Safe to call when it is already there. */
+/** Subscribes to the engine's current-view changes and passes the view name to `callback`. */
+export function connectEngineViewBridge(callback) {
+    if (typeof callback !== 'function') throw new TypeError('View callback must be a function');
+    return on('view:changed', ({ view }) => callback(view));
+}
+
+/**
+ * Moves one tab of the engine's right panel (`#<tab>-content`) into `host`: the metadata editor (D-04). The engine draws into it by
+ * id, so it is moved, not copied. The caller asks the engine to fill it (engineAction('openMetadataEditor')). Returns false when
+ * the node does not exist.
+ */
+export function showEnginePanel(host, tab) {
+    const node = panel || document.getElementById(`${tab}-content`);
+    if (!node) return false;
+    if (node.parentNode !== host) {
+        if (!panelMarker) {
+            panelMarker = document.createComment(`engine-${tab}`);
+            node.parentNode.insertBefore(panelMarker, node);
+        }
+        panel = node;
+        host.replaceChildren(node);
+    }
+    host.dataset.enginePanel = tab;
+    return true;
+}
+
+/** Puts whatever was moved into `host` back in the hidden host. Safe to call when it is already there. */
 export function releaseEngineView(host) {
     if (wrapper && marker && marker.parentNode && wrapper.parentNode === host) marker.parentNode.insertBefore(wrapper, marker.nextSibling);
+    if (panel && panelMarker && panelMarker.parentNode && panel.parentNode === host) panelMarker.parentNode.insertBefore(panel, panelMarker.nextSibling);
     delete host.dataset.engine;
+    delete host.dataset.enginePanel;
 }
 
 // The engine's Theme Color buttons set a body class (theme-pink ...); ui-next reads data-accent on <html>.

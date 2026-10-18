@@ -48,7 +48,8 @@ const groups = {
     },
     files: {
         showFileInExplorer: (filePath) => ipcRenderer.send('show-file-in-explorer', filePath),
-        deleteFile: (filePath) => ipcRenderer.send('delete-file', filePath)
+        deleteFile: (filePath) => ipcRenderer.send('delete-file', filePath),
+        readAudioBytes: (fileUrl) => ipcRenderer.invoke('read-audio-bytes', fileUrl)
     },
     lyrics: {
         saveLyricsFile: (defaultName, contents) => ipcRenderer.invoke('save-lyrics-file', defaultName, contents),

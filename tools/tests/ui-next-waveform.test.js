@@ -116,9 +116,23 @@ describe('waveform.js in a browser', { concurrency: false }, () => {
         assert.ok(out.first <= 2 && out.last >= 200, `silent first half, loud second half: ${JSON.stringify(out)}`);
     });
 
+    test('different tracks decode one at a time, in the order asked', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const out = await page.evaluate(async (base) => {
+            W.clearPeaksCache();
+            let running = 0, most = 0; const order = [];
+            const wavBytes = async (song) => { const r = await new Promise((res) => { const x = new XMLHttpRequest(); x.open('GET', song.url); x.responseType = 'arraybuffer'; x.onload = () => res(x.response); x.send(); }); return r; };
+            W.setBytesReader(async (song) => { running++; most = Math.max(most, running); order.push(song.id); await new Promise((r) => setTimeout(r, 60)); try { return await wavBytes(song); } finally { running--; } });
+            const results = await Promise.all(['a', 'b', 'c'].map((id) => W.getPeaks({ ...base, id })));
+            W.setBytesReader(null);
+            return { most, order, sizes: results.map((r) => r && r.length) };
+        }, song());
+        assert.deepEqual(out, { most: 1, order: ['a', 'b', 'c'], sizes: [1000, 1000, 1000] });
+    });
+
     test('tracks over the length limit and unreadable files give null without breaking', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
-        const long = await withFetchCount(`return await W.getPeaks(${JSON.stringify(song({ id: 'long', duration: 16 * 60 }))});`);
+        const long = await withFetchCount(`return await W.getPeaks(${JSON.stringify(song({ id: 'long', duration: 11 * 60 }))});`);
         assert.equal(long.r, null);
         assert.equal(long.fetches, 0, 'skipped before any read');
         const bad = await withFetchCount(`const s=${JSON.stringify(song({ id: 'bad', url: 'file://' + path.join(dir, 'missing.wav').replace(/\\/g, '/') }))};const a=await W.getPeaks(s);const b=await W.getPeaks(s);return [a,b];`);

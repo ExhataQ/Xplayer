@@ -176,14 +176,19 @@ const legacyHost = () =>
                         '.right-panel-scroll-content.custom-scrollbar-content',
                         'right-panel-content',
                         h('div#queue-content.panel-content', {}, h('div#queue-list.queue-list')),
-                        h('div#tags-content.panel-content.active', {}, h('div#album-art-section.album-art-section.showing-placeholders', {}, h('div.album-art-container', {}, h('img#album-art-image.album-art-image', { alt: '', src: BLANK_IMAGE })))),
-                        h('div#metadata-content.panel-content'),
+                        h('div#tags-content.panel-content.active', {}, h('div#album-art-section.album-art-section.showing-placeholders', {}, h('div.album-art-container', {}, h('img#album-art-image.album-art-image', { alt: '', src: BLANK_IMAGE })), trackDetails())),
+                        h('div#metadata-content.panel-content', {}, h('div#metadata-editor-content.metadata-editor-content')), // the engine renders the editor into this (L-12)
                         h('div#recently-played-content.panel-content')
                     )
                 )
             )
         )
     );
+
+// updateAlbumArt (ui/08b) returns at once when any #tag-* element is missing, and it is what tells the open Lyrics view that the
+// song changed (L-11). The panel is hidden; the elements only have to exist.
+const trackDetails = () =>
+    h('div#tag-details.tag-details', {}, h('div.track-info-header', {}, h('div#tag-title.track-info-title'), h('div#tag-artist.track-info-artist')), h('div#track-info-box.track-info-box', {}, h('div#track-info-columns.track-info-columns', {}, ...['album', 'year', 'composer', 'genre', 'duration', 'track'].map((name) => h(`span#tag-${name}.track-info-value`)))));
 
 const SLOTS = { nav: navButtons, window: windowButtons, player: playerHost, host: () => [legacyHost()] };
 

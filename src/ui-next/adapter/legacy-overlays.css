@@ -156,6 +156,17 @@
     flex: 1;
 }
 
+/* Font Awesome is not loaded, so the submenu arrow would be an empty box (and is hidden above): draw it with borders. */
+.context-menu-item i.fa-chevron-right {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-top: 1.5px solid currentColor;
+    border-right: 1.5px solid currentColor;
+    transform: rotate(45deg);
+    color: var(--text-tertiary);
+}
+
 .context-menu-separator {
     margin: var(--space-1) 0;
     border-top: 1px solid var(--border-subtle);

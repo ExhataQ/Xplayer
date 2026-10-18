@@ -20,7 +20,6 @@
 
 /* ---------- shared: icon buttons ---------- */
 
-.icon-btn,
 .nav-btn,
 .rail-btn,
 .player-host .player-btn,
@@ -39,7 +38,6 @@
     color: var(--text-secondary);
     transition: background-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
 }
-.icon-btn:hover,
 .nav-btn:not(:disabled):hover,
 .rail-btn:hover,
 .player-host .player-btn:hover,
@@ -71,8 +69,7 @@
     user-select: none;
     position: relative;
 }
-.titlebar button,
-.titlebar .logo-menu {
+.titlebar button {
     -webkit-app-region: no-drag;
 }
 .titlebar .nav-btn,
@@ -123,40 +120,6 @@
 .titlebar__window {
     display: flex;
     margin-left: var(--space-2);
-}
-
-/* logo menu */
-.logo-menu {
-    position: absolute;
-    top: calc(var(--titlebar-height) - 2px);
-    left: var(--space-2);
-    z-index: 20;
-    min-width: 200px;
-    padding: var(--space-1);
-    border: 1px solid var(--tooltip-border);
-    border-radius: var(--radius-lg);
-    background: var(--menu-bg);
-}
-.logo-menu[hidden] {
-    display: none;
-}
-.logo-menu__group {
-    padding: var(--space-2) var(--space-3) var(--space-1);
-    font-size: var(--text-xs);
-    font-weight: var(--weight-semibold);
-    color: var(--text-secondary);
-}
-.logo-menu__item {
-    display: block;
-    width: 100%;
-    padding: var(--space-2) var(--space-3);
-    border: 0;
-    border-radius: var(--radius-md);
-    background: transparent;
-    color: var(--text-tertiary);
-    font-size: var(--text-sm);
-    text-align: left;
-    cursor: default;
 }
 
 /* ---------- nav rail ---------- */
@@ -247,24 +210,10 @@
 }
 .empty-view {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--space-3);
     height: 100%;
     padding: var(--space-8);
-    text-align: center;
-}
-.empty-view h1 {
-    font-family: var(--font-serif);
-    font-weight: var(--weight-regular);
-    font-size: var(--text-3xl);
-    letter-spacing: -0.01em;
-}
-.empty-view p {
-    max-width: 420px;
-    color: var(--text-secondary);
-    line-height: 1.55;
 }
 
 /* ---------- player host ---------- */
@@ -488,4 +437,22 @@
 }
 .player-host #volume-slider {
     width: 96px;
+}
+
+/* ---------- Windows High Contrast (forced-colors) ---------- */
+/* The system replaces our colors; what is left is shape. Mark the selected rail item and pressed toggles with a border,
+   because their background and accent color are not shown. */
+@media (forced-colors: active) {
+    .rail-btn[aria-current='page'],
+    .icon-btn[aria-pressed='true'] {
+        border: 2px solid Highlight;
+    }
+    .rail-btn[aria-current='page']::before {
+        background: Highlight;
+    }
+    .rail-btn:focus-visible,
+    .logo-btn:focus-visible {
+        outline: 2px solid Highlight;
+        outline-offset: 2px;
+    }
 }

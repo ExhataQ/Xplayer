@@ -31,6 +31,7 @@ const { searchOnlineMetadata, getOnlineMetadata } = require('./online-metadata')
 const songsStore = require('./songs-store');
 const { configPath: settingsFile, getOutputDir } = require('./storage-paths');
 const checks = require('./ipc-checks');
+const { readAudioBytes } = require('./audio-bytes');
 
 const thumbarIconPath = path.join(getOutputDir(), 'icons');
 const OUTPUT_DIR = getOutputDir();
@@ -89,6 +90,9 @@ ipcMain.handle('get-audio-metadata', async (event, fileUrl) => {
     try { return await getAudioMetadata(fileUrl); }
     catch (error) { return { success: false, error: error.message || 'Failed to read metadata' }; }
 });
+
+// The waveform decodes audio in the page, which cannot read files itself (electron/audio-bytes.js).
+ipcMain.handle('read-audio-bytes', async (event, fileUrl) => readAudioBytes(fileUrl));
 
 ipcMain.handle('save-audio-metadata', async (event, params) => {
     try {

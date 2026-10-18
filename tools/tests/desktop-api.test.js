@@ -66,7 +66,7 @@ test('preload: every flat name is in exactly one group, and the group call uses 
     for (const g of GROUPS) assert.equal(typeof api[g], 'object', `electronAPI.${g}`);
     const inGroups = GROUPS.flatMap((g) => Object.keys(api[g]).map((n) => [g, n]));
     const names = inGroups.map(([, n]) => n);
-    assert.deepEqual([...names].sort(), ORIGINAL_FLAT_NAMES.concat(['welcomeSelectFolder', 'getStartupSongs']).sort(), 'groups cover every old name, plus welcomeSelectFolder and getStartupSongs');
+    assert.deepEqual([...names].sort(), ORIGINAL_FLAT_NAMES.concat(['welcomeSelectFolder', 'getStartupSongs', 'readAudioBytes']).sort(), 'groups cover every old name, plus welcomeSelectFolder, getStartupSongs and readAudioBytes');
     assert.equal(new Set(names).size, names.length, 'no name in two groups');
     for (const [g, n] of inGroups) {
         calls.length = 0;
@@ -122,6 +122,12 @@ test('preload: the new welcomeSelectFolder uses the channel 06b used through inv
     const { exposed, calls } = loadPreload();
     exposed.api.welcomeSelectFolder();
     assert.deepEqual(calls[0], { kind: 'invoke', channel: 'welcome-select-folder', args: [] });
+});
+
+test('preload: readAudioBytes (the waveform) asks the main process on read-audio-bytes, with the url only', () => {
+    const { exposed, calls } = loadPreload();
+    exposed.api.files.readAudioBytes('file:///a.mp3');
+    assert.deepEqual(calls[0], { kind: 'invoke', channel: 'read-audio-bytes', args: ['file:///a.mp3'] });
 });
 
 test('desktopApi: lists exactly the calls the preload groups expose', () => {
