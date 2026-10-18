@@ -4,14 +4,13 @@
  * old css/ files, which ui-next does not load. Without this file they render unstyled below the visible window and a
  * button such as Shuffle seems to do nothing. This file only makes them visible, readable and usable, with tokens.
  * Each one gets its real design in its owning task (A-05 menu, D-03 lyrics editors, D-04 metadata modal, D-06 dialogs);
- * when that task replaces an overlay, delete its block here. Not styled: the lyrics and sync editor insides, the
+ * when that task replaces an overlay, delete its block here. The lyrics and sync editors were taken out in D-03 (they are
+ * modes of the Lyrics page now, views/tools/lyrics-editors.css). Not styled: the
  * metadata form insides and extended info, which keep the engine's own markup until D-03 and D-04.
  */
 
 /* Overlay shells: cover the window, center the box, sit above the shell and below tooltips. */
 .playlist-modal-overlay,
-.lyrics-editor-overlay,
-.sync-editor-overlay,
 .extended-info-overlay,
 .song-metadata-modal-overlay {
     position: fixed;

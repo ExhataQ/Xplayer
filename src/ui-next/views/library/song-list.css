@@ -41,14 +41,52 @@
 /* ---------- title bar: list name and song count ---------- */
 .songlist-bar {
     display: flex;
-    align-items: baseline;
-    gap: var(--space-3);
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
     flex: none;
     padding: var(--space-4) var(--sl-side) var(--space-2);
     background: var(--surface-ground);
 }
 .songlist-bar[hidden] {
     display: none;
+}
+.songlist-bar__text {
+    flex: 1;
+    min-width: 0;
+}
+.songlist-bar__cover {
+    flex: none;
+    width: 64px;
+    height: 64px;
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    background: var(--surface-raised);
+}
+.songlist-bar__cover[hidden] {
+    display: none;
+}
+.songlist-bar__cover[data-kind='artist'] {
+    border-radius: 50%;
+}
+.songlist-bar__cover > * {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.songlist-bar__label {
+    color: var(--text-tertiary);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.songlist-bar__line {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    min-width: 0;
 }
 .songlist-bar__title {
     margin: 0;
@@ -169,3 +207,44 @@ body.songlist-resizing {
     }
 }
 
+
+/* ---------- list toolbar (play, shuffle, find, more) ---------- */
+.list-toolbar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-2);
+}
+.list-toolbar__find {
+    width: 220px;
+}
+.list-toolbar__find[hidden] {
+    display: none;
+}
+.list-toolbar .field__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+}
+.list-toolbar .field__message {
+    display: none;
+}
+@container songhost (max-width: 560px) {
+    .list-toolbar__find {
+        width: 140px;
+    }
+}
+.list-toolbar .icon-btn--solid {
+    width: var(--icon-button-size-lg);
+    height: var(--icon-button-size-lg);
+    border-radius: var(--radius-pill);
+    background: var(--button-primary-bg);
+    color: var(--button-primary-fg);
+}
+.list-toolbar .icon-btn--solid:hover {
+    background: var(--button-primary-bg);
+    filter: brightness(1.1);
+    color: var(--button-primary-fg);
+}

@@ -45,7 +45,7 @@ describe('lyrics.css, lyrics.js and engine-api.js', () => {
     test('engine-api only forwards allow-listed events and never builds markup', () => {
         const js = read('adapter', 'engine-api.js');
         assert.doesNotMatch(js, /innerHTML|cloneNode/);
-        assert.match(js, /EVENTS = new Set\(\['view:changed', 'lyrics:changed', 'queue:indexChanged', 'rightPanel:tabChanged'\]\)/);
+        assert.match(js, /EVENTS = new Set\(\['view:changed', 'lyrics:changed', 'queue:indexChanged', 'rightPanel:tabChanged', 'playback:stateChanged'\]\)/);
     });
 
     test('every lyrics class the engine writes has a rule or is a known layout-only class', () => {
@@ -122,7 +122,7 @@ describe('Lyrics in the new shell', { concurrency: false }, () => {
                 fitsHost: wrap.bottom <= h.bottom + 1 && wrap.left >= h.left && wrap.right <= h.right,
                 emptyText: host.querySelector('.lyrics-view-empty p').textContent,
                 emptyIcon: icon.maskImage !== 'none' || icon.webkitMaskImage !== 'none',
-                editorsDisabled: [...host.querySelectorAll('.lyrics-bar__editors button')].map((b) => b.disabled),
+                editorsDisabled: [...host.querySelectorAll('.lyrics-bar .tab')].filter((t) => ['Write', 'Sync'].includes(t.textContent)).map((t) => t.disabled),
                 selected: host.querySelector('.lyrics-bar [aria-selected="true"]').textContent,
                 iconWordsVisible: [...host.querySelectorAll('.material-symbols-outlined')].filter((e) => e.offsetParent !== null).length
             };
@@ -142,7 +142,7 @@ describe('Lyrics in the new shell', { concurrency: false }, () => {
             title: document.querySelector('.lyrics-bar__title').textContent,
             artist: document.querySelector('.lyrics-bar__artist').textContent,
             lines: [...document.querySelectorAll('.lyrics-view-text .lyrics-line')].map((l) => l.textContent).filter(Boolean).length,
-            editorsDisabled: [...document.querySelectorAll('.lyrics-bar__editors button')].map((b) => b.disabled),
+            editorsDisabled: [...document.querySelectorAll('.lyrics-bar .tab')].filter((t) => ['Write', 'Sync'].includes(t.textContent)).map((t) => t.disabled),
             hintHidden: document.querySelector('.lyrics-bar__hint').hidden
         }));
         assert.deepEqual(r, { title: 'Song title number 1', artist: 'Artist 0', lines: 3, editorsDisabled: [false, false], hintHidden: true });
@@ -217,17 +217,16 @@ describe('Lyrics in the new shell', { concurrency: false }, () => {
         await page.close();
     });
 
-    test('Write and Sync open the engine editors', TEST_OPTIONS, async (t) => {
+    test('Write and Sync tabs open the engine editors, one at a time', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open();
         await toLyrics(page);
         await play(page);
         await page.waitForSelector('.lyrics-view-text .lyrics-line');
-        await page.click('.lyrics-bar__editors button:has-text("Write")');
-        await page.waitForSelector('#lyrics-editor-overlay');
-        await page.evaluate(() => document.getElementById('lyrics-editor-overlay').remove());
-        await page.click('.lyrics-bar__editors button:has-text("Sync")');
-        await page.waitForSelector('#sync-editor-overlay');
+        await page.click('.lyrics-bar .tab:has-text("Write")');
+        await page.waitForSelector('#lyrics-editor-overlay.active');
+        await page.click('.lyrics-bar .tab:has-text("Sync")');
+        await page.waitForSelector('#sync-editor-overlay.active');
         assert.deepEqual(errors, []);
         await page.close();
     });

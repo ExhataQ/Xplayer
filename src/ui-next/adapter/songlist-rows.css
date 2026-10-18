@@ -402,3 +402,12 @@
         height: 8px;
     }
 }
+
+/* Right-to-left titles (Persian, Arabic, Hebrew): each text block takes the direction of its own first letter, so a Persian
+   title lines up on the right of its cell while the English ones around it stay on the left. */
+.view-host[data-songlist] .song-title,
+.view-host[data-songlist] .song-artist,
+.view-host[data-songlist] .song-album {
+    unicode-bidi: plaintext;
+    text-align: start;
+}

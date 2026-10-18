@@ -29,6 +29,20 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 | D18 | Adapter API budget | Approved (2026-10-17) | 300 lines across `store`, `actions`, `events` and `engine-view.js` |
 | D19 | Logo mark: use the X mark | Proposed by A | See `reports/UI-A09-startup-and-logo-options.md`; title-bar wiring remains unfinished. |
 | D20 | Startup backgrounds: vinyl default, five animated options, plain, or random | Proposed by A | See `reports/UI-A09-startup-and-logo-options.md`; startup view is not yet wired into the shell. |
+| D21 | Library panel: restyle the engine's own panel instead of rebuilding it | Approved (2026-10-17) | Decided by B. See `reports/UI-B02-library-panel.md` |
+| D22 | Library panel needs additive engine seams (view model: types, query, sort) | Approved (2026-10-17) | Decided by B. The old screen never sets them, tests pin that |
+| D23 | Song list columns (Cover art, Artist name, Album, Time), Title and Album resize as one saved share | Approved (2026-10-18) | Decided by B. See `reports/UI-B03-song-list.md` |
+| D24 | Density: comfortable 56 px (`--row-height`) and compact 36 px (`--row-height-compact`), compact has no cover and puts the artist beside the title. Needs one engine seam, `setSongItemHeight(px)` in `ui/05a`; `ITEM_HEIGHT` becomes a live legacy global | Approved (2026-10-18) | Decided by B. The old screen never calls the seam, and a test pins its behavior |
+| D25 | The engine's heading block (cover, label, title) is hidden in the song list and replaced by a title bar (list name and song count) | Approved (2026-10-18) | Decided by B. The block pushed the rows down and the engine's scroll math assumes the list starts at the top of the scroller |
+| D26 | Play all, shuffle, "search in this list" and "clear history" (the engine's sub-header) | Approved (2026-10-18) | Decided by B: a list toolbar in the title bar, see D28 |
+| D27 | Search: the Search rail item gets its own field and a recent-searches list, and drives the engine's search (hidden `#search-input` and `performSearch`); results are the song list from B-03. Scoring, history entries and result counts stay the engine's. No engine change | Approved (2026-10-18) | Decided by B. See `reports/UI-B04-search.md` |
+| D28 | List toolbar: Play and Shuffle call the engine's sub-header handlers (Shuffle opens the engine's mode dialog), Find drives the hidden `#subhero-search-input`, More opens the engine's own menu. Recently played is a rail item showing the engine's history view. One new icon (`ellipsis`). No engine change | Approved (2026-10-18) | Decided by B. See `reports/UI-B05-list-toolbar.md` |
+| D29 | The title bar shows a copy of the engine's cover for the list (round for artists), taken from the hidden heading block. The collapsed library panel keeps a cover-only list; names stay in the page, clipped. Right-to-left titles use `unicode-bidi: plaintext`. The Artists index is the panel's Artists chip (D9), so the engine's "coming soon" fallback is never reached from the shell | Approved (2026-10-18) | Decided by B. See `reports/UI-B06-finish.md` |
+| D30 | Views reach the lyrics and metadata engine state only through `adapter/engine-api.js` | Decided by D (owner delegated) | Counts toward D18 with `engine-view.js`. A may fold it into `store`, `actions`, `events` |
+| D31 | Write and Sync are tabs of the Lyrics page, next to View and Find; the engine's two editors are moved into the page | Decided by D (owner delegated) | Replaces the interim buttons of D-01. See `reports/UI-D03-lyrics-editors.md` |
+| D32 | The Metadata rail item shows the engine's tag form (a tab of its right panel) and follows the playing song while the form is clean | Decided by D (owner delegated) | `showEnginePanel` in `adapter/engine-view.js` |
+| D33 | Leaving the Metadata view with unsaved changes asks first, with the engine's own question; choosing the view you are on does nothing | Decided by D (owner delegated) | Native confirm, as the engine uses |
+| D34 | Leaving the Lyrics view, or picking another tab, closes an open editor and asks first when text or timings would be lost | Decided by D (owner delegated) | Sync asks with the engine's own dialog, which answers later: the person picks the tab again |
 
 ## Phase 0: Decisions and safety
 
@@ -58,17 +72,18 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 |---|---|---|---|---|
 | B-01 Map of list and virtual scroll behavior | B | Done | A-06 | Research available; confirm findings and list/view strategy |
 | B-02 Library panel: filter chips, find, sort, one list | B | Done | A-06 | Browser tests pass; Windows/Electron manual checks remain |
-| B-03 Song list: columns, resize, compact mode | B | Not started | B-01 | |
-| B-04 Search | B | Not started | A-06 | |
-| B-05 Album, artist, playlist, folder views | B | Not started | B-03 | |
+| B-03 Song list: columns, resize, compact mode | B | In review | B-01 | Report `UI-B03-song-list.md`. Browser tests pass; Windows/Electron checks remain |
+| B-04 Search | B | In review | A-06 | Report `UI-B04-search.md`. Browser tests pass; Windows/Electron checks remain |
+| B-05 Album, artist, playlist, folder views | B | In review | B-03 | Report `UI-B05-list-toolbar.md`. List toolbar, kind label, Recently played |
+| B-06 Cover in title bar, compact panel, right-to-left, row behaviors | B | In review | B-05 | Report `UI-B06-finish.md`. Windows/Electron checks remain |
 | C-01 Player bar and transport | C | Done | A-06 | Styling implemented; remaining integration and manual checks |
 | C-02 Waveform seek (compute and cache) | C | In progress | C-01 | Renderer waveform module tested; file-byte IPC and seek-bar integration remain |
 | C-03 Queue and volume | C | Not started | C-01 | |
 | C-04 Fullscreen viewer | C | Not started | C-01 | |
-| D-01 Lyrics panel: view, empty state, four modes | D | Not started | A-06 | |
+| D-01 Lyrics panel: view, empty state, four modes | D | In review | A-06 | Engine page in the shell with a four-tab mode bar and a skin; browser-tested; Windows/Electron checklist remains. Reports `reports/UI-D01-lyrics.md`, `reports/UI-D03-lyrics-editors.md` |
 | D-02 Online lyrics find and manual search | D | Not started | D-01 | |
-| D-03 Lyrics write and sync editor | D | Not started | D-01 | |
-| D-04 Metadata editor | D | Not started | A-06 | |
+| D-03 Lyrics write and sync editor | D | In review | D-01 | Write and Sync are tabs of the Lyrics page: editors moved into the page and skinned, unsaved-text guards, 20 browser tests; Windows/Electron checklist remains. Report `reports/UI-D03-lyrics-editors.md` |
+| D-04 Metadata editor | D | In review | A-06 | The engine's tag form in the shell (rail item Metadata): skin, empty state, follows the song, unsaved-changes guard; 19 browser tests; Windows/Electron checklist remains. Report `reports/UI-D04-metadata.md` |
 | D-05 Settings sections | D | Done | A-06 | Browser-tested; Windows/Electron checklist remains |
 | D-06 Dialogs | D | Done | A-05 | Browser-tested; remaining dialog and Windows/Electron checks |
 
@@ -103,3 +118,11 @@ None. Known and unscheduled: D-3 (a volume change during a new track's fade-in i
 | A-04a, A-04b | `reports/UI-A04-engine-contract-and-seek-fix.md` | Written |
 | A-05 | `reports/UI-A05-components.md` | Written |
 | Research and patch plan | `ui-redesign/PATCH-PLAN.md`, `ui-redesign/research/` | Written |
+| B-02 | `reports/UI-B02-library-panel.md` | Written |
+| B-03 | `reports/UI-B03-song-list.md` | Written |
+| B-04 | `reports/UI-B04-search.md` | Written |
+| B-05 | `reports/UI-B05-list-toolbar.md` | Written |
+| B-06 | `reports/UI-B06-finish.md` | Written |
+| D-01 | `reports/UI-D01-lyrics.md` | Written |
+| D-03 | `reports/UI-D03-lyrics-editors.md` | Written |
+| D-04 | `reports/UI-D04-metadata.md` | Written |

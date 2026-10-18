@@ -19,6 +19,7 @@ let marker = null; // where the wrapper lived in the hidden host
 let wrapper = null;
 let panel = null; // a tab of the engine's right panel (the metadata editor), moved the same way
 let panelMarker = null;
+const EDITORS = ['lyrics-editor-overlay', 'sync-editor-overlay']; // the engine appends these two to <body> and keeps them there
 
 const find = () => wrapper || document.querySelector(`${HOST_SELECTOR} ${WRAPPER_SELECTOR}`);
 
@@ -66,8 +67,20 @@ export function showEnginePanel(host, tab) {
     return true;
 }
 
+/** Moves the engine's lyrics editors (Write, Sync) into `host`, so they are modes of the Lyrics page and not windows over the app (D-03). */
+export function adoptLyricsEditors(host) {
+    for (const id of EDITORS) {
+        const node = document.getElementById(id);
+        if (node && node.parentNode !== host) host.append(node);
+    }
+}
+
 /** Puts whatever was moved into `host` back in the hidden host. Safe to call when it is already there. */
 export function releaseEngineView(host) {
+    for (const id of EDITORS) {
+        const node = document.getElementById(id);
+        if (node && node.parentNode === host) document.body.append(node); // where the engine put it
+    }
     if (wrapper && marker && marker.parentNode && wrapper.parentNode === host) marker.parentNode.insertBefore(wrapper, marker.nextSibling);
     if (panel && panelMarker && panelMarker.parentNode && panel.parentNode === host) panelMarker.parentNode.insertBefore(panel, panelMarker.nextSibling);
     delete host.dataset.engine;

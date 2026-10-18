@@ -8,9 +8,12 @@
 //   engineEvent(name, callback)  -> unsubscribe(); only the allow-listed events, callback gets the payload
 //   metadataEditor()             -> { rendered, dirty }: is the engine's tag form drawn, and does it hold unsaved changes
 //   engineConfirm(message)       -> the engine's own confirm box (it uses one for the same question)
+//   lyricsEditors()              -> { write, sync }: which of the engine's two lyrics editors is open
+//   lyricsEditorDirty()          -> true when the Write editor's text differs from what it was opened with
+//   watchLyricsEditors(callback) -> unsubscribe(); callback({ write, sync }) when an editor opens or closes
 
 const engine = () => window;
-const EVENTS = new Set(['view:changed', 'lyrics:changed', 'queue:indexChanged', 'rightPanel:tabChanged']);
+const EVENTS = new Set(['view:changed', 'lyrics:changed', 'queue:indexChanged', 'rightPanel:tabChanged', 'playback:stateChanged']);
 
 export function nowPlaying() {
     const { currentQueueIndex: index, playbackQueue: queue } = engine();
@@ -29,6 +32,40 @@ export function metadataEditor() {
 }
 
 export const engineConfirm = (message) => engine().confirm(message);
+
+// The engine builds each editor once, appends it to <body> and shows it by adding the class `active`. It sends no event.
+const open = (id) => document.getElementById(id)?.classList.contains('active') === true;
+export const lyricsEditors = () => ({ write: open('lyrics-editor-overlay'), sync: open('sync-editor-overlay') });
+
+export function lyricsEditorDirty() {
+    const text = document.getElementById('lyrics-editor-textarea');
+    return open('lyrics-editor-overlay') && text !== null && text.value !== text.defaultValue;
+}
+
+export function watchLyricsEditors(callback) {
+    // Watch the two elements' class only (never the whole page), and <body>'s own children for the moment they are created.
+    const seen = new Set();
+    const classes = new MutationObserver(() => callback(lyricsEditors()));
+    const attach = () => {
+        for (const id of ['lyrics-editor-overlay', 'sync-editor-overlay']) {
+            const node = document.getElementById(id);
+            if (node && !seen.has(node)) {
+                seen.add(node);
+                classes.observe(node, { attributes: true, attributeFilter: ['class'] });
+            }
+        }
+    };
+    const created = new MutationObserver(() => {
+        attach();
+        callback(lyricsEditors());
+    });
+    created.observe(document.body, { childList: true });
+    attach();
+    return () => {
+        classes.disconnect();
+        created.disconnect();
+    };
+}
 
 export function engineAction(name, ...args) {
     if (typeof engine()[name] !== 'function') return false;

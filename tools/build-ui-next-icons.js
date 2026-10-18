@@ -22,6 +22,7 @@ const NAMES = [
     'circle-check',
     'clock',
     'columns-3',
+    'ellipsis',
     'folder',
     'heart',
     'house',

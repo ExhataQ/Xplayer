@@ -3,7 +3,11 @@
 // CSS variables on the view host. This file only sets those variables and data attributes, and keeps the header in step.
 
 import { el, iconButton, openMenu } from '../../components/index.js';
+import { createListToolbar } from './list-toolbar.js';
 import { isSongView, currentSongView, onSongViewChange, setRowHeight, listElement, listTitle, onListTitleChange, listSongCount } from '../../adapter/songlist-bridge.js';
+import { listKind, listCover, onListCoverChange } from '../../adapter/listbar-bridge.js';
+
+const KIND_LABELS = { album: 'Album', artist: 'Artist', playlist: 'Playlist', favorites: 'Playlist', 'all-songs': 'Playlist', history: 'Playlist', recent: 'Playlist', 'search-items': 'Search results' };
 
 const STORE_KEY = 'xplayer.ui-next.songlist';
 
@@ -69,19 +73,34 @@ export function clampShare(share, pairWidth) {
  * Adds the header and the column controls to `host` (the view host that holds the engine's main content).
  * Returns { state, apply(patch), header, detach() }. Call detach() before the host is used for something else.
  */
-export function attachSongList(host) {
+export function attachSongList(host, { toolbar = false } = {}) {
     const state = readSaved();
     const content = () => host.querySelector('.content');
 
     // ----- title bar: the engine's name for the list, and how many songs it holds -----
-    const barTitle = el('h2', { class: 'songlist-bar__title' });
+    const barCover = el('div', { class: 'songlist-bar__cover', 'aria-hidden': 'true' });
+    const barLabel = el('div', { class: 'songlist-bar__label' });
+    const barTitle = el('h2', { class: 'songlist-bar__title', dir: 'auto' });
     const barCount = el('span', { class: 'songlist-bar__count' });
-    const bar = el('div', { class: 'songlist-bar' }, barTitle, barCount);
+    const listTools = toolbar ? createListToolbar() : null;
+    const bar = el('div', { class: 'songlist-bar' }, barCover, el('div', { class: 'songlist-bar__text' }, barLabel, el('div', { class: 'songlist-bar__line' }, barTitle, barCount)), listTools ? listTools.el : '');
+    let lastView = '';
     function paintBar() {
         const view = currentSongView();
         const n = listSongCount(view);
+        const kind = listKind(view);
+        barLabel.textContent = KIND_LABELS[kind] || '';
+        const cover = listCover(host);
+        barCover.dataset.kind = kind;
+        barCover.hidden = !cover;
+        barCover.replaceChildren(...(cover ? [cover] : []));
         barTitle.textContent = listTitle(host);
         barCount.textContent = `${n} ${n === 1 ? 'song' : 'songs'}`;
+        if (listTools) {
+            if (view !== lastView) listTools.reset();
+            else listTools.update();
+        }
+        lastView = view;
     }
 
     // ----- header -----
@@ -244,6 +263,7 @@ export function attachSongList(host) {
     showForView(currentSongView());
     const unsubscribeView = onSongViewChange(showForView);
     const unsubscribeTitle = onListTitleChange(host, paintBar);
+    const unsubscribeCover = onListCoverChange(host, paintBar);
 
     // The scrollbar appears and disappears with the list's height, and the resize handle follows the column edge.
     const observer = new ResizeObserver(measureScrollbar);
@@ -269,8 +289,10 @@ export function attachSongList(host) {
         detach() {
             unsubscribeView();
             unsubscribeTitle();
+            unsubscribeCover();
             observer.disconnect();
             countObserver.disconnect();
+            if (listTools) listTools.destroy();
             bar.remove();
             header.remove();
             for (const key of ['songlist', 'cover', 'artist', 'album', 'time', 'density']) delete host.dataset[key];

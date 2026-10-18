@@ -15,9 +15,9 @@ import { mountLibraryPanel } from '../views/library/library-panel.js';
 import { attachSongList } from '../views/library/song-list.js';
 import { mountSearchView } from '../views/library/search-view.js';
 import { viewsReady, whenViewsReady } from '../adapter/songlist-bridge.js';
-import { mountLyricsModes } from '../views/tools/lyrics.js';
+import { mountLyricsModes, leaveLyrics } from '../views/tools/lyrics.js';
 import { mountMetadata, leaveMetadata } from '../views/tools/metadata.js';
-import { engineEvent, engineView as currentEngineViewName } from '../adapter/engine-api.js';
+import { engineEvent, engineView as currentEngineViewName, watchLyricsEditors } from '../adapter/engine-api.js';
 import { mountPlayback } from '../views/playback/playback.js';
 
 // Rail order follows decision D4.
@@ -25,8 +25,8 @@ const VIEWS = [
     { id: 'home', label: 'Home', icon: 'house', note: 'Not built yet.' },
     { id: 'library', label: 'Library', icon: 'library', note: 'Your songs.', panel: true, engine: 'all-songs', songlist: true },
     { id: 'search', label: 'Search', icon: 'search', note: 'Find songs by title, artist or album.', engine: 'all-songs', songlist: true, search: true },
-    { id: 'recent', label: 'Recently played', icon: 'clock', note: 'Not built yet.' },
-    { id: 'lyrics', label: 'Lyrics', icon: 'text-align-start', note: 'Lyrics of the song that is playing.', engine: 'lyrics', mount: mountLyricsModes },
+    { id: 'recent', label: 'Recently played', icon: 'clock', note: 'The songs you played lately.', engine: 'history', songlist: true },
+    { id: 'lyrics', label: 'Lyrics', icon: 'text-align-start', note: 'Lyrics of the song that is playing.', engine: 'lyrics', mount: mountLyricsModes, leave: leaveLyrics },
     { id: 'metadata', label: 'Metadata', icon: 'tag', note: 'Tags and cover of the song that is playing.', enginePanel: 'metadata', mount: mountMetadata, leave: leaveMetadata },
     { id: 'settings', label: 'Settings', icon: 'sliders-horizontal', note: 'Playback, library, backup and appearance.', engine: 'settings', end: true }
 ];
@@ -220,7 +220,7 @@ function showView(id, options = {}) {
     releaseEngineView(host); // the engine's content must be back in its host before anything else is drawn here
     host.replaceChildren();
     if (view.engine && showEngineView(host, view.engine)) {
-        if (view.songlist) songList = attachSongList(host);
+        if (view.songlist) songList = attachSongList(host, { toolbar: !view.search });
         if (view.search) searchView = mountSearchView(host);
         if (view.mount) view.mount(host, options);
         return true;
@@ -289,6 +289,10 @@ function init() {
     // Lyrics view, so the shell goes there too. showView sets the host's view before it asks the engine, so this cannot loop.
     engineEvent('view:changed', () => {
         if (currentEngineViewName() === 'lyrics' && $('.view-host').dataset.view !== 'lyrics') showView('lyrics');
+    });
+    // And when it opens a lyrics editor (a song's menu does): the editors are modes of the Lyrics page.
+    watchLyricsEditors(({ write, sync }) => {
+        if ((write || sync) && $('.view-host').dataset.view !== 'lyrics') showView('lyrics', { fromEngine: true });
     });
     // The same for the metadata editor, which the engine opens from a song's menu and closes on Save, Cancel and Back.
     engineEvent('rightPanel:tabChanged', ({ tab }) => {
