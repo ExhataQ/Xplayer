@@ -1,10 +1,10 @@
-// Lyrics view (tasks D-01 and D-03, agent D). Strategy S3 (decision D16): the engine draws the lyrics page (js/ui/04g, 11a, 19) and
+// Lyrics view (tasks D-01, D-02 and D-03, agent D). Strategy S3 (decision D16): the engine draws the lyrics page (js/ui/04g, 11a, 19) and
 // its two editors (js/lyrics/18, 11c-11g) in the shell's view host; lyrics.css and lyrics-editors.css skin them; this file adds what
 // the engine does not have, the mode bar:
 //
-//   [song title, artist]                      View | Find | Write | Sync
+//   [song title, artist]                      View | Find | Many songs | Write | Sync
 //
-// View and Find are the engine's two pages. Write and Sync are its two editors: the engine appends them to <body> as overlays, the
+// View, Find and Many songs are the engine's three pages (Many songs is its multi-song finder, which needs no playing song). Write and Sync are its two editors: the engine appends them to <body> as overlays, the
 // bridge moves them into the page (adoptLyricsEditors) and the skin makes them fill it, so all four are modes of one panel.
 // Nothing here touches an engine element.
 
@@ -13,8 +13,15 @@ import { adoptLyricsEditors } from '../../adapter/engine-view.js';
 import { isPlaying } from '../../adapter/store.js';
 import { engineAction, engineConfirm, engineEvent, engineView, lyricsEditorDirty, lyricsEditors, nowPlaying, watchLyricsEditors } from '../../adapter/engine-api.js';
 
-const MODE_OF_VIEW = { lyrics: 'view', 'online-lyrics': 'find' };
-const OPEN = { view: () => engineAction('switchView', 'lyrics'), find: () => engineAction('openOnlineLyricsView'), write: () => engineAction('openLyricsEditor'), sync: () => engineAction('openSyncEditor') };
+const MODE_OF_VIEW = { lyrics: 'view', 'online-lyrics': 'find', 'smart-lyrics': 'batch' };
+// Find without a song playing is the engine's manual search: empty fields, and a result can be saved to any song.
+const OPEN = {
+    view: () => engineAction('switchView', 'lyrics'),
+    find: () => engineAction(nowPlaying() ? 'openOnlineLyricsView' : 'openOnlineLyricsSearchView'),
+    batch: () => engineAction('openSmartLyricsFinder'),
+    write: () => engineAction('openLyricsEditor'),
+    sync: () => engineAction('openSyncEditor')
+};
 
 let stop = () => {};
 
@@ -49,7 +56,7 @@ export function mountLyricsModes(host) {
     const artist = el('span', { class: 'lyrics-bar__artist', dir: 'auto' });
     const modes = tabs({
         label: 'Lyrics mode',
-        items: [{ id: 'view', label: 'View' }, { id: 'find', label: 'Find' }, { id: 'write', label: 'Write' }, { id: 'sync', label: 'Sync' }],
+        items: [{ id: 'view', label: 'View' }, { id: 'find', label: 'Find' }, { id: 'batch', label: 'Many songs' }, { id: 'write', label: 'Write' }, { id: 'sync', label: 'Sync' }],
         value: 'view',
         onChange: (mode) => go(mode)
     });

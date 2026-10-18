@@ -1,0 +1,512 @@
+/* ui-next Lyrics, Find and Many songs (task D-02, agent D). Strategy S3: the engine draws the online search (js/lyrics/19, results of
+ * LRCLIB), the multi-song finder and the "save to a song" picker; this file skins them through the engine's own class names. The
+ * page frame, inputs and buttons come from lyrics.css; this file adds the result cards, the finder's rows and the picker.
+ * Tokens only (tools/tests/ui-next-lyrics-find.test.js). Material Symbols is not loaded, so the engine's icon words stay hidden
+ * (lyrics.css) and the text carries the meaning; the finder's check boxes are drawn here.
+ */
+
+/* ---------- both pages ---------- */
+
+/* Narrow rules below ask the page's own width, not the window's: the panel beside it can be open or closed. */
+.view-host[data-engine='lyrics'] .online-lyrics-view-container {
+    container-type: inline-size;
+}
+
+/* The mode bar has View and Many songs; the engine's own way back would repeat it. */
+.view-host[data-engine='lyrics'] .online-lyrics-header-actions > [data-action='switchView'],
+.view-host[data-engine='lyrics'] .online-lyrics-header > [data-action='switchView'] {
+    display: none;
+}
+.view-host[data-engine='lyrics'] .online-lyrics-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+/* ---------- Find: status, heading, results ---------- */
+
+.view-host[data-engine='lyrics'] .online-lyrics-status {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-6) 0;
+}
+.view-host[data-engine='lyrics'] .online-lyrics-status.error {
+    color: var(--danger);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-result-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin: var(--space-4) 0 var(--space-2);
+    color: var(--text-primary);
+    font-size: var(--text-md);
+    font-weight: var(--weight-medium);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-result-heading small {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-regular);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-results {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-result {
+    box-sizing: border-box;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--surface-panel);
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-result:hover {
+    background: var(--control-hover-bg);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-result.selected {
+    border-color: var(--border-strong);
+    background: var(--surface-raised);
+    cursor: default;
+}
+/* title, artist, album and length on one line that wraps at a narrow window */
+.view-host[data-engine='lyrics'] .online-lyrics-result-header {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1.5fr) minmax(0, 1.5fr) auto;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-3);
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text-primary);
+    font: inherit;
+    text-align: start;
+    cursor: inherit;
+}
+.view-host[data-engine='lyrics'] .online-lyrics-result-header:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 4px;
+    border-radius: var(--radius-sm);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-result-header > * {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    unicode-bidi: plaintext;
+}
+.view-host[data-engine='lyrics'] .online-lyrics-result-title {
+    font-size: var(--text-md);
+    font-weight: var(--weight-medium);
+}
+.view-host[data-engine='lyrics'] :is(.online-lyrics-result-artist, .online-lyrics-result-album, .online-lyrics-result-meta) {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-result-meta {
+    text-align: end;
+}
+@container (max-width: 34rem) {
+    .view-host[data-engine='lyrics'] .online-lyrics-result-header {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .view-host[data-engine='lyrics'] .online-lyrics-result-album {
+        display: none;
+    }
+}
+
+/* what the result has: pressed one is the one shown below */
+.view-host[data-engine='lyrics'] .online-lyrics-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-badge {
+    box-sizing: border-box;
+    min-height: var(--chip-height);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: var(--text-sm);
+    line-height: calc(var(--chip-height) - 2px);
+}
+.view-host[data-engine='lyrics'] button.online-lyrics-badge {
+    cursor: pointer;
+}
+.view-host[data-engine='lyrics'] button.online-lyrics-badge:not(.active):hover {
+    background: var(--control-hover-bg);
+}
+.view-host[data-engine='lyrics'] button.online-lyrics-badge:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+.view-host[data-engine='lyrics'] .online-lyrics-badge.synced {
+    border-color: transparent;
+    background: var(--accent-soft);
+    color: var(--text-primary);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-badge.active {
+    border-color: transparent;
+    background: var(--chip-active-bg);
+    color: var(--chip-active-fg);
+}
+.view-host[data-engine='lyrics'] :is(.online-lyrics-badge.unavailable, .online-lyrics-badge.instrumental) {
+    color: var(--text-tertiary);
+}
+
+/* the text of the chosen version, then what to do with it */
+.view-host[data-engine='lyrics'] .online-lyrics-preview {
+    margin-top: var(--space-3);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-preview pre {
+    box-sizing: border-box;
+    max-height: 18rem;
+    margin: 0 0 var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    overflow: auto;
+    border-radius: var(--radius-md);
+    background: var(--surface-ground);
+    color: var(--text-primary);
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    font-size: var(--text-sm);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    unicode-bidi: plaintext;
+}
+.view-host[data-engine='lyrics'] .online-lyrics-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-page-indicator {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+
+/* ---------- Many songs: toolbar, progress, rows ---------- */
+
+.view-host[data-engine='lyrics'] .smart-lyrics-finder-container {
+    width: min(60rem, 100%);
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-toolbar .smart-lyrics-search {
+    flex: 1 1 12rem;
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-mode {
+    display: inline-flex;
+    gap: var(--space-1);
+    padding: var(--space-1);
+    border-radius: var(--radius-md);
+    background: var(--segmented-bg);
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-mode .lyrics-view-edit-btn {
+    min-height: calc(var(--button-height) - var(--space-2));
+    border-color: transparent;
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-mode .lyrics-view-edit-btn.active {
+    background: var(--segmented-active-bg);
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-2);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-actions > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-skip-existing {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-secondary);
+    font-size: var(--text-md);
+    cursor: pointer;
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-skip-existing input {
+    margin: 0;
+    accent-color: var(--accent);
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-progress {
+    min-height: 1.5em;
+    margin-bottom: var(--space-2);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-list {
+    border-top: 1px solid var(--border-subtle);
+}
+/* The engine's scroll math needs every row exactly this tall (js/ui/05c). */
+.view-host[data-engine='lyrics'] .smart-lyrics-song-row {
+    display: grid;
+    grid-template-columns: var(--space-8) minmax(0, 2fr) minmax(0, 1.2fr) 7rem;
+    align-items: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    height: var(--song-item-height);
+    padding: 0 var(--space-3);
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-song-row:hover {
+    background: var(--control-hover-bg);
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-song-row.selected {
+    background: var(--surface-selected);
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-song-row .left-song-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-song-row .song-cover {
+    flex: none;
+    width: calc(var(--song-item-height) - var(--space-4));
+    height: calc(var(--song-item-height) - var(--space-4));
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-song-row .song-info {
+    min-width: 0;
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-song-row :is(.song-title, .song-artist, .song-album) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    unicode-bidi: plaintext;
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-song-row .song-title {
+    font-size: var(--text-md);
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-song-row :is(.song-artist, .song-album) {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-song-row .right-song-item {
+    text-align: end;
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-song-status {
+    color: var(--text-tertiary);
+    font-size: var(--text-sm);
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-song-row.found .smart-lyrics-song-status {
+    color: var(--accent);
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-song-row.failed .smart-lyrics-song-status {
+    color: var(--danger);
+}
+@container (max-width: 40rem) {
+    .view-host[data-engine='lyrics'] .smart-lyrics-song-row {
+        grid-template-columns: var(--space-8) minmax(0, 1fr) 6rem;
+    }
+    .view-host[data-engine='lyrics'] .smart-lyrics-song-row .song-album {
+        display: none;
+    }
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-8) 0;
+    color: var(--text-secondary);
+    font-size: var(--text-md);
+}
+
+/* The check box: the engine writes the words check_box and check_box_outline_blank (hidden); a box is drawn instead. */
+.view-host[data-engine='lyrics'] .smart-lyrics-checkbox {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-checkbox::before {
+    content: '';
+    box-sizing: border-box;
+    width: 1.125rem;
+    height: 1.125rem;
+    border: 2px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-song-row.selected .smart-lyrics-checkbox::before {
+    border-color: var(--accent);
+    background: var(--accent);
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-song-row.selected .smart-lyrics-checkbox::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0.3rem;
+    height: 0.6rem;
+    border: solid var(--text-on-accent);
+    border-width: 0 2px 2px 0;
+    transform: translate(-50%, -62%) rotate(45deg);
+}
+
+/* ---------- the "save to a song" picker (a popup the engine appends to <body>) ---------- */
+
+/* The engine sets left, top and height inline from the click; the rest of its layout lived in the stylesheet ui-next does not load. */
+body > .online-lyrics-picker {
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-sizing: border-box;
+    z-index: var(--layer-menu);
+    width: 22rem;
+    min-width: 0;
+    max-width: calc(100vw - var(--space-4));
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--menu-bg);
+    box-shadow: var(--shadow-raised);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+}
+body > .online-lyrics-picker .online-lyrics-picker-search {
+    display: flex;
+    padding: var(--space-3);
+    border-bottom: 1px solid var(--border-subtle);
+}
+body > .online-lyrics-picker .online-lyrics-picker-search-icon {
+    display: none;
+}
+body > .online-lyrics-picker .online-lyrics-picker-input {
+    box-sizing: border-box;
+    flex: 1;
+    min-width: 0;
+    height: var(--input-height);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+}
+body > .online-lyrics-picker .online-lyrics-picker-input:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
+}
+body > .online-lyrics-picker .online-lyrics-picker-list-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+body > .online-lyrics-picker .custom-scrollbar-content {
+    height: 100%;
+    overflow-y: auto;
+}
+body > .online-lyrics-picker .custom-scrollbar {
+    display: none;
+}
+body > .online-lyrics-picker .queue-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    cursor: pointer;
+}
+body > .online-lyrics-picker .queue-item:hover {
+    background: var(--control-hover-bg);
+}
+body > .online-lyrics-picker .queue-item.selected {
+    background: var(--surface-selected);
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+body > .online-lyrics-picker .queue-item-cover {
+    flex: none;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+}
+body > .online-lyrics-picker .queue-item-info {
+    min-width: 0;
+}
+body > .online-lyrics-picker :is(.queue-item-title, .queue-item-artist) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    unicode-bidi: plaintext;
+}
+body > .online-lyrics-picker .queue-item-title {
+    font-size: var(--text-md);
+}
+body > .online-lyrics-picker .queue-item-artist {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+/* the row's own menu is not part of this task */
+body > .online-lyrics-picker .queue-item > :is(button, .queue-item-more, .queue-item-duration) {
+    display: none;
+}
+body > .online-lyrics-picker .online-lyrics-picker-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-8) 0;
+    color: var(--text-secondary);
+    font-size: var(--text-md);
+}
+body > .online-lyrics-picker :is(.material-symbols-outlined, .fas) {
+    display: none;
+}
+body > .online-lyrics-picker .online-lyrics-picker-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border-top: 1px solid var(--border-subtle);
+}
+body > .online-lyrics-picker .lyrics-editor-btn {
+    box-sizing: border-box;
+    min-height: var(--button-height);
+    padding: 0 var(--space-4);
+    border: 1px solid var(--button-outline-border);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+}
+body > .online-lyrics-picker .lyrics-editor-btn:hover:not(:disabled) {
+    background: var(--control-hover-bg);
+}
+body > .online-lyrics-picker .lyrics-editor-btn-primary:not(:disabled) {
+    border-color: transparent;
+    background: var(--button-primary-bg);
+    color: var(--button-primary-fg);
+}
+body > .online-lyrics-picker .lyrics-editor-btn:disabled {
+    opacity: var(--control-disabled-opacity);
+    cursor: default;
+}
+body > .online-lyrics-picker .lyrics-editor-btn:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}

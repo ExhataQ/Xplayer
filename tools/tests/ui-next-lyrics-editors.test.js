@@ -119,15 +119,15 @@ describe('Lyrics editors in the new shell', { concurrency: false }, () => {
         await page.waitForSelector('.sync-editor-line');
     };
 
-    test('four tabs; Write and Sync need a song', TEST_OPTIONS, async (t) => {
+    test('five tabs; Write and Sync need a song, Find and Many songs do not', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open();
         await toLyrics(page);
         const tabs = () => page.evaluate(() => [...document.querySelectorAll('.lyrics-bar .tab')].map((x) => [x.textContent, x.disabled]));
-        assert.deepEqual(await tabs(), [['View', false], ['Find', false], ['Write', true], ['Sync', true]]);
+        assert.deepEqual(await tabs(), [['View', false], ['Find', false], ['Many songs', false], ['Write', true], ['Sync', true]]);
         await play(page);
-        await page.waitForFunction(() => !document.querySelector('.lyrics-bar .tab:nth-child(3)').disabled);
-        assert.deepEqual(await tabs(), [['View', false], ['Find', false], ['Write', false], ['Sync', false]]);
+        await page.waitForFunction(() => !document.querySelector('.lyrics-bar .tab:nth-child(4)').disabled);
+        assert.deepEqual(await tabs(), [['View', false], ['Find', false], ['Many songs', false], ['Write', false], ['Sync', false]]);
         assert.deepEqual(errors, []);
         await page.close();
     });
@@ -175,7 +175,7 @@ describe('Lyrics editors in the new shell', { concurrency: false }, () => {
         await page.keyboard.press('Escape');
         await page.waitForFunction(() => !document.getElementById('lyrics-editor-overlay').classList.contains('active'));
         const top = await page.evaluate(() => {
-            const b = document.querySelector('.lyrics-bar .tab:nth-child(4)').getBoundingClientRect();
+            const b = document.querySelector('.lyrics-bar .tab:nth-child(5)').getBoundingClientRect();
             return document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2).closest('.tab')?.textContent;
         });
         assert.equal(top, 'Sync');
@@ -378,7 +378,7 @@ describe('Lyrics editors in the new shell', { concurrency: false }, () => {
         await page.waitForSelector('.view-host[data-view="lyrics"] #lyrics-editor-overlay.active');
         assert.equal(await page.inputValue('#lyrics-editor-textarea'), 'Second song words');
         assert.match(await page.textContent('.lyrics-editor-song'), /Song title number 2/);
-        assert.deepEqual(await page.evaluate(() => ({ rail: document.querySelector('.rail-btn[aria-current="page"]').dataset.view, writeTabEnabled: !document.querySelector('.lyrics-bar .tab:nth-child(3)').disabled, mode: document.querySelector('.view-host').dataset.lyricsMode })), { rail: 'lyrics', writeTabEnabled: true, mode: 'write' });
+        assert.deepEqual(await page.evaluate(() => ({ rail: document.querySelector('.rail-btn[aria-current="page"]').dataset.view, writeTabEnabled: !document.querySelector('.lyrics-bar .tab:nth-child(4)').disabled, mode: document.querySelector('.view-host').dataset.lyricsMode })), { rail: 'lyrics', writeTabEnabled: true, mode: 'write' });
         assert.deepEqual(errors, []);
         await page.close();
     });
