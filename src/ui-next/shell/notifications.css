@@ -1,0 +1,134 @@
+/* Notification center and the bell's dot (task A-07). Tokens only. The toast itself is components.css. */
+
+/* The dot says "something is running or unread". Running is steady accent; unread is the same dot, so color is never the only signal:
+   the bell's label and tooltip also say how many. */
+.icon-btn[data-dot] {
+    position: relative;
+}
+.icon-btn[data-dot]::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    box-shadow: 0 0 0 2px var(--surface-ground);
+}
+
+.notif-center {
+    position: fixed;
+    z-index: var(--layer-menu);
+    display: flex;
+    flex-direction: column;
+    width: min(380px, calc(100vw - 2 * var(--space-2)));
+    max-height: min(560px, calc(100vh - var(--titlebar-height) - var(--space-4)));
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-raised);
+    color: var(--text-primary);
+    outline: none;
+}
+.notif-center[hidden] {
+    display: none;
+}
+.notif-center__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-3) var(--space-2) var(--space-4);
+    border-bottom: 1px solid var(--border-subtle);
+}
+.notif-center__title {
+    margin: 0;
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+}
+.notif-center__body {
+    overflow-y: auto;
+    padding: var(--space-2) 0;
+    overscroll-behavior: contain;
+}
+.notif-center .empty-state {
+    padding: var(--space-6) var(--space-4);
+}
+
+.notif-section__title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    padding: var(--space-2) var(--space-4);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+}
+.notif-section__count {
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
+.notif-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.notif {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
+}
+.notif:hover {
+    background: var(--control-hover-bg);
+}
+.notif__icon {
+    flex: none;
+    margin-top: 1px;
+    color: var(--text-secondary);
+}
+.notif[data-kind='success'] .notif__icon,
+.notif[data-kind='running'] .notif__icon {
+    color: var(--accent);
+}
+.notif[data-kind='error'] .notif__icon {
+    color: var(--danger);
+}
+.notif__body {
+    flex: 1;
+    min-width: 0;
+}
+.notif__title {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    overflow-wrap: anywhere;
+}
+.notif__detail,
+.notif__time {
+    margin-top: 2px;
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    overflow-wrap: anywhere;
+}
+.notif__time {
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
+.notif .progress {
+    margin-top: var(--space-2);
+}
+.notif__meta {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-top: var(--space-1);
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+}
+.notif__percent {
+    flex: none;
+    font-variant-numeric: tabular-nums;
+}

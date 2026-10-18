@@ -43,6 +43,9 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 | D32 | The Metadata rail item shows the engine's tag form (a tab of its right panel) and follows the playing song while the form is clean | Decided by D (owner delegated) | `showEnginePanel` in `adapter/engine-view.js` |
 | D33 | Leaving the Metadata view with unsaved changes asks first, with the engine's own question; choosing the view you are on does nothing | Decided by D (owner delegated) | Native confirm, as the engine uses |
 | D34 | Leaving the Lyrics view, or picking another tab, closes an open editor and asks first when text or timings would be lost | Decided by D (owner delegated) | Sync asks with the engine's own dialog, which answers later: the person picks the tab again |
+| D40 | Notification center reads the engine's history through a hidden `#notification-panel-list` (the element the engine redraws into after every change); the engine's own notification DOM is never shown | Decided by A | No engine change. See `reports/UI-A07-notification-center.md` |
+| D41 | No cancel button on running work (downloads, album art search) | Open | The engine has no way to stop either. Real cancel needs a main-process change, outside PLAN.md scope. Owner decides |
+| D42 | Only failure-worded `error` notifications are shown as errors; the engine's other `error` entries (removals) are information | Decided by A | See report |
 
 ## Phase 0: Decisions and safety
 
@@ -91,7 +94,7 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 
 | Task | Owner | Status | Depends on | Notes |
 |---|---|---|---|---|
-| A-07 Toasts and bell notification center (in progress and earlier) | A | Not started | Phase 2 | |
+| A-07 Toasts and bell notification center (in progress and earlier) | A | In review | Phase 2 | Report `UI-A07-notification-center.md`. Toasts for every engine notification, center behind the bell (In progress, Earlier), dot on the bell. 15 browser tests pass; Windows/Electron checklist remains. No cancel button (D41) |
 | A-08 Tooltip rollout | A | Not started | Phase 2 | |
 | A-09 Startup view and logo | A | In review (partial) | A-01 | X logo and startup view exist but are not wired into the shell; see `reports/UI-A09-startup-and-logo-options.md` |
 | A-10 Accent themes, resizing, density | A | Not started | Phase 2 | |
@@ -126,3 +129,4 @@ None. Known and unscheduled: D-3 (a volume change during a new track's fade-in i
 | D-01 | `reports/UI-D01-lyrics.md` | Written |
 | D-03 | `reports/UI-D03-lyrics-editors.md` | Written |
 | D-04 | `reports/UI-D04-metadata.md` | Written |
+| A-07 | `reports/UI-A07-notification-center.md` | Written |

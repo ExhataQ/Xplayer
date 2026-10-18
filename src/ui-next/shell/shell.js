@@ -19,6 +19,7 @@ import { mountLyricsModes, leaveLyrics } from '../views/tools/lyrics.js';
 import { mountMetadata, leaveMetadata } from '../views/tools/metadata.js';
 import { engineEvent, engineView as currentEngineViewName, watchLyricsEditors } from '../adapter/engine-api.js';
 import { mountPlayback } from '../views/playback/playback.js';
+import { mountNotifications } from './notification-center.js';
 
 // Rail order follows decision D4.
 const VIEWS = [
@@ -107,6 +108,7 @@ function buildTitlebar() {
     });
 
     const bell = iconButton({ icon: 'bell', label: 'Notifications', size: 'sm' });
+    mountNotifications(bell); // toasts, the bell's dot and the notification center (task A-07)
 
     const bar = $('.titlebar');
     bar.prepend(logo);
