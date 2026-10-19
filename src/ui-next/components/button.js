@@ -48,7 +48,9 @@ export function setLoading(node, on) {
 
 /**
  * Icon-only button. `label` is required: it is the accessible name and the tooltip name.
- * `tooltip` adds { state, description, shortcut } to the tooltip. `variant: 'solid'` is the main transport button.
+ * `tooltip` adds { state, description, shortcut } to the tooltip, or is a function returning them, read every time the
+ * tooltip opens (for a button whose state or label changes; the name then follows the button's aria-label).
+ * `tooltip: false` gives no tooltip. `variant: 'solid'` is the main transport button.
  */
 export function iconButton({ icon, label, size, variant = 'ghost', pressed, disabled = false, tooltip, placement, onClick, className = '' } = {}) {
     if (!icon || !label) throw new Error('iconButton() needs an icon and a label');
@@ -61,7 +63,10 @@ export function iconButton({ icon, label, size, variant = 'ghost', pressed, disa
     node.append(iconEl(icon, { size: variant === 'solid' ? 20 : 18, filled: variant === 'solid' }));
     if (pressed !== undefined) node.setAttribute('aria-pressed', String(Boolean(pressed)));
     node.addEventListener('click', guardBusy(node, onClick));
-    if (tooltip !== false) node.tooltip = attachTooltip(node, { name: label, ...(tooltip || {}) }, { stayOnPress: pressed !== undefined, placement });
+    if (tooltip !== false) {
+        const content = typeof tooltip === 'function' ? () => ({ name: node.getAttribute('aria-label') || label, ...tooltip() }) : { name: label, ...(tooltip || {}) };
+        node.tooltip = attachTooltip(node, content, { stayOnPress: pressed !== undefined, placement });
+    }
     return node;
 }
 

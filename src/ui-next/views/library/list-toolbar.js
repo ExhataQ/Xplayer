@@ -8,10 +8,12 @@ const FIND_DELAY = 150;
 
 /** Returns { el, update(), reset(), destroy() }. update() re-reads playing and shuffle state; reset() closes the find field. */
 export function createListToolbar() {
-    const play = iconButton({ icon: 'play', label: 'Play', variant: 'solid', tooltip: false, onClick: () => togglePlayAll() });
-    const shuffle = iconButton({ icon: 'shuffle', label: 'Shuffle', pressed: false, tooltip: false, onClick: () => toggleShuffle() });
-    const findButton = iconButton({ icon: 'search', label: 'Find in this list', pressed: false, tooltip: false, onClick: () => setFind(findBox.hidden) });
-    const more = iconButton({ icon: 'ellipsis', label: 'More options for this list', tooltip: false, onClick: (event) => showListMenu(event) });
+    // Tooltips are functions: the label and state change with playback, and the tooltip reads them each time it opens (A-08).
+    const play = iconButton({ icon: 'play', label: 'Play', variant: 'solid', tooltip: () => ({ description: isListPlaying() ? '' : 'Play all songs in this list' }), onClick: () => togglePlayAll() });
+    // The engine's list shuffle is the player's shuffle button, so it has the same key.
+    const shuffle = iconButton({ icon: 'shuffle', label: 'Shuffle', pressed: false, tooltip: () => ({ state: isShuffleOn() ? 'On' : 'Off', shortcut: 'S' }), onClick: () => toggleShuffle() });
+    const findButton = iconButton({ icon: 'search', label: 'Find in this list', pressed: false, tooltip: { description: 'Filter the songs in this list' }, onClick: () => setFind(findBox.hidden) });
+    const more = iconButton({ icon: 'ellipsis', label: 'More options for this list', onClick: (event) => showListMenu(event) });
 
     let timer = 0;
     const field = textField({

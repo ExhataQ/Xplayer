@@ -20,6 +20,11 @@ import { mountMetadata, leaveMetadata } from '../views/tools/metadata.js';
 import { engineEvent, engineView as currentEngineViewName, watchLyricsEditors } from '../adapter/engine-api.js';
 import { mountPlayback } from '../views/playback/playback.js';
 import { mountNotifications } from './notification-center.js';
+import { mountAppearanceSettings } from './appearance-settings.js';
+import { buildPanelResizer } from './panel-resizer.js';
+import { startBoot } from '../startup/boot.js';
+import { installTooltips } from './tooltips.js';
+import { installSpaceRule } from './space-key.js';
 
 // Rail order follows decision D4.
 const VIEWS = [
@@ -29,7 +34,7 @@ const VIEWS = [
     { id: 'recent', label: 'Recently played', icon: 'clock', note: 'The songs you played lately.', engine: 'history', songlist: true },
     { id: 'lyrics', label: 'Lyrics', icon: 'text-align-start', note: 'Lyrics of the song that is playing.', engine: 'lyrics', mount: mountLyricsModes, leave: leaveLyrics },
     { id: 'metadata', label: 'Metadata', icon: 'tag', note: 'Tags and cover of the song that is playing.', enginePanel: 'metadata', mount: mountMetadata, leave: leaveMetadata },
-    { id: 'settings', label: 'Settings', icon: 'sliders-horizontal', note: 'Playback, library, backup and appearance.', engine: 'settings', end: true }
+    { id: 'settings', label: 'Settings', icon: 'sliders-horizontal', note: 'Playback, library, backup and appearance.', engine: 'settings', end: true, mount: mountAppearanceSettings }
 ];
 
 const ENGINE_VIEWS = Object.freeze({
@@ -116,7 +121,8 @@ function buildTitlebar() {
 }
 
 // The engine buttons in the title bar are built by the adapter and only carry an aria-label: give them the same tooltip as
-// every other button. The player's own controls get theirs in views/playback/transport.js.
+// every other button. The player's own controls get theirs in views/playback/transport.js; the engine's other controls
+// get theirs from shell/tooltips.js.
 function tooltipTitlebarButtons() {
     for (const node of document.querySelectorAll('.titlebar :is(.nav-btn, .window-control-btn, .close-app-btn)')) {
         attachTooltip(node, () => ({ name: node.getAttribute('aria-label') || '' }));
@@ -267,12 +273,16 @@ function syncRailSelection(engineView) {
 }
 
 function init() {
+    startBoot(); // the startup view, until the app is ready (task A-09)
+    installTooltips(); // before the engine runs, so its titles never reach its own tooltip (A-08)
+    installSpaceRule();
     const panel = $('.panel-host');
     buildTitlebar();
     tooltipTitlebarButtons();
     syncAccentFromEngine();
     buildRail(selectView);
     buildPanelToggle(panel);
+    buildPanelResizer(panel); // drag the panel's edge, or use the arrow keys (task A-10)
     showView('library');
     mountPlayback(); // player controls, waveform seek bar, queue and cover viewer (tasks C-01 to C-04)
     whenLibraryReady(() => {

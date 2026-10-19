@@ -1,0 +1,136 @@
+/* Appearance section in Settings and the panel resize handle (task A-10). Tokens only. */
+
+.settings-section[hidden] {
+    display: none;
+}
+
+.appearance {
+    gap: var(--space-4);
+}
+.appearance__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3) var(--space-6);
+}
+.appearance__label {
+    min-width: 180px;
+}
+.appearance__title {
+    color: var(--text-primary);
+    font-size: var(--text-md);
+    font-weight: var(--weight-medium);
+}
+.appearance__hint {
+    margin-top: 2px;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.appearance .segmented {
+    flex-wrap: wrap;
+}
+.appearance__theme {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+.appearance__theme .swatch + .swatch {
+    margin-left: -6px;
+}
+.appearance__theme .swatch[data-swatch='accent'] {
+    margin-right: var(--space-2);
+}
+
+/* the previews draw each theme from its own preview tokens, so they stay right while another theme is on */
+.swatch {
+    display: inline-block;
+    flex: none;
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-pill);
+}
+.appearance__theme[data-theme-id='warm-graphite'] {
+    --sw-ground: var(--preview-warm-graphite-ground);
+    --sw-surface: var(--preview-warm-graphite-surface);
+    --sw-accent: var(--preview-warm-graphite-accent);
+}
+.appearance__theme[data-theme-id='deep-forest'] {
+    --sw-ground: var(--preview-deep-forest-ground);
+    --sw-surface: var(--preview-deep-forest-surface);
+    --sw-accent: var(--preview-deep-forest-accent);
+}
+.appearance__theme[data-theme-id='espresso-copper'] {
+    --sw-ground: var(--preview-espresso-copper-ground);
+    --sw-surface: var(--preview-espresso-copper-surface);
+    --sw-accent: var(--preview-espresso-copper-accent);
+}
+.swatch[data-swatch='ground'] {
+    background: var(--sw-ground);
+}
+.swatch[data-swatch='surface'] {
+    background: var(--sw-surface);
+}
+.swatch[data-swatch='accent'] {
+    background: var(--sw-accent);
+}
+.swatch[data-swatch='accent-choice'] {
+    width: 16px;
+    height: 16px;
+    border-color: transparent;
+}
+.swatch[data-name='theme'] {
+    background: var(--accent-own);
+}
+.swatch[data-name='green'] {
+    background: var(--preview-accent-green);
+}
+.swatch[data-name='pink'] {
+    background: var(--preview-accent-pink);
+}
+.swatch[data-name='purple'] {
+    background: var(--preview-accent-purple);
+}
+.swatch[data-name='yellow'] {
+    background: var(--preview-accent-yellow);
+}
+.swatch[data-name='white'] {
+    background: var(--preview-accent-white);
+}
+
+/* ---------- panel resize handle ---------- */
+
+.panel-host {
+    position: relative;
+}
+.panel-resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 8px;
+    z-index: 2;
+    cursor: col-resize;
+    touch-action: none;
+    -webkit-app-region: no-drag;
+}
+.panel-resizer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 2px;
+    background: transparent;
+    transition: background-color var(--motion-fast) var(--motion-ease);
+}
+.panel-resizer:is(:hover, :focus-visible, [data-dragging])::after {
+    background: var(--accent);
+}
+.panel-resizer:focus-visible {
+    outline: none;
+}
+.panel-resizer[hidden] {
+    display: none;
+}

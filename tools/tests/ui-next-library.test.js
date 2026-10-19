@@ -9,7 +9,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { ROOT, loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
+const { ROOT, loadPlaywright, launch, buildApp, gotoApp, waitForStartupGone } = require('./helpers/app-fixture');
 
 const pw = loadPlaywright();
 const TEST_OPTIONS = { timeout: 40000 };
@@ -207,6 +207,7 @@ describe('library panel in the new shell', { concurrency: false }, () => {
         await page.waitForSelector('.library-panel .left-panel-main-item');
         await seedPlaylists(page);
         await page.waitForSelector('.library-panel .left-panel-main-list .main-item-title');
+        await waitForStartupGone(page); // its animation slows the page and the panel's staged render races with this test's waits
         return { page, errors };
     }
     const titles = (page) => page.$$eval('.library-panel .left-panel-main-list .main-item-title', (els) => els.map((e) => e.textContent));

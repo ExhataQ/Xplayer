@@ -124,6 +124,7 @@ async function waitForAppSettled(page, maxMs = 3000, belowMs = 900) {
             quietFrames = pending === 0 ? quietFrames + 1 : 0;
         }
     }, { limit: maxMs, below: belowMs });
+    await waitForStartupGone(page); // the new interface's startup view animates and slows the page while it is up (task A-09)
 }
 
 // Opens the built fixture app and waits until its start-up has settled (replaces goto + waitForTimeout(N)).
@@ -154,4 +155,16 @@ function buildApp(songCount = 50) {
     return out;
 }
 
-module.exports = { ROOT, loadPlaywright, launch, buildApp, gotoApp, waitForAppSettled, launchCacheFile };
+// The new interface covers the window with its startup view until the app is ready (task A-09). Playwright's click() and fill() wait for
+// the element to receive the pointer, so they need nothing; a test that drives page.mouse or page.keyboard directly right after the
+// page loaded must call this first, or the events land on the startup view. waitForAppSettled calls it, so tests that use that are
+// covered; a test with its own goto() must call it itself (a busy machine otherwise lets the startup view's frames race with the test's
+// own waits). Returns at once on a page without one (the old interface).
+async function waitForStartupGone(page) {
+    await page.waitForFunction(() => {
+        const host = document.getElementById('startup');
+        return !host || (host.dataset.state !== 'booting' && document.body.dataset.starting === undefined);
+    }, null, { timeout: 20000 });
+}
+
+module.exports = { ROOT, loadPlaywright, launch, buildApp, gotoApp, waitForAppSettled, waitForStartupGone, launchCacheFile };

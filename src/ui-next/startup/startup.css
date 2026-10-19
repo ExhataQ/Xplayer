@@ -229,3 +229,38 @@
     0%, 100% { opacity: 0.35; }
     50% { opacity: 1; }
 }
+
+
+/* ---- in the app (startup/boot.js): a layer over the whole window, under the real title bar ---- */
+.startup-host {
+    position: fixed;
+    inset: 0;
+    z-index: var(--layer-startup);
+}
+.startup-host:empty {
+    background: var(--surface-ground); /* the first paint, before the view is built */
+}
+.startup-host[data-state='leaving'] {
+    pointer-events: none; /* the app underneath is already usable while this fades */
+}
+.startup-host[data-state='done'] {
+    display: none;
+}
+/* If the script that removes the layer never runs, the layer slides away by itself after 30 s. */
+.startup-host[data-state='booting'] {
+    animation: su-giveup 1ms linear 30s forwards;
+}
+@keyframes su-giveup {
+    to {
+        transform: translateY(-100%);
+    }
+}
+/* The real title bar floats over the startup view (D8): its logo menu and the window buttons stay, the rest waits. */
+body[data-starting] .titlebar {
+    z-index: calc(var(--layer-startup) + 1);
+    border-bottom-color: transparent;
+    background: transparent;
+}
+body[data-starting] .titlebar :is(.nav-btn, .icon-btn) {
+    visibility: hidden;
+}

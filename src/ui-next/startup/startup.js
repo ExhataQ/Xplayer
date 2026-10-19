@@ -127,17 +127,8 @@ export function backgroundMarkup(variant) {
     return build();
 }
 
-/**
- * Builds the startup view inside `host` (a positioned element that fills the window) and returns its controls.
- * `variant` is one of STARTUP_VARIANTS; pass the saved choice through resolveStartupVariant first.
- * progress: 0 to 100, or null for an indeterminate indicator.
- */
-export function createStartup(host, { variant = DEFAULT_STARTUP_VARIANT, label = 'Starting' } = {}) {
-    host.innerHTML = `
-        <div class="startup" data-variant="${variant}" role="status" aria-live="polite">
-            ${backgroundMarkup(variant)}
-            <div class="su-vignette" aria-hidden="true"></div>
-            <div class="su-titlebar">
+function titlebarMarkup() {
+    return `<div class="su-titlebar">
                 <button type="button" class="su-menu" aria-label="Application menu" aria-haspopup="menu">
                     ${logo('x', { size: 18 })}${icon('chevron-down', { size: 14 })}
                 </button>
@@ -145,7 +136,22 @@ export function createStartup(host, { variant = DEFAULT_STARTUP_VARIANT, label =
                 <button type="button" class="su-win" aria-label="Minimize">${icon('minus', { size: 16 })}</button>
                 <button type="button" class="su-win" aria-label="Maximize">${icon('square', { size: 14 })}</button>
                 <button type="button" class="su-win su-close" aria-label="Close">${icon('x', { size: 16 })}</button>
-            </div>
+            </div>`;
+}
+
+/**
+ * Builds the startup view inside `host` (a positioned element that fills the window) and returns its controls.
+ * `variant` is one of STARTUP_VARIANTS; pass the saved choice through resolveStartupVariant first.
+ * progress: 0 to 100, or null for an indeterminate indicator.
+ * controls: draw a copy of the logo menu and window buttons on top (the preview page needs it). In the app the real title bar floats
+ * above the startup view instead, so the shell passes false (startup/boot.js).
+ */
+export function createStartup(host, { variant = DEFAULT_STARTUP_VARIANT, label = 'Starting', controls = true } = {}) {
+    host.innerHTML = `
+        <div class="startup" data-variant="${variant}" role="status" aria-live="polite">
+            ${backgroundMarkup(variant)}
+            <div class="su-vignette" aria-hidden="true"></div>
+            ${controls ? titlebarMarkup() : ''}
             <div class="su-mark">${logo('x', { size: 88 })}</div>
             <div class="su-foot">
                 <div class="su-line" aria-hidden="true"><i></i></div>

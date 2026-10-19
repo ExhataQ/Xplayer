@@ -17,6 +17,9 @@ const NEXT_SRC = path.join(ROOT, 'src', 'ui-next');
 function buildNextApp(songs) {
     const dir = buildApp(songs);
     fs.cpSync(NEXT_SRC, path.join(dir, 'ui-next'), { recursive: true });
+    const coversDir = path.join(dir, 'covers');
+    fs.mkdirSync(coversDir, { recursive: true });
+    fs.writeFileSync(path.join(coversDir, 'fixture-cover.svg'), '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 2"><rect width="2" height="2" fill="#f00"/></svg>');
     const file = path.join(dir, 'ui-next', 'index.html');
     const stub = `<script>window.electronAPI = new Proxy({}, {get:(t,k)=> (k==='then')?undefined:(...a)=>{ if(/^on[A-Z]/.test(String(k))) return ()=>{}; return Promise.resolve(null);} });</script>\n`;
     fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('<script src="../player.js">', () => stub + '<script src="../player.js">'));
@@ -36,6 +39,19 @@ describe('B finish in the new shell', { concurrency: false }, () => {
         if (dir) fs.rmSync(dir, { recursive: true, force: true });
     });
     const guard = (t) => (skip ? (t.skip(skip), false) : true);
+
+    test('cover paths resolve from the app root when the UI is in a subfolder', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page } = await open();
+        const result = await page.locator('.view-host .song-item img').first().evaluate((image) => new Promise((resolve) => {
+            image.onload = () => resolve({ loaded: true, path: new URL(image.src).pathname });
+            image.onerror = () => resolve({ loaded: false, path: new URL(image.src).pathname });
+            image.src = 'covers/fixture-cover.svg';
+        }));
+        assert.equal(result.loaded, true, `cover failed to load at ${result.path}`);
+        assert.ok(result.path.endsWith('/covers/fixture-cover.svg'), result.path);
+        await page.close();
+    });
 
     async function open() {
         const page = await browser.newPage({ viewport: { width: 1300, height: 800 } });

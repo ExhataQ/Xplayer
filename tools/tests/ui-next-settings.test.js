@@ -165,18 +165,18 @@ describe('Settings in the new shell', { concurrency: false }, () => {
         await page.close();
     });
 
-    test('Theme Color: a swatch changes the accent of the whole shell, and green restores it', TEST_OPTIONS, async (t) => {
+    test('The old engine swatch (hidden since A-10, which has its own Appearance section) still changes the accent through the body-class bridge', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open();
         await toSettings(page);
         const accent = () => page.evaluate(() => ({ attr: document.documentElement.dataset.accent || null, color: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() }));
         const start = await accent();
         assert.equal(start.attr, null, 'a fresh page keeps the amber default');
-        await page.click('.settings-theme-btn[data-theme="pink"]');
+        await page.locator('.settings-theme-btn[data-theme="pink"]').dispatchEvent('click'); // hidden by A-10: the bridge is exercised directly
         await page.waitForFunction(() => document.documentElement.dataset.accent === 'pink');
         const pink = await accent();
         assert.notEqual(pink.color, start.color);
-        await page.click('.settings-theme-btn[data-theme="green"]');
+        await page.locator('.settings-theme-btn[data-theme="green"]').dispatchEvent('click');
         await page.waitForFunction(() => document.documentElement.dataset.accent === 'green');
         assert.notEqual((await accent()).color, pink.color);
         await page.close();

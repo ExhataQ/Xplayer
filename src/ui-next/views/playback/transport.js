@@ -1,5 +1,6 @@
-// Player controls (task C-01, part 2): tooltips with state and shortcut, accessible names and values, Space on a focused
-// button, and the "nothing loaded" marker the stylesheet uses. Elements come from adapter/player-parts.js, never by id.
+// Player controls (task C-01, part 2): tooltips with state and shortcut, accessible names and values, and the "nothing
+// loaded" marker the stylesheet uses. Elements come from adapter/player-parts.js, never by id. Space and Enter on a focused
+// control are the shell's shared rule (shell/space-key.js).
 //
 // What this does not change: what a click or a key does. The engine owns that (ui/06k shortcuts, playback/15x buttons).
 
@@ -32,21 +33,6 @@ function dropTitles(node) {
     new MutationObserver(strip).observe(node, { attributes: true, attributeFilter: ['title', 'data-original-title'] });
 }
 
-/** The engine turns Space into "play or pause" for the whole page, so Space on a focused button pressed nothing else. */
-function ownSpaceKey(node, press = () => node.click()) {
-    node.addEventListener('keydown', (event) => {
-        if (event.key === ' ') {
-            event.preventDefault();
-            event.stopPropagation();
-            if (!event.repeat && !node.disabled) press();
-        } else if (event.key === 'Enter' && node.tagName !== 'BUTTON') {
-            event.preventDefault();
-            press();
-        }
-    });
-    node.addEventListener('keyup', (event) => event.key === ' ' && (event.preventDefault(), event.stopPropagation()));
-}
-
 function watch(node, callback, options = { attributes: true, attributeFilter: ['class', 'style'] }) {
     new MutationObserver(callback).observe(node, options);
 }
@@ -72,7 +58,6 @@ export function enhanceTransport() {
         if (!node) continue;
         dropTitles(node);
         tips[name] = attachTooltip(node, content, { stayOnPress: toggle });
-        if (name !== 'play') ownSpaceKey(node);
     }
 
     // The volume icon is a div in the engine's markup: make it a button for the keyboard and for screen readers.

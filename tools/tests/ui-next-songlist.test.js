@@ -8,7 +8,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { ROOT, loadPlaywright, launch, buildApp } = require('./helpers/app-fixture');
+const { ROOT, loadPlaywright, launch, buildApp, waitForStartupGone } = require('./helpers/app-fixture');
 
 const pw = loadPlaywright();
 const TEST_OPTIONS = { timeout: 40000 };
@@ -53,6 +53,7 @@ for (const [label, count] of [['small library (rows in normal flow)', 30], ['lar
             if (!keepStorage) await page.evaluate(() => localStorage.removeItem('xplayer.ui-next.songlist'));
             if (!keepStorage) await page.reload();
             await page.waitForSelector('.view-host .song-item:not(.lazy-skeleton)');
+            await waitForStartupGone(page); // some tests drive the raw mouse; the startup view would take those events
             return { page, errors };
         }
         const box = (page, selector) => page.locator(selector).first().evaluate((e) => {

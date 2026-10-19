@@ -6,6 +6,7 @@ import { el, iconButton, openMenu } from '../../components/index.js';
 import { createListToolbar } from './list-toolbar.js';
 import { isSongView, currentSongView, onSongViewChange, setRowHeight, listElement, listTitle, onListTitleChange, listSongCount } from '../../adapter/songlist-bridge.js';
 import { listKind, listCover, onListCoverChange } from '../../adapter/listbar-bridge.js';
+import { getAppearance, setAppearance, watchAppearance } from '../../shell/appearance.js';
 
 const KIND_LABELS = { album: 'Album', artist: 'Artist', playlist: 'Playlist', favorites: 'Playlist', 'all-songs': 'Playlist', history: 'Playlist', recent: 'Playlist', 'search-items': 'Search results' };
 
@@ -75,6 +76,7 @@ export function clampShare(share, pairWidth) {
  */
 export function attachSongList(host, { toolbar = false } = {}) {
     const state = readSaved();
+    state.density = getAppearance().density; // density is an appearance choice now (task A-10); the saved value here is only a fallback
     const content = () => host.querySelector('.content');
 
     // ----- title bar: the engine's name for the list, and how many songs it holds -----
@@ -194,8 +196,8 @@ export function attachSongList(host, { toolbar = false } = {}) {
                 toggle('time', 'Time'),
                 { type: 'separator' },
                 { type: 'heading', label: 'Row height' },
-                { label: 'Comfortable', radio: true, checked: state.density === 'comfortable', onSelect: () => apply({ density: 'comfortable' }) },
-                { label: 'Compact', radio: true, checked: state.density === 'compact', onSelect: () => apply({ density: 'compact' }) },
+                { label: 'Comfortable', radio: true, checked: state.density === 'comfortable', onSelect: () => setAppearance({ density: 'comfortable' }) },
+                { label: 'Compact', radio: true, checked: state.density === 'compact', onSelect: () => setAppearance({ density: 'compact' }) },
                 { type: 'separator' },
                 { label: 'Reset column widths', disabled: state.share === DEFAULT_SHARE, onSelect: () => apply({ share: DEFAULT_SHARE }) }
             ]
@@ -282,11 +284,14 @@ export function attachSongList(host, { toolbar = false } = {}) {
     });
     if (list) countObserver.observe(list, { childList: true });
 
+    const unsubscribeAppearance = watchAppearance(({ density }) => density !== state.density && apply({ density }));
+
     return {
         state,
         header,
         apply,
         detach() {
+            unsubscribeAppearance();
             unsubscribeView();
             unsubscribeTitle();
             unsubscribeCover();

@@ -46,15 +46,6 @@ export function mountCoverViewer() {
     const button = iconButton({ icon: 'maximize-2', label: 'View cover', size: 'sm', tooltip: { description: 'Show the cover large' }, className: 'cover-expand', onClick: open });
     button.hidden = true;
     info.append(button);
-    // Space on a focused button presses it (the engine's global Space handler would play or pause instead).
-    button.addEventListener('keydown', (event) => {
-        if (event.key !== ' ') return;
-        event.preventDefault();
-        event.stopPropagation();
-        if (!event.repeat) button.click();
-    });
-    button.addEventListener('keyup', (event) => event.key === ' ' && (event.preventDefault(), event.stopPropagation()));
-
     const sync = () => {
         button.hidden = !hasCoverArt(cover.currentSrc || cover.src);
     };

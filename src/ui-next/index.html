@@ -3,16 +3,19 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="shell/appearance-boot.js"></script>
     <title>Xplayer</title>
     <link rel="stylesheet" href="tokens.css">
     <link rel="stylesheet" href="base.css">
     <link rel="stylesheet" href="components/components.css">
+    <link rel="stylesheet" href="startup/startup.css">
     <link rel="stylesheet" href="views/library/library-panel.css">
     <link rel="stylesheet" href="views/library/song-list.css">
     <link rel="stylesheet" href="views/library/search-view.css">
     <link rel="stylesheet" href="views/playback/player-bar.css">
     <link rel="stylesheet" href="shell/shell.css">
     <link rel="stylesheet" href="shell/notifications.css">
+    <link rel="stylesheet" href="shell/appearance.css">
     <link rel="stylesheet" href="adapter/engine-view.css">
     <link rel="stylesheet" href="views/tools/dialogs.css">
     <link rel="stylesheet" href="views/tools/settings.css">
@@ -23,8 +26,13 @@
     <link rel="stylesheet" href="adapter/songlist-rows.css">
     <link rel="stylesheet" href="adapter/legacy-icons.css">
     <link rel="stylesheet" href="adapter/legacy-overlays.css">
+    <script src="../player.js"></script>
+    <!-- Keep these earlier URLs UI-relative; runtime song-cover paths are relative to the app output root. -->
+    <base href="../">
 </head>
 <body>
+    <!-- Startup view (task A-09): covers the window from the first paint until the app is ready. shell/shell.js starts it (startup/boot.js). -->
+    <div id="startup" class="startup-host" data-state="booting"></div>
     <div class="app">
         <!-- Title bar: the logo button, menu and bell are added by shell/shell.js. The slots are filled by the adapter. -->
         <header class="titlebar">
@@ -50,14 +58,12 @@
     <!-- The old panels the engine renders lists and queues into. Hidden; filled by the adapter. -->
     <div data-legacy-slot="host"></div>
 
-    <!-- Order matters (ENGINE-CONTRACT.md): the adapter must build the engine's elements before js/main.js runs.
-         Module scripts run in document order after the page is parsed. player.js is the classic build-data script. -->
-    <script src="../player.js"></script>
+    <!-- The adapter must build the engine's elements before js/main.js runs. Module scripts run in document order after parsing. -->
     <script type="module">
-        import { mountLegacyDom } from './adapter/legacy-dom-adapter.js';
+        import { mountLegacyDom } from './ui-next/adapter/legacy-dom-adapter.js';
         mountLegacyDom();
     </script>
-    <script type="module" src="shell/shell.js"></script>
-    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="ui-next/shell/shell.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>

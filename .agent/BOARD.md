@@ -27,8 +27,8 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 | D16 | List and views strategy for Phase 2 | Approved (2026-10-17) | S3: reuse engine views and restyle first, then replace individual views where justified. See `ui-redesign/research/B-01-list-and-views-map.md` |
 | D17 | May A fix D-3 (a volume change during a track's fade-in is overwritten), which is outside the approved scope | Open | Proposed by A. Small and testable (PATCH-PLAN.md P4) |
 | D18 | Adapter API budget | Approved (2026-10-17) | 300 lines across `store`, `actions`, `events` and `engine-view.js` |
-| D19 | Logo mark: use the X mark | Proposed by A | See `reports/UI-A09-startup-and-logo-options.md`; title-bar wiring remains unfinished. |
-| D20 | Startup backgrounds: vinyl default, five animated options, plain, or random | Proposed by A | See `reports/UI-A09-startup-and-logo-options.md`; startup view is not yet wired into the shell. |
+| D19 | Logo mark: use the X mark | Approved (2026-10-18) | Decided by A (owner delegated). In the title bar and the startup view; see `reports/UI-A09-startup-and-logo-options.md` |
+| D20 | Startup backgrounds: vinyl default, five animated options, plain, or random | Approved (2026-10-18) | Decided by A (owner delegated). Shown by the app since A-09's second pass; chosen in Settings, Startup screen |
 | D21 | Library panel: restyle the engine's own panel instead of rebuilding it | Approved (2026-10-17) | Decided by B. See `reports/UI-B02-library-panel.md` |
 | D22 | Library panel needs additive engine seams (view model: types, query, sort) | Approved (2026-10-17) | Decided by B. The old screen never sets them, tests pin that |
 | D23 | Song list columns (Cover art, Artist name, Album, Time), Title and Album resize as one saved share | Approved (2026-10-18) | Decided by B. See `reports/UI-B03-song-list.md` |
@@ -43,9 +43,16 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 | D32 | The Metadata rail item shows the engine's tag form (a tab of its right panel) and follows the playing song while the form is clean | Decided by D (owner delegated) | `showEnginePanel` in `adapter/engine-view.js` |
 | D33 | Leaving the Metadata view with unsaved changes asks first, with the engine's own question; choosing the view you are on does nothing | Decided by D (owner delegated) | Native confirm, as the engine uses |
 | D34 | Leaving the Lyrics view, or picking another tab, closes an open editor and asks first when text or timings would be lost | Decided by D (owner delegated) | Sync asks with the engine's own dialog, which answers later: the person picks the tab again |
+| D35 | The startup view is a layer from the first paint until the page has loaded plus two frames: at least 450 ms, gives up after 20 s (a CSS animation moves it away after 30 s if no script runs), clicks pass through while it fades, the real title bar floats above it | Approved (2026-10-18) | Decided by A (owner delegated). `startup/boot.js`. Tests that use the raw mouse straight after load call `waitForStartupGone` |
+| D36 | Electron's scan loading window uses the new look (the X in a ring, Warm Graphite, amber) when the app starts with `--ui=next`; the current interface keeps its own | Approved (2026-10-18) | Decided by A (owner delegated). `electron/loading-page.js`; the window cannot read the theme, so it uses the default |
+| D37 | Space presses whichever button is focused, everywhere, even when the focus came from a mouse click | Proposed (awaiting owner) | Parity with the player buttons (C-01). Click then Space repeats the click instead of pausing; alternative is keyboard focus only, which changes the player. See `reports/UI-A08-tooltip-rollout.md` |
 | D40 | Notification center reads the engine's history through a hidden `#notification-panel-list` (the element the engine redraws into after every change); the engine's own notification DOM is never shown | Decided by A | No engine change. See `reports/UI-A07-notification-center.md` |
 | D41 | No cancel button on running work (downloads, album art search) | Open | The engine has no way to stop either. Real cancel needs a main-process change, outside PLAN.md scope. Owner decides |
 | D42 | Only failure-worded `error` notifications are shown as errors; the engine's other `error` entries (removals) are information | Decided by A | See report |
+| D60 | Theme, accent and density are one saved choice applied as `data-*` attributes on `<html>`, with a boot script before first paint; the engine's unsaved Theme Color block is hidden | Decided by A | See `reports/UI-A10-appearance-and-resizing.md` |
+| D61 | Density is global; only song rows respond today. Compact library panel rows need an engine seam (the engine reads `--left-item-height` once) | Open | Owner decides whether to add the seam |
+| D62 | Library panel width: drag or keyboard, 240 to 480 px, default 300, saved; a small window limits what is shown, never the saved value | Decided by A | |
+| D63 | No new themes now; Midnight Blue, Aubergine and Rose, Porcelain and Teal stay "Later" | Decided by A | DIRECTION.md |
 
 ## Phase 0: Decisions and safety
 
@@ -95,9 +102,9 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 | Task | Owner | Status | Depends on | Notes |
 |---|---|---|---|---|
 | A-07 Toasts and bell notification center (in progress and earlier) | A | In review | Phase 2 | Report `UI-A07-notification-center.md`. Toasts for every engine notification, center behind the bell (In progress, Earlier), dot on the bell. 15 browser tests pass; Windows/Electron checklist remains. No cancel button (D41) |
-| A-08 Tooltip rollout | A | Not started | Phase 2 | |
-| A-09 Startup view and logo | A | In review (partial) | A-01 | X logo and startup view exist but are not wired into the shell; see `reports/UI-A09-startup-and-logo-options.md` |
-| A-10 Accent themes, resizing, density | A | Not started | Phase 2 | |
+| A-08 Tooltip rollout | A | In review | Phase 2 | Every control gets the shared tooltip, the engine's old one no longer shows, one shared Space rule; see `reports/UI-A08-tooltip-rollout.md`. Electron run and D37 outstanding |
+| A-09 Startup view and logo | A | In review | A-01 | The startup view is shown by the app (real milestones, real window buttons above it, saved choice read through the adapter), the Electron loading window matches it; 24 tests; a real Electron window still to check. Report `reports/UI-A09-startup-and-logo-options.md` |
+| A-10 Accent themes, resizing, density | A | In review | Phase 2 | Report `UI-A10-appearance-and-resizing.md`. Appearance section in Settings (theme, accent, density, saved, no flash), shared density, resizable panel, resize audit at 3 window sizes. 18 browser tests pass; Windows/Electron checklist remains. Built on the A-07 patch |
 
 ## Phase 4: Parity and cutover
 
@@ -120,6 +127,7 @@ None. Known and unscheduled: D-3 (a volume change during a new track's fade-in i
 | P0-03, A-01, A-02 | `reports/UI-A01-A02-foundation-start.md` | Written |
 | A-04a, A-04b | `reports/UI-A04-engine-contract-and-seek-fix.md` | Written |
 | A-05 | `reports/UI-A05-components.md` | Written |
+| A-09 | `reports/UI-A09-startup-and-logo-options.md` | Written |
 | Research and patch plan | `ui-redesign/PATCH-PLAN.md`, `ui-redesign/research/` | Written |
 | B-02 | `reports/UI-B02-library-panel.md` | Written |
 | B-03 | `reports/UI-B03-song-list.md` | Written |
@@ -130,3 +138,4 @@ None. Known and unscheduled: D-3 (a volume change during a new track's fade-in i
 | D-03 | `reports/UI-D03-lyrics-editors.md` | Written |
 | D-04 | `reports/UI-D04-metadata.md` | Written |
 | A-07 | `reports/UI-A07-notification-center.md` | Written |
+| A-10 | `reports/UI-A10-appearance-and-resizing.md` | Written |

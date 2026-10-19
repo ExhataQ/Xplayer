@@ -26,6 +26,7 @@
     --c-ink-faint: #8a8f99;
     --c-accent: #eba43a;
     --c-accent-hover: #f0b255;
+    --c-accent-own: #eba43a;
     --c-accent-rgb: 235 164 58;
     --c-on-accent: #0e1013;
     --c-danger: #f08a80;
@@ -43,6 +44,7 @@
     --c-ink-faint: #86958d;
     --c-accent: #8fd3a6;
     --c-accent-hover: #a2dcb4;
+    --c-accent-own: #8fd3a6;
     --c-accent-rgb: 143 211 166;
     --c-on-accent: #0b100e;
     --c-danger: #f08a80;
@@ -60,6 +62,7 @@
     --c-ink-faint: #a39482;
     --c-accent: #cf8352;
     --c-accent-hover: #d99568;
+    --c-accent-own: #cf8352;
     --c-accent-rgb: 207 131 82;
     --c-on-accent: #120e0b;
     --c-danger: #f08a80;
@@ -97,6 +100,25 @@
     --c-on-accent: #0e1013;
 }
 
+/* Previews for the Appearance settings (task A-10): what each theme and accent looks like while another one is on.
+   tools/tests/ui-next-appearance.test.js checks they equal the real theme and accent values above. */
+:root {
+    --preview-warm-graphite-ground: #0e1013;
+    --preview-warm-graphite-surface: #13161b;
+    --preview-warm-graphite-accent: #eba43a;
+    --preview-deep-forest-ground: #0b100e;
+    --preview-deep-forest-surface: #101714;
+    --preview-deep-forest-accent: #8fd3a6;
+    --preview-espresso-copper-ground: #120e0b;
+    --preview-espresso-copper-surface: #1a1410;
+    --preview-espresso-copper-accent: #cf8352;
+    --preview-accent-green: #1db954;
+    --preview-accent-pink: #ff6b9d;
+    --preview-accent-purple: #b57eed;
+    --preview-accent-yellow: #ffd43b;
+    --preview-accent-white: #f8f9fa;
+}
+
 /* ---------- 2. semantic layer ---------- */
 
 :root {
@@ -117,6 +139,7 @@
 
     --accent: var(--c-accent);
     --accent-hover: var(--c-accent-hover);
+    --accent-own: var(--c-accent-own); /* the theme's own accent, even while an accent color is chosen: the "Theme color" swatch */
     --accent-soft: rgb(var(--c-accent-rgb) / 0.1);
     --danger: var(--c-danger);
 
@@ -211,7 +234,8 @@
     --progress-height: 4px;
     --shadow-raised: 0 8px 24px rgb(5 6 8 / 0.45);
 
+    --layer-startup: 40; /* above the whole app, below the title bar (it floats over the startup view) and below toasts */
     --layer-toast: 50;
     --layer-menu: 60;
-    --layer-tooltip: 70;
+    --layer-tooltip: 100300; /* above the engine's dialogs (80, and 100060 over the sync editor), as its old tooltip was (100200) */
 }
