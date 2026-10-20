@@ -30,10 +30,44 @@ describe('resolveUiEntry', () => {
         assert.equal(resolveUiEntry({ argv: ['--ui=old', '--ui'], env: { XPLAYER_UI: 'current' } }), CURRENT_ENTRY);
     });
 
+    test('--ui=current forces the current interface over a saved choice', () => {
+        assert.equal(resolveUiEntry({ argv: ['--ui=current'], env: {}, saved: 'next' }), CURRENT_ENTRY);
+        assert.equal(resolveUiEntry({ argv: [], env: { XPLAYER_UI: 'current' }, saved: 'next' }), CURRENT_ENTRY);
+    });
+
+    test('a saved choice decides when no flag is given, and a flag beats it', () => {
+        assert.equal(resolveUiEntry({ argv: [], env: {}, saved: 'next' }), NEXT_ENTRY);
+        assert.equal(resolveUiEntry({ argv: [], env: {}, saved: 'current' }), CURRENT_ENTRY);
+        assert.equal(resolveUiEntry({ argv: ['--ui=next'], env: {}, saved: 'current' }), NEXT_ENTRY);
+        assert.equal(resolveUiEntry({ argv: [], env: {}, saved: 'nonsense' }), CURRENT_ENTRY);
+    });
+
     test('the new entry is a forward-slash path to a file that exists in src/', () => {
         assert.ok(!NEXT_ENTRY.includes('\\') && !NEXT_ENTRY.startsWith('/'));
         const inSource = path.join(ROOT, 'src', ...NEXT_ENTRY.split('/'));
         assert.ok(fs.existsSync(inSource), `${inSource} is missing`);
+    });
+});
+
+describe('saved choice', () => {
+    test('is written to the settings folder, read back, and rejects unknown values', () => {
+        const os = require('os');
+        const storage = require(path.join(ROOT, 'electron', 'storage-paths.js'));
+        const entry = require(path.join(ROOT, 'electron', 'ui-entry.js'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ui-choice-'));
+        storage.setConfigDir(dir, dir);
+        try {
+            assert.equal(entry.readSavedChoice(), undefined);
+            assert.equal(entry.writeSavedChoice('next'), true);
+            assert.equal(entry.readSavedChoice(), 'next');
+            assert.equal(entry.writeSavedChoice('purple'), false);
+            assert.equal(entry.readSavedChoice(), 'next');
+            fs.writeFileSync(path.join(dir, 'ui-choice.json'), '{broken');
+            assert.equal(entry.readSavedChoice(), undefined);
+        } finally {
+            storage.setConfigDir(null);
+            fs.rmSync(dir, { recursive: true, force: true });
+        }
     });
 });
 
@@ -46,9 +80,26 @@ describe('build', () => {
         assert.match(build, /copytree\(ui_next_src, ui_next_dst\)/);
     });
 
-    test('window-manager loads the page through resolveUiEntry', () => {
+    test('window-manager loads the page through the active choice and can switch it', () => {
         const src = fs.readFileSync(path.join(ROOT, 'electron', 'window-manager.js'), 'utf8');
         assert.match(src, /require\('\.\/ui-entry'\)/);
-        assert.match(src, /resolveUiEntry\(/);
+        assert.match(src, /activeEntry\(\)/);
+        assert.match(src, /switchUi/);
+    });
+});
+
+describe('the in-app switch is wired end to end', () => {
+    const read = (...parts) => fs.readFileSync(path.join(ROOT, ...parts), 'utf8');
+
+    test('main, preload and the desktop API agree on the two calls', () => {
+        assert.match(read('electron', 'main.js'), /handle\('get-ui-choice'/);
+        assert.match(read('electron', 'main.js'), /handle\('set-ui-choice'/);
+        assert.match(read('electron', 'preload.js'), /invoke\('set-ui-choice'/);
+        assert.match(read('src', 'js', 'api', 'desktop-api.js'), /setUiChoice: 'invoke'/);
+    });
+
+    test('the current Settings page and the new one both offer the switch', () => {
+        assert.match(read('src', 'js', 'ui', '08e-panel-settings.js'), /data-action="switchInterface"/);
+        assert.match(read('src', 'ui-next', 'shell', 'appearance-settings.js'), /setUiChoice\('current'\)/);
     });
 });

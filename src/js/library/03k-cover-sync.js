@@ -90,9 +90,9 @@ export function setupCoverStreamListeners() {
         applyCoverBatchToUI(batch.updates || []);
     });
 
-    desktopApi.library.onScanCoversComplete(() => {
+    desktopApi.library.onScanCoversComplete((info) => {
         if (typeof completeCoverProgressNotification === 'function') {
-            completeCoverProgressNotification();
+            completeCoverProgressNotification(info);
         }
         emit('covers:scanCompleted');
     });

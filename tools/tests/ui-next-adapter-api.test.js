@@ -117,10 +117,10 @@ describe('adapter API against the engine', { concurrency: false }, () => {
         await page.evaluate(([audioUrl]) => {
             SONGS_DATA.forEach((song) => (song.url = audioUrl));
             return Promise.all([
-                import('./adapter/store.js'),
-                import('./adapter/actions.js'),
-                import('./adapter/events.js'),
-                import('./adapter/engine-view.js')
+                import('./ui-next/adapter/store.js'),
+                import('./ui-next/adapter/actions.js'),
+                import('./ui-next/adapter/events.js'),
+                import('./ui-next/adapter/engine-view.js')
             ]).then(([store, actions, events, view]) => {
                 window.API = { store, actions, events, view };
             });

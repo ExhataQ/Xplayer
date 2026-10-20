@@ -332,6 +332,26 @@ describe('tooltip rollout and shared Space rule in the new shell with the real e
         await page.close();
     });
 
+    test('D37: Space after a mouse click on a button plays or pauses; reaching the same button with the keyboard, Space presses it', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page } = await open();
+        const state = () => page.evaluate(() => ({ heart: document.querySelector('.favorite-btn').className, tip: document.querySelector('.favorite-btn').getAttribute('data-tip'), queue: playbackQueue.length }));
+        const before = await state();
+        await page.click('.favorite-btn'); // the mouse presses it: favorite on
+        const clicked = await state();
+        assert.notEqual(clicked.heart + clicked.tip, before.heart + before.tip, 'the click toggled the favorite');
+        await page.keyboard.press('Space'); // the page's own Space: nothing was playing, so it starts the list
+        await page.waitForFunction((n) => playbackQueue.length > n, before.queue, { timeout: 3000 });
+        assert.equal((await state()).heart + (await state()).tip, clicked.heart + clicked.tip, 'Space did not press the heart a second time');
+        // The same button reached by the keyboard: Tab away and back, then Space presses it.
+        await page.keyboard.press('Tab');
+        await page.keyboard.press('Shift+Tab');
+        assert.equal(await page.evaluate(() => document.activeElement === document.querySelector('.favorite-btn')), true, 'focus is back on the heart');
+        await page.keyboard.press('Space');
+        await page.waitForFunction((was) => document.querySelector('.favorite-btn').className + document.querySelector('.favorite-btn').getAttribute('data-tip') === was, before.heart + before.tip, { timeout: 3000 });
+        await page.close();
+    });
+
     test('Space and Enter on a control that is not a real button press it once; holding the key does not repeat', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open();

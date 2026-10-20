@@ -180,6 +180,43 @@ describe('A-10 appearance and resizing with the real engine', { concurrency: fal
         await page.close();
     });
 
+    // The library panel's rows (D61): the engine's virtual scroll must use the same height as the rows it draws.
+    const panelRows = (page) =>
+        page.evaluate(() => {
+            const rows = [...document.querySelectorAll('.library-panel .left-panel-main-item')];
+            const tops = rows.map((row) => Math.round(row.getBoundingClientRect().top));
+            return { engine: LEFT_ITEM_HEIGHT, rows: rows.length, height: Math.round(rows[0].getBoundingClientRect().height), pitch: tops.length > 1 ? tops[1] - tops[0] : 0, cover: Math.round(document.querySelector('.library-panel .main-item-cover-wrapper').getBoundingClientRect().height) };
+        });
+
+    test('density D61: library panel rows are 61 px comfortable and 44 px compact, live, and the engine uses the same height', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open();
+        assert.deepEqual(await panelRows(page), { ...(await panelRows(page)), engine: 61, height: 61, pitch: 61, cover: 44 });
+        await goto(page, 'settings');
+        await section(page).getByRole('radio', { name: 'Compact' }).click();
+        await page.waitForFunction(() => LEFT_ITEM_HEIGHT === 44, null, { timeout: 3000 });
+        await goto(page, 'library');
+        const compact = await panelRows(page);
+        assert.deepEqual([compact.engine, compact.height, compact.pitch, compact.cover], [44, 44, 44, 32]);
+        assert.ok(compact.rows >= 2, 'the panel still lists its items');
+        await goto(page, 'settings');
+        await section(page).getByRole('radio', { name: 'Comfortable' }).click();
+        await page.waitForFunction(() => LEFT_ITEM_HEIGHT === 61, null, { timeout: 3000 });
+        await goto(page, 'library');
+        const back = await panelRows(page);
+        assert.deepEqual([back.engine, back.height, back.pitch, back.cover], [61, 61, 61, 44]);
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('density D61: a saved compact density gives compact panel rows from the first read', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page } = await open({ store: { 'xplayer.ui-next.appearance': JSON.stringify({ theme: 'warm-graphite', accent: 'theme', density: 'compact' }) } });
+        const rows = await panelRows(page);
+        assert.deepEqual([rows.engine, rows.height, rows.pitch], [44, 44, 44]);
+        await page.close();
+    });
+
     test('density: one choice drives the Appearance control, the song list and its column menu', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open();
@@ -255,6 +292,31 @@ describe('A-10 appearance and resizing with the real engine', { concurrency: fal
         await page.setViewportSize({ width: 1400, height: 860 });
         await page.waitForFunction((n) => Math.round(document.querySelector('.panel-host').getBoundingClientRect().width) === n, 480, { timeout: 3000 });
         assert.equal((await sizes()).panel, 480);
+        await page.close();
+    });
+
+    test('Settings can switch back to the previous interface (saved by the app, not the page)', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open();
+        await page.evaluate(() => {
+            window.__ui = [];
+            window.electronAPI = { setUiChoice: (choice) => (window.__ui.push(choice), Promise.resolve({ ok: true, ui: choice })) };
+        });
+        await goto(page, 'settings');
+        const button = page.locator('.view-host .appearance__switch');
+        assert.equal(await button.isEnabled(), true);
+        await button.click();
+        assert.deepEqual(await page.evaluate(() => window.__ui), ['current']);
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('the switch is disabled when the app is not there to do it (a plain browser)', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page } = await open();
+        await page.evaluate(() => { window.electronAPI = {}; });
+        await goto(page, 'settings');
+        assert.equal(await page.locator('.view-host .appearance__switch').isDisabled(), true);
         await page.close();
     });
 

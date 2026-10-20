@@ -62,13 +62,14 @@ describe('seek bar and volume slider (data-action, real mouse)', { concurrency: 
 
     // Opens the app and starts the generated track. The first mouse click gives the page the user
     // activation that autoplay needs, so no browser flag is required.
-    async function openPlaying() {
+    async function openPlaying({ fadeInSeconds } = {}) {
         const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e.message)));
         await gotoApp(page, dir);
         await page.mouse.click(5, 5);
         const url = 'file://' + wav.replace(/\\/g, '/');
+        if (fadeInSeconds) await page.evaluate((seconds) => localStorage.setItem('audioPlaybackSettings', JSON.stringify({ fadeInEnabled: true, fadeInDuration: seconds })), fadeInSeconds);
         await page.evaluate((u) => {
             SONGS_DATA.forEach((s) => (s.url = u));
             createQueueFromSongList(SONGS_DATA.slice(0, 3), 0, VIEWS.ALL_SONGS);
@@ -118,8 +119,7 @@ describe('seek bar and volume slider (data-action, real mouse)', { concurrency: 
     test('clicking the volume slider sets the volume and throws nothing', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await openPlaying();
-        // A new track fades in for about a second, and a volume change made during the fade is overwritten when the
-        // fade ends (known, tracked as D-3 in ENGINE-CONTRACT.md), so the click waits for the fade to finish.
+        // This click comes after the fade-in; the next test clicks during it (D-3, fixed under D17).
         await page.waitForFunction(() => audioElement.currentTime > 1.5, null, { timeout: 8000 });
         await clickAt(page, '#volume-slider', 0.25);
         await page.waitForTimeout(150);
@@ -128,6 +128,20 @@ describe('seek bar and volume slider (data-action, real mouse)', { concurrency: 
         assert.ok(Math.abs(v.vol - 0.25) < 0.06, `audio volume ${v.vol} should be near 0.25`);
         assert.ok(Math.abs(v.chosen - 0.25) < 0.06, `chosen volume ${v.chosen} should be near 0.25`);
         assert.ok(Math.abs(v.fill - 25) < 6, `fill ${v.fill}% should be near 25%`);
+        await page.close();
+    });
+
+    test('a volume change during a new track\'s fade-in is kept when the fade ends (D-3)', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await openPlaying({ fadeInSeconds: 2.5 });
+        assert.ok(await page.evaluate(() => audioElement.currentTime < 1.5), 'the click is made inside the fade-in');
+        await clickAt(page, '#volume-slider', 0.25);
+        await page.waitForFunction(() => audioElement.currentTime > 3.2, null, { timeout: 8000 }); // the fade has ended
+        const v = await page.evaluate(() => ({ vol: audioElement.volume, chosen: window.lastVolume, fill: parseFloat(document.getElementById('volume-fill').style.width) }));
+        assert.deepEqual(errors, []);
+        assert.ok(Math.abs(v.vol - 0.25) < 0.06, `audio volume ${v.vol} should stay near 0.25 (it was 0.5 before the fix)`);
+        assert.ok(Math.abs(v.chosen - 0.25) < 0.06, `chosen volume ${v.chosen}`);
+        assert.ok(Math.abs(v.fill - 25) < 6, `fill ${v.fill}%`);
         await page.close();
     });
 

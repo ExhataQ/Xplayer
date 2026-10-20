@@ -178,12 +178,74 @@ describe('A-07 notification center with the real engine', { concurrency: false }
         assert.equal(await row.locator('[role="progressbar"]').getAttribute('aria-valuenow'), '80');
         assert.equal(await handle.evaluate((n) => n.isConnected), true, 'the same row was updated, not rebuilt');
         assert.equal(await row.locator('.notif__percent').innerText(), '80%');
-        assert.equal(await row.getByRole('button').count(), 0, 'there is no cancel or dismiss on running work the engine cannot stop');
+        assert.deepEqual(await row.getByRole('button').allInnerTexts(), ['Cancel'], 'running work has Cancel (D41) and no Dismiss');
 
         await page.evaluate(() => completeCoverProgressNotification());
         assert.equal(await center(page).locator('.notif-section[aria-label="In progress"]').count(), 0);
         assert.equal(await center(page).locator('.notif-section[aria-label="Earlier"] .notif__title').innerText(), 'Album art finished loading');
         assert.equal(await page.locator('.toast').count(), 0, 'no toast while the center is open: the person is looking at it');
+        await page.close();
+    });
+
+    // The page's desktop bridge as the real app has it for D41: a recording stand-in with a download that stays open until cancelled.
+    const withCancelBridge = (page) =>
+        page.evaluate(() => {
+            window.__calls = [];
+            window.__resolveDownload = null;
+            window.electronAPI = new Proxy({}, {
+                get: (t, k) => {
+                    if (k === 'then') return undefined;
+                    if (k === 'downloadAndScan') return () => new Promise((resolve) => (window.__resolveDownload = resolve));
+                    if (k === 'cancelDownload') return () => (window.__calls.push('download'), window.__resolveDownload({ success: false, cancelled: true, error: 'Download cancelled' }), Promise.resolve({ cancelled: true }));
+                    if (k === 'cancelCoverSearch') return () => (window.__calls.push('cover'), Promise.resolve({ cancelled: true }));
+                    return (...a) => (/^on[A-Z]/.test(String(k)) ? () => {} : Promise.resolve(null));
+                }
+            });
+        });
+
+    test('Cancel on the album art search asks the main process to stop, says so, and ends as "stopped" (D41)', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open();
+        await withCancelBridge(page);
+        await page.evaluate(() => showCoverProgressNotification(5, 10, 2));
+        await bell(page).click();
+        const row = center(page).locator('.notif-section[aria-label="In progress"] .notif');
+        await row.getByRole('button', { name: 'Cancel album art search' }).click();
+        assert.deepEqual(await page.evaluate(() => window.__calls), ['cover']);
+        assert.equal(await row.locator('.notif__title').innerText(), 'Stopping album art search');
+        await page.evaluate(() => completeCoverProgressNotification({ cancelled: true })); // what the main process sends once the scan has wound down
+        assert.equal(await center(page).locator('.notif-section[aria-label="In progress"]').count(), 0);
+        assert.equal(await center(page).locator('.notif-section[aria-label="Earlier"] .notif__title').innerText(), 'Album art search stopped');
+        assert.equal(await page.evaluate(() => notificationHistory[0].type), 'info', 'stopping is not a failure');
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('Cancel on a download stops it, removes its row, says "Download cancelled", and a new download can start (D41)', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open();
+        await withCancelBridge(page);
+        const start = () =>
+            page.evaluate(() => {
+                document.getElementById('link-url-input')?.remove();
+                const input = document.createElement('input');
+                input.id = 'link-url-input';
+                input.value = 'http://example.test/song.mp3';
+                document.body.append(input);
+                playFromUrl(false);
+            });
+        await start();
+        await bell(page).click();
+        const row = center(page).locator('.notif-section[aria-label="In progress"] .notif');
+        assert.equal(await row.locator('.notif__title').innerText(), 'Downloading');
+        await row.getByRole('button', { name: 'Cancel download' }).click();
+        await page.waitForFunction(() => window.__calls.length === 1 && !document.querySelector('#notification-center .notif-section[aria-label="In progress"]'));
+        assert.deepEqual(await page.evaluate(() => window.__calls), ['download']);
+        assert.equal(await center(page).locator('.notif-section[aria-label="Earlier"] .notif__title').first().innerText(), 'Download cancelled');
+        assert.equal(await page.evaluate(() => notificationHistory.some((n) => n.isDownloadProgress)), false, 'no progress entry is left behind');
+        await start();
+        await page.waitForFunction(() => notificationHistory.some((n) => n.isDownloadProgress));
+        assert.deepEqual(errors, []);
         await page.close();
     });
 

@@ -201,6 +201,8 @@
 
     --row-height: 56px;
     --row-height-compact: 36px;
+    --panel-row-height: 61px; /* library panel rows (the engine reads the live value, ui/05b setLeftItemHeight) */
+    --panel-row-height-compact: 44px;
     --row-playing-bg: var(--accent-soft);
 
     --tooltip-bg: var(--surface-raised);

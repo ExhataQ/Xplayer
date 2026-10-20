@@ -55,11 +55,20 @@ export function showCoverProgressNotification(processed, total, found) {
     renderNotificationPanel();
 }
 
-export function completeCoverProgressNotification() {
+/** Stops the album art search (D41). What was found so far is kept; the main process then reports the end as `cancelled`. */
+export function cancelCoverSearch() {
+    if (coverNotifyIndex === -1 || !desktopApi.supports('library.cancelCoverSearch')) return;
+    notificationHistory[coverNotifyIndex].message = '🖼️ Stopping album art search...';
+    renderNotificationPanel();
+    desktopApi.library.cancelCoverSearch();
+}
+
+export function completeCoverProgressNotification(info) {
     if (coverNotifyIndex !== -1 && notificationHistory[coverNotifyIndex]) {
+        const cancelled = Boolean(info && info.cancelled);
         notificationHistory[coverNotifyIndex].isCoverProgress = false;
-        notificationHistory[coverNotifyIndex].message = '🖼️ Album art finished loading';
-        notificationHistory[coverNotifyIndex].type = 'success';
+        notificationHistory[coverNotifyIndex].message = cancelled ? '🖼️ Album art search stopped' : '🖼️ Album art finished loading';
+        notificationHistory[coverNotifyIndex].type = cancelled ? 'info' : 'success';
         notificationHistory[coverNotifyIndex].timestamp = Date.now();
     }
     coverNotifyIndex = -1;
@@ -254,7 +263,9 @@ export function renderNotificationPanel() {
                 </div>
                 ${
                     notif.isDownloadProgress || notif.isCoverProgress
-                        ? ''
+                        ? `<button class="notification-item-close" ${notif.isDownloadProgress ? actionAttrs('cancelDownload', [], { stop: true }) : actionAttrs('cancelCoverSearch', [], { stop: true })} title="Cancel" aria-label="Cancel">
+                    <i class="fas fa-times"></i>
+                </button>`
                         : `<button class="notification-item-close" ${actionAttrs('removeNotificationItem', [index], { stop: true })} title="Dismiss">
                     <i class="fas fa-times"></i>
                 </button>`
@@ -269,6 +280,7 @@ if (typeof registerLegacyGlobals === 'function') {
         showNotification,
         showCoverProgressNotification,
         completeCoverProgressNotification,
+        cancelCoverSearch,
         toggleNotificationPanel,
         closeNotificationPanel,
         clearAllNotifications,

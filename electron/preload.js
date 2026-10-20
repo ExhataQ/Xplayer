@@ -11,6 +11,8 @@ const groups = {
         maximizeApp: () => ipcRenderer.send('maximize-app'),
         setMinimizeOnClose: (enabled) => ipcRenderer.send('set-minimize-on-close', enabled),
         focusWindow: () => ipcRenderer.send('focus-window'),
+        getUiChoice: () => ipcRenderer.invoke('get-ui-choice'),
+        setUiChoice: (choice) => ipcRenderer.invoke('set-ui-choice', choice),
         updateThumbarPlayState: (isPlaying) => ipcRenderer.send('update-thumbar-state', isPlaying),
         onThumbarPrev: (cb) => ipcRenderer.on('thumbar-prev', () => cb()),
         onThumbarPlayPause: (cb) => ipcRenderer.on('thumbar-playpause', () => cb()),
@@ -27,6 +29,8 @@ const groups = {
         getFolderStats: (folderPath) => ipcRenderer.invoke('get-folder-stats', folderPath),
         importDroppedFiles: (filePaths, targetView) => ipcRenderer.invoke('import-dropped-files', filePaths, targetView),
         downloadAndScan: (url, isTemp) => ipcRenderer.invoke('download-and-scan', url, isTemp),
+        cancelDownload: () => ipcRenderer.invoke('cancel-download'),
+        cancelCoverSearch: () => ipcRenderer.invoke('cancel-cover-search'),
         welcomeSelectFolder: () => ipcRenderer.invoke('welcome-select-folder'),
         pickDownloadFolder: () => ipcRenderer.invoke('pick-download-folder'),
         resetDownloadFolder: () => ipcRenderer.invoke('reset-download-folder'),
@@ -34,7 +38,7 @@ const groups = {
         // The saved song list, handed over right away (the page builds its library from it while loading).
         getStartupSongs: () => ipcRenderer.sendSync('songs-store:load'),
         onScanCoverBatch: (cb) => ipcRenderer.on('scan-cover-batch', (event, updates) => cb(updates)),
-        onScanCoversComplete: (cb) => ipcRenderer.on('scan-covers-complete', () => cb())
+        onScanCoversComplete: (cb) => ipcRenderer.on('scan-covers-complete', (event, info) => cb(info))
     },
     metadata: {
         getAudioMetadata: (fileUrl) => ipcRenderer.invoke('get-audio-metadata', fileUrl),

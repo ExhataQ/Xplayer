@@ -20,8 +20,11 @@ const BACKGROUNDS = ['playhead', 'vinyl', 'equalizer', 'light', 'constellation',
 describe('startup wiring: source rules', () => {
     test('#startup is the first thing in <body>, starts as booting, and startup.css is linked', () => {
         const html = read('index.html');
-        assert.match(html, /<body>\s*(?:<!--[\s\S]*?-->\s*)?<div id="startup" class="startup-host" data-state="booting"><\/div>\s*<div class="app">/);
+        // The host holds the same logo and loading line as startup.js draws (a plain first paint with no script), then the early module, then the app.
+        assert.match(html, /<body>\s*(?:<!--[\s\S]*?-->\s*)?<div id="startup" class="startup-host" data-state="booting">[\s\S]*?<div class="su-mark">[\s\S]*?<div class="su-line"[\s\S]*?<\/div>\s*<!--[\s\S]*?-->\s*<script type="module" src="ui-next\/startup\/early\.js"><\/script>\s*<div class="app">/);
         assert.match(html, /href="startup\/startup\.css"/);
+        // the early module is listed before every other script, so it runs first (startup/early.js)
+        assert.ok(html.indexOf('startup/early.js"></script>') < html.indexOf('type="module" src="ui-next/shell/shell.js"'));
     });
 
     test('the bridge reads the same key the engine saves under', () => {
@@ -82,10 +85,9 @@ describe('startup wiring in a real page', { concurrency: false }, () => {
             const percent = document.querySelector('.su-percent');
             const host = document.getElementById('startup');
             if (label && window.__boot.created === null) window.__boot.created = performance.now();
-            if (label && label.textContent !== window.__boot.labels.at(-1)) {
-                window.__boot.labels.push(label.textContent);
-                window.__boot.percents.push(percent ? percent.textContent : '');
-            }
+            if (label && label.textContent !== window.__boot.labels.at(-1)) window.__boot.labels.push(label.textContent);
+            // the placeholder in index.html has no percent yet: only a shown percent counts
+            if (percent && percent.textContent && percent.textContent !== window.__boot.percents.at(-1)) window.__boot.percents.push(percent.textContent);
             if (host && host.dataset.state === 'leaving') {
                 const rail = document.querySelector('.rail-btn');
                 if (rail) {
@@ -111,7 +113,7 @@ describe('startup wiring in a real page', { concurrency: false }, () => {
         if (saved !== undefined) await page.addInitScript((v) => localStorage.setItem('startupBackground', v), saved);
         if (delayEngine) await page.route(/\/js\/main\.js$/, async (route) => (await new Promise((r) => setTimeout(r, delayEngine)), route.continue()));
         await page.goto(URL_OF(), { waitUntil: 'commit' });
-        await page.waitForSelector('.startup', { state: 'attached' });
+        await page.waitForSelector('.startup:not([data-placeholder])', { state: 'attached' }); // the first paint shows a placeholder; the script then draws the real one
         if (waitDone) await page.waitForFunction(() => document.getElementById('startup').dataset.state === 'done', null, { timeout: 20000 });
         return { page, errors };
     }
@@ -147,6 +149,7 @@ describe('startup wiring in a real page', { concurrency: false }, () => {
     test('while it is up, the real title bar floats above it: logo menu and window buttons work, the rest waits, the app below is covered', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open({ delayEngine: 1500, waitDone: false });
+        await page.waitForSelector('.logo-btn'); // the startup view now appears before the shell has built the title bar
         const r = await page.evaluate(() => {
             const at = (el) => {
                 const b = el.getBoundingClientRect();

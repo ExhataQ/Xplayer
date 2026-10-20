@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 const { configPath: settingsFile, getOutputDir } = require('./storage-paths');
-const { resolveUiEntry } = require('./ui-entry');
+const { activeEntry, setActiveChoice, NEXT_ENTRY } = require('./ui-entry');
 const thumbarIconPath = path.join(getOutputDir(), 'icons');
 
 function loadWindowState() {
@@ -55,7 +55,7 @@ function setMinimizeOnClose(enabled) {
 function createWindow() {
     const windowState = loadWindowState();
 
-    const uiEntry = resolveUiEntry({ argv: process.argv, env: process.env });
+    const uiEntry = activeEntry();
     // The new screen paints a dark graphite page: a black window behind it flashes between the two at startup.
     const windowBackground = uiEntry.includes('ui-next') ? '#0e1013' : '#000000';
 
@@ -182,8 +182,22 @@ function getMainWindow() {
     return mainWindow;
 }
 
+// Saves the choice and loads the other page into the same window (position, size and playback of the main process stay).
+// The page that was showing is replaced, so what it had in memory (the queue, the playing track) starts again from what is saved.
+function switchUi(choice) {
+    const chosen = setActiveChoice(choice);
+    if (!chosen) return { ok: false, error: 'Unknown interface' };
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        const entry = activeEntry();
+        mainWindow.setBackgroundColor(entry === NEXT_ENTRY ? '#0e1013' : '#000000');
+        mainWindow.loadFile(path.join(getOutputDir(), ...entry.split('/')));
+    }
+    return { ok: true, ui: chosen };
+}
+
 module.exports = {
     createWindow,
+    switchUi,
     getMainWindow,
     saveWindowState,
     setMinimizeOnClose

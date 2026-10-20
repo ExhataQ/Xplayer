@@ -107,8 +107,20 @@ function getUniqueFilePath(downloadFolder, url) {
 
 const MAX_REDIRECTS = 5;
 
+// The running download's way to stop (D41). One download runs at a time (the page's link dialog allows one), and a redirect replaces it.
+let stopActiveDownload = null;
+
+/** Stops the running download and deletes its half-written file. Returns false when nothing is downloading. */
+function cancelDownload() {
+    if (!stopActiveDownload) return false;
+    stopActiveDownload();
+    return true;
+}
+
 function downloadFile(url, filePath, onProgress, redirectsLeft = MAX_REDIRECTS) {
     return new Promise((resolve) => {
+        let cancelled = false;
+        const cancelled_ = () => ({ success: false, cancelled: true, error: 'Download cancelled' });
         let parsed;
         try {
             parsed = new URL(url);
@@ -139,6 +151,7 @@ function downloadFile(url, filePath, onProgress, redirectsLeft = MAX_REDIRECTS) 
                     return;
                 }
                 // Nothing has been written yet, so name the file after where the redirect leads.
+                stopActiveDownload = null; // the next request sets its own
                 resolve(downloadFile(next, getUniqueFilePath(path.dirname(filePath), next), onProgress, redirectsLeft - 1));
                 return;
             }
@@ -157,11 +170,13 @@ function downloadFile(url, filePath, onProgress, redirectsLeft = MAX_REDIRECTS) 
             const fail = (message) => {
                 if (finished) return;
                 finished = true;
+                if (stopActiveDownload === stop) stopActiveDownload = null;
                 response.destroy();
                 fileStream.destroy();
                 // Do not leave a half-written file behind.
-                fs.unlink(filePath, () => resolve({ success: false, error: message }));
+                fs.unlink(filePath, () => resolve(cancelled ? cancelled_() : { success: false, error: message }));
             };
+            fail_ = fail;
 
             response.on('data', (chunk) => {
                 downloadedSize += chunk.length;
@@ -183,6 +198,7 @@ function downloadFile(url, filePath, onProgress, redirectsLeft = MAX_REDIRECTS) 
                     return;
                 }
                 finished = true;
+                if (stopActiveDownload === stop) stopActiveDownload = null;
                 fileStream.close(() => {
                     resolve({
                         success: true,
@@ -195,11 +211,18 @@ function downloadFile(url, filePath, onProgress, redirectsLeft = MAX_REDIRECTS) 
         });
 
         request.on('error', (err) => {
-            resolve({
-                success: false,
-                error: err.message
-            });
+            if (stopActiveDownload === stop) stopActiveDownload = null;
+            resolve(cancelled ? cancelled_() : { success: false, error: err.message });
         });
+
+        // Cancel: before the answer arrives the request is dropped; while the file is coming in it fails with the cancelled flag.
+        let fail_ = null;
+        function stop() {
+            cancelled = true;
+            if (fail_) fail_('Download cancelled');
+            else request.destroy();
+        }
+        stopActiveDownload = stop;
     });
 }
 
@@ -220,6 +243,7 @@ module.exports = {
     saveDownloadFolder,
     resetDownloadFolder,
     download,
+    cancelDownload,
     safeDownloadFileName,
     getUniqueFilePath
 };

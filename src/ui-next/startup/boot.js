@@ -70,11 +70,17 @@ export function createBoot({ host, variant, engineReady, pageLoaded, minVisible 
     return { finish, get done() { return finishing; } };
 }
 
-/** The real boot: the saved background, the engine's readiness and the page's load. Returns null when the page has no #startup host. */
+let started; // startup/early.js starts the boot as soon as its small module graph has loaded; shell.js asks again later and gets the same one
+
+/**
+ * The real boot: the saved background, the engine's readiness and the page's load. Returns null when the page has no #startup host.
+ * Starting twice is harmless: the second call returns the first boot, so the shell can still call it first thing in init().
+ */
 export function startBoot() {
+    if (started !== undefined) return started;
     const host = document.getElementById('startup');
-    if (!host) return null;
+    if (!host) return (started = null);
     const engineReady = new Promise((resolve) => whenViewsReady(resolve));
     const pageLoaded = document.readyState === 'complete' ? Promise.resolve() : new Promise((resolve) => window.addEventListener('load', resolve, { once: true }));
-    return createBoot({ host, variant: resolveStartupVariant(readStartupPreference()), engineReady, pageLoaded });
+    return (started = createBoot({ host, variant: resolveStartupVariant(readStartupPreference()), engineReady, pageLoaded }));
 }

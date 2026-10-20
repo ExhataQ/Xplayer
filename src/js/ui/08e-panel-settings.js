@@ -37,6 +37,9 @@ registerActions({
     setStartupBackground: function (...args) {
         return setStartupBackground.apply(this, args);
     },
+    switchInterface: function (...args) {
+        return switchInterface.apply(this, args);
+    },
     switchToHistoryFromSettings: function (...args) {
         return switchToHistoryFromSettings.apply(this, args);
     },
@@ -133,6 +136,10 @@ export function openSettingsPanel() {
                         >
                         <span>Minimize to taskbar when closed</span>
                         </label>
+                    </div>
+                    <div class="settings-section">
+                        <div class="settings-section-title">Interface</div>
+                        <div class="settings-threshold-row"><span>Current interface</span><button class="settings-action-btn" data-action="switchInterface" data-args='["next"]'><i class="fas fa-wand-magic-sparkles"></i><span>Switch to the new interface</span></button></div>
                     </div>
                     <div class="settings-section">
                         <div class="settings-section-title">Startup screen</div>
@@ -658,8 +665,19 @@ if (typeof registerLegacyGlobals === 'function') {
         closeSettingsPanel,
         toggleSettingsPanel,
         changeUrlSaveFolder,
-        resetUrlSaveFolder
+        resetUrlSaveFolder,
+        switchInterface
     });
+}
+
+// Both interfaces ship: this saves the choice and the window reloads into the other one.
+export async function switchInterface(which) {
+    if (!desktopApi.supports('window.setUiChoice')) return;
+    try {
+        await desktopApi.window.setUiChoice(which === 'current' ? 'current' : 'next');
+    } catch (error) {
+        console.error('Could not switch the interface', error);
+    }
 }
 
 // Variables other files read and assign by name: the accessors read and write this file's own variables.

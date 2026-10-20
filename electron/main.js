@@ -7,13 +7,15 @@ app.disableHardwareAcceleration();
 let mainWindow = null;
 let minimizeOnClose = false;
 
-const { createWindow, saveWindowState, setMinimizeOnClose } = require('./window-manager');
+const { createWindow, saveWindowState, setMinimizeOnClose, switchUi } = require('./window-manager');
+const { activeChoice } = require('./ui-entry');
 const { showLoadingWindow, updateLoadingProgress, hideLoadingWindow } = require('./loading-window');
 const {
     scanDroppedFiles,
     scanDownloadedFile,
     rebuildFromFolders,
-    scanFolder
+    scanFolder,
+    cancelCoverSearch
 } = require('./scanner');
 const {
     getMusicFolders,
@@ -23,7 +25,7 @@ const {
     getFolderStats,
     updateFolderSongCounts
 } = require('./music-folders');
-const { getDownloadFolder, saveDownloadFolder, resetDownloadFolder, download } = require('./downloads');
+const { getDownloadFolder, saveDownloadFolder, resetDownloadFolder, download, cancelDownload } = require('./downloads');
 const { saveLyricsFile, readLyricsFile } = require('./file-operations');
 const { searchLyrics, downloadLyricsFile } = require('./online-lyrics');
 const { getAudioMetadata, saveAudioMetadata, saveAudioCover } = require('./metadata-editor');
@@ -166,6 +168,10 @@ ipcMain.handle('download-and-scan', async (event, url, isTemp) => {
     return scanResult;
 });
 
+// Real cancel for running work (D41). Both answer whether something was running.
+ipcMain.handle('cancel-download', async () => ({ cancelled: cancelDownload() }));
+ipcMain.handle('cancel-cover-search', async () => ({ cancelled: cancelCoverSearch() }));
+
 ipcMain.handle('search-online-lyrics', async (event, params) => {
     try {
         return await searchLyrics(params || {});
@@ -244,9 +250,9 @@ ipcMain.handle('rebuild-from-folders', async () => {
                 mainWindow.webContents.send('scan-cover-batch', updates);
             }
         },
-        onScanComplete: () => {
+        onScanComplete: (code, info) => {
             if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.webContents.send('scan-covers-complete');
+                mainWindow.webContents.send('scan-covers-complete', { cancelled: Boolean(info && info.cancelled) });
             }
         }
         });
@@ -291,9 +297,9 @@ ipcMain.handle('change-folder', async () => {
                 mainWindow.webContents.send('scan-cover-batch', updates);
             }
         },
-        onScanComplete: () => {
+        onScanComplete: (code, info) => {
             if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.webContents.send('scan-covers-complete');
+                mainWindow.webContents.send('scan-covers-complete', { cancelled: Boolean(info && info.cancelled) });
             }
         }
         });
@@ -348,6 +354,9 @@ app.whenReady().then(async () => {
     ipcMain.handle('get-window-maximized', () => {
         return mainWindow ? mainWindow.isMaximized() : false;
     });
+
+    ipcMain.handle('get-ui-choice', () => activeChoice());
+    ipcMain.handle('set-ui-choice', (event, choice) => switchUi(choice));
 
     ipcMain.on('close-app', () => {
         saveWindowState(mainWindow);
@@ -501,9 +510,9 @@ app.whenReady().then(async () => {
                     mainWindow.webContents.send('scan-cover-batch', updates);
                 }
             },
-            onScanComplete: () => {
+            onScanComplete: (code, info) => {
                 if (mainWindow && !mainWindow.isDestroyed()) {
-                    mainWindow.webContents.send('scan-covers-complete');
+                    mainWindow.webContents.send('scan-covers-complete', { cancelled: Boolean(info && info.cancelled) });
                 }
             }
         });

@@ -36,6 +36,11 @@ export function setRowHeight(px) {
     if (typeof engine().setSongItemHeight === 'function') engine().setSongItemHeight(px);
 }
 
+/** Tells the engine's virtual scroll the library panel's new row height in pixels, after the CSS variable was changed (D61). */
+export function setPanelRowHeight(px) {
+    if (typeof engine().setLeftItemHeight === 'function') engine().setLeftItemHeight(px);
+}
+
 /** The engine's song list element inside `host`, or null. */
 export const listElement = (host) => host.querySelector('#song-list');
 

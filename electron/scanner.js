@@ -25,6 +25,18 @@ function getStepTitle(prefix) {
     return stepTitle;
 }
 
+// The running scan that is still reading covers after its songs were handed over (D41). Asking it to stop is graceful: see fast-scan.js.
+let coverChild = null;
+let coverCancelRequested = false;
+
+/** Asks the running cover search to stop. Returns false when none is running. */
+function cancelCoverSearch() {
+    if (!coverChild || !coverChild.connected) return false;
+    coverCancelRequested = true;
+    coverChild.send('cancel-covers');
+    return true;
+}
+
 function runScan(args, options = {}) {
     return new Promise((resolve) => {
         const child = fork(getScanScriptPath(), args, {
@@ -35,6 +47,11 @@ function runScan(args, options = {}) {
                 ELECTRON_RUN_AS_NODE: '1'
             }
         });
+
+        if (options.resolveOnFastResult) {
+            coverChild = child;
+            coverCancelRequested = false;
+        }
 
         let stdoutBuffer = '';
         let resultData = '';
@@ -128,7 +145,12 @@ function runScan(args, options = {}) {
         });
 
         child.on('close', (code) => {
-            if (options.onScanComplete) options.onScanComplete(code);
+            const cancelled = coverChild === child && coverCancelRequested;
+            if (coverChild === child) {
+                coverChild = null;
+                coverCancelRequested = false;
+            }
+            if (options.onScanComplete) options.onScanComplete(code, { cancelled });
             if (settled) return;
             settled = true;
 
@@ -369,6 +391,7 @@ async function scanFolder(folderPath, outputDir, options = {}) {
 }
 
 module.exports = {
+    cancelCoverSearch,
     extractJsonArray,
     extractJsonObject,
     mergeAppend,

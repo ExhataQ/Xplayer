@@ -2,6 +2,8 @@
 // The rows are the engine's (strategy L1, decision D21); this file builds the controls and keeps them in step.
 
 import { chipGroup, segmented, textField, iconButton, el } from '../../components/index.js';
+import { setPanelRowHeight } from '../../adapter/songlist-bridge.js';
+import { watchAppearance } from '../../shell/appearance.js';
 import { mountLibraryList, setLibraryView, libraryItemCount, openLibraryFolder, closeLibraryFolder, onLibraryChange, whenLibraryReady } from '../../adapter/library-bridge.js';
 
 // The chips choose item types. All Songs and Liked Songs are playlists as far as the person is concerned.
@@ -107,6 +109,12 @@ export function mountLibraryPanel(body) {
         if (none) empty.textContent = state.query ? `Nothing matches "${state.query}".` : 'Nothing here yet.';
     };
     onLibraryChange(refresh);
+    // Density changes the panel's row height too (D61). The CSS variable already follows data-density; the engine reads the new value.
+    const syncRowHeight = () => {
+        const height = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--left-item-height'));
+        if (height > 0) setPanelRowHeight(height);
+    };
+    watchAppearance(() => ready && syncRowHeight());
     // The shell runs before the engine loads, so the saved chip and sort are applied once the engine is there.
     whenLibraryReady(() => {
         ready = true;

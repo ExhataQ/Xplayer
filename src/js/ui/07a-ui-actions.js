@@ -259,6 +259,12 @@ registerActions({
     removeNotificationItem: function () {
         removeNotificationItem(...arguments);
     },
+    cancelDownload: function () {
+        cancelDownload(...arguments);
+    },
+    cancelCoverSearch: function () {
+        cancelCoverSearch(...arguments);
+    },
     showRightPanelContextMenu: function () {
         showRightPanelContextMenu(...arguments);
     },

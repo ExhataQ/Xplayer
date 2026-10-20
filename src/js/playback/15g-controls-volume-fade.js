@@ -55,6 +55,8 @@ export function applyTrackVolume(song) {
     audioElement.volume = getTargetTrackVolume(song);
 }
 
+// `to` is a volume or, for a fade-in, a function returning the volume to reach. A fade-in asks again on every frame, so a volume the
+// person sets while the track fades in is where the fade ends (D17: it used to be overwritten with the volume from the track's start).
 function animateAudioVolume(from, to, durationMs, onComplete) {
     if (activeAudioFadeFrame) {
         cancelAnimationFrame(activeAudioFadeFrame);
@@ -64,18 +66,19 @@ function animateAudioVolume(from, to, durationMs, onComplete) {
     const start = performance.now();
     const duration = Math.max(60, Number(durationMs) || 0);
     const startVolume = clampVolume(from);
-    const endVolume = clampVolume(to);
+    const endOf = () => clampVolume(typeof to === 'function' ? to() : to);
 
     function step(now) {
         const elapsed = now - start;
         const progress = Math.min(1, elapsed / duration);
         const eased = 1 - Math.pow(1 - progress, 3);
+        const endVolume = endOf();
         audioElement.volume = clampVolume(startVolume + (endVolume - startVolume) * eased);
 
         if (progress < 1) {
             activeAudioFadeFrame = requestAnimationFrame(step);
         } else {
-            audioElement.volume = endVolume;
+            audioElement.volume = endOf();
             activeAudioFadeFrame = null;
             if (typeof onComplete === 'function') {
                 onComplete();
@@ -97,7 +100,7 @@ export function startFadeIn(song, durationMs) {
     }
 
     audioElement.volume = 0;
-    animateAudioVolume(0, target, duration);
+    animateAudioVolume(0, () => getTargetTrackVolume(song), duration);
 }
 
 function startFadeOut(durationMs, onComplete) {
@@ -151,9 +154,8 @@ export function scheduleCrossfadeTransition(song) {
         audioElement.currentTime = 0;
         audioElement.play().catch(() => {});
 
-        const nextVolume = getTargetTrackVolume(song);
         audioElement.volume = 0;
-        animateAudioVolume(0, nextVolume, fadeMs, () => {
+        animateAudioVolume(0, () => getTargetTrackVolume(song), fadeMs, () => {
             if (!audioElement.paused) {
                 audioElement.play().catch(() => {});
             }

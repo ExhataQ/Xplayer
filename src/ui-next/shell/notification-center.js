@@ -2,11 +2,11 @@
 //
 // The engine's own history is the source (adapter/notifications-bridge.js), so every `showNotification` call in the engine
 // reaches the person twice: as a short toast, and as an entry under "Earlier" behind the title bar bell. Long-running work
-// (downloads, album art search) sits under "In progress" with its bar. The bell carries an accent dot while something is
-// running or unread. The engine has no way to cancel a download or an art search, so there is no cancel button (BOARD, A-07).
+// (downloads, album art search) sits under "In progress" with its bar and a Cancel button (D41). The bell carries an accent
+// dot while something is running or unread.
 
 import { el, iconEl, iconButton, button, progress, emptyState, createToaster, hideTooltip } from '../components/index.js';
-import { watchNotifications, dismissNotification, clearNotifications } from '../adapter/notifications-bridge.js';
+import { watchNotifications, dismissNotification, clearNotifications, cancelNotification } from '../adapter/notifications-bridge.js';
 
 const FAILURE = /\b(fail(ed|ure)?|could not|couldn't|cannot|can't|invalid|no valid|not available|error)\b/i;
 const ICON = { success: 'circle-check', error: 'circle-alert', warning: 'triangle-alert', info: 'info' };
@@ -43,19 +43,25 @@ export function mountNotifications(bell) {
         const running = n.progress !== null;
         const node = el('li', { class: 'notif', 'data-id': String(n.id), 'data-kind': running ? 'running' : kind });
         node.append(el('span', { class: 'notif__icon' }, iconEl(running ? (/art/i.test(n.title) ? 'image' : 'download') : ICON[kind], { size: 18 })));
-        const text = el('div', { class: 'notif__body' }, el('div', { class: 'notif__title', dir: 'auto' }, n.title));
+        const title = el('div', { class: 'notif__title', dir: 'auto' }, n.title);
+        const text = el('div', { class: 'notif__body' }, title);
         if (running) {
             const bar = progress({ value: n.progress.percent / 100, label: n.title });
             const status = el('div', { class: 'notif__detail', dir: 'auto' });
             const percent = el('span', { class: 'notif__percent' });
             text.append(bar.el, el('div', { class: 'notif__meta' }, status, percent));
-            bars.set(n.id, { bar, status, percent });
+            bars.set(n.id, { bar, title, status, percent });
         } else {
             if (n.detail) text.append(el('div', { class: 'notif__detail', dir: 'auto' }, n.detail));
             text.append(el('div', { class: 'notif__time' }, clock(n.time)));
         }
         node.append(text);
         if (!running) node.append(iconButton({ icon: 'x', label: 'Dismiss', size: 'sm', tooltip: false, onClick: () => dismissNotification(n.id) }));
+        else {
+            const cancel = button({ label: 'Cancel', variant: 'ghost', size: 'sm', onClick: () => cancelNotification(n.id) });
+            cancel.setAttribute('aria-label', `Cancel ${n.progress.kind === 'download' ? 'download' : 'album art search'}`);
+            node.append(cancel);
+        }
         return node;
     }
 
@@ -69,6 +75,7 @@ export function mountNotifications(bell) {
             const parts = n.progress && bars.get(n.id);
             if (!parts) continue;
             parts.bar.set(n.progress.percent / 100);
+            parts.title.textContent = n.title; // "Stopping album art search" replaces the title while it winds down
             parts.status.textContent = n.progress.status;
             parts.percent.textContent = `${Math.round(n.progress.percent)}%`;
         }

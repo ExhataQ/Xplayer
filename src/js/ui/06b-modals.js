@@ -705,6 +705,14 @@ export function playFromUrl(saveToFolder) {
         desktopApi.library
             .downloadAndScan(value, isTemp)
             .then((result) => {
+                if (result && result.cancelled) {
+                    // Stopped by the person (D41): the main process already deleted the half-written file.
+                    removeDownloadNotification();
+                    downloadProgressActive = false;
+                    document.body.classList.remove('suppress-tooltips');
+                    showNotification('Download cancelled', 'info', 2000);
+                    return;
+                }
                 updateDownloadNotification(100, 'Processing...');
 
                 setTimeout(() => {
@@ -753,6 +761,13 @@ export function playFromUrl(saveToFolder) {
                 showNotification('Failed to download', 'error');
             });
     }
+}
+
+/** Stops the running download (D41). The page hears about it when the download call answers with `cancelled`. */
+export function cancelDownload() {
+    if (!downloadProgressActive || !desktopApi.supports('library.cancelDownload')) return;
+    updateDownloadNotification(downloadNotifyIndex === -1 ? 0 : notificationHistory[downloadNotifyIndex].percent || 0, 'Cancelling...');
+    desktopApi.library.cancelDownload();
 }
 
 function showDownloadNotification(percent, status) {
@@ -956,6 +971,7 @@ if (typeof registerLegacyGlobals === 'function') {
         showAddLinkDialog,
         playFromUrl,
         updateDownloadNotification,
+        cancelDownload,
         showPlayedDataModal,
         showWelcomeDialog
     });

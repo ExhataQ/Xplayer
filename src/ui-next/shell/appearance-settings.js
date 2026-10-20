@@ -20,6 +20,20 @@ function row(title, hint, control) {
     return el('div', { class: 'appearance__row' }, el('div', { class: 'appearance__label' }, el('div', { class: 'appearance__title' }, title), hint ? el('div', { class: 'appearance__hint' }, hint) : ''), control);
 }
 
+function switchButton() {
+    const button = el('button', { type: 'button', class: 'appearance__switch', 'data-action-local': 'switch-interface' }, 'Switch to the previous interface');
+    const api = window.desktopApi;
+    if (!api || typeof api.supports !== 'function' || !api.supports('window.setUiChoice')) {
+        button.disabled = true;
+        return button;
+    }
+    button.addEventListener('click', () => {
+        button.disabled = true;
+        api.window.setUiChoice('current').catch(() => { button.disabled = false; });
+    });
+    return button;
+}
+
 function build() {
     const now = getAppearance();
     const theme = segmented({
@@ -47,7 +61,8 @@ function build() {
         el('div', { class: 'settings-section-title' }, 'Appearance'),
         row('Theme', 'The surfaces and the default accent.', theme.el),
         row('Accent color', 'Theme color uses the accent that belongs to the theme.', accent.el),
-        row('Density', 'Row height in song lists.', density.el)
+        row('Density', 'Row height in song lists.', density.el),
+        row('Interface', 'The previous interface is kept. Switching reloads the window and is remembered.', switchButton())
     );
     // Another place can change the choice (the song list's column menu has a Row height group): keep the controls in step.
     const off = watchAppearance((next) => {

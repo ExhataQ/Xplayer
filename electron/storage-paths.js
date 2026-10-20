@@ -17,7 +17,8 @@ const CONFIG_FILES = {
     foldersConfig: 'music-folders-config.json',
     setupFlag: 'music-folder-config.json',
     downloadFolder: 'download-folder-config.json',
-    windowState: 'window-state.json'
+    windowState: 'window-state.json',
+    uiChoice: 'ui-choice.json'
 };
 
 let legacyDir = __dirname;

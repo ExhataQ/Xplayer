@@ -1,13 +1,13 @@
 const { BrowserWindow } = require('electron');
 const path = require('path');
-const { resolveUiEntry, NEXT_ENTRY } = require('./ui-entry');
+const { activeEntry, NEXT_ENTRY } = require('./ui-entry');
 const { loadingPageHtml, loadingBackground } = require('./loading-page');
 
 let loadingWindow = null;
 
 function showLoadingWindow(mainWindow) {
     if (loadingWindow) return;
-    const next = resolveUiEntry({ argv: process.argv, env: process.env }) === NEXT_ENTRY;
+    const next = activeEntry() === NEXT_ENTRY;
     const loadingHtml = loadingPageHtml(next);
     loadingWindow = new BrowserWindow({
         width: 360,

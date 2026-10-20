@@ -129,7 +129,7 @@ Both are affected by the defect in section 6.
 
 ## 6. Defects found in the supplied build
 
-D-1 and D-2 are fixed in the patch that carries this file. D-3 is recorded and left alone on purpose.
+D-1 and D-2 are fixed in the patch that carries this file. D-3 was left alone at first and is now fixed (D17, 2026-10-20): the fade ends at the volume set at that moment.
 
 **D-1. Seeking by mouse did not work and left playback paused (fixed).** Confirmed with real mouse input: with a 6-second track playing, a click at 80% of the seek bar left `currentTime` at 0.75 s, `paused = true`, and threw `Cannot read properties of undefined (reading 'add')` at `15f-controls-progress-seek.js:26`.
 - Cause: the HTML uses `data-action-mousedown="startSeek"`. `core/legacy.js` delegates from `document`, so inside the handler `e.currentTarget` is `document`, not the bar (`core/LEGACY.md`, point 2: "Use `this`"). `startSeek` did `e.currentTarget.classList.add('dragging')` after it had already called `audioElement.pause()`.
@@ -138,7 +138,7 @@ D-1 and D-2 are fixed in the patch that carries this file. D-3 is recorded and l
 **D-2. Volume click threw a stray error (fixed).** Volume itself worked (the direct listener at `15g` sets it), but the delegated `setVolume` also fired and threw `e.currentTarget.getBoundingClientRect is not a function`.
 - Fix (`15g`): `setVolume` reads `#volume-slider` by ID and returns if it is missing. Both listeners then compute the same value, so the double call is harmless. Removing the redundant `data-action-mousedown` attribute is a possible follow-up and is not part of this patch.
 
-**D-3. A volume change during a new track's fade-in is overwritten (not fixed).** A track fades in for about a second (`startFadeIn`, `15g:89`), toward the volume captured when the track started. A click on the volume slider inside that window moves the slider and `window.lastVolume`, but when the fade ends the audio element is set to the old target. Measured: click at 25% at 0.5 s after start gave slider 24%, `audio.volume` 0.5 from then on. A click after the fade works (75% click gave 0.747).
+**D-3. A volume change during a new track's fade-in is overwritten (fixed, D17).** A track fades in for about a second (`startFadeIn`, `15g:89`), toward the volume captured when the track started. A click on the volume slider inside that window moves the slider and `window.lastVolume`, but when the fade ends the audio element is set to the old target. Measured: click at 25% at 0.5 s after start gave slider 24%, `audio.volume` 0.5 from then on. A click after the fade works (75% click gave 0.747).
 - Not fixed because it is outside the approved scope. `seek-volume.test.js` clicks after the fade and says so in a comment. Whoever fixes it should add a test that clicks during the fade.
 
 The existing 165 tests did not catch D-1 or D-2. They look like fallout from the inline-handler to `data-action` conversion.

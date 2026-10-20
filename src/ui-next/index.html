@@ -29,10 +29,30 @@
     <script src="../player.js"></script>
     <!-- Keep these earlier URLs UI-relative; runtime song-cover paths are relative to the app output root. -->
     <base href="../">
+    <!-- The startup view's own files are asked for first, before the app's many modules (startup/early.js). -->
+    <link rel="modulepreload" href="ui-next/startup/early.js">
+    <link rel="modulepreload" href="ui-next/startup/boot.js">
+    <link rel="modulepreload" href="ui-next/startup/startup.js">
+    <link rel="modulepreload" href="ui-next/startup/logo.js">
+    <link rel="modulepreload" href="ui-next/icons/icons.js">
+    <link rel="modulepreload" href="ui-next/adapter/startup-bridge.js">
+    <link rel="modulepreload" href="ui-next/adapter/songlist-bridge.js">
 </head>
 <body>
     <!-- Startup view (task A-09): covers the window from the first paint until the app is ready. shell/shell.js starts it (startup/boot.js). -->
-    <div id="startup" class="startup-host" data-state="booting"></div>
+    <div id="startup" class="startup-host" data-state="booting">
+        <!-- The same logo and loading line the script draws (startup/startup.js), so the first paint already shows them. The script replaces this with the chosen background. -->
+        <div class="startup is-indeterminate" data-placeholder data-variant="vinyl" role="status" aria-live="polite">
+            <div class="su-vignette" aria-hidden="true"></div>
+            <div class="su-mark"><svg class="logo" xmlns="http://www.w3.org/2000/svg" width="88" height="88" viewBox="0 0 48 48" aria-hidden="true"><path d="M11 11 L20 20 M28 28 L37 37" stroke="var(--text-primary)" stroke-width="6" stroke-linecap="round" fill="none"/><path d="M37 11 L11 37" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" fill="none"/></svg></div>
+            <div class="su-foot">
+                <div class="su-line" aria-hidden="true"><i></i></div>
+                <p class="su-label"><span class="su-label-text">Starting</span><span class="su-percent"></span></p>
+            </div>
+        </div>
+    </div>
+    <!-- Listed first: it runs as soon as its few files have loaded, while the app's many modules are still loading (startup/early.js). -->
+    <script type="module" src="ui-next/startup/early.js"></script>
     <div class="app">
         <!-- Title bar: the logo button, menu and bell are added by shell/shell.js. The slots are filled by the adapter. -->
         <header class="titlebar">

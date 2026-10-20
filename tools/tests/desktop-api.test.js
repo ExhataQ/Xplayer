@@ -66,7 +66,7 @@ test('preload: every flat name is in exactly one group, and the group call uses 
     for (const g of GROUPS) assert.equal(typeof api[g], 'object', `electronAPI.${g}`);
     const inGroups = GROUPS.flatMap((g) => Object.keys(api[g]).map((n) => [g, n]));
     const names = inGroups.map(([, n]) => n);
-    assert.deepEqual([...names].sort(), ORIGINAL_FLAT_NAMES.concat(['welcomeSelectFolder', 'getStartupSongs', 'readAudioBytes']).sort(), 'groups cover every old name, plus welcomeSelectFolder, getStartupSongs and readAudioBytes');
+    assert.deepEqual([...names].sort(), ORIGINAL_FLAT_NAMES.concat(['welcomeSelectFolder', 'getStartupSongs', 'readAudioBytes', 'cancelDownload', 'cancelCoverSearch', 'getUiChoice', 'setUiChoice']).sort(), 'groups cover every old name, plus welcomeSelectFolder, getStartupSongs, readAudioBytes, the two cancel calls (D41) and the two interface-choice calls (Phase 4)');
     assert.equal(new Set(names).size, names.length, 'no name in two groups');
     for (const [g, n] of inGroups) {
         calls.length = 0;

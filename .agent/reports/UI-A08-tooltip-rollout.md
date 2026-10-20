@@ -1,6 +1,6 @@
 # UI-A08 Tooltip rollout and the shared Space rule
 
-Agent: A. Status: In review. Decisions: D37 (proposed).
+Agent: A. Status: In review. Decisions: D37 (decided).
 
 ## What changed and why
 - **`components/tooltip.js`**: `delegateTooltips(root, resolve)`, one set of listeners for a whole subtree, so controls the engine builds and recycles get the shared tooltip without per-element wiring. Same delay and hide rules as `attachTooltip`, plus hide on scroll (rows move under a still pointer). Controls with their own `attachTooltip` are skipped (`hasTooltip`).
@@ -15,8 +15,8 @@ Agent: A. Status: In review. Decisions: D37 (proposed).
 - An engine title that is emptied clears the tooltip. An engine that removes a title outright leaves the last text; no current engine code does that.
 - `.more-info` (row menu button) is a div that cannot take keyboard focus. Not changed here (A-12).
 
-## Decision D37 (proposed)
-Space presses whichever button is focused, everywhere, as the player's buttons already did. A mouse click leaves focus on the button, so click a row's heart, then Space, toggles it again instead of pausing. Alternative: press only for keyboard focus (`:focus-visible`); that would change the shipped player behaviour and its test. Not done without your decision.
+## Decision D37 (decided: owner asked for the fix)
+Space presses whichever button is focused, as the player's buttons already did, with one exception: a control the person has just clicked with the mouse. Click a row's heart, then Space, and the song plays or pauses (the page's own Space); the heart is not pressed a second time. A control reached with the keyboard (Tab, arrows, a dialog that puts focus on its button) is still pressed by Space. The clicked control is forgotten when focus leaves it. `shell/space-key.js`; test `D37` in `ui-next-tooltips`. This changes the player's own buttons too: click Next, press Space, and the song pauses instead of skipping again.
 
 ## Tests run
 New `ui-next-tooltips` (17): all pass, repeated. Breaking each piece on purpose (Space rule, title take-over, tooltip layer, hide on scroll, favorite stay-open) makes a test fail. 30 related files pass with 0 failures, including `ui-next-playback` (17), `ui-next-components-behavior` (64), `keyboard-shortcuts`, `modal-close`, `ui-next-shell`, `ui-next-tokens`, `ui-next-listbar`. Run here with Playwright from the sandbox's Python install. **Not run:** ESLint / `tools/lint.js` (no `node_modules`, no network), the rest of the suite, the project archive step (E:\ not reachable).

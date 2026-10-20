@@ -68,7 +68,7 @@ describe('the loading page', () => {
 
     test('the window picks the page from the same flag as the main window', () => {
         const src = read('electron', 'loading-window.js');
-        assert.match(src, /resolveUiEntry\(\{ argv: process\.argv, env: process\.env \}\) === NEXT_ENTRY/);
+        assert.match(src, /activeEntry\(\) === NEXT_ENTRY/);
         assert.match(src, /loadingPageHtml\(next\)/);
         assert.match(src, /backgroundColor: loadingBackground\(next\)/);
     });

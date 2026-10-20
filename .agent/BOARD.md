@@ -25,7 +25,7 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 | D14 | Interim styling for engine-created overlays (L-10) until owning tasks replace it | Approved (2026-10-17) | Implemented in A-06: `src/ui-next/adapter/legacy-overlays.css`, linked from `index.html`. Lyrics/sync editor and metadata form interiors remain with D-03/D-04. |
 | D15 | Waveform source and data | Approved (2026-10-17) | Renderer decoding with limits; a new read-only IPC must supply file bytes. R-C3, R-C4 and R-C8 remain integration requirements. See `reports/UI-C02-waveform-source.md` |
 | D16 | List and views strategy for Phase 2 | Approved (2026-10-17) | S3: reuse engine views and restyle first, then replace individual views where justified. See `ui-redesign/research/B-01-list-and-views-map.md` |
-| D17 | May A fix D-3 (a volume change during a track's fade-in is overwritten), which is outside the approved scope | Open | Proposed by A. Small and testable (PATCH-PLAN.md P4) |
+| D17 | May A fix D-3 (a volume change during a track's fade-in is overwritten), which is outside the approved scope | Approved and done (2026-10-20) | The fade now ends at the volume the person has set at that moment. Test in `seek-volume.test.js` (D-3). ENGINE-CONTRACT.md updated |
 | D18 | Adapter API budget | Approved (2026-10-17) | 300 lines across `store`, `actions`, `events` and `engine-view.js` |
 | D19 | Logo mark: use the X mark | Approved (2026-10-18) | Decided by A (owner delegated). In the title bar and the startup view; see `reports/UI-A09-startup-and-logo-options.md` |
 | D20 | Startup backgrounds: vinyl default, five animated options, plain, or random | Approved (2026-10-18) | Decided by A (owner delegated). Shown by the app since A-09's second pass; chosen in Settings, Startup screen |
@@ -45,14 +45,15 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 | D34 | Leaving the Lyrics view, or picking another tab, closes an open editor and asks first when text or timings would be lost | Decided by D (owner delegated) | Sync asks with the engine's own dialog, which answers later: the person picks the tab again |
 | D35 | The startup view is a layer from the first paint until the page has loaded plus two frames: at least 450 ms, gives up after 20 s (a CSS animation moves it away after 30 s if no script runs), clicks pass through while it fades, the real title bar floats above it | Approved (2026-10-18) | Decided by A (owner delegated). `startup/boot.js`. Tests that use the raw mouse straight after load call `waitForStartupGone` |
 | D36 | Electron's scan loading window uses the new look (the X in a ring, Warm Graphite, amber) when the app starts with `--ui=next`; the current interface keeps its own | Approved (2026-10-18) | Decided by A (owner delegated). `electron/loading-page.js`; the window cannot read the theme, so it uses the default |
-| D37 | Space presses whichever button is focused, everywhere, even when the focus came from a mouse click | Proposed (awaiting owner) | Parity with the player buttons (C-01). Click then Space repeats the click instead of pausing; alternative is keyboard focus only, which changes the player. See `reports/UI-A08-tooltip-rollout.md` |
+| D37 | Space after a mouse click goes to the page (play or pause), not to the clicked button; Space after keyboard navigation presses the focused button | Decided (2026-10-20) | Stops click-then-Space repeating the click. `shell/space-key.js`; test in `ui-next-tooltips.test.js`; see `reports/UI-A08-tooltip-rollout.md` |
 | D40 | Notification center reads the engine's history through a hidden `#notification-panel-list` (the element the engine redraws into after every change); the engine's own notification DOM is never shown | Decided by A | No engine change. See `reports/UI-A07-notification-center.md` |
-| D41 | No cancel button on running work (downloads, album art search) | Open | The engine has no way to stop either. Real cancel needs a main-process change, outside PLAN.md scope. Owner decides |
+| D41 | Cancel button on running work (downloads, album art search) | Done (2026-10-20) | Real cancel: the download is aborted and its partial file removed, the cover search child stops after the current batch. Main-process change in `electron/` (downloads, scanner, fast-scan); Cancel button in the notification center. Tests in `cancel-running-work.test.js` |
 | D42 | Only failure-worded `error` notifications are shown as errors; the engine's other `error` entries (removals) are information | Decided by A | See report |
 | D60 | Theme, accent and density are one saved choice applied as `data-*` attributes on `<html>`, with a boot script before first paint; the engine's unsaved Theme Color block is hidden | Decided by A | See `reports/UI-A10-appearance-and-resizing.md` |
-| D61 | Density is global; only song rows respond today. Compact library panel rows need an engine seam (the engine reads `--left-item-height` once) | Open | Owner decides whether to add the seam |
+| D61 | Density drives the library panel rows too (compact is shorter), through a small engine seam `setLeftItemHeight` | Done (2026-10-20) | Same pattern as the song list seam. `05b-lazy-load-left-panel.js`, `songlist-bridge.js`, tests in `ui-next-appearance.test.js` |
 | D62 | Library panel width: drag or keyboard, 240 to 480 px, default 300, saved; a small window limits what is shown, never the saved value | Decided by A | |
 | D63 | No new themes now; Midnight Blue, Aubergine and Rose, Porcelain and Teal stay "Later" | Decided by A | DIRECTION.md |
+| D64 | The old interface is not removed. Both ship; the person switches in Settings (either interface) and the choice is saved in `ui-choice.json` | Decided (2026-10-20, owner) | Replaces the cutover plan (A-13). `--ui=next`, `--ui=current` and `XPLAYER_UI` still decide the first load and beat the saved choice. `electron/ui-entry.js`, `window-manager.js` |
 
 ## Phase 0: Decisions and safety
 
@@ -72,7 +73,7 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 | A-04b Seek and volume fix (D11) | A | Done | A-04a | Fixes D-1/D-2; D-3 remains open |
 | A-03 Shell: title bar (logo menu, back and forward, bell), rail, panel host, player host | A | Done | A-01, A-02 | Report `UI-A03-A04-shell-and-adapter.md` |
 | A-04 Adapter v1 and DOM-id compatibility layer | A | Done | A-04a, A-04b | `legacy-dom-adapter`; 250-line budget (D13); gates 1–14 in `ENGINE-CONTRACT.md` |
-| A-04c Adapter API: `store`, `actions`, `events`, view bridge | A | Not started | A-04 | The part of A-04 that PLAN.md section 4 promises and P2 did not build. Budget D18. See PATCH-PLAN.md P5 |
+| A-04c Adapter API: `store`, `actions`, `events`, view bridge | A | In review | A-04 | Built and browser-tested (`ui-next-adapter-api.test.js`). Report `UI-A04c-adapter-api-runtime.md` |
 | A-05 Component set with all states | A | Done | A-01 | 12 components, gallery, existing component tests |
 | A-06 Phase 1 gate: boots, plays, resizes, old UI intact | A | Done | A-03, A-04, A-05 | New automated gate added; run locally and complete the real Electron checklist in `reports/UI-A06-phase1-gate.md` before acceptance |
 
@@ -87,11 +88,11 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 | B-05 Album, artist, playlist, folder views | B | In review | B-03 | Report `UI-B05-list-toolbar.md`. List toolbar, kind label, Recently played |
 | B-06 Cover in title bar, compact panel, right-to-left, row behaviors | B | In review | B-05 | Report `UI-B06-finish.md`. Windows/Electron checks remain |
 | C-01 Player bar and transport | C | Done | A-06 | Styling implemented; remaining integration and manual checks |
-| C-02 Waveform seek (compute and cache) | C | In progress | C-01 | Renderer waveform module tested; file-byte IPC and seek-bar integration remain |
-| C-03 Queue and volume | C | Not started | C-01 | |
-| C-04 Fullscreen viewer | C | Not started | C-01 | |
+| C-02 Waveform seek (compute and cache) | C | In review | C-01 | Built and browser-tested; report `UI-C02-waveform-source.md`. Open there: a saved peaks cache, and a 10-minute track limit |
+| C-03 Queue and volume | C | In review | C-01 | Built and browser-tested; report `UI-C-playback-surfaces.md` |
+| C-04 Fullscreen viewer | C | In review | C-01 | Built and browser-tested; report `UI-C-playback-surfaces.md` |
 | D-01 Lyrics panel: view, empty state, four modes | D | In review | A-06 | Engine page in the shell with a four-tab mode bar and a skin; browser-tested; Windows/Electron checklist remains. Reports `reports/UI-D01-lyrics.md`, `reports/UI-D03-lyrics-editors.md` |
-| D-02 Online lyrics find and manual search | D | Not started | D-01 | |
+| D-02 Online lyrics find and manual search | D | In review | D-01 | Built and browser-tested; report `UI-D02-find.md`. Open there: F-1 ("Use for this song" for an unchanged query), now decision DL3 |
 | D-03 Lyrics write and sync editor | D | In review | D-01 | Write and Sync are tabs of the Lyrics page: editors moved into the page and skinned, unsaved-text guards, 20 browser tests; Windows/Electron checklist remains. Report `reports/UI-D03-lyrics-editors.md` |
 | D-04 Metadata editor | D | In review | A-06 | The engine's tag form in the shell (rail item Metadata): skin, empty state, follows the song, unsaved-changes guard; 19 browser tests; Windows/Electron checklist remains. Report `reports/UI-D04-metadata.md` |
 | D-05 Settings sections | D | Done | A-06 | Browser-tested; Windows/Electron checklist remains |
@@ -102,7 +103,7 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 | Task | Owner | Status | Depends on | Notes |
 |---|---|---|---|---|
 | A-07 Toasts and bell notification center (in progress and earlier) | A | In review | Phase 2 | Report `UI-A07-notification-center.md`. Toasts for every engine notification, center behind the bell (In progress, Earlier), dot on the bell. 15 browser tests pass; Windows/Electron checklist remains. No cancel button (D41) |
-| A-08 Tooltip rollout | A | In review | Phase 2 | Every control gets the shared tooltip, the engine's old one no longer shows, one shared Space rule; see `reports/UI-A08-tooltip-rollout.md`. Electron run and D37 outstanding |
+| A-08 Tooltip rollout | A | In review | Phase 2 | Every control gets the shared tooltip, the engine's old one no longer shows, one shared Space rule (D37 decided); see `reports/UI-A08-tooltip-rollout.md`. Electron run outstanding |
 | A-09 Startup view and logo | A | In review | A-01 | The startup view is shown by the app (real milestones, real window buttons above it, saved choice read through the adapter), the Electron loading window matches it; 24 tests; a real Electron window still to check. Report `reports/UI-A09-startup-and-logo-options.md` |
 | A-10 Accent themes, resizing, density | A | In review | Phase 2 | Report `UI-A10-appearance-and-resizing.md`. Appearance section in Settings (theme, accent, density, saved, no flash), shared density, resizable panel, resize audit at 3 window sizes. 18 browser tests pass; Windows/Electron checklist remains. Built on the A-07 patch |
 
@@ -110,14 +111,14 @@ Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file pe
 
 | Task | Owner | Status | Depends on | Notes |
 |---|---|---|---|---|
-| A-11 Smoke checklist, old versus new | A | Not started | Phase 3 | |
+| A-11 Smoke checklist, old versus new | A | Not started | Phase 3 | Run through both interfaces (switch in Settings) |
 | A-12 Gap fixes | A, B, C, D | Not started | A-11 | |
-| A-13 Your approval to remove old UI | You | Not started | A-12 | |
-| A-14 Changelog and archive of plan | A | Not started | A-13 | |
+| A-13 Keep both interfaces | A | Done | A-12 | Replaces "approval to remove the old UI" (D64). In-app switch in Settings of both interfaces; saved choice; flags still win on launch |
+| A-14 Changelog and archive of plan | A | Not started | A-12 | |
 
 ## Blockers and questions
 
-None. Known and unscheduled: D-3 (a volume change during a new track's fade-in is overwritten when the fade ends; ENGINE-CONTRACT.md section 6).
+None. Open: the Windows/Electron manual checklists of the Phase 2 and 3 reports (owner), the C-02 peaks cache, and D-02 F-1 (DL3).
 
 ## Reports
 

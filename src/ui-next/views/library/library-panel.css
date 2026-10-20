@@ -9,7 +9,14 @@
 
 /* The engine reads this once at load for its scroll math (ui/05b), so the row height has one source: here. */
 :root {
-    --left-item-height: 61px;
+    --left-item-height: var(--panel-row-height);
+    --panel-cover-size: 44px;
+}
+/* Density (D60, D61): compact panel rows. Set on <html> before the first paint, so the engine's first read is already right; a change
+   later goes through setLeftItemHeight (library-panel.js). */
+:root[data-density='compact'] {
+    --left-item-height: var(--panel-row-height-compact);
+    --panel-cover-size: 32px;
 }
 
 .panel-host__body--library {
@@ -141,16 +148,16 @@
     flex: none;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
+    width: var(--panel-cover-size);
+    height: var(--panel-cover-size);
     overflow: hidden;
     border-radius: var(--radius-sm);
     background: var(--surface-raised);
 }
 .library-panel .main-item-cover-wrapper > svg,
 .library-panel .main-item-cover-wrapper > img {
-    width: 44px !important; /* the engine writes 45 and 50 px inline */
-    height: 44px !important;
+    width: var(--panel-cover-size) !important; /* the engine writes 45 and 50 px inline */
+    height: var(--panel-cover-size) !important;
     object-fit: cover;
 }
 .library-panel .main-item-info {

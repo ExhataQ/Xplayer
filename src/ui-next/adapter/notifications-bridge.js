@@ -5,8 +5,9 @@
 // and treats each redraw as the signal "something changed". The engine is not edited and its markup is never shown.
 //
 //   watchNotifications(callback) -> unsubscribe(); callback(list) now and after every change. Each entry:
-//       { id, type, title, detail, time, progress: null | { percent, status } }   newest first, copies only
+//       { id, type, title, detail, time, progress: null | { percent, status, kind: 'download' | 'cover' } }   newest first, copies only
 //   dismissNotification(id), clearNotifications() -> the engine's own functions
+//   cancelNotification(id) -> stops the running download or album art search behind a progress entry (D41)
 
 const ids = new WeakMap();
 let seq = 0;
@@ -27,7 +28,7 @@ function snapshot() {
         const running = Boolean(n.isDownloadProgress || n.isCoverProgress);
         const { title, detail } = split(n.message, running);
         const status = running ? n.status || detail : '';
-        return { id: ids.get(n), type: String(n.type || 'info'), title, detail: running ? '' : detail, time: n.timestamp, progress: running ? { percent: Math.max(0, Math.min(100, Number(n.percent) || 0)), status } : null };
+        return { id: ids.get(n), type: String(n.type || 'info'), title, detail: running ? '' : detail, time: n.timestamp, progress: running ? { percent: Math.max(0, Math.min(100, Number(n.percent) || 0)), status, kind: n.isDownloadProgress ? 'download' : 'cover' } : null };
     });
 }
 
@@ -52,4 +53,12 @@ export function dismissNotification(id) {
 
 export function clearNotifications() {
     if (typeof window.clearAllNotifications === 'function') window.clearAllNotifications();
+}
+
+/** Stops the running work behind a progress entry: the engine's own cancel for downloads or for the album art search. */
+export function cancelNotification(id) {
+    const entry = (window.notificationHistory || []).find((n) => ids.get(n) === id);
+    if (!entry) return;
+    if (entry.isDownloadProgress && typeof window.cancelDownload === 'function') window.cancelDownload();
+    else if (entry.isCoverProgress && typeof window.cancelCoverSearch === 'function') window.cancelCoverSearch();
 }

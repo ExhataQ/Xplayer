@@ -4,7 +4,7 @@
 // Single source of truth for the row height is the CSS variable --left-item-height
 // (left-panel.css). JS reads it here so the scroll math can never disagree with what is
 // rendered. 61 is only a fallback.
-const LEFT_ITEM_HEIGHT = (() => {
+let LEFT_ITEM_HEIGHT = (() => {
     try {
         const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--left-item-height'));
         return v > 0 ? v : 61;
@@ -13,6 +13,22 @@ const LEFT_ITEM_HEIGHT = (() => {
     }
 })();
 const LEFT_OVERSCAN_COUNT = 5;
+
+// Seam for ui-next density (decision D61), the same idea as setSongItemHeight in 05a: the row height can change after load. The caller
+// changes the CSS variable first, then passes the new pixel height. The first visible row stays first, and the window is rebuilt.
+// The old screen never calls it.
+export function setLeftItemHeight(px) {
+    if (!(px > 0) || px === LEFT_ITEM_HEIGHT) return;
+    const previous = LEFT_ITEM_HEIGHT;
+    LEFT_ITEM_HEIGHT = px;
+    const state = leftPanelVirtualState;
+    if (!state.enabled || !state.container) return;
+    const content = state.container;
+    const topIndex = content.scrollTop / previous;
+    renderLeftPanelVisibleItems(false);
+    content.scrollTop = topIndex * px;
+    renderLeftPanelVisibleItems(false);
+}
 
 let leftPanelVirtualState = {
     enabled: false,
@@ -393,8 +409,8 @@ export function getLeftPanelItemsArray() {
 
 if (typeof registerLegacyGlobals === 'function') {
     registerLegacyGlobals({
-        LEFT_ITEM_HEIGHT,
         LEFT_OVERSCAN_COUNT,
+        setLeftItemHeight,
         leftPanelVirtualState,
         renderLeftPanelVisibleItems,
         initLeftPanelLazyLoading,
@@ -405,4 +421,9 @@ if (typeof registerLegacyGlobals === 'function') {
         getLeftPanelView,
         setLeftPanelView
     });
+}
+
+// LEFT_ITEM_HEIGHT can change (setLeftItemHeight), so other files read it through an accessor, not a copy.
+if (typeof registerLegacyState === 'function') {
+    registerLegacyState({ LEFT_ITEM_HEIGHT: [() => LEFT_ITEM_HEIGHT] });
 }

@@ -4,8 +4,8 @@ Agent D, 2026-10-18. Status: In review. Browser-tested; the Windows and Electron
 
 ## Decisions taken
 
-- **D35**: the engine's multi-song finder is a fifth tab of the Lyrics page, **Many songs**, next to View, Find, Write and Sync. It does not need a song. The engine's own "Find multi song lyrics & LRC" button on the Find page still works and the tab follows it. The engine's "Back to Lyrics" buttons are hidden, because the tab bar does that job. Alternative rejected: a sub-page of Find. A tab that stays on "Find" while the page is something else is wrong, and the Tabs component does not notify when the selected tab is clicked again.
-- **D36**: Find with nothing playing opens the engine's manual search (`openOnlineLyricsSearchView`): empty fields, and a result is saved to any song through the picker. With a song playing it opens `openOnlineLyricsView`, which searches by itself with the song's title, artist, album and length. The Find tab is never disabled.
+- **DL1**: the engine's multi-song finder is a fifth tab of the Lyrics page, **Many songs**, next to View, Find, Write and Sync. It does not need a song. The engine's own "Find multi song lyrics & LRC" button on the Find page still works and the tab follows it. The engine's "Back to Lyrics" buttons are hidden, because the tab bar does that job. Alternative rejected: a sub-page of Find. A tab that stays on "Find" while the page is something else is wrong, and the Tabs component does not notify when the selected tab is clicked again.
+- **DL2**: Find with nothing playing opens the engine's manual search (`openOnlineLyricsSearchView`): empty fields, and a result is saved to any song through the picker. With a song playing it opens `openOnlineLyricsView`, which searches by itself with the song's title, artist, album and length. The Find tab is never disabled.
 
 ## What changed
 
@@ -19,7 +19,7 @@ Agent D, 2026-10-18. Status: In review. Browser-tested; the Windows and Electron
 
 ## Findings
 
-- **F-1 (not changed, needs your answer).** The engine offers "Use LRC for this song" only when the query differs from the song's own (`hasOnlineLyricsQueryChanged`, js/lyrics/19). With the search that Find starts by itself (the song's own title and artist), a result can be copied or downloaded but not applied. To apply it the person must first edit a field and search again. This looks backwards, since the unchanged query is the one most likely to be right. The old UI behaves the same, so it was left alone. The fix would be one line (drop the condition). Decision D37 is open on the board.
+- **F-1 (not changed, needs your answer).** The engine offers "Use LRC for this song" only when the query differs from the song's own (`hasOnlineLyricsQueryChanged`, js/lyrics/19). With the search that Find starts by itself (the song's own title and artist), a result can be copied or downloaded but not applied. To apply it the person must first edit a field and search again. This looks backwards, since the unchanged query is the one most likely to be right. The old UI behaves the same, so it was left alone. The fix would be one line (drop the condition). Decision DL3 is open on the board.
 - **The picker had no layout.** It is appended to `<body>` and its position, size and colors lived in the engine's stylesheet, which ui-next does not load. It was drawn in the page flow and pushed the app up. It is a fixed popup again, placed by the engine's own inline left and top.
 - The picker's search also matches artist names, so "number 3" lists "number 4" (artist 3) first. Engine behavior, not changed.
 - Material Symbols is not loaded, so the engine's icon words stay hidden and the text carries the meaning, as in D-01. The finder's check boxes are drawn with CSS.
@@ -48,5 +48,5 @@ Agent D, 2026-10-18. Status: In review. Browser-tested; the Windows and Electron
 
 ## Follow-ups
 
-- D37 (F-1): offer "Use for this song" for an unchanged query too?
+- DL3 (F-1): offer "Use for this song" for an unchanged query too?
 - A: the engine's `lyrics.css` can be deleted at cutover; Lucide icons for the mode bar if wanted.
