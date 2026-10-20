@@ -20,6 +20,7 @@ import { mountMetadata, leaveMetadata } from '../views/tools/metadata.js';
 import { engineEvent, engineView as currentEngineViewName, watchLyricsEditors } from '../adapter/engine-api.js';
 import { mountPlayback } from '../views/playback/playback.js';
 import { mountNotifications } from './notification-center.js';
+import { setNotificationNavigator } from './notify.js';
 import { mountAppearanceSettings } from './appearance-settings.js';
 import { buildPanelResizer } from './panel-resizer.js';
 import { startBoot } from '../startup/boot.js';
@@ -124,7 +125,8 @@ function buildTitlebar() {
 // every other button. The player's own controls get theirs in views/playback/transport.js; the engine's other controls
 // get theirs from shell/tooltips.js.
 function tooltipTitlebarButtons() {
-    for (const node of document.querySelectorAll('.titlebar :is(.nav-btn, .window-control-btn, .close-app-btn)')) {
+    // The minimize, maximize and close buttons have no tooltip on purpose (their icons are the Windows convention).
+    for (const node of document.querySelectorAll('.titlebar .nav-btn')) {
         attachTooltip(node, () => ({ name: node.getAttribute('aria-label') || '' }));
     }
 }
@@ -279,6 +281,7 @@ function init() {
     const panel = $('.panel-host');
     buildTitlebar();
     tooltipTitlebarButtons();
+    setNotificationNavigator((view) => showView(view)); // a notification can point at a rail view (PA-06)
     syncAccentFromEngine();
     buildRail(selectView);
     buildPanelToggle(panel);

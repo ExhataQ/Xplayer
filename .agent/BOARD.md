@@ -1,142 +1,130 @@
-# BOARD: UI redesign ("ui-next")
+# BOARD: Polish 1
 
-Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file per task.
+Plan: [`PLAN.md`](./PLAN.md). Brief: [`POLISH-1-BRIEF.md`](./POLISH-1-BRIEF.md). Detailed evidence lives in `reports/`, one file per task (template: `reports/TEMPLATE.md`). The finished UI redesign is in `archive/ui-redesign/`.
 
 **Statuses:** Not started, In progress, In review, Blocked, Done.
-**Current phase:** 4, in progress (parity and cutover).
+**Current phase:** Wave 0 (decisions and investigations). Nothing has been built yet.
+**Tag meanings:** *Investigate* means answer with a recommendation before building. *Unclear* means the owner must confirm the wording. *Read* means the cause comes from reading the code, not from running it; every fix task reproduces first.
 
 ## Decisions
 
-| ID | Decision | Status | Answer |
+| ID | Decision | Status | Recommendation |
 |---|---|---|---|
-| D1 | Location of new screen (`src/ui-next/`) | Approved | Recommendation accepted, 2026-10-16 |
-| D2 | Default look (dark, amber accent) | Approved | Recommendation accepted, 2026-10-16 |
-| D3 | Themes: Warm Graphite default, Deep Forest and Espresso and Copper as alternatives, old accents kept | Approved | Recommendation accepted, 2026-10-16 |
-| D4 | Navigation rail items | Approved | Recommendation accepted, 2026-10-16 |
-| D5 | Icon set (Lucide) | Approved | Recommendation accepted, 2026-10-16 |
-| D6 | Fonts (IBM Plex Sans, Newsreader) | Approved | Recommendation accepted, 2026-10-16 |
-| D7 | Cutover policy | Approved | Recommendation accepted, 2026-10-16 |
-| D8 | Title bar: logo menu, back and forward, notification bell | Approved | Recommendation accepted, 2026-10-16 |
-| D9 | Library panel: filter chips on top, one list below | Approved |
-| D10 | Engine contract: compatibility shim (provide the engine's element IDs and classes), not an event rewrite. Phase 1 migration strategy, not permanent architecture; amended by D11 to D13 | Approved | Recommendation accepted, 2026-10-16. Contract: `archive/ui-redesign/design/ENGINE-CONTRACT.md` (v2) |
-| D11 | Fix seek and volume (defects D-1, D-2) in the engine, not in the shell | Approved | Recommendation accepted, 2026-10-16 |
-| D12 | Engine-written icons: CSS-map the four transport glyphs to Lucide for Phase 1; neutral engine class in Phase 2 | Approved | Recommendation accepted, 2026-10-16 |
-| D13 | `legacy-dom-adapter` budget: 250 lines of code. Over budget means revisit D10 | Approved | Recommendation accepted, 2026-10-16 |
-| D14 | Interim styling for engine-created overlays (L-10) until owning tasks replace it | Approved (2026-10-17) | Implemented in A-06: `src/ui-next/adapter/legacy-overlays.css`, linked from `index.html`. Lyrics/sync editor and metadata form interiors remain with D-03/D-04. |
-| D15 | Waveform source and data | Approved (2026-10-17) | Renderer decoding with limits; a new read-only IPC must supply file bytes. R-C3, R-C4 and R-C8 remain integration requirements. See `reports/UI-C02-waveform-source.md` |
-| D16 | List and views strategy for Phase 2 | Approved (2026-10-17) | S3: reuse engine views and restyle first, then replace individual views where justified. See `archive/ui-redesign/design/research/B-01-list-and-views-map.md` |
-| D17 | May A fix D-3 (a volume change during a track's fade-in is overwritten), which is outside the approved scope | Approved and done (2026-10-20) | The fade now ends at the volume the person has set at that moment. Test in `seek-volume.test.js` (D-3). ENGINE-CONTRACT.md updated |
-| D18 | Adapter API budget | Approved (2026-10-17) | 300 lines across `store`, `actions`, `events` and `engine-view.js` |
-| D19 | Logo mark: use the X mark | Approved (2026-10-18) | Decided by A (owner delegated). In the title bar and the startup view; see `reports/UI-A09-startup-and-logo-options.md` |
-| D20 | Startup backgrounds: vinyl default, five animated options, plain, or random | Approved (2026-10-18) | Decided by A (owner delegated). Shown by the app since A-09's second pass; chosen in Settings, Startup screen |
-| D21 | Library panel: restyle the engine's own panel instead of rebuilding it | Approved (2026-10-17) | Decided by B. See `reports/UI-B02-library-panel.md` |
-| D22 | Library panel needs additive engine seams (view model: types, query, sort) | Approved (2026-10-17) | Decided by B. The old screen never sets them, tests pin that |
-| D23 | Song list columns (Cover art, Artist name, Album, Time), Title and Album resize as one saved share | Approved (2026-10-18) | Decided by B. See `reports/UI-B03-song-list.md` |
-| D24 | Density: comfortable 56 px (`--row-height`) and compact 36 px (`--row-height-compact`), compact has no cover and puts the artist beside the title. Needs one engine seam, `setSongItemHeight(px)` in `ui/05a`; `ITEM_HEIGHT` becomes a live legacy global | Approved (2026-10-18) | Decided by B. The old screen never calls the seam, and a test pins its behavior |
-| D25 | The engine's heading block (cover, label, title) is hidden in the song list and replaced by a title bar (list name and song count) | Approved (2026-10-18) | Decided by B. The block pushed the rows down and the engine's scroll math assumes the list starts at the top of the scroller |
-| D26 | Play all, shuffle, "search in this list" and "clear history" (the engine's sub-header) | Approved (2026-10-18) | Decided by B: a list toolbar in the title bar, see D28 |
-| D27 | Search: the Search rail item gets its own field and a recent-searches list, and drives the engine's search (hidden `#search-input` and `performSearch`); results are the song list from B-03. Scoring, history entries and result counts stay the engine's. No engine change | Approved (2026-10-18) | Decided by B. See `reports/UI-B04-search.md` |
-| D28 | List toolbar: Play and Shuffle call the engine's sub-header handlers (Shuffle opens the engine's mode dialog), Find drives the hidden `#subhero-search-input`, More opens the engine's own menu. Recently played is a rail item showing the engine's history view. One new icon (`ellipsis`). No engine change | Approved (2026-10-18) | Decided by B. See `reports/UI-B05-list-toolbar.md` |
-| D29 | The title bar shows a copy of the engine's cover for the list (round for artists), taken from the hidden heading block. The collapsed library panel keeps a cover-only list; names stay in the page, clipped. Right-to-left titles use `unicode-bidi: plaintext`. The Artists index is the panel's Artists chip (D9), so the engine's "coming soon" fallback is never reached from the shell | Approved (2026-10-18) | Decided by B. See `reports/UI-B06-finish.md` |
-| D30 | Views reach the lyrics and metadata engine state only through `adapter/engine-api.js` | Decided by D (owner delegated) | Counts toward D18 with `engine-view.js`. A may fold it into `store`, `actions`, `events` |
-| D31 | Write and Sync are tabs of the Lyrics page, next to View and Find; the engine's two editors are moved into the page | Decided by D (owner delegated) | Replaces the interim buttons of D-01. See `reports/UI-D03-lyrics-editors.md` |
-| D32 | The Metadata rail item shows the engine's tag form (a tab of its right panel) and follows the playing song while the form is clean | Decided by D (owner delegated) | `showEnginePanel` in `adapter/engine-view.js` |
-| D33 | Leaving the Metadata view with unsaved changes asks first, with the engine's own question; choosing the view you are on does nothing | Decided by D (owner delegated) | Native confirm, as the engine uses |
-| D34 | Leaving the Lyrics view, or picking another tab, closes an open editor and asks first when text or timings would be lost | Decided by D (owner delegated) | Sync asks with the engine's own dialog, which answers later: the person picks the tab again |
-| D35 | The startup view is a layer from the first paint until the page has loaded plus two frames: at least 450 ms, gives up after 20 s (a CSS animation moves it away after 30 s if no script runs), clicks pass through while it fades, the real title bar floats above it | Approved (2026-10-18) | Decided by A (owner delegated). `startup/boot.js`. Tests that use the raw mouse straight after load call `waitForStartupGone` |
-| D36 | Electron's scan loading window uses the new look (the X in a ring, Warm Graphite, amber) when the app starts with `--ui=next`; the current interface keeps its own | Approved (2026-10-18) | Decided by A (owner delegated). `electron/loading-page.js`; the window cannot read the theme, so it uses the default |
-| D37 | Space after a mouse click goes to the page (play or pause), not to the clicked button; Space after keyboard navigation presses the focused button | Decided (2026-10-20) | Stops click-then-Space repeating the click. `shell/space-key.js`; test in `ui-next-tooltips.test.js`; see `reports/UI-A08-tooltip-rollout.md` |
-| D40 | Notification center reads the engine's history through a hidden `#notification-panel-list` (the element the engine redraws into after every change); the engine's own notification DOM is never shown | Decided by A | No engine change. See `reports/UI-A07-notification-center.md` |
-| D41 | Cancel button on running work (downloads, album art search) | Done (2026-10-20) | Real cancel: the download is aborted and its partial file removed, the cover search child stops after the current batch. Main-process change in `electron/` (downloads, scanner, fast-scan); Cancel button in the notification center. Tests in `cancel-running-work.test.js` |
-| D42 | Only failure-worded `error` notifications are shown as errors; the engine's other `error` entries (removals) are information | Decided by A | See report |
-| D60 | Theme, accent and density are one saved choice applied as `data-*` attributes on `<html>`, with a boot script before first paint; the engine's unsaved Theme Color block is hidden | Decided by A | See `reports/UI-A10-appearance-and-resizing.md` |
-| D61 | Density drives the library panel rows too (compact is shorter), through a small engine seam `setLeftItemHeight` | Done (2026-10-20) | Same pattern as the song list seam. `05b-lazy-load-left-panel.js`, `songlist-bridge.js`, tests in `ui-next-appearance.test.js` |
-| D62 | Library panel width: drag or keyboard, 240 to 480 px, default 300, saved; a small window limits what is shown, never the saved value | Decided by A | |
-| D63 | No new themes now; Midnight Blue, Aubergine and Rose, Porcelain and Teal stay "Later" | Decided by A | DIRECTION.md |
-| D64 | The old interface is not removed. Both ship; the person switches in Settings (either interface) and the choice is saved in `ui-choice.json` | Decided (2026-10-20, owner) | Replaces the cutover plan (A-13). `--ui=next`, `--ui=current` and `XPLAYER_UI` still decide the first load and beat the saved choice. `electron/ui-entry.js`, `window-manager.js` |
+| DP1 | Surface colors: top bar, rail and panel share one color; main view and right panel differ from it | Open | One new "chrome" surface token for top bar, rail and panel; main view one step lighter; right panel and player a third. Tokens only, in `tokens.css`. Blocks PA-03 and the panel work |
+| DP2 | Home (or a tool) in the main view with one panel open at the same time. Which wins when a tool like Lyrics or Metadata is also a main view | Open | The rail has two kinds of items. Main-view items (Home, Lyrics, Metadata, Settings) replace the main view; the last one picked wins. Panel items (Library, Search, Recents) fill the panel and stay independent of the main view. A filled icon marks the main-view item, the colored bar marks the panel item |
+| DP3 | Cover layout (brief section 5, cases 1 to 4); big picture mode keeps the old design either way | Open | Wait for the PC-01 prediction. Owner leans to case 2 (big cover bottom left, no left player section). Big picture mode (item #6) is separate from this choice |
+| DP4 | What "subhero design" means (brief 10.4) | Open | **Likely:** the list sub-header, the engine's name for the row with play, shuffle and "search in this list" (`.subhero-*`, decision D28 moved it into the title-bar list toolbar). Please confirm, or say what else |
+| DP5 | Content of the new home page | Open | Continue playing (last song), recently played playlists, quick actions (create playlist, Play from URL, open the AI chat once enabled), a few library numbers. Only data the engine already has |
+| DP6 | AI: key, provider, and what may leave the device | Open | Person adds their own OpenRouter key; AI is off until then; default model list is free models only; calls go from the main process, never the renderer; send the minimum (title, artist, album, duration; lyrics only for translation; no file paths); show it on first use and in Settings |
+| DP7 | Tag backend: remove the dependency on a system Python | Open | Replace with a Node implementation behind one tag service. PD-01 verifies candidate libraries (it could not be checked from here). Keep the Python path as a fallback until a parity test passes. Alternative if no library fits: a prebuilt helper executable made by CI |
+| DP8 | Wording to confirm: (a) what exactly is broken in the collapsed state, (b) what "download from web to chat" should do, (c) which list "virtual search results" and "highlight the original release" mean (local search results, or online release results) | Open | Describe each in a sentence. Blocks PB-04 (collapsed fix), PE-12 and PB-09 |
+| DP9 | Adapter budgets | Open | D18 (300 lines across `store`, `actions`, `events`, `engine-view`) is at 318, and 408 with `engine-api` (D30). `legacy-dom-adapter.js` is 205 of 250 (D13). Set a new counted budget for this plan (suggested +300 lines in new `adapter/` files) before any new bridge |
+| DP10 | Carried over: (a) DL3: offer "Use for this song" for an unchanged query in Find lyrics, (b) where to keep the saved waveform peaks (about 1 KB a track) | Open | (a) Yes, one-line change; the old screen behaves the same, so it stays pinned there. (b) Next to the songs data, through `storage-paths.js`; the module already has a store hook |
 
-## Phase 0: Decisions and safety
+Decided in the owner's round 2 (no longer open): keep the X logo for now (10.2 on hold); the Sync tool icon is a simple waveform; use the old screen's design for big picture mode; part of D29 is reversed: right-to-left text stays on the left of its cell.
 
-| Task | Owner | Status | Depends on | Notes |
+## Owner tasks
+
+| Task | Status | Notes |
+|---|---|---|
+| PO-01 Run the Electron and Windows checks no agent ran | Not started | The archived A-11 table (`archive/ui-redesign/reports/UI-A11-smoke-checklist.md`), the interface switch in Settings, the startup view, and the "Windows/Electron checks remain" notes in the archived B, C and D reports |
+| PO-02 Snapshot the project before applying any patch (AGENTS.md section 1) | Standing | Agents do not archive |
+
+## Agent A: shell, chrome, settings, themes
+
+| Task | Brief | Status | Depends on | What the code shows, first step |
 |---|---|---|---|---|
-| P0-01 Introduce plan, board, direction | A | Done | none | Applied by you |
-| P0-02 Record decisions D1 to D9 | You | Done | P0-01 | |
-| P0-03 Archive project, record baseline checks | A | In review | P0-02 | Archive not done by the agent (project folder not reachable); you snapshot before applying patches. Baseline: unit group had 3 failing files (`drag-drop-modules`, `lint`, `setters`) in the supplied zip, which has no `node_modules`; after `npm i acorn acorn-walk eslint globals` all 165 tests passed |
+| PA-01 Investigate unified color | 2.2 | Not started | DP1 | Surfaces are tokens in `tokens.css`; report a proposed token set and show the main view and right panel against it |
+| PA-02 Tooltips: shorter delay, flash, key-style hotkeys, smaller box, none on window buttons | 1.1 to 1.5 | Not started | none | `components/tooltip.js`: `TOOLTIP_DELAY = 500`, `WARM_WINDOW = 300`. `shell/shell.js` `tooltipTitlebarButtons()` includes `.window-control-btn, .close-app-btn`: drop them. *Read* |
+| PA-03 Rail and title bar merge, Home separation, Library icon, icon animations, active bar, Home fill, tool icon states | 2.1 to 2.8 | Not started | DP1, DP2, PA-04 | Rail items come from `VIEWS` in `shell/shell.js`; icons from `icons/icons.js` (Lucide, built by `tools/build-ui-next-icons.js`) |
+| PA-04 Panel slot API and rail structure: each rail item owns its panel content, Metadata and Lyrics above Settings, Home as its own main view, click the active item to close its panel | 3.1, 3.2, 3.5 | Not started | DP2 | Today only Library has panel content (`panel: true`); the others show a title and a note. Land this before B and D touch the rail. *Read* |
+| PA-05 Window buttons separate from the bell | 9.5 | Not started | none | The bell is inserted right before `.titlebar__window` in `buildTitlebar()` |
+| PA-06 Notification behavior and a notification API for other agents (progress, click target, Undo button) | 9.1 to 9.4, 9.6; used by 15.3, 16.5, 19.1 | Not started | none | `shell/notification-center.js` (186 lines), `adapter/notifications-bridge.js`. First notification opens the center only for important ones; clickable items need a target view; some appear in both toast and center |
+| PA-07 Complete the application menu with hotkeys | 18.2 | Not started | DP9 | `MENU` in `shell/shell.js` holds four groups of one disabled "Not built yet" entry. Shortcuts are in `ui/06k-keyboard-shortcuts.js`. Needs actions from the engine through the adapter. *Read* |
+| PA-08 Play from URL in the top bar, animated | 10.1 | Not started | DP9 | The engine already has the dialog (`ui/06b-modals.js` `playFromUrl`; save location in `ui/08e`). Add a button and an adapter action |
+| PA-09 Adapter budgets: measure, fold, apply DP9 | none | Not started | DP9 | Totals above |
+| PA-10 Scroll bar style with theme colors for panels, settings and lyrics | 11.4 | Not started | none | The new screen uses the native bar (`scrollbar-color` in `base.css`, `engine-view.css`). The old custom widget is `ui/06c-scrollbar-widget.js`. Lists are decided in PB-01 |
+| PA-11 Settings layout (floating menu bar), move every setting, hotkeys page, host for the AI settings | 11, 13, 19.6 | Not started | PA-04 | Settings is the engine page plus `appearance-settings.js`; `views/tools/settings.css` is 432 lines. May move to C if A falls behind |
+| PA-12 Keep the X logo; make the installer icon from it | 18.1, 10.3 | Not started | none | 10.2 (creative redesign, hover animation) is on hold. Packaging is outside this repo (`App/`), so deliver the icon files only |
+| PA-13 Mouse back and forward | 8.4 | Not started | PA-04 | The engine handles mouse buttons 3 and 4 (`ui/06k`) with its own history; shell-owned views (Metadata, Settings, lyrics modes) are not in it. Start with a matrix of back and forward sequences. *Read, not reproduced* |
+| PA-14 Themes and gradients | 12 | Not started | all surfaces done | Last. Themes only swap token values (D3, D60). Midnight Blue, Aubergine and Rose, Porcelain and Teal were deferred in D63 |
+| PA-15 Old-screen audit: shell and chrome | 20 | Not started | none | List what the old screen fixed that the new one lacks, with a fix or a reason to skip |
 
-## Phase 1: Foundation (A)
+## Agent B: library, lists, home
 
-| Task | Owner | Status | Depends on | Notes |
+| Task | Brief | Status | Depends on | What the code shows, first step |
 |---|---|---|---|---|
-| A-01 Tokens, base CSS, fonts, icons | A | Done | P0-03 | Icons `info`, `circle-check`, `triangle-alert` added; token checks need local verification |
-| A-02 Entry HTML, `--ui=next` flag, build copy list | A | Done | P0-03 | Touches `electron/` and `build/` |
-| A-04a Engine contract map and audit | A | Done | A-02 | Contract v2; see `ENGINE-CONTRACT.md` |
-| A-04b Seek and volume fix (D11) | A | Done | A-04a | Fixes D-1/D-2; D-3 remains open |
-| A-03 Shell: title bar (logo menu, back and forward, bell), rail, panel host, player host | A | Done | A-01, A-02 | Report `UI-A03-A04-shell-and-adapter.md` |
-| A-04 Adapter v1 and DOM-id compatibility layer | A | Done | A-04a, A-04b | `legacy-dom-adapter`; 250-line budget (D13); gates 1–14 in `ENGINE-CONTRACT.md` |
-| A-04c Adapter API: `store`, `actions`, `events`, view bridge | A | Done (you confirmed 2026-10-20) | A-04 | Built and browser-tested (`ui-next-adapter-api.test.js`). Report `UI-A04c-adapter-api-runtime.md` |
-| A-05 Component set with all states | A | Done | A-01 | 12 components, gallery, existing component tests |
-| A-06 Phase 1 gate: boots, plays, resizes, old UI intact | A | Done | A-03, A-04, A-05 | New automated gate added; run locally and complete the real Electron checklist in `reports/UI-A06-phase1-gate.md` before acceptance |
+| PB-01 Investigate, then fix, list rendering: virtual loading, scroll and hover, placeholders, hover and selection styles | 14.1, 8.1 | Not started | none | Suspects, in order: (1) the new CSS removed the old `.song-list` padding of 15 px and the virtual rows' `top: 15px`, while the engine positions highlight layers from row rectangles inside `.content`; (2) the engine's custom scrollbar is hidden, so `dragging-scrollbar` never pauses hover; (3) hover must be recomputed after a scroll (`updateHoverHighlightAfterScroll` uses the last mouse position); (4) `.last-selected` and `:focus-visible` styles overlap hover. Write a browser test that reproduces it on the new screen, run the same on the old screen, then port the old behavior and improve it. *Read, not reproduced* |
+| PB-02 Panel contents: Search (songs and playlists) and Recents (playlists, expand for songs and times) in the dynamic panel | 3 (table) | Not started | DP2, PA-04 | Search today is a main-view list under its own field (`views/library/search-view.js`); Recents is the engine's history view |
+| PB-03 Button that moves panel results to the main view | 3.3 | Not started | PB-02 | |
+| PB-04 Collapse for Library only, review conditions that depended on it, fix the collapsed state | 3.4, 17.5 | Not started | DP8, PA-04 | `buildPanelToggle` in `shell/shell.js` applies to every view; compact rules are in `library-panel.css`. What is broken is not known: reproduce and list the cases first |
+| PB-05 Wider panel, bigger covers, scroll bar on the right wall and wider | 3.6 | Not started | none | Width is 240 to 480, default 300 (D62); row heights 56 and 36 (D24, D61) |
+| PB-06 Folder and playlist creation: panel button, context menu, shared functions the AI will reuse | 17.4, 7.4 | Not started | DP9 | The old panel header has `#create-playlist-header-btn` (`data-action="showCreateItemDialog"`); the new `library-panel.js` builds its own header with no create control. Use the engine's dialog through the adapter. *Read* |
+| PB-07 Context menu: icons, floating menu, default cover | 7.4 to 7.6 | Not started | none | Engine menus are `ui/06a`; the old default cover is `src/assets/default-cover.svg`; check which one the new screen uses |
+| PB-08 Sort from the track list: album, title, time (both directions) | 7.2 | Not started | none | Header is in `views/library/song-list.js`; the engine has the view-model sort seam (D22) |
+| PB-09 Better search results display, highlight the original release | 7.3 | Not started | DP8 | Needs to know which list; the highlight needs PD-04's rule if it is the online list |
+| PB-10 Filter animation, queue opens when dragging songs near it | 3.7, 3.8 | Not started | PC-11 | Drag logic is `ui/06f` and `ui/06g`; the queue is `views/playback/queue-panel.js` (C) |
+| PB-11 Right-to-left text stays on the left | 14.2 | Not started | none | `adapter/songlist-rows.css`, block "Right-to-left titles": `unicode-bidi: plaintext; text-align: start`. Change to `text-align: left`, keep `plaintext`; check the search view (`text-align: start`) and the panel. Add a Persian, an Arabic and an English row to the test. *Read* |
+| PB-12 Space no longer shows the selection circle; Tab keeps it | 14.3 | Not started | none | `adapter/songlist-rows.css` shows the play mark and an inset ring for `.row-hover-active`, `.last-selected` and `:focus-visible`. Add an input-mode flag (pointer or keyboard) set by a small script next to `shell/space-key.js`; scope the focus styles to keyboard mode. A reviews the shared script. *Read, not reproduced* |
+| PB-13 White column-resize line | 7.1 | Not started | none | `.songlist-resizer` in `views/library/song-list.css` |
+| PB-14 Bugs: unnecessary updates when one item changes, pinned items have no border while moving | 8.2, 8.3 | Not started | none | Pinned items: `playlists/03g-pinned-items.js`, drag in `ui/06g-drag-drop-left-panel.js` |
+| PB-15 Home page | 18.3 | Not started | DP5, PA-04 | New `views/home/`, reads history and playlists through the adapter; no engine change expected |
+| PB-16 Old-screen audit: lists and library | 20 | Not started | none | |
 
-## Phase 2: Surfaces
+## Agent C: player, lyrics, big picture
 
-| Task | Owner | Status | Depends on | Notes |
+| Task | Brief | Status | Depends on | What the code shows, first step |
 |---|---|---|---|---|
-| B-01 Map of list and virtual scroll behavior | B | Done | A-06 | Research available; confirm findings and list/view strategy |
-| B-02 Library panel: filter chips, find, sort, one list | B | Done | A-06 | Browser tests pass; Windows/Electron manual checks remain |
-| B-03 Song list: columns, resize, compact mode | B | Done (you confirmed 2026-10-20) | B-01 | Report `UI-B03-song-list.md`. Browser tests pass; Windows/Electron checks remain |
-| B-04 Search | B | Done (you confirmed 2026-10-20) | A-06 | Report `UI-B04-search.md`. Browser tests pass; Windows/Electron checks remain |
-| B-05 Album, artist, playlist, folder views | B | Done (you confirmed 2026-10-20) | B-03 | Report `UI-B05-list-toolbar.md`. List toolbar, kind label, Recently played |
-| B-06 Cover in title bar, compact panel, right-to-left, row behaviors | B | Done (you confirmed 2026-10-20) | B-05 | Report `UI-B06-finish.md`. Windows/Electron checks remain |
-| C-01 Player bar and transport | C | Done | A-06 | Styling implemented; remaining integration and manual checks |
-| C-02 Waveform seek (compute and cache) | C | Done (you confirmed 2026-10-20) | C-01 | Built and browser-tested; report `UI-C02-waveform-source.md`. Open there: a saved peaks cache, and a 10-minute track limit |
-| C-03 Queue and volume | C | Done (you confirmed 2026-10-20) | C-01 | Built and browser-tested; report `UI-C-playback-surfaces.md` |
-| C-04 Fullscreen viewer | C | Done (you confirmed 2026-10-20) | C-01 | Built and browser-tested; report `UI-C-playback-surfaces.md` |
-| D-01 Lyrics panel: view, empty state, four modes | D | Done (you confirmed 2026-10-20) | A-06 | Engine page in the shell with a four-tab mode bar and a skin; browser-tested; Windows/Electron checklist remains. Reports `reports/UI-D01-lyrics.md`, `reports/UI-D03-lyrics-editors.md` |
-| D-02 Online lyrics find and manual search | D | Done (you confirmed 2026-10-20) | D-01 | Built and browser-tested; report `UI-D02-find.md`. Open there: F-1 ("Use for this song" for an unchanged query), now decision DL3 |
-| D-03 Lyrics write and sync editor | D | Done (you confirmed 2026-10-20) | D-01 | Write and Sync are tabs of the Lyrics page: editors moved into the page and skinned, unsaved-text guards, 20 browser tests; Windows/Electron checklist remains. Report `reports/UI-D03-lyrics-editors.md` |
-| D-04 Metadata editor | D | Done (you confirmed 2026-10-20) | A-06 | The engine's tag form in the shell (rail item Metadata): skin, empty state, follows the song, unsaved-changes guard; 19 browser tests; Windows/Electron checklist remains. Report `reports/UI-D04-metadata.md` |
-| D-05 Settings sections | D | Done | A-06 | Browser-tested; Windows/Electron checklist remains |
-| D-06 Dialogs | D | Done | A-05 | Browser-tested; remaining dialog and Windows/Electron checks |
+| PC-01 Investigate the four cover layouts with a prediction for each | 5, 15.2 | Not started | DP3 | Include how big picture mode (old design) is entered and left in each layout |
+| PC-02 Build the chosen layout and rework the player section | 5 | Not started | PC-01, DP3 | |
+| PC-03 Waveform: delay, scaling, bar design and contrast, on and off setting (default off), saved peaks | 6.1 to 6.3; C-02 carry-over | Not started | DP10 | `views/playback/waveform.js`: the whole track is decoded in the renderer, one at a time, up to 600 s, and nothing is kept between sessions (a store hook `setPeaksStore` already exists, about 1 KB a track). Each bin uses its peak divided by the loudest peak, so loud music fills the bars: try RMS or a percentile with a curve. No setting exists today. *Read; "verify first" in the brief still applies* |
+| PC-04 Thumbs: volume (and maybe progress) must not vanish at zero | 6.4 | Not started | none | The engine positions `#volume-knob` with `left: X%` and `translate(-50%)`, so at 0 half of it sits outside the slider and an ancestor can clip it. Separately, `player-bar.css` hides the engine's progress knob on purpose when the waveform shows. Owner: say which bar you mean. *Read* |
+| PC-05 Highlight and selection problems on the bars, on drag, resize and scroll; make some elements non-selectable | 6.5 | Not started | none | Compare with the old screen's rules |
+| PC-06 Big picture mode in the old design | 15.2 | Not started | DP3 | Old: `ui/06h-fullscreen-viewer.js` (143 lines) and `css/fullscreen-viewer.css` (325). New: `views/playback/cover-viewer.js` (56). Port the design, keep the new tokens |
+| PC-07 Lyrics rail item opens the Sync tool, waveform icon; compare with the tool boxes alternative | 4.1, 4.2, 15.1 | Not started | PA-04 | Write and Sync are tabs of the Lyrics page (D31); the Sync icon is a simple waveform (decided) |
+| PC-08 Find lyrics: rename, blank album on purpose; Write: paste lyrics or LRC; keep the finder's state | 4.4 to 4.6 | Not started | none | The multi-song finder is in `lyrics/19-online-lyrics.js`; D34 closes editors on leave, which may be what resets the state |
+| PC-09 Notification for the multi lyrics finder | 15.3 | Not started | PA-06 | Started, progress, finished with counts; click opens the results |
+| PC-10 DL3: "Use for this song" for an unchanged query | DP10 | Not started | DP10 | One condition in `hasOnlineLyricsQueryChanged` (`lyrics/19`) |
+| PC-11 Queue opens when songs are dragged near it | 3.7 | Not started | PB-10 | C owns `queue-panel.js` |
+| PC-12 Old-screen audit: player and lyrics | 20 | Not started | none | |
 
-## Phase 3: Integration (A)
+## Agent D: metadata only
 
-| Task | Owner | Status | Depends on | Notes |
+| Task | Brief | Status | Depends on | What the code shows, first step |
 |---|---|---|---|---|
-| A-07 Toasts and bell notification center (in progress and earlier) | A | Done (you confirmed 2026-10-20) | Phase 2 | Report `UI-A07-notification-center.md`. Toasts for every engine notification, center behind the bell (In progress, Earlier), dot on the bell. 15 browser tests pass; Windows/Electron checklist remains. No cancel button (D41) |
-| A-08 Tooltip rollout | A | Done (you confirmed 2026-10-20) | Phase 2 | Every control gets the shared tooltip, the engine's old one no longer shows, one shared Space rule (D37 decided); see `reports/UI-A08-tooltip-rollout.md`. Electron run outstanding |
-| A-09 Startup view and logo | A | Done (you confirmed 2026-10-20) | A-01 | The startup view is shown by the app (real milestones, real window buttons above it, saved choice read through the adapter), the Electron loading window matches it; 24 tests; a real Electron window still to check. Report `reports/UI-A09-startup-and-logo-options.md` |
-| A-10 Accent themes, resizing, density | A | Done (you confirmed 2026-10-20) | Phase 2 | Report `UI-A10-appearance-and-resizing.md`. Appearance section in Settings (theme, accent, density, saved, no flash), shared density, resizable panel, resize audit at 3 window sizes. 18 browser tests pass; Windows/Electron checklist remains. Built on the A-07 patch |
+| PD-01 Investigate, then build, the tag service without a system Python | 16.3 | Not started | DP7 | `electron/metadata-editor.js` runs `python` or `py` and `metadata-editor.py` (mutagen). Tests skip without Python and use a stand-in for mutagen. Verify candidate Node libraries (formats, maintenance); write `read`, `write`, `writeMany`; keep the Python path as a fallback; build parity tests on copies of real files, generating expected data in CI if needed. The tag rules in the Python file (";" splits values, comma does not; which comment frame counts) must be kept. *Read* |
+| PD-02 Redesign the single metadata editor | 4.3, 16.1 | Not started | PD-01 | Today it is the engine's tag form, reskinned (D32); `views/tools/metadata.css` is 363 lines. Views reach the engine only through `adapter/engine-api.js` (D30) |
+| PD-03 Multi metadata editor: choose songs, apply tags, genres, artists; differing fields show as mixed and stay unchanged unless edited | 16.2 | Not started | PD-01, DP9 | Selection comes from `ui/17-song-selection.js` |
+| PD-04 Original or most popular release: selection rule, confidence, review queue | 16.4 | Not started | none | Build on `electron/online-metadata.js` (MusicBrainz, release scope, `firstReleaseDate`). Rule proposal: earliest official album release, skipping compilations, live and remix unless the file is one. "Most popular" needs a popularity source: investigate and verify terms first |
+| PD-05 Multi tag finder: apply automatically above a confidence threshold, queue the rest, with notification | 16.4, 16.5 | Not started | PD-03, PD-04, PA-06 | Setting: "original" or "most popular" |
+| PD-06 Journal of previous tag values so changes can be undone | 19.1 | Not started | PE-04, PD-01 | Uses E's journal |
+| PD-07 Metadata rail item above Settings | 3.1 | Not started | PA-04 | |
+| PD-08 Test hygiene: real writer tests that run on the owner's machine and in CI | 16.3 | Not started | PD-01 | Folded into PD-01's report if small |
+| PD-09 Old-screen audit: metadata | 20 | Not started | none | |
 
-## Phase 4: Parity and cutover
+## Agent E: AI only
 
-| Task | Owner | Status | Depends on | Notes |
+| Task | Brief | Status | Depends on | What the code shows, first step |
 |---|---|---|---|---|
-| A-11 Smoke checklist, old versus new | A | In review | Phase 3 | Automated part run (full suite). Manual Electron table in `reports/UI-A11-smoke-checklist.md` is yours to fill in |
-| A-12 Gap fixes | A, B, C, D | In review | A-11 | README section on the two interfaces and the switch; CHANGELOG.md started. No other gap is open except C-02's cache and D-02 F-1 (DL3), which need your decision |
-| A-13 Keep both interfaces | A | Done | A-12 | Replaces "approval to remove the old UI" (D64). In-app switch in Settings of both interfaces; saved choice; flags still win on launch |
-| A-14 Changelog and archive of plan | A | Not started | A-12 | CHANGELOG.md is started. Archive (move plan, board and reports to `archive/ui-redesign/`) waits for your sign-off on A-11 |
+| PE-01 Investigate OpenRouter: current free models, limits, structured-output quality, web search option | 19.2, 19.3 | Not started | none | Not checkable from here; test two or three models on the action format. Recommendation: use the API, not free chatbots' web pages (fragile and probably against their terms) |
+| PE-02 Provider interface, main-process client, named preload group `ai`, key storage, settings | 19.2 | Not started | DP6, DP9 | Add the group to `electron/preload.js` and `src/js/api/desktop-api.js`; calls only from the main process |
+| PE-03 Action list, schema, validation, preview, execute | 19.2 | Not started | PE-02 | The model returns structured actions only; the app never runs model-written code. Actions call the engine and the tag service through the adapter |
+| PE-04 Undo journal and notifications with an Undo button | 19.1 | Not started | PA-06 | One journal, saved to disk, capped, each entry holds what it changed and the old values. Undo was found only in the lyrics editor code |
+| PE-05 Reorganize the library from the person's description | 19.3 | Not started | PE-03, PB-06 | Folders and playlists, always with a preview |
+| PE-06 Translate lyrics | 19.3 | Not started | PE-03 | `lyrics/21-language-detect.js` exists; keep LRC timings |
+| PE-07 AI shuffle | 19.3 | Not started | PE-03 | Builds on `playback/10b-playback-smart-shuffle.js` |
+| PE-08 AI metadata editing and web search | 19.3 | Not started | PE-03, PD-01 | Uses D's tag service; investigate how web search is provided and what it sends |
+| PE-09 Privacy screen and AI settings page | 19.4, 19.6 | Not started | DP6, PA-11 | |
+| PE-10 Chat UI and the top bar icon next to the bell | 18.4, 19.5 | Not started | PA-03, PA-05 | |
+| PE-11 Contextual AI buttons through the app | 19.5 | Not started | PE-05 to PE-08 | Translate on lyrics, fill tags in the editor, organize in the library panel, AI shuffle in the player |
+| PE-12 Download from the web through chat | 19.5 | Blocked | DP8 | Unclear what to download, from where, and how it differs from Play from URL. Downloads with Cancel already exist (`electron/downloads.js`, D41) |
 
 ## Blockers and questions
 
-None. Open: C-02 peaks cache and 10-minute limit; D-02 F-1 (DL3); real Electron checks of the switch and startup view.
+Open decisions DP1 to DP10 above. The ones that block building soonest: DP1 and DP2 (rail, panel, colors), DP7 (tag backend), DP9 (any new bridge), DP6 (AI).
 
 ## Reports
 
 | Task | Report | Status |
 |---|---|---|
-| P0-01 | `reports/UI-P0-01-plan-introduction.md` | Written |
-| P0-03, A-01, A-02 | `reports/UI-A01-A02-foundation-start.md` | Written |
-| A-04a, A-04b | `reports/UI-A04-engine-contract-and-seek-fix.md` | Written |
-| A-05 | `reports/UI-A05-components.md` | Written |
-| A-09 | `reports/UI-A09-startup-and-logo-options.md` | Written |
-| Research and patch plan | `archive/ui-redesign/design/PATCH-PLAN.md`, `archive/ui-redesign/design/research/` | Written |
-| B-02 | `reports/UI-B02-library-panel.md` | Written |
-| B-03 | `reports/UI-B03-song-list.md` | Written |
-| B-04 | `reports/UI-B04-search.md` | Written |
-| B-05 | `reports/UI-B05-list-toolbar.md` | Written |
-| B-06 | `reports/UI-B06-finish.md` | Written |
-| D-01 | `reports/UI-D01-lyrics.md` | Written |
-| D-03 | `reports/UI-D03-lyrics-editors.md` | Written |
-| D-04 | `reports/UI-D04-metadata.md` | Written |
-| A-07 | `reports/UI-A07-notification-center.md` | Written |
-| A-10 | `reports/UI-A10-appearance-and-resizing.md` | Written |
+| none yet | | |

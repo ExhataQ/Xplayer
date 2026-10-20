@@ -1,3 +1,5 @@
+> **Archived stale copy.** This was `Source/BOARD.md` at the project root. It is an older snapshot of the board (it says Phase 2); the live board was `.agent/BOARD.md`, now also archived. Kept only so nothing is lost; safe to delete.
+
 # BOARD: UI redesign ("ui-next")
 
 Plan: [`PLAN.md`](./PLAN.md). Detailed evidence lives in `reports/`, one file per task.

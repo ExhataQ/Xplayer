@@ -360,8 +360,8 @@ describe('ui-next shell with the real engine', { concurrency: false }, () => {
         assert.equal(tip.hasTitle, false);
         await page.mouse.move(600, 400);
         await page.hover('.close-app-btn');
-        await page.waitForSelector('.tooltip:not([hidden])', { timeout: 3000 });
-        assert.match(await page.locator('.tooltip').textContent(), /Close app/);
+        await page.waitForTimeout(700); // longer than the tooltip delay: the window buttons have no tooltip (PA-02)
+        assert.equal(await page.evaluate(() => document.querySelector('.tooltip')?.hidden !== false), true, 'the close button shows no tooltip');
         assert.deepEqual(problems.errors, []);
         await page.close();
     });

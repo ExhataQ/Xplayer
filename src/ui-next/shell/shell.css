@@ -118,8 +118,19 @@
     color: var(--surface-ground);
 }
 .titlebar__window {
+    position: relative;
     display: flex;
-    margin-left: var(--space-2);
+    margin-left: var(--space-4); /* the bell is a tool, the window buttons are not: a gap and a thin divider keep them apart */
+}
+.titlebar__window::before {
+    content: '';
+    position: absolute;
+    left: calc(var(--space-2) * -1);
+    top: 50%;
+    width: 1px;
+    height: 16px;
+    background: var(--border-strong);
+    transform: translateY(-50%);
 }
 
 /* ---------- nav rail ---------- */

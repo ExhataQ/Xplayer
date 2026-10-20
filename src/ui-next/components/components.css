@@ -402,21 +402,70 @@ textarea.field__input {
     position: fixed;
     z-index: var(--layer-tooltip);
     max-width: 280px;
-    padding: var(--space-2) var(--space-3);
+    padding: 6px var(--space-2);
     border: 1px solid var(--tooltip-border);
     border-radius: var(--radius-md);
     background: var(--tooltip-bg);
     color: var(--text-primary);
     font-size: var(--text-sm);
+    line-height: 1.3;
     pointer-events: none;
+    animation: tooltip-flash var(--motion-fast) var(--motion-ease);
+}
+/* A short flash when it opens: the border and a thin ring start in the accent and settle, and the box slides 3px in from the
+   side it is attached to. The animation restarts each time the hidden tooltip is shown (display none to block). */
+@keyframes tooltip-flash {
+    from {
+        opacity: 0;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px var(--accent-soft), 0 0 12px var(--accent-soft);
+        translate: 0 3px;
+    }
+    to {
+        opacity: 1;
+        box-shadow: 0 0 0 0 transparent;
+        translate: 0 0;
+    }
+}
+@keyframes tooltip-flash-top {
+    from {
+        opacity: 0;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px var(--accent-soft), 0 0 12px var(--accent-soft);
+        translate: 0 -3px;
+    }
+    to {
+        opacity: 1;
+        box-shadow: 0 0 0 0 transparent;
+        translate: 0 0;
+    }
+}
+@keyframes tooltip-flash-side {
+    from {
+        opacity: 0;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px var(--accent-soft), 0 0 12px var(--accent-soft);
+        translate: -3px 0;
+    }
+    to {
+        opacity: 1;
+        box-shadow: 0 0 0 0 transparent;
+        translate: 0 0;
+    }
+}
+.tooltip[data-placement='top'] {
+    animation-name: tooltip-flash-top;
+}
+.tooltip[data-placement='right'] {
+    animation-name: tooltip-flash-side;
 }
 .tooltip[hidden] {
     display: none;
 }
 .tooltip__head {
     display: flex;
-    align-items: baseline;
-    gap: var(--space-3);
+    align-items: center;
+    gap: var(--space-2);
 }
 .tooltip__name {
     font-weight: var(--weight-medium);
@@ -425,14 +474,26 @@ textarea.field__input {
     color: var(--text-secondary);
 }
 .tooltip__shortcut {
-    margin-inline-start: auto;
-    padding-inline-start: var(--space-2);
-    color: var(--text-tertiary);
+    display: inline-flex;
+    gap: 3px;
+    margin-inline-start: var(--space-1);
     font-family: inherit;
     white-space: nowrap;
 }
+.tooltip__key {
+    min-width: 18px;
+    padding: 0 5px;
+    border: 1px solid var(--border-strong);
+    border-bottom-width: 2px; /* the lower edge makes it read as a key */
+    border-radius: var(--radius-sm);
+    background: var(--surface-ground);
+    color: var(--text-secondary);
+    font-size: 11px;
+    line-height: 16px;
+    text-align: center;
+}
 .tooltip__description {
-    margin-top: var(--space-1);
+    margin-top: 2px;
     color: var(--text-secondary);
 }
 
@@ -442,7 +503,7 @@ textarea.field__input {
     position: fixed;
     z-index: var(--layer-toast);
     right: var(--space-4);
-    bottom: calc(var(--player-height) + var(--space-4));
+    bottom: calc(var(--player-height) + var(--space-6)); /* a little room under the stack, so a hovered toast does not touch the player */
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
@@ -450,6 +511,7 @@ textarea.field__input {
     pointer-events: none;
 }
 .toast {
+    transition: translate var(--motion-fast) var(--motion-ease);
     display: flex;
     align-items: flex-start;
     gap: var(--space-3);
@@ -466,6 +528,9 @@ textarea.field__input {
         opacity: 0;
         transform: translateY(8px);
     }
+}
+.toast:hover {
+    translate: 0 -4px; /* lifts a little while the pointer is on it */
 }
 .toast__icon {
     margin-top: 1px;
