@@ -121,13 +121,14 @@ Update architectural documentation when a responsibility, interface, or dependen
 - `Source/.agent/BOARD.md` — current task status.
 - `Source/.agent/reports/` — detailed evidence for individual tasks.
 - `Source/.agent/reports/TEMPLATE.md` — report format.
-- `Source/tools/CHANGELOG.md` — concise history of integrated changes.
+- `Source/tools/CHANGELOG.md` — concise integrated-development history, using the dated file-and-bullets format below.
+- `Source/CHANGELOG.md` — project/release changelog, organized by release headings such as `Unreleased`. Keep the two changelogs' purposes distinct; do not copy entries between them automatically.
 
 Plan 3's completed work and historical agent material belong in the appropriate archive. Do not reactivate archived tasks or overwrite historical reports unless explicitly requested.
 
 For new agent tasks, use a unique report filename and record the actual changes, commands, results, environment, skipped checks, and unresolved issues. Do not claim an unrun test passed.
 
-Task agents should not edit the shared changelog. The designated integration owner updates it after integration and verification, preserving historical entries and using the existing format:
+Task agents should not edit the shared integrated-development changelog. The designated integration owner updates `Source/tools/CHANGELOG.md` after integration and verification, preserving historical entries and using the existing format:
 
 - Date on its own line.
 - File name on its own line.

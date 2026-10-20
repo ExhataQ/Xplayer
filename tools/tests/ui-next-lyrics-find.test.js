@@ -151,7 +151,7 @@ describe('Find, Many songs and the picker in the new shell', { concurrency: fals
         await page.click('.online-lyrics-result >> nth=0');
         await page.waitForSelector('.online-lyrics-preview pre');
         const open1 = await page.evaluate(() => ({ text: document.querySelector('.online-lyrics-preview pre').textContent, mono: /mono|Consolas/i.test(getComputedStyle(document.querySelector('.online-lyrics-preview pre')).fontFamily), pressed: document.querySelector('.online-lyrics-badge.active')?.textContent, buttons: [...document.querySelectorAll('.online-lyrics-actions button')].map((b) => b.textContent.trim()) }));
-        assert.deepEqual(open1, { text: LRC, mono: true, pressed: 'Synced LRC', buttons: ['Copy LRC', 'Download LRC'] });
+        assert.deepEqual(open1, { text: LRC, mono: true, pressed: 'Synced LRC', buttons: ['Copy LRC', 'Download LRC', 'Use LRC for this song'] });
         await page.click('.online-lyrics-result.selected .online-lyrics-badge:has-text("Lyrics")');
         assert.equal(await page.evaluate(() => document.querySelector('.online-lyrics-preview pre').textContent), 'one\ntwo');
         assert.equal(await page.evaluate(() => document.querySelector('.online-lyrics-badge.active').textContent), 'Lyrics');
@@ -183,6 +183,20 @@ describe('Find, Many songs and the picker in the new shell', { concurrency: fals
         await page.waitForSelector('.online-lyrics-result');
         assert.equal(await page.evaluate(() => document.querySelectorAll('.online-lyrics-primary-btn').length), 0);
         await search(page, 'Song A');
+        await page.click('.online-lyrics-result >> nth=0');
+        await page.click('.online-lyrics-primary-btn:has-text("Use LRC for this song")');
+        await page.waitForFunction((lrc) => window.getSyncedLyricsForSong(window.SONGS_DATA[0]) === lrc, LRC);
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('an unchanged query (the song\'s own title and artist) also offers "Use LRC for this song" (DL3, decided 2026-10-20)', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open();
+        await toLyrics(page);
+        await play(page);
+        await tab(page, 'Find');
+        await page.waitForSelector('.online-lyrics-result');
         await page.click('.online-lyrics-result >> nth=0');
         await page.click('.online-lyrics-primary-btn:has-text("Use LRC for this song")');
         await page.waitForFunction((lrc) => window.getSyncedLyricsForSong(window.SONGS_DATA[0]) === lrc, LRC);

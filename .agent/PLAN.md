@@ -1,8 +1,8 @@
 # PLAN: UI redesign ("ui-next")
 
-**Status:** Proposed, waiting for approval of the decisions in section 3.
+**Status:** Phase 4 — parity and cutover in progress; A-11/A-12 are in review and A-14 has not started (see `.agent/BOARD.md`).
 **Previous plans:** event bus and renderer refactor, finished (see `archive/`).
-**Inputs:** [`ui-redesign/USER_PREFERENCES.md`](./ui-redesign/USER_PREFERENCES.md), [`ui-redesign/DIRECTION.md`](./ui-redesign/DIRECTION.md), `.claude/skills/xplayer-ui-redesign/SKILL.md`, the approved design preview.
+**Inputs:** [`USER_PREFERENCES.md`](./archive/ui-redesign/design/USER_PREFERENCES.md), [`DIRECTION.md`](./archive/ui-redesign/design/DIRECTION.md), `../.claude/skills/xplayer-ui-redesign/SKILL.md`, the approved design preview.
 
 ## 1. In plain words
 

@@ -9,7 +9,7 @@
 //   [data-legacy-slot="player"]  transport, seek, volume, song info (player host, visible)
 //   [data-legacy-slot="host"]    the old panels, hidden            (the engine renders lists and queues into them)
 //
-// Rules (full list, with measured evidence: .agent/ui-redesign/ENGINE-CONTRACT.md):
+// Rules (full list, with measured evidence: .agent/archive/ui-redesign/design/ENGINE-CONTRACT.md):
 //   1. JavaScript outside this folder must not look up an id created here, and nothing outside it may mention
 //      .song-item, .song-number-item or #song-list (L-01); views read state through the adapter surface instead.
 //      CSS may style these elements through a wrapper selector (.player-host, .titlebar). Gate 13 checks both.

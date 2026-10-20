@@ -58,6 +58,21 @@ npm run lint:strict
 
 The repository does not currently define a standard `npm start` or packaging script in `package.json`. Consult the project scripts and source before attempting to launch or package the application.
 
+## Two interfaces
+
+Xplayer ships two interfaces. Both are in the app and you can switch between them.
+
+- **Current interface** (`music_player.html`): the original screen.
+- **New interface** (`src/ui-next/`): the redesigned shell.
+
+How the app chooses at launch:
+
+1. `--ui=next` or `XPLAYER_UI=next` opens the new interface.
+2. `--ui=current` (or `--ui=old`, or `XPLAYER_UI=current`) opens the current interface.
+3. Otherwise the last choice you made in Settings is used, and the default is the current interface.
+
+To switch while the app is open, go to **Settings > Interface** (in either interface) and click the switch button. The window reloads into the other interface and the choice is saved in `ui-choice.json` in the settings folder. `Launch-Xplayer-UI-Next.bat` always starts the new interface.
+
 ## Repository layout
 
 - `electron/` — Electron main-process code and desktop integrations.

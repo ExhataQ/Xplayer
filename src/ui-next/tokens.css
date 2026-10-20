@@ -1,6 +1,6 @@
 /* ui-next design tokens (task A-01).
  *
- * Three layers, see .agent/ui-redesign/DIRECTION.md:
+ * Three layers, see .agent/archive/ui-redesign/design/DIRECTION.md:
  *   1. primitive  --c-*     the raw colors. Only a theme block below defines them.
  *   2. semantic   --surface-*, --text-*, --border-*, --accent*   what a color is for. Components use these.
  *   3. component  --button-*, --row-*, ...   values one component owns, built from the semantic layer.

@@ -557,17 +557,6 @@ export function getOnlineLyricsText(result, type) {
     return type === 'lrc' ? String(result.syncedLyrics || '') : String(result.plainLyrics || '');
 }
 
-export function hasOnlineLyricsQueryChanged() {
-    if (onlineLyricsState.fromHeader) return true;
-    const orig = onlineLyricsState.originalQuery;
-    if (!orig) return true;
-    return (
-        (onlineLyricsState.title || '') !== (orig.title || '') ||
-        (onlineLyricsState.artist || '') !== (orig.artist || '') ||
-        (onlineLyricsState.album || '') !== (orig.album || '')
-    );
-}
-
 export async function copyOnlineLyrics(index, type) {
     const result = onlineLyricsState.results[index];
     const text = getOnlineLyricsText(result, type);
@@ -991,18 +980,14 @@ export function renderOnlineLyricsResult(result, index) {
                             <button class="lyrics-view-edit-btn" ${actionAttrs('downloadOnlineLyrics', [index, 'lrc'], { stop: true })}>Download LRC</button>
                             ${onlineLyricsState.fromHeader
                                 ? `<button class="lyrics-view-edit-btn online-lyrics-primary-btn" ${actionAttrs('openOnlineLyricsPicker', [index, 'lrc', '$event'], { stop: true })}>Save LRC to a song</button>`
-                                : hasOnlineLyricsQueryChanged()
-                                ? `<button class="lyrics-view-edit-btn online-lyrics-primary-btn" ${actionAttrs('useOnlineLyrics', [index, 'lrc'], { stop: true })}>Use LRC for this song</button>`
-                                : ''}
+                                : `<button class="lyrics-view-edit-btn online-lyrics-primary-btn" ${actionAttrs('useOnlineLyrics', [index, 'lrc'], { stop: true })}>Use LRC for this song</button>`}
                         ` : ''}
                         ${activeType === 'lyrics' && plain ? `
                             <button class="lyrics-view-edit-btn" ${actionAttrs('copyOnlineLyrics', [index, 'lyrics'], { stop: true })}>Copy Lyrics</button>
                             <button class="lyrics-view-edit-btn" ${actionAttrs('downloadOnlineLyrics', [index, 'lyrics'], { stop: true })}>Download Lyrics</button>
                             ${onlineLyricsState.fromHeader
                                 ? `<button class="lyrics-view-edit-btn online-lyrics-primary-btn" ${actionAttrs('openOnlineLyricsPicker', [index, 'lyrics', '$event'], { stop: true })}>Save Lyrics to a song</button>`
-                                : hasOnlineLyricsQueryChanged()
-                                ? `<button class="lyrics-view-edit-btn online-lyrics-primary-btn" ${actionAttrs('useOnlineLyrics', [index, 'lyrics'], { stop: true })}>Use Lyrics for this song</button>`
-                                : ''}
+                                : `<button class="lyrics-view-edit-btn online-lyrics-primary-btn" ${actionAttrs('useOnlineLyrics', [index, 'lyrics'], { stop: true })}>Use Lyrics for this song</button>`}
                         ` : ''}
                     </div>
                 </div>

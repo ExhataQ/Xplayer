@@ -1,5 +1,5 @@
 // The new shell (src/ui-next/index.html) running the real, unchanged engine. Exit criterion for tasks A-03 and A-04:
-// the behavioral gate in .agent/ui-redesign/ENGINE-CONTRACT.md section 10. Real browser, real mouse, real (generated)
+// the behavioral gate in .agent/archive/ui-redesign/design/ENGINE-CONTRACT.md section 10. Real browser, real mouse, real (generated)
 // WAV audio. Gate numbers below are the numbers in that table.
 //
 // Run:   node --test tools/tests/ui-next-shell.test.js
