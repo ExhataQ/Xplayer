@@ -66,6 +66,11 @@ describe('player bar stylesheet (static)', () => {
         assert.deepEqual(code.match(/#[0-9a-fA-F]{3,8}\b(?=\s*[;,)])|\b(?:rgb|rgba|hsl|hsla)\(/g) || [], []);
     });
 
+    test('shows the volume handle while the slider is being dragged, like the old stylesheet (PC-04)', () => {
+        const code = css.replace(/\/\*[\s\S]*?\*\//g, '');
+        assert.match(code, /#volume-slider\.dragging #volume-knob[^{]*\{[^}]*opacity:\s*1/);
+    });
+
     test('does not use !important or transform (the engine writes inline styles on these elements, L-05)', () => {
         const code = css.replace(/\/\*[\s\S]*?\*\//g, '');
         assert.ok(!/!important/.test(code), 'no !important');
@@ -115,6 +120,34 @@ describe('player bar in the new shell with the real engine', { concurrency: fals
             const r = node.getBoundingClientRect();
             return { text: node.textContent, position: getComputedStyle(node).position, x: r.x, y: r.y, width: r.width, height: r.height, right: r.right, bottom: r.bottom, vw: window.innerWidth, vh: window.innerHeight };
         });
+
+    // PC-04: the volume handle is hidden at rest, and stays visible for the whole drag, also at zero and with the pointer
+    // outside the slider. The handle fades (motion token), so read the opacity after the fade.
+    const knobOpacity = async (page) => {
+        await page.waitForTimeout(400);
+        return page.evaluate(() => getComputedStyle(document.getElementById('volume-knob')).opacity);
+    };
+
+    test('the volume handle stays visible while dragging to zero with the pointer outside the bar, and hides again after release (PC-04)', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open();
+        const slider = await page.locator('#volume-slider').boundingBox();
+        const y = slider.y + slider.height / 2;
+        await page.mouse.move(5, 5);
+        assert.equal(await knobOpacity(page), '0', 'hidden at rest, as today');
+        await page.mouse.move(slider.x + slider.width * 0.5, y);
+        assert.equal(await knobOpacity(page), '1', 'shown on hover');
+        await page.mouse.down();
+        await page.mouse.move(slider.x - 120, y + 90, { steps: 6 }); // past the left end and below the bar: hover is lost
+        assert.equal(await page.evaluate(() => Math.round(audioElement.volume * 100)), 0, 'volume reached zero');
+        assert.equal(await page.evaluate(() => document.getElementById('volume-slider').matches(':hover')), false, 'pointer is outside the slider');
+        assert.equal(await knobOpacity(page), '1', 'handle still shown at zero during the drag');
+        await page.mouse.up();
+        await page.mouse.move(5, 5);
+        assert.equal(await knobOpacity(page), '0', 'hidden again after release with the pointer away');
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
 
     test('hovering the seek bar shows the time tooltip on screen, above the bar and centered on the pointer', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;

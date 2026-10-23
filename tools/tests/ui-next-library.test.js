@@ -310,7 +310,7 @@ describe('library panel in the new shell', { concurrency: false }, () => {
         const { page, errors } = await openShell();
         await page.click('.rail-btn[data-view="settings"]');
         const during = await page.evaluate(() => ({ stillInPage: !!document.getElementById('left-panel-main-content'), panelHidden: document.querySelector('.library-panel').hidden }));
-        assert.deepEqual(during, { stillInPage: true, panelHidden: true });
+        assert.deepEqual(during, { stillInPage: true, panelHidden: false }); // a main-view item leaves the Library panel as it is (DP2, PA-04)
         await page.click('.rail-btn[data-view="library"]');
         await page.waitForFunction(() => !document.querySelector('.library-panel').hidden);
         assert.ok((await titles(page)).length > 5);

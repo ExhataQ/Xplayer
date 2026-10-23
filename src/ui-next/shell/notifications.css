@@ -132,3 +132,60 @@
     flex: none;
     font-variant-numeric: tabular-nums;
 }
+
+/* ---------- PA-06: entries that point somewhere, entry buttons, bell motion ---------- */
+
+.notif--clickable {
+    cursor: pointer;
+}
+.notif__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+}
+
+/* The bell swings once when something new arrives, and on hover. It pivots near the top, like a real bell. */
+[aria-controls='notification-center'] svg {
+    transform-origin: 50% 15%;
+}
+[aria-controls='notification-center'][data-ring] svg {
+    animation: bell-ring 600ms var(--motion-ease);
+}
+[aria-controls='notification-center']:hover svg {
+    animation: bell-hover 360ms var(--motion-ease);
+}
+@keyframes bell-ring {
+    0% {
+        transform: rotate(0);
+    }
+    15% {
+        transform: rotate(18deg);
+    }
+    35% {
+        transform: rotate(-14deg);
+    }
+    55% {
+        transform: rotate(9deg);
+    }
+    75% {
+        transform: rotate(-5deg);
+    }
+    100% {
+        transform: rotate(0);
+    }
+}
+@keyframes bell-hover {
+    0% {
+        transform: rotate(0);
+    }
+    30% {
+        transform: rotate(10deg);
+    }
+    65% {
+        transform: rotate(-7deg);
+    }
+    100% {
+        transform: rotate(0);
+    }
+}

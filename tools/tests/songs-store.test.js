@@ -247,7 +247,7 @@ describe('main process hands out and updates the library through songs.json', ()
         }
         // The tag editor needs Python; stand in for it.
         fs.writeFileSync(path.join(copy, 'metadata-editor.js'),
-            "module.exports = { getAudioMetadata: async () => ({}), saveAudioCover: async () => ({}), saveAudioMetadata: async () => ({ success: true, metadata: { title: 'Edited title' } }) };");
+            "module.exports = { getAudioMetadata: async () => ({ success: true, metadata: { title: 'Old title' } }), saveAudioCover: async () => ({}), saveAudioMetadata: async () => ({ success: true, metadata: { title: 'Edited title' } }) };");
         handlers = {};
         listeners = {};
         const fake = {
@@ -283,5 +283,17 @@ describe('main process hands out and updates the library through songs.json', ()
         assert.equal(after[1].title, 'Edited title');
         assert.deepEqual(after[0], SONGS[0]);
         assert.equal(fs.existsSync(path.join(dir, 'player.js')), false, 'player.js is not created or touched');
+    });
+
+    test('saving tags for many files updates each song, returns what was there before, and rejects a bad request', async () => {
+        const dir = path.join(root, 'electron', 'MusicPlayerOutput');
+        store.writeSongs(dir, SONGS);
+        const result = await handlers['save-audio-metadata-many']({}, [{ fileUrl: SONGS[0].url, metadata: { title: 'Edited title' } }, { fileUrl: SONGS[1].url, metadata: { title: 'Edited title' } }]);
+        assert.equal(result.success, true);
+        assert.deepEqual(result.results.map((r) => [r.success, r.previous.title]), [[true, 'Old title'], [true, 'Old title']]);
+        assert.equal(store.readSongs(dir)[0].title, 'Edited title');
+        assert.equal((await handlers['save-audio-metadata-many']({}, 'nope')).success, false);
+        assert.equal((await handlers['save-audio-metadata-many']({}, [{ fileUrl: 5, metadata: {} }])).success, false);
+        assert.equal((await handlers['save-audio-metadata-many']({}, new Array(5001).fill({ fileUrl: 'a', metadata: {} }))).success, false);
     });
 });

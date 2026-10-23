@@ -29,7 +29,7 @@ describe('A-07 static rules', () => {
     test('the center reads the engine only through the bridge and the components', () => {
         const source = read('shell', 'notification-center.js');
         const imports = [...source.matchAll(/from\s+'([^']+)'/g)].map((m) => m[1]);
-        assert.deepEqual(imports.sort(), ['../adapter/notifications-bridge.js', '../components/index.js']);
+        assert.deepEqual(imports.sort(), ['../adapter/notifications-bridge.js', '../components/index.js', './notify.js']);
         assert.doesNotMatch(source, /\bwindow\s*\.\s*(?:notificationHistory|showNotification|removeNotificationItem|clearAllNotifications)/);
     });
 
@@ -111,16 +111,16 @@ describe('A-07 notification center with the real engine', { concurrency: false }
     test('only wording that says a failure is shown as an error; removals the engine calls errors are plain information', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open();
-        await notify(page, 'Failed to save', 'error');
         await notify(page, 'Playlist "Road" deleted', 'error');
         await notify(page, 'No song playing', 'warning');
         const role = async (text) => page.locator('.toast', { hasText: text }).getAttribute('role');
-        assert.equal(await role('Failed to save'), 'alert');
         assert.equal(await role('Playlist "Road" deleted'), 'status');
         assert.equal(await page.locator('.toast', { hasText: 'No song playing' }).getAttribute('data-kind'), 'info');
-        await bell(page).click();
+        await notify(page, 'Failed to save', 'error'); // the first failure opens the center by itself (PA-06), so it has no toast
+        assert.equal(await center(page).isVisible(), true, 'a failure opens the center');
+        assert.equal(await page.locator('.toast', { hasText: 'Failed to save' }).count(), 0);
         const kinds = await center(page).locator('.notif').evaluateAll((rows) => rows.map((r) => [r.querySelector('.notif__title').textContent, r.dataset.kind]));
-        assert.deepEqual(kinds, [['No song playing', 'warning'], ['Playlist "Road" deleted', 'info'], ['Failed to save', 'error']]);
+        assert.deepEqual(kinds, [['Failed to save', 'error'], ['No song playing', 'warning'], ['Playlist "Road" deleted', 'info']]);
         await page.close();
     });
 
@@ -256,6 +256,104 @@ describe('A-07 notification center with the real engine', { concurrency: false }
         await page.evaluate(() => completeCoverProgressNotification());
         await page.locator('.toast', { hasText: 'Album art finished loading' }).waitFor({ timeout: 2000 });
         assert.equal(await bell(page).getAttribute('data-dot'), 'unread');
+        await page.close();
+    });
+
+    // ---------------------------------------------------------------- PA-06: the notification API
+
+        test('PA-06: the first important entry opens the center without taking focus, and only the first one does', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page } = await open();
+        await page.locator('.rail-btn[data-view="search"]').focus();
+        await notify(page, 'Playlist saved', 'success');
+        assert.equal(await center(page).isVisible(), false, 'an ordinary entry does not open it');
+        await notify(page, 'Could not read file', 'error');
+        assert.equal(await center(page).isVisible(), true);
+        assert.equal(await page.evaluate(() => document.activeElement?.closest('#notification-center') === null), true, 'focus stays where it was');
+        await page.keyboard.press('Escape');
+        await notify(page, 'Download failed', 'error');
+        assert.equal(await center(page).isVisible(), false, 'it opens once per session');
+        assert.ok(await page.locator('.toast', { hasText: 'Download failed' }).count(), 'later failures are toasts');
+        await page.close();
+    });
+
+    test('PA-06: an entry with a target is clickable; it closes the center and opens the view', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page } = await open();
+        await page.evaluate(async () => {
+            const { notify } = await import(new URL('shell/notify.js', location.href).href);
+            notify({ title: 'LRC found', kind: 'success', where: 'center', target: { label: 'Open lyrics', view: 'lyrics' } });
+        });
+        assert.equal(await page.locator('.toast', { hasText: 'LRC found' }).count(), 0, 'a quiet entry has no toast');
+        assert.equal(await bell(page).getAttribute('data-dot'), 'unread', 'but the bell has its dot');
+        await bell(page).click();
+        await center(page).locator('.notif', { hasText: 'LRC found' }).getByRole('button', { name: 'Open lyrics' }).click();
+        assert.equal(await center(page).isVisible(), false);
+        assert.equal(await page.evaluate(() => document.querySelector('.view-host').dataset.view), 'lyrics');
+        await page.close();
+    });
+
+    test('PA-06: an action button (Undo) shows on the toast and in the center, and runs once', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page } = await open();
+        await page.evaluate(async () => {
+            const { notify } = await import(new URL('shell/notify.js', location.href).href);
+            window.undone = 0;
+            notify({ title: 'Moved 3 songs', action: { label: 'Undo', onClick: () => (window.undone += 1) } });
+        });
+        const toast = page.locator('.toast', { hasText: 'Moved 3 songs' });
+        await toast.waitFor({ timeout: 2000 });
+        await toast.getByRole('button', { name: 'Undo' }).click();
+        assert.equal(await page.evaluate(() => window.undone), 1);
+        await bell(page).click();
+        await center(page).locator('.notif', { hasText: 'Moved 3 songs' }).getByRole('button', { name: 'Undo' }).click();
+        assert.equal(await page.evaluate(() => window.undone), 2);
+        await page.close();
+    });
+
+    test('PA-06: where "toast" leaves no entry and where "both" is a toast and an entry', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page } = await open();
+        await page.evaluate(async () => {
+            const { notify } = await import(new URL('shell/notify.js', location.href).href);
+            notify({ title: 'Only a toast', where: 'toast' });
+            notify({ title: 'Both places', where: 'both' });
+        });
+        await page.locator('.toast', { hasText: 'Only a toast' }).waitFor({ timeout: 2000 });
+        await page.locator('.toast', { hasText: 'Both places' }).waitFor({ timeout: 2000 });
+        await bell(page).click();
+        assert.deepEqual(await center(page).locator('.notif__title').allInnerTexts(), ['Both places']);
+        await page.close();
+    });
+
+    test('PA-06: notifyProgress shows a bar that moves, can be cancelled, and done() moves it to Earlier with a toast', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page } = await open();
+        await page.evaluate(async () => {
+            const { notifyProgress } = await import(new URL('shell/notify.js', location.href).href);
+            window.cancelled = 0;
+            window.job = notifyProgress({ title: 'Finding lyrics', kind: 'job', onCancel: () => (window.cancelled += 1), target: { view: 'lyrics' } });
+            window.job.update({ percent: 40, status: '4 of 10' });
+        });
+        assert.equal(await bell(page).getAttribute('data-dot'), 'running');
+        await bell(page).click();
+        const row = center(page).locator('.notif-section[aria-label="In progress"] .notif', { hasText: 'Finding lyrics' });
+        assert.match(await row.innerText(), /4 of 10/);
+        assert.match(await row.innerText(), /40%/);
+        await row.getByRole('button', { name: 'Cancel task' }).click();
+        assert.equal(await page.evaluate(() => window.cancelled), 1);
+        await page.evaluate(() => window.job.done({ title: 'Found lyrics for 8 of 10', target: { label: 'Open results', view: 'lyrics' } }));
+        assert.equal(await center(page).locator('.notif-section[aria-label="In progress"]').count(), 0);
+        assert.equal(await center(page).locator('.notif-section[aria-label="Earlier"] .notif__title').innerText(), 'Found lyrics for 8 of 10');
+        await page.close();
+    });
+
+    test('PA-06: the bell swings when something new arrives and the attribute clears itself', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page } = await open();
+        await notify(page, 'Playlist saved', 'success');
+        assert.equal(await bell(page).evaluate((b) => b.hasAttribute('data-ring')), true);
+        await page.waitForFunction(() => !document.querySelector('.titlebar [aria-controls="notification-center"]').hasAttribute('data-ring'), null, { timeout: 3000 });
         await page.close();
     });
 

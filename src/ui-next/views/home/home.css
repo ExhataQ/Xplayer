@@ -1,0 +1,88 @@
+/* Home (task PB-15). Tokens only. The fade is a mask on each row: shelf.js sets data-fade-start / data-fade-end on a side
+   that still has more to scroll to, and the registered custom properties let the fade grow in instead of popping. */
+@property --fade-l { syntax: '<length>'; inherits: true; initial-value: 0px; }
+@property --fade-r { syntax: '<length>'; inherits: true; initial-value: 0px; }
+
+.home {
+    height: 100%;
+    overflow-y: auto;
+    padding: var(--space-6) 0 var(--space-8);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+}
+.home .empty-state { margin: auto; }
+
+.shelf { --fade-size: 48px; }
+.shelf[data-fade-start='true'] { --fade-l: var(--fade-size); }
+.shelf[data-fade-end='true'] { --fade-r: var(--fade-size); }
+
+.shelf__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-6);
+    margin-bottom: var(--space-3);
+}
+.shelf__title { font-size: var(--text-lg); font-weight: var(--weight-semibold); color: var(--text-primary); }
+.shelf__pager { display: flex; gap: var(--space-1); }
+.shelf[data-overflow='false'] .shelf__pager { visibility: hidden; }
+
+.shelf__row {
+    display: flex;
+    gap: var(--space-4);
+    overflow-x: auto;
+    padding: var(--space-1) var(--space-6) var(--space-2);
+    scroll-padding: 0 var(--space-6);
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+    transition: --fade-l 150ms ease, --fade-r 150ms ease;
+}
+.shelf__row::-webkit-scrollbar { display: none; }
+.shelf__item { flex: none; scroll-snap-align: start; }
+
+.shelf-card {
+    width: 148px;
+    padding: var(--space-2);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    border: 0;
+    border-radius: var(--radius-lg);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.shelf-card:hover { background: var(--control-hover-bg); }
+.shelf-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+.shelf-card__cover {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    aspect-ratio: 1;
+    margin-bottom: var(--space-2);
+    border-radius: var(--radius-md);
+    background: var(--surface-selected);
+    overflow: hidden;
+}
+.shelf-card--artist .shelf-card__cover { border-radius: var(--radius-pill); }
+.shelf-card__cover img { width: 100%; height: 100%; object-fit: cover; }
+.shelf-card__letter { font-size: var(--text-lg); color: var(--text-secondary); text-transform: uppercase; }
+.shelf-card__title,
+.shelf-card__sub {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    unicode-bidi: plaintext;
+    text-align: left;
+}
+.shelf-card__title { font-size: var(--text-sm); font-weight: var(--weight-medium); }
+.shelf-card__sub { font-size: var(--text-xs); color: var(--text-secondary); }
+
+@media (prefers-reduced-motion: reduce) {
+    .shelf__row { transition: none; }
+}

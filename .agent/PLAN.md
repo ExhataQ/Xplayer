@@ -1,6 +1,6 @@
 # PLAN: Polish 1
 
-**Status:** Not started. Decisions DP1 to DP10 are open (see `BOARD.md`).
+**Status:** Not started. Decisions DP1 to DP11 are open (see `BOARD.md`).
 **Previous plans:** event bus and renderer refactor, and the UI redesign ("ui-next"), both finished. The redesign is in `archive/ui-redesign/` (plan, board, design notes, reports).
 **Inputs:** [`POLISH-1-BRIEF.md`](./POLISH-1-BRIEF.md) (the owner's brainstorm, two rounds, 20 numbered round-2 items), the archived redesign decisions D1 to D64, and a read of the source in `Source-backup.zip` (2026-10-20).
 
@@ -33,6 +33,7 @@ Five agents work in parallel. Each has one area and a list of files it owns. Inv
 | Mouse back and forward | The engine handles mouse buttons 3 and 4 in `ui/06k` with its own `goBack` and `goForward`. The shell only mirrors the rail highlight and the lyrics view. Shell-owned views are not in the engine's history. | Likely why back and forward do not match what is on screen. Reproduce with a sequence matrix first. |
 | Undo and AI | Neither exists as a feature. Delete confirmations say "cannot be undone". I found undo only in the lyrics editor code (not checked in detail). A smart shuffle (`playback/10b`) and language detection (`lyrics/21`) exist and can be reused. | Agent E builds one journal and a fixed action list. |
 | Adapter budgets are already spent | D18 allowed 300 lines across `store`, `actions`, `events` and `engine-view`. They total 318 (67 + 96 + 51 + 104), or 408 with `engine-api` (D30). `legacy-dom-adapter.js` is 205 of its 250 (D13). | Every task below that needs a new engine call needs a budget decision first (DP9). |
+| Right panel (new idea, owner 2026-10-21) | The new screen has a left panel host and one `view-host`; nothing sits to the right of the main view. Lyrics today is a main view (`mountLyricsModes`), and the big cover is `views/playback/cover-viewer.js`. The queue is its own surface. | Add a shell-owned right panel that pushes the list narrower and shows lyrics mostly, with the big picture mode cover (old design) in it. Agent A investigates the slot (PA-16); Agent C fills it (PC-13). Decision DP11; independent of DP3. |
 | Missing template | `AGENTS.md` and `claude.md` name `.agent/reports/TEMPLATE.md`, but it is not in the archive. | Added in this change. |
 
 ## 3. Scope and rules
@@ -69,7 +70,7 @@ Shared files and who decides: `electron/preload.js` and `electron/main.js` are e
 
 ### Wave 0: decisions and investigations (owner and all agents)
 - Owner answers DP1 to DP10.
-- Investigations, each ending in a report with a recommendation: PA-01 (unified color), PB-01 (list rendering), PC-01 (cover layouts), PD-01 (tag backend), PE-01 (AI provider).
+- Investigations, each ending in a report with a recommendation: PA-01 (unified color), PA-16 (right panel), PB-01 (list rendering), PC-01 (cover layouts), PD-01 (tag backend), PE-01 (AI provider).
 - The old-screen audits (item #18): PA-15, PB-17, PC-12, PD-09. Each lists what the old screen fixed that the new one lacks.
 - Owner runs the Electron checks nobody ran (PO-01).
 
@@ -81,9 +82,9 @@ Shared files and who decides: `electron/preload.js` and `electron/main.js` are e
 - E: PE-02 provider and key storage, PE-03 action pipeline, PE-04 undo journal.
 
 ### Wave 2: features
-- A: rail and title bar merge, menu, Play from URL, settings layout, scroll bar.
+- A: right panel slot (PA-16 result), rail and title bar merge, menu, Play from URL, settings layout, scroll bar.
 - B: panel contents, folder and playlist creation, sorting, context menu, home.
-- C: layout build, big picture mode, lyrics tools.
+- C: layout build, big picture mode, lyrics tools, right panel content (PC-13).
 - D: editor redesign, multi editor, original-release lookup.
 - E: reorganize, translate, AI shuffle, AI metadata, chat UI.
 
@@ -107,3 +108,18 @@ Shared files and who decides: `electron/preload.js` and `electron/main.js` are e
 ## 7. Delivery
 
 Each task delivers a `.patch` with its report under `.agent/reports/`. Only A edits `tools/CHANGELOG.md`, after integration and verification. The board tracks status; the brief is the source of what the owner asked for.
+
+## 8. Session notes, Agent D (2026-10-21)
+
+Owner instructions for this session, recorded so the next agent sees them:
+
+1. **Run the app when possible.** Electron cannot start in the agent sandbox (no `node_modules`, no network). A browser copy of `ui-next` can: build it with `tools/tests/helpers/app-fixture.js` (`buildApp`), copy `src/ui-next` in, stub `window.electronAPI`, open in Chromium. Tag reading needs a stub that returns tag data. Screenshots from this copy are evidence of layout only, not of tag writing.
+2. **Ask before changing, with visuals.** When there are several design cases, show every case as a small, cheap wireframe and let the owner pick, before building.
+3. **Right panel (awareness only).** The "right panel" is the app's right side from brief section 5 (cover and lyrics). It is **not** used by Metadata: all metadata tools live in the main view. Agent D builds no right panel.
+4. **Assume Agent A's work exists for this session only:** panel slot API (PA-04), rail with Metadata above Settings (PA-03, PD-07), notification API with progress, click target and Undo (PA-06). Agent D calls them and does not build them. If a call turns out missing, report it, do not work around it.
+5. **Archive rule.** `E:\Backup\...` is not reachable from the sandbox. The sandbox snapshot is `archive/G1/Source` (a copy of the uploaded zip). The owner still snapshots before applying patches (PO-02).
+
+**Decided by the owner:** single editor layout is 1A (cover left, fields right, "More tags" below, Cancel and Save bar).
+
+**Multi editor, decided by the owner:** one screen in the main view that works like a spreadsheet in function (not in looks). Load songs (a whole playlist, album, selection or search) as rows; tag columns (genre, artist, album, year and so on) are editable in place; choose or create a tag or name and apply it to the checked rows; add, change or remove values on many rows at once. Default when a song already has a value: **Add** (keep old values); Replace and Remove are explicit. Everything on one screen, not in separate parts. Mixed values stay a safety rule. Nothing is written without a preview and an undo entry (plan rule 9).
+Saving: **review, then apply all** (no per-edit saving). Songs are the rows: the person loads songs into the sheet (playlist, album, selection, search) and can take rows out; taking a row out never deletes the song or the file. **Columns are chosen by the person**: add a Composer column and it shows the composer of every loaded song; remove a column to hide it. The sheet is built around a small plain set of actions (load songs, set columns, set or add a value on rows, preview, apply, undo) so the AI (Agent E) can drive the same sheet later; no AI code is written by D. Built in steps: 1 tag service, 2 editor 1A, 3 sheet with columns, 4 bulk apply with review, 5 actions for the AI.

@@ -101,7 +101,7 @@ section(
 
 /* Tooltip */
 const staticTip = (parts) => {
-    const node = el('div', { class: 'tooltip static', role: 'presentation' }, el('div', { class: 'tooltip__head' }, el('span', { class: 'tooltip__name' }, parts.name), parts.state ? el('span', { class: 'tooltip__state' }, parts.state) : '', parts.shortcut ? el('kbd', { class: 'tooltip__shortcut' }, parts.shortcut) : ''), parts.description ? el('div', { class: 'tooltip__description' }, parts.description) : '');
+    const node = el('div', { class: 'tooltip static', role: 'presentation' }, el('div', { class: 'tooltip__head' }, el('span', { class: 'tooltip__name' }, parts.name), parts.state ? el('span', { class: 'tooltip__state' }, parts.state) : '', parts.shortcut ? el('kbd', { class: 'tooltip__shortcut' }, ...String(parts.shortcut).split(/(?<=.)\+(?=.)/).map((key) => el('span', { class: 'tooltip__key' }, key))) : ''), parts.description ? el('div', { class: 'tooltip__description' }, parts.description) : '');
     return node;
 };
 const hoverTarget = button({ label: 'Hover me (500 ms delay)', variant: 'outline' });

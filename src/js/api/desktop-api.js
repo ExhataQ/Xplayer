@@ -66,6 +66,7 @@ export const desktopApi = (function () {
         metadata: {
             getAudioMetadata: 'invoke',
             saveAudioMetadata: 'invoke',
+            saveAudioMetadataMany: 'invoke',
             exportAudioMetadataJson: 'invoke',
             importAudioMetadataJson: 'invoke',
             searchOnlineMetadata: 'invoke',

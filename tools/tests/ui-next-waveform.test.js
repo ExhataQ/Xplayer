@@ -67,10 +67,10 @@ describe('waveform.js in a browser', { concurrency: false }, () => {
         try { const r = await eval(`(async()=>{${body}})()`); return { r, fetches: n }; } finally { window.XMLHttpRequest = origin; W.setBytesReader(null); }
     }, [fn, injected]);
 
-    test('computePeaks takes the loudest sample per slice and scales the loudest bin to 255', TEST_OPTIONS, async (t) => {
+    test('computePeaks takes the average level per slice and stretches it between the track\'s quiet floor and loud ceiling (PC-03)', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const out = await page.evaluate(() => Array.from(W.computePeaks([new Float32Array([0, 0.1, -0.5, 0.25])], 4)));
-        assert.deepEqual(out, [0, 51, 255, 128]);
+        assert.deepEqual(out, [0, 31, 255, 117]);
         assert.deepEqual(await page.evaluate(() => Array.from(W.computePeaks([], 3))), [0, 0, 0]);
         assert.deepEqual(await page.evaluate(() => Array.from(W.computePeaks([new Float32Array(10)], 3))), [0, 0, 0]);
     });
@@ -83,7 +83,7 @@ describe('waveform.js in a browser', { concurrency: false }, () => {
         assert.ok(max(0, 240) <= 2, 'first second is silent');
         assert.ok(max(260, 490) >= 250, 'second second is the loudest');
         const quiet = max(510, 740);
-        assert.ok(quiet > 20 && quiet < 40, `third second is about 0.1/0.9 of the loudest (${quiet})`);
+        assert.ok(quiet >= 15 && quiet <= 40, `third second is about 0.1/0.9 of the loudest, a little lower after the contrast curve (${quiet})`);
         assert.ok(max(760, 1000) <= 2, 'last second is silent');
     });
 

@@ -90,6 +90,7 @@ describe('A-10 appearance and resizing with the real engine', { concurrency: fal
     const token = (page, name) => page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), name);
     const goto = async (page, view) => {
         await page.locator(`.rail-btn[data-view="${view}"]`).click();
+        if (view === 'settings') await page.locator('.settings-card[data-page="general"]').click(); // Settings opens on a hub; Appearance is on General
         await page.waitForTimeout(150);
     };
     const section = (page) => page.locator('.view-host .appearance');

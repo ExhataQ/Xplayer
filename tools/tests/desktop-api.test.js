@@ -19,7 +19,7 @@ const ORIGINAL_FLAT_NAMES = [
     'addMusicFolder', 'removeMusicFolder', 'removeMusicFolders', 'rebuildFromFolders', 'getFolderStats',
     'saveLyricsFile', 'readLyricsFile', 'pickDownloadFolder', 'resetDownloadFolder', 'getDownloadFolder',
     'searchOnlineLyrics', 'downloadOnlineLyrics', 'searchOnlineMetadata', 'getOnlineMetadata', 'saveAudioCover',
-    'chooseCoverImage', 'getAudioMetadata', 'saveAudioMetadata', 'exportAudioMetadataJson', 'importAudioMetadataJson',
+    'chooseCoverImage', 'getAudioMetadata', 'saveAudioMetadata', 'saveAudioMetadataMany', 'exportAudioMetadataJson', 'importAudioMetadataJson',
     'onThumbarPrev', 'onThumbarPlayPause', 'onThumbarNext', 'onWindowMaximize', 'onScanCoverBatch',
     'onScanCoversComplete', 'updateThumbarPlayState'
 ];
@@ -93,7 +93,7 @@ const ORIGINAL_CHANNELS = {
     downloadOnlineLyrics: ['invoke', 'download-online-lyrics'], searchOnlineMetadata: ['invoke', 'search-online-metadata'],
     getOnlineMetadata: ['invoke', 'get-online-metadata'], saveAudioCover: ['invoke', 'save-audio-cover'],
     chooseCoverImage: ['invoke', 'choose-cover-image'], getAudioMetadata: ['invoke', 'get-audio-metadata'],
-    saveAudioMetadata: ['invoke', 'save-audio-metadata'], exportAudioMetadataJson: ['invoke', 'export-audio-metadata-json'],
+    saveAudioMetadata: ['invoke', 'save-audio-metadata'], saveAudioMetadataMany: ['invoke', 'save-audio-metadata-many'], exportAudioMetadataJson: ['invoke', 'export-audio-metadata-json'],
     importAudioMetadataJson: ['invoke', 'import-audio-metadata-json'], onThumbarPrev: ['on', 'thumbar-prev'],
     onThumbarPlayPause: ['on', 'thumbar-playpause'], onThumbarNext: ['on', 'thumbar-next'],
     onWindowMaximize: ['on', 'window-maximized'], onScanCoverBatch: ['on', 'scan-cover-batch'],

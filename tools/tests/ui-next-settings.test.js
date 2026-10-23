@@ -85,9 +85,11 @@ describe('Settings in the new shell', { concurrency: false }, () => {
         await page.evaluate(() => (window.__songList = document.getElementById('song-list')));
         return { page, errors };
     }
-    const toSettings = async (page) => {
+    // Settings opens on a hub of cards (shell/settings-layout.js); `group` opens that card's page.
+    const toSettings = async (page, group) => {
         await page.click('.rail-btn[data-view="settings"]');
         await page.waitForSelector('.view-host .settings-panel-content');
+        if (group) await page.click(`.settings-card[data-page="${group}"]`);
     };
 
     test('opens from the rail inside the view host, with the engine node identity intact and no page error', TEST_OPTIONS, async (t) => {
@@ -115,7 +117,7 @@ describe('Settings in the new shell', { concurrency: false }, () => {
     test('the page scrolls inside the host (constrained height), the window itself does not', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open();
-        await toSettings(page);
+        await toSettings(page, 'playback');
         const r = await page.evaluate(() => {
             const c = document.querySelector('.view-host .content');
             c.scrollTop = 500;
@@ -146,7 +148,7 @@ describe('Settings in the new shell', { concurrency: false }, () => {
     test('a checkbox is a real control: clicking Minimize to taskbar changes the engine setting', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open();
-        await toSettings(page);
+        await toSettings(page, 'general');
         const read = () => page.evaluate(() => getWindowSettings().minimizeOnClose);
         const before = await read();
         await page.locator('.settings-toggle-row', { hasText: 'Minimize to taskbar' }).click();
@@ -158,7 +160,7 @@ describe('Settings in the new shell', { concurrency: false }, () => {
     test('a select changes the engine setting (Smart Shuffle: genre flow)', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open();
-        await toSettings(page);
+        await toSettings(page, 'playback');
         const row = page.locator('.settings-threshold-row', { hasText: 'Genre flow' }).locator('select');
         await row.selectOption('strong');
         assert.equal(await page.evaluate(() => getSmartShuffleSettings().genreFlow), 'strong');
@@ -191,28 +193,35 @@ describe('Settings in the new shell', { concurrency: false }, () => {
         await page.close();
     });
 
-    test('Change Music Folder, Add Folder and Remove Folder buttons are on screen and styled as buttons', TEST_OPTIONS, async (t) => {
+    test('Add Folder, Remove Folder, Save, Export Data and Advanced Settings are on screen and styled as buttons; the legacy folder button is not', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open();
-        await toSettings(page);
-        const r = await page.evaluate(() => {
-            const b = (text) => [...document.querySelectorAll('.view-host button')].find((x) => x.textContent.includes(text));
-            const out = {};
-            for (const text of ['Change Music Folder', 'Add Folder', 'Remove Folder', 'Save and Apply Changes', 'Export Data', 'Advanced Settings']) {
-                const el = b(text);
-                const cs = el && getComputedStyle(el);
-                out[text] = !!el && cs.borderTopWidth === '1px' && el.getBoundingClientRect().height >= 28;
-            }
-            return out;
-        });
-        assert.deepEqual(Object.values(r), Array(6).fill(true), JSON.stringify(r));
+        const styled = (labels) =>
+            page.evaluate((list) => {
+                const b = (text) => [...document.querySelectorAll('.view-host button')].find((x) => x.textContent.includes(text));
+                const out = {};
+                for (const text of list) {
+                    const el = b(text);
+                    const cs = el && getComputedStyle(el);
+                    out[text] = !!el && el.getClientRects().length > 0 && cs.borderTopWidth === '1px' && el.getBoundingClientRect().height >= 28;
+                }
+                return out;
+            }, labels);
+        await toSettings(page, 'library');
+        const lib = await styled(['Add Folder', 'Remove Folder', 'Save and Apply Changes']);
+        assert.deepEqual(Object.values(lib), [true, true, true], JSON.stringify(lib));
+        assert.equal(await page.locator('.view-host button', { hasText: 'Change Music Folder' }).isVisible(), false);
+        await page.click('.settings-back');
+        await page.click('.settings-card[data-page="data"]');
+        const data = await styled(['Export Data', 'Advanced Settings']);
+        assert.deepEqual(Object.values(data), [true, true], JSON.stringify(data));
         await page.close();
     });
 
     test('Advanced Settings: opens, the back arrow is drawn (no leftover icon text), the slider moves the engine threshold, back returns', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open();
-        await toSettings(page);
+        await toSettings(page, 'data');
         await page.locator('.settings-action-btn', { hasText: 'Advanced Settings' }).click();
         await page.waitForSelector('.settings-advanced-header');
         const back = await page.evaluate(() => {
@@ -231,31 +240,42 @@ describe('Settings in the new shell', { concurrency: false }, () => {
         assert.ok(await box.isVisible());
         await page.click('.settings-advanced-back-btn');
         await page.waitForSelector('.settings-panel-title:not([style])');
-        assert.match(await page.locator('.settings-panel-title').first().innerText(), /^Settings$/);
+        await page.waitForSelector('.settings-panel-content[data-settings-page="data"]'); // back from Advanced returns to the page it was opened from
+        assert.match(await page.locator('.settings-panel-title').first().innerText(), /^Data$/);
         assert.deepEqual(errors, []);
         await page.close();
     });
 
-    test('800 x 600: nothing is wider than the host and no horizontal scroll', TEST_OPTIONS, async (t) => {
+    test('800 x 600: on the hub and on every page nothing is wider than the host and there is no horizontal scroll', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open({ width: 800, height: 600 });
         await toSettings(page);
-        const r = await page.evaluate(() => {
-            const c = document.querySelector('.view-host .content');
-            const w = c.clientWidth;
-            const wide = [...document.querySelectorAll('.settings-panel-content *')].filter((e) => e.getBoundingClientRect().right > c.getBoundingClientRect().left + w + 1).length;
-            return { hScroll: c.scrollWidth > c.clientWidth + 1, wide };
-        });
-        assert.deepEqual(r, { hScroll: false, wide: 0 });
+        const measure = () =>
+            page.evaluate(() => {
+                const c = document.querySelector('.view-host .content');
+                const w = c.clientWidth;
+                const wide = [...document.querySelectorAll('.settings-panel-content *')].filter((e) => e.getClientRects().length && e.getBoundingClientRect().right > c.getBoundingClientRect().left + w + 1).length;
+                return { hScroll: c.scrollWidth > c.clientWidth + 1, wide };
+            });
+        assert.deepEqual(await measure(), { hScroll: false, wide: 0 }, 'hub');
+        for (const id of ['general', 'playback', 'library', 'data']) {
+            await page.click(`.settings-card[data-page="${id}"]`);
+            assert.deepEqual(await measure(), { hScroll: false, wide: 0 }, id);
+            await page.click('.settings-back');
+        }
         await page.close();
     });
 
-    test('text contrast 4.5:1 on the page surface: title, section titles, labels, hints, inputs; three themes', TEST_OPTIONS, async (t) => {
+    test('text contrast 4.5:1 on the page and card surfaces: title, section titles, labels, hints, inputs, hub cards; three themes on every page', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open();
         await toSettings(page);
+        const pages = ['hub', 'general', 'playback', 'library', 'data'];
         for (const theme of ['warm-graphite', 'deep-forest', 'espresso-copper']) {
-            const bad = await page.evaluate((name) => {
+            const bad = [];
+            for (const id of pages) {
+                if (id !== 'hub') await page.click(`.settings-card[data-page="${id}"]`);
+                bad.push(...(await page.evaluate(([name, where]) => {
                 document.documentElement.setAttribute('data-theme', name);
                 const parse = (c) => c.match(/[\d.]+/g).slice(0, 3).map(Number);
                 const lum = (rgb) => {
@@ -274,15 +294,17 @@ describe('Settings in the new shell', { concurrency: false }, () => {
                     return 'rgb(0, 0, 0)';
                 };
                 const out = [];
-                const sels = ['.settings-panel-title', '.settings-section-title', '.settings-toggle-row span', '.settings-threshold-row > span', '.settings-threshold-hint', '.settings-threshold-row select', '.settings-action-btn', '.library-locations-rebuild-btn'];
+                const sels = ['.settings-card__title', '.settings-card__summary', '.settings-panel-sub', '.settings-panel-title', '.settings-section-title', '.settings-toggle-row span', '.settings-threshold-row > span', '.settings-threshold-hint', '.settings-threshold-row select', '.settings-action-btn', '.library-locations-rebuild-btn'];
                 for (const sel of sels) {
                     const el = document.querySelector(sel);
                     if (!el) continue;
                     const r = ratio(getComputedStyle(el).color, bg(el));
-                    if (r < 4.5) out.push(`${name} ${sel} ${r.toFixed(2)}`);
+                    if (r < 4.5) out.push(`${name} ${where} ${sel} ${r.toFixed(2)}`);
                 }
                 return out;
-            }, theme);
+            }, [theme, id])));
+                if (id !== 'hub') await page.click('.settings-back');
+            }
             assert.deepEqual(bad, []);
         }
         await page.close();

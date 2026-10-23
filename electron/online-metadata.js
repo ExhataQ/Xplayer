@@ -293,7 +293,12 @@ async function searchOnlineMetadata({ fileUrl, title, artist, album, duration, s
                     country: release.country || '',
                     releaseGroupId: release['release-group']?.id || '',
                     firstReleaseDate: release.date || '',
-                    recordingId: recording.id || ''
+                    recordingId: recording.id || '',
+                    // used by electron/release-rank.js to tell an album from a compilation, a live release or a bootleg
+                    status: release.status || '',
+                    primaryType: release['release-group']?.['primary-type'] || '',
+                    secondaryTypes: release['release-group']?.['secondary-types'] || [],
+                    recordingScore: Number(recording.score) || 0
                 });
             }
         }

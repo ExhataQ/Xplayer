@@ -2,7 +2,8 @@
  * it through the engine's own class names, scoped to the view host so nothing leaks. Tokens only
  * (tools/tests/ui-next-settings.test.js). Behavior and persistence stay in the engine.
  *
- * Layout: one centered column, sections separated by a subtle rule, a label on the left and its control on the right.
+ * Layout: one centered column. Settings opens on a hub of cards (shell/settings-layout.js); each card opens a page whose sections are
+ * cards too, a label on the left and its control on the right.
  * Engine inline styles (the red Remove Folder button, hint margins) are left alone; see the report for the one that is overridden.
  */
 
@@ -12,7 +13,7 @@
 
 .view-host[data-engine='settings'] .settings-panel-content {
     box-sizing: border-box;
-    width: min(680px, 100%);
+    width: min(720px, 100%);
     margin: 0 auto;
     padding: var(--space-8) var(--space-6) var(--space-8);
     color: var(--text-primary);
@@ -31,7 +32,133 @@
 .settings-panel-actions {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: var(--space-4);
+}
+/* hidden must win over the display rules of the pages and cards below */
+.settings-panel-content [hidden] {
+    display: none !important;
+}
+/* The engine writes Font Awesome icons (<i class="fas fa-...">) in its buttons. The new screen does not load that font, so each one is an
+   empty box that pushes the label off center. The old swatch icons are in a block that is hidden already. */
+.settings-panel-content i.fas {
+    display: none;
+}
+
+/* ---------- header and hub (PA-11, shell/settings-layout.js) ---------- */
+
+.settings-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-6);
+}
+.settings-head__text {
+    min-width: 0;
+}
+.settings-head .settings-panel-title {
+    margin: 0;
+}
+.settings-head .settings-panel-title:focus {
+    outline: none; /* it only takes focus when a page opens, so a screen reader says where you are */
+}
+.settings-panel-sub {
+    margin-top: var(--space-1);
+    color: var(--text-secondary);
+    font-size: var(--text-md);
+}
+.settings-back {
+    flex: none;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-pill);
+    background: var(--surface-panel);
+}
+.settings-back:hover {
+    background: var(--surface-selected);
+}
+
+.settings-hub {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-3);
+}
+.settings-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    box-sizing: border-box;
+    padding: var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--surface-panel);
+    color: var(--text-primary);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
+}
+.settings-card:hover {
+    border-color: var(--border-strong);
+    background: var(--surface-selected);
+}
+.settings-card:active {
+    background: var(--control-active-bg);
+}
+.settings-card:focus-visible,
+.settings-back:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+.settings-card__icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+.settings-card__text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.settings-card__title {
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+}
+.settings-card__summary {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    line-height: 1.4;
+}
+.settings-card__chevron {
+    flex: none;
+    color: var(--text-tertiary);
+    transition: color var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
+}
+.settings-card:hover .settings-card__chevron {
+    color: var(--text-primary);
+    transform: translateX(2px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .settings-hub.is-entering,
+    .settings-panel-actions.is-entering {
+        animation: settings-enter 200ms var(--motion-ease) both;
+    }
+}
+@keyframes settings-enter {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
 }
 
 /* ---------- sections ---------- */
@@ -40,9 +167,11 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
-    margin-top: var(--space-6);
-    padding-top: var(--space-6);
-    border-top: 1px solid var(--border-subtle);
+    box-sizing: border-box;
+    padding: var(--space-4) var(--space-6) var(--space-6);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--surface-panel);
 }
 .settings-section-title,
 .library-locations-title {
@@ -128,8 +257,14 @@
     min-height: var(--button-height);
 }
 .settings-toggle-row {
+    flex-direction: row-reverse; /* the switch sits at the end of the row, like every other control */
+    justify-content: space-between;
     cursor: pointer;
     border-radius: var(--radius-md);
+}
+.settings-section > :is(.settings-toggle-row, .settings-threshold-row, .appearance__row) + :is(.settings-toggle-row, .settings-threshold-row, .appearance__row) {
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-subtle);
 }
 .settings-toggle-row:hover {
     color: var(--text-primary);
@@ -149,11 +284,41 @@
 }
 
 .settings-toggle-row input[type='checkbox'] {
+    position: relative;
     flex: none;
-    width: 16px;
-    height: 16px;
+    width: 34px;
+    height: 20px;
     margin: 0;
-    accent-color: var(--accent);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-pill);
+    background: var(--surface-selected);
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
+}
+.settings-toggle-row input[type='checkbox']::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: var(--radius-pill);
+    background: var(--text-secondary);
+    transition: transform var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease);
+}
+.settings-toggle-row input[type='checkbox']:checked {
+    border-color: var(--accent);
+    background: var(--accent);
+}
+.settings-toggle-row input[type='checkbox']:checked::after {
+    background: var(--text-on-accent);
+    transform: translateX(14px);
+}
+.settings-toggle-row input[type='checkbox']:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
 }
 .settings-threshold-row input[type='range'] {
     flex: 0 1 220px;
@@ -245,9 +410,11 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
-    margin-top: var(--space-6);
-    padding-top: var(--space-6);
-    border-top: 1px solid var(--border-subtle);
+    box-sizing: border-box;
+    padding: var(--space-4) var(--space-6) var(--space-6);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--surface-panel);
 }
 .library-locations-header {
     display: flex;
@@ -262,8 +429,8 @@
 }
 .library-locations-list-container {
     border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-lg);
-    background: var(--surface-panel);
+    border-radius: var(--radius-md);
+    background: var(--surface-ground);
 }
 .library-locations-list {
     max-height: 240px;
@@ -375,6 +542,7 @@
 .settings-advanced-body {
     display: flex;
     flex-direction: column;
+    gap: var(--space-4);
 }
 
 /* The threshold slider gets its fill from an inline gradient the engine updates; only size and thumb are styled here. */
@@ -429,4 +597,51 @@
     height: 16px;
     margin: 0;
     accent-color: var(--accent);
+}
+
+/* ---------- keyboard shortcuts page (PA-11, shell/shortcuts-page.js) ---------- */
+
+.shortcuts {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    max-height: 60vh;
+    overflow-y: auto;
+}
+.shortcuts__title {
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+}
+.shortcuts__list {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--space-2) var(--space-6);
+    margin: 0;
+}
+.shortcuts__list dt {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.shortcuts__list dd {
+    margin: 0;
+    text-align: right;
+    white-space: nowrap;
+}
+.shortcuts__combo {
+    display: inline-flex;
+    gap: var(--space-1);
+}
+.shortcuts__key {
+    min-width: 18px;
+    padding: 0 var(--space-2);
+    border: 1px solid var(--border-strong);
+    border-bottom-width: 2px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-ground);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-xs);
+    line-height: 18px;
+    text-align: center;
 }

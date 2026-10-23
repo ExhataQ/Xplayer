@@ -118,17 +118,75 @@
 
 /* ---------- cover ---------- */
 
+/* Layout 1A (owner's choice): the cover and its button in a left column, the fields in a right column, "More tags" under the fields.
+   Toolbar, online results and the Cancel/Save bar span both columns. One column on a narrow window. */
+.view-host[data-engine-panel='metadata'] .metadata-editor-content {
+    display: grid;
+    grid-template-columns: minmax(10rem, 13rem) minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    align-content: start;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-content > :is(.metadata-editor-toolbar, .metadata-online-results, .metadata-editor-actions, .metadata-editor-state) {
+    grid-column: 1 / -1;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-content > .metadata-editor-toolbar {
+    grid-row: 1;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-content > .metadata-online-results {
+    grid-row: 2;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-content > .metadata-editor-actions {
+    grid-row: 4;
+}
 .view-host[data-engine-panel='metadata'] .metadata-editor-top {
+    grid-column: 1;
+    grid-row: 3;
     display: flex;
-    align-items: center;
-    gap: var(--space-4);
-    padding: var(--space-6) var(--space-6) var(--space-2);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-6) 0 var(--space-2) var(--space-6);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-content > .metadata-editor-fields {
+    grid-column: 2;
+    grid-row: 3;
+    display: flex;
+    flex-direction: column;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-fields > .metadata-more-toggle-row {
+    order: 1;
+    margin-top: var(--space-4);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-fields > .metadata-other-section {
+    order: 2;
+}
+@media (max-width: 760px) {
+    .view-host[data-engine-panel='metadata'] .metadata-editor-content {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .view-host[data-engine-panel='metadata'] .metadata-editor-top,
+    .view-host[data-engine-panel='metadata'] .metadata-editor-content > .metadata-editor-fields {
+        grid-column: 1;
+    }
+    .view-host[data-engine-panel='metadata'] .metadata-editor-top,
+    .view-host[data-engine-panel='metadata'] .metadata-editor-content > .metadata-editor-fields {
+        grid-row: auto;
+    }
+    .view-host[data-engine-panel='metadata'] .metadata-editor-content > :is(.metadata-editor-toolbar, .metadata-online-results, .metadata-editor-actions) {
+        grid-row: auto;
+    }
+    .view-host[data-engine-panel='metadata'] .metadata-editor-top {
+        flex-direction: row;
+        align-items: center;
+        padding-right: var(--space-6);
+    }
 }
 .view-host[data-engine-panel='metadata'] .metadata-cover-box {
     position: relative;
     flex: none;
-    width: 112px;
-    height: 112px;
+    width: 100%;
+    max-width: 11rem;
+    aspect-ratio: 1;
     padding: 0;
     overflow: hidden;
     border: 1px solid var(--border-strong);
@@ -350,6 +408,295 @@
     color: var(--text-secondary);
     font-size: var(--text-sm);
     font-weight: var(--weight-regular);
+}
+
+/* One song | Many songs switch, and the tag sheet (tag-sheet.js). Tokens only. */
+.view-host[data-engine-panel='metadata'] > .metadata-mode {
+    display: flex;
+    justify-content: center;
+    padding: var(--space-3) var(--space-6) 0;
+}
+.view-host[data-engine-panel='metadata'][data-metadata-mode='many'] > :is(.panel-content, .empty-state),
+.view-host[data-engine-panel='metadata'][data-metadata-mode='one'] > .tag-sheet-host {
+    display: none;
+}
+.tag-sheet {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-6) var(--space-6);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+}
+.tag-sheet :is(select, input[type='text']) {
+    background: var(--surface-raised);
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: var(--space-1) var(--space-2);
+    font: inherit;
+}
+.tag-sheet__toolbar,
+.tag-sheet__apply-row,
+.tag-sheet__popular,
+.tag-sheet__footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+.tag-sheet__apply {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background: var(--surface-panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+}
+.tag-sheet__value {
+    flex: 1 1 14rem;
+    min-width: 0;
+}
+.tag-sheet__button {
+    background: var(--surface-raised);
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: var(--space-1) var(--space-3);
+    font: inherit;
+    cursor: pointer;
+}
+.tag-sheet__button:hover:not(:disabled) {
+    background: var(--control-hover-bg);
+}
+.tag-sheet__button:disabled {
+    opacity: var(--control-disabled-opacity);
+    cursor: default;
+}
+.tag-sheet__button.is-primary {
+    background: var(--accent);
+    color: var(--text-on-accent);
+    border-color: var(--accent);
+}
+.tag-sheet__chip {
+    background: var(--surface-raised);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-pill);
+    padding: 0 var(--space-2);
+    font: inherit;
+    font-size: var(--text-xs);
+    cursor: pointer;
+}
+.tag-sheet__chip:hover {
+    color: var(--text-primary);
+    background: var(--control-hover-bg);
+}
+.tag-sheet__hint,
+.tag-sheet__loading {
+    color: var(--text-tertiary);
+    font-size: var(--text-xs);
+}
+.tag-sheet__spacer {
+    flex: 1;
+}
+.tag-sheet__columns {
+    position: relative;
+}
+.tag-sheet__columns summary {
+    cursor: pointer;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface-raised);
+}
+.tag-sheet__column-list {
+    position: absolute;
+    z-index: 2;
+    display: grid;
+    gap: var(--space-1);
+    min-width: 11rem;
+    margin-top: var(--space-1);
+    padding: var(--space-2) var(--space-3);
+    background: var(--surface-raised);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+}
+.tag-sheet__column-list label {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+}
+.tag-sheet__scroll {
+    overflow: auto;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+}
+.tag-sheet__table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.tag-sheet__table th {
+    position: sticky;
+    top: 0;
+    text-align: start;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--surface-panel);
+    border-bottom: 1px solid var(--border-strong);
+    padding: var(--space-2);
+    white-space: nowrap;
+}
+.tag-sheet__table td {
+    padding: var(--space-1) var(--space-2);
+    border-bottom: 1px solid var(--border-subtle);
+    max-width: 16rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.tag-sheet__table tr.is-checked td {
+    background: var(--surface-selected);
+}
+.tag-sheet__check {
+    width: 2rem;
+}
+.tag-sheet__cell:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+}
+.tag-sheet__cell.is-changed {
+    box-shadow: inset 3px 0 0 var(--accent);
+    background: var(--accent-soft);
+}
+.tag-sheet__tag {
+    display: inline-block;
+    margin-inline-end: var(--space-1);
+    padding: 0 var(--space-2);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-xs);
+}
+.tag-sheet__editor {
+    width: 100%;
+    box-sizing: border-box;
+}
+.tag-sheet__empty {
+    padding: var(--space-8) var(--space-4);
+    text-align: center;
+    color: var(--text-secondary);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+}
+.tag-sheet__review-scroll {
+    max-height: 50vh;
+    overflow: auto;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+}
+.tag-sheet__review {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+}
+.tag-sheet__review :is(th, td) {
+    padding: var(--space-1) var(--space-2);
+    text-align: start;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.tag-sheet__review th {
+    position: sticky;
+    top: 0;
+    background: var(--surface-panel);
+    color: var(--text-secondary);
+}
+.tag-sheet__old {
+    color: var(--text-secondary);
+    text-decoration: line-through;
+}
+.tag-sheet__new {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Track information pop-up (song-info.js). Tokens only. */
+.view-host[data-engine-panel='metadata'] > .metadata-mode {
+    gap: var(--space-2);
+    align-items: center;
+}
+.metadata-mode__info {
+    background: var(--surface-raised);
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: var(--space-1) var(--space-3);
+    font: inherit;
+    cursor: pointer;
+}
+.song-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-width: 0;
+    max-height: 60vh;
+    overflow: auto;
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+}
+.song-info__song {
+    margin: 0;
+    font-weight: 600;
+}
+.song-info__group h3 {
+    margin: 0 0 var(--space-1);
+    color: var(--text-tertiary);
+    font-size: var(--text-xs);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.song-info__row {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-1) 0;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.song-info__label {
+    color: var(--text-secondary);
+}
+.song-info__value {
+    text-align: end;
+    overflow-wrap: anywhere;
+}
+.song-info__empty {
+    margin: 0;
+    color: var(--text-secondary);
+}
+.song-info__picker summary {
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+.song-info__picker-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+}
+.song-info__picker fieldset {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2);
+}
+.song-info__picker legend {
+    padding: 0 var(--space-1);
+    color: var(--text-tertiary);
+    font-size: var(--text-xs);
+}
+.song-info__picker label {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
 }
 .view-host[data-engine-panel='metadata'] .metadata-online-releases {
     display: flex;

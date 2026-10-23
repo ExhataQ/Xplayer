@@ -4,12 +4,19 @@
 // reaches the person twice: as a short toast, and as an entry under "Earlier" behind the title bar bell. Long-running work
 // (downloads, album art search) sits under "In progress" with its bar and a Cancel button (D41). The bell carries an accent
 // dot while something is running or unread.
+//
+// Shell-owned entries (shell/notify.js, task PA-06) sit in the same list: they can point at a view, carry an Undo-style button,
+// be quiet (center only) or toast-only. The first important entry of a session opens the center by itself, without taking focus.
 
 import { el, iconEl, iconButton, button, progress, emptyState, createToaster, hideTooltip } from '../components/index.js';
 import { watchNotifications, dismissNotification, clearNotifications, cancelNotification } from '../adapter/notifications-bridge.js';
+import { watchShellNotifications, dismissShellNotification, clearShellNotifications, cancelShellNotification, openNotificationTarget } from './notify.js';
 
 const FAILURE = /\b(fail(ed|ure)?|could not|couldn't|cannot|can't|invalid|no valid|not available|error)\b/i;
 const ICON = { success: 'circle-check', error: 'circle-alert', warning: 'triangle-alert', info: 'info' };
+const RUNNING_ICON = { download: 'download', cover: 'image', job: 'clock' };
+const RUNNING_NAME = { download: 'download', cover: 'album art search', job: 'task' };
+const isShell = (id) => typeof id === 'string';
 
 // The engine uses its 'error' type for removals too ("Playlist deleted"), so only a failure wording is shown as an error.
 export function kindOf({ type, title }) {
@@ -23,7 +30,7 @@ const clock = (time) => new Date(time).toLocaleTimeString([], { hour: '2-digit',
 /** Builds the popover and the toast region. `bell` is the title bar's icon button. Returns { open, close, destroy }. */
 export function mountNotifications(bell) {
     const toaster = createToaster({ host: document.body, max: 3 });
-    const clear = button({ label: 'Clear all', variant: 'ghost', size: 'sm', onClick: () => clearNotifications() });
+    const clear = button({ label: 'Clear all', variant: 'ghost', size: 'sm', onClick: () => (clearNotifications(), clearShellNotifications()) });
     const body = el('div', { class: 'notif-center__body' });
     const panel = el('div', { class: 'notif-center', role: 'dialog', 'aria-label': 'Notifications', tabindex: '-1', hidden: true, id: 'notification-center' }, el('div', { class: 'notif-center__header' }, el('h2', { class: 'notif-center__title' }, 'Notifications'), clear), body);
     document.body.append(panel);
@@ -32,7 +39,10 @@ export function mountNotifications(bell) {
     bell.setAttribute('aria-controls', panel.id);
 
     let list = [];
+    let engineList = [];
+    let shellList = [];
     let isOpen = false;
+    let autoOpened = false; // the center opens by itself once per session, for the first important entry
     let shape = '';
     const known = new Set(); // finished entries already shown as a toast (or present at start)
     const seen = new Set(); // finished entries the person has had the chance to read
@@ -42,7 +52,7 @@ export function mountNotifications(bell) {
         const kind = kindOf(n);
         const running = n.progress !== null;
         const node = el('li', { class: 'notif', 'data-id': String(n.id), 'data-kind': running ? 'running' : kind });
-        node.append(el('span', { class: 'notif__icon' }, iconEl(running ? (/art/i.test(n.title) ? 'image' : 'download') : ICON[kind], { size: 18 })));
+        node.append(el('span', { class: 'notif__icon' }, iconEl(running ? RUNNING_ICON[n.progress.kind] || 'clock' : ICON[kind], { size: 18 })));
         const title = el('div', { class: 'notif__title', dir: 'auto' }, n.title);
         const text = el('div', { class: 'notif__body' }, title);
         if (running) {
@@ -54,15 +64,28 @@ export function mountNotifications(bell) {
         } else {
             if (n.detail) text.append(el('div', { class: 'notif__detail', dir: 'auto' }, n.detail));
             text.append(el('div', { class: 'notif__time' }, clock(n.time)));
+            const buttons = [];
+            if (n.target) buttons.push(button({ label: n.target.label || 'Open', variant: 'outline', size: 'sm', onClick: () => follow(n) }));
+            if (n.action) buttons.push(button({ label: n.action.label, variant: 'outline', size: 'sm', onClick: () => n.action.onClick && n.action.onClick() }));
+            if (buttons.length) text.append(el('div', { class: 'notif__actions' }, ...buttons));
+            if (n.target) {
+                node.classList.add('notif--clickable');
+                node.addEventListener('click', (event) => !event.target.closest('button') && follow(n));
+            }
         }
         node.append(text);
-        if (!running) node.append(iconButton({ icon: 'x', label: 'Dismiss', size: 'sm', tooltip: false, onClick: () => dismissNotification(n.id) }));
-        else {
-            const cancel = button({ label: 'Cancel', variant: 'ghost', size: 'sm', onClick: () => cancelNotification(n.id) });
-            cancel.setAttribute('aria-label', `Cancel ${n.progress.kind === 'download' ? 'download' : 'album art search'}`);
+        if (!running) node.append(iconButton({ icon: 'x', label: 'Dismiss', size: 'sm', tooltip: false, onClick: () => (isShell(n.id) ? dismissShellNotification(n.id) : dismissNotification(n.id)) }));
+        else if (!isShell(n.id) || n.cancellable) {
+            const cancel = button({ label: 'Cancel', variant: 'ghost', size: 'sm', onClick: () => (isShell(n.id) ? cancelShellNotification(n.id) : cancelNotification(n.id)) });
+            cancel.setAttribute('aria-label', `Cancel ${RUNNING_NAME[n.progress.kind] || 'task'}`);
             node.append(cancel);
         }
         return node;
+    }
+
+    // Clicking an entry that points somewhere closes the center and opens the target.
+    function follow(n) {
+        if (openNotificationTarget(n.target)) close(false);
     }
 
     function section(title, items) {
@@ -82,7 +105,7 @@ export function mountNotifications(bell) {
     }
 
     function render() {
-        const next = list.map((n) => `${n.id}${n.progress ? 'p' : 'd'}`).join();
+        const next = list.map((n) => `${n.id}${n.progress ? 'p' : 'd'}${n.rev || 0}`).join();
         if (next === shape) return paintBars(); // only bars moved: keep the nodes, so focus and the scroll position stay
         const focused = document.activeElement?.closest?.('.notif')?.dataset.id;
         shape = next;
@@ -114,7 +137,7 @@ export function mountNotifications(bell) {
         panel.style.right = `${Math.max(8, Math.round(window.innerWidth - rect.right))}px`;
     }
 
-    function open() {
+    function open({ focus = true } = {}) {
         if (isOpen) return;
         isOpen = true;
         hideTooltip();
@@ -124,8 +147,16 @@ export function mountNotifications(bell) {
         bell.setAttribute('aria-expanded', 'true');
         render();
         paintBell();
-        panel.focus();
+        if (focus) panel.focus();
     }
+
+    // A short swing when something new arrives (CSS: notifications.css); the attribute is removed again when it ends.
+    function ring() {
+        bell.removeAttribute('data-ring');
+        void bell.offsetWidth; // restart the animation when two arrive close together
+        bell.dataset.ring = '';
+    }
+    bell.addEventListener('animationend', (event) => event.animationName === 'bell-ring' && bell.removeAttribute('data-ring'));
 
     function close(restoreFocus = true) {
         if (!isOpen) return;
@@ -135,18 +166,28 @@ export function mountNotifications(bell) {
         if (restoreFocus) bell.focus();
     }
 
-    function update(next) {
-        list = next;
+    function update() {
+        const all = [...shellList, ...engineList].sort((a, b) => b.time - a.time);
+        list = all.filter((n) => !n.toastOnly);
         const ids = new Set(list.map((n) => n.id));
         for (const set of [known, seen]) for (const id of set) if (!ids.has(id)) set.delete(id);
         // Several can arrive in one redraw; the list is newest first, so walk it backwards: the newest toast stays on screen.
-        for (const n of [...list].reverse()) {
+        for (const n of [...all].reverse()) {
             if (n.progress || known.has(n.id)) continue;
             known.add(n.id);
             if (isOpen) seen.add(n.id);
             else if (!initial) {
                 const kind = kindOf(n);
-                toaster.show({ id: `n-${n.id}`, kind: kind === 'warning' ? 'info' : kind, title: n.title, message: n.detail });
+                if (!n.toastOnly) ring();
+                if ((n.important || kind === 'error') && !autoOpened) {
+                    autoOpened = true;
+                    open({ focus: false }); // the entry is read in the center, so it gets no toast
+                    continue;
+                }
+                if (n.toast === false) continue; // a quiet entry: the bell's dot is the only sign
+                const hasLink = n.target || n.action;
+                const action = n.action ? { label: n.action.label, onClick: n.action.onClick } : n.target ? { label: n.target.label || 'Open', onClick: () => openNotificationTarget(n.target) } : undefined;
+                toaster.show({ id: `n-${n.id}`, kind: kind === 'warning' ? 'info' : kind, title: n.title, message: n.detail, ...(hasLink ? { action } : {}) });
             }
         }
         if (initial) for (const n of list) if (!n.progress) seen.add(n.id);
@@ -155,7 +196,8 @@ export function mountNotifications(bell) {
     }
 
     let initial = true;
-    const stop = watchNotifications(update);
+    const stopEngine = watchNotifications((next) => ((engineList = next), update()));
+    const stopShell = watchShellNotifications((next) => ((shellList = next.map((n) => ({ ...n, cancellable: typeof n.onCancel === 'function' }))), update()));
     initial = false;
 
     bell.addEventListener('click', () => (isOpen ? close() : open()));
@@ -178,7 +220,8 @@ export function mountNotifications(bell) {
         open,
         close,
         destroy() {
-            stop();
+            stopEngine();
+            stopShell();
             toaster.clear();
             panel.remove();
         }

@@ -4,6 +4,7 @@
 
 import { el, iconButton, openMenu } from '../../components/index.js';
 import { createListToolbar } from './list-toolbar.js';
+import { trackInputMode } from './input-mode.js';
 import { isSongView, currentSongView, onSongViewChange, setRowHeight, listElement, listTitle, onListTitleChange, listSongCount } from '../../adapter/songlist-bridge.js';
 import { listKind, listCover, onListCoverChange } from '../../adapter/listbar-bridge.js';
 import { getAppearance, setAppearance, watchAppearance } from '../../shell/appearance.js';
@@ -78,6 +79,7 @@ export function attachSongList(host, { toolbar = false } = {}) {
     const state = readSaved();
     state.density = getAppearance().density; // density is an appearance choice now (task A-10); the saved value here is only a fallback
     const content = () => host.querySelector('.content');
+    const stopInputMode = trackInputMode(); // the selection ring shows for keyboard use only (task PB-12)
 
     // ----- title bar: the engine's name for the list, and how many songs it holds -----
     const barCover = el('div', { class: 'songlist-bar__cover', 'aria-hidden': 'true' });
@@ -291,6 +293,7 @@ export function attachSongList(host, { toolbar = false } = {}) {
         header,
         apply,
         detach() {
+            stopInputMode();
             unsubscribeAppearance();
             unsubscribeView();
             unsubscribeTitle();

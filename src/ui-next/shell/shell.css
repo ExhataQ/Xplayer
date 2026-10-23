@@ -8,12 +8,13 @@
 
 .app {
     display: grid;
-    grid-template-columns: var(--rail-width) auto minmax(0, 1fr);
+    grid-template-columns: var(--rail-width) auto minmax(0, 1fr) auto;
     grid-template-rows: var(--titlebar-height) minmax(0, 1fr) var(--player-height);
     grid-template-areas:
-        'titlebar titlebar titlebar'
-        'rail panel view'
-        'player player player';
+        'titlebar titlebar titlebar titlebar'
+        'rail panel view right'
+        'player player player player';
+    position: relative;
     height: 100vh;
     min-width: var(--window-min-width);
 }
@@ -178,6 +179,56 @@
     background: var(--surface-panel);
     border-right: 1px solid var(--border-subtle);
     overflow: hidden;
+}
+.right-host {
+    grid-area: right;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: var(--right-width, 320px);
+    min-width: 0;
+    background: var(--surface-panel);
+    border-left: 1px solid var(--border-subtle);
+    overflow: hidden;
+}
+.right-host[hidden] {
+    display: none;
+}
+.right-host__body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+/* A window too small to push the list: the panel floats over it, from under the title bar to above the player. */
+.right-host[data-overlay] {
+    position: absolute;
+    top: var(--titlebar-height);
+    right: 0;
+    bottom: var(--player-height);
+    z-index: var(--layer-menu);
+    box-shadow: var(--shadow-raised);
+}
+.right-resizer {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 6px;
+    cursor: col-resize;
+    z-index: 1;
+}
+.right-resizer:hover,
+.right-resizer[data-dragging],
+.right-resizer:focus-visible {
+    background: var(--accent-soft);
+    outline: none;
+}
+.right-resizer:focus-visible {
+    box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.panel-host[data-closed] {
+    display: none; /* the person clicked the active rail item: the panel is closed until a panel item is chosen again */
 }
 .panel-host[data-panel='compact'] {
     width: 72px;

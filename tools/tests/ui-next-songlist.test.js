@@ -62,6 +62,71 @@ for (const [label, count] of [['small library (rows in normal flow)', 30], ['lar
         });
         const openColumns = (page) => page.getByRole('button', { name: 'Columns and row height' }).click();
 
+        test('the column-resize line is dim at rest and white on hover and while dragging (PB-13)', TEST_OPTIONS, async (t) => {
+            if (!guard(t)) return;
+            const { page } = await open();
+            const color = () => page.locator('.songlist-resizer').first().evaluate((e) => getComputedStyle(e, '::after').backgroundColor);
+            const token = (name) => page.evaluate((n) => { const s = document.createElement('i'); s.style.color = `var(${n})`; document.body.append(s); const c = getComputedStyle(s).color; s.remove(); return c; }, name);
+            assert.equal(await color(), await token('--border-subtle'));
+            const handle = await page.locator('.songlist-resizer').first().boundingBox();
+            await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+            await page.waitForFunction(() => getComputedStyle(document.querySelector('.songlist-resizer'), '::after').backgroundColor !== getComputedStyle(document.body).backgroundColor && document.querySelector('.songlist-resizer').matches(':hover'));
+            await page.waitForTimeout(250); // the line eases in
+            assert.equal(await color(), await token('--text-primary'));
+            await page.mouse.down();
+            await page.mouse.move(handle.x + handle.width / 2 - 40, handle.y + handle.height / 2, { steps: 4 });
+            assert.equal(await color(), await token('--text-primary'));
+            await page.mouse.up();
+        });
+
+        test('Space after a mouse click does not draw the selection ring; Tab does, and keeps it through Space (PB-12)', TEST_OPTIONS, async (t) => {
+            if (!guard(t)) return;
+            const { page } = await open();
+            const ring = () => page.evaluate(() => {
+                const a = document.activeElement;
+                return { onRow: !!(a && a.matches('.song-item')), shadow: a ? getComputedStyle(a).boxShadow : 'none' };
+            });
+            const rows = page.locator('.view-host .song-item:not(.lazy-skeleton)');
+            await rows.nth(3).locator('.song-number-item').click();
+            let r = await ring();
+            assert.equal(r.onRow, true);
+            assert.equal(r.shadow, 'none');
+            await page.keyboard.press('Space');
+            await page.waitForTimeout(100);
+            r = await ring();
+            assert.equal(r.shadow, 'none', 'Space after a click must not show the ring');
+            await page.keyboard.press('Tab'); // into the row's own buttons
+            await page.keyboard.press('Shift+Tab'); // and back onto the row, now in keyboard mode
+            r = await ring();
+            assert.equal(r.onRow, true);
+            assert.notEqual(r.shadow, 'none', 'Tab shows the ring');
+            await page.keyboard.press('Space');
+            await page.waitForTimeout(100);
+            assert.notEqual((await ring()).shadow, 'none', 'Space after Tab keeps the ring');
+            await rows.nth(6).locator('.song-number-item').click();
+            assert.equal((await ring()).shadow, 'none', 'a click removes the ring again');
+        });
+
+        test('right-to-left titles stay on the left of their cell like English ones (PB-11)', TEST_OPTIONS, async (t) => {
+            if (!guard(t)) return;
+            const { page } = await open();
+            const r = await page.evaluate(() => {
+                const titles = [...document.querySelectorAll('.view-host .song-item .song-title')].slice(0, 3);
+                titles[0].textContent = '\u0633\u0644\u0627\u0645 \u062f\u0646\u06cc\u0627';
+                titles[1].textContent = '\u0645\u0631\u062d\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645';
+                titles[2].textContent = 'Hello world';
+                return titles.map((e) => {
+                    const range = document.createRange();
+                    range.selectNodeContents(e);
+                    return { textLeft: Math.round(range.getBoundingClientRect().left), cellLeft: Math.round(e.parentElement.getBoundingClientRect().left), bidi: getComputedStyle(e).unicodeBidi };
+                });
+            });
+            for (const row of r) {
+                assert.equal(row.textLeft, row.cellLeft);
+                assert.equal(row.bidi, 'plaintext');
+            }
+        });
+
         test('Library shows the engine song list with a header, rows on the token height, and no errors', TEST_OPTIONS, async (t) => {
             if (!guard(t)) return;
             const { page, errors } = await open();

@@ -29,6 +29,7 @@ const { getDownloadFolder, saveDownloadFolder, resetDownloadFolder, download, ca
 const { saveLyricsFile, readLyricsFile } = require('./file-operations');
 const { searchLyrics, downloadLyricsFile } = require('./online-lyrics');
 const { getAudioMetadata, saveAudioMetadata, saveAudioCover } = require('./metadata-editor');
+const { createTagService } = require('./tag-service');
 const { searchOnlineMetadata, getOnlineMetadata } = require('./online-metadata');
 const songsStore = require('./songs-store');
 const { configPath: settingsFile, getOutputDir } = require('./storage-paths');
@@ -102,6 +103,20 @@ ipcMain.handle('save-audio-metadata', async (event, params) => {
         const result = await saveAudioMetadata(params?.fileUrl, params?.metadata || {}, params?.coverPath || '');
         if (result.success) updateDeployedSongMetadata(params?.fileUrl, result.metadata || {});
         return result;
+    } catch (error) { return { success: false, error: error.message || 'Failed to save metadata' }; }
+});
+
+// Many files at once (the tag sheet): each item is { fileUrl, metadata } where metadata holds only the tags to change. A file that
+// fails does not stop the others; every result says what was in the file before, so the caller can undo.
+const MAX_SAVE_MANY = 5000;
+ipcMain.handle('save-audio-metadata-many', async (event, items) => {
+    try {
+        if (!Array.isArray(items) || items.length > MAX_SAVE_MANY) return { success: false, error: 'Too many files, or the request is not a list' };
+        const clean = items.filter((item) => item && typeof item.fileUrl === 'string' && item.metadata && typeof item.metadata === 'object' && !Array.isArray(item.metadata));
+        if (clean.length !== items.length) return { success: false, error: 'Every item needs a fileUrl and a metadata object' };
+        const results = await createTagService({ getAudioMetadata, saveAudioMetadata }).writeMany(clean.map(({ fileUrl, metadata }) => ({ fileUrl, metadata })));
+        for (const result of results) if (result.success) updateDeployedSongMetadata(result.fileUrl, result.metadata || {});
+        return { success: true, results };
     } catch (error) { return { success: false, error: error.message || 'Failed to save metadata' }; }
 });
 

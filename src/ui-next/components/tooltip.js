@@ -1,11 +1,12 @@
 // Tooltip: name, current state (dim), short description, shortcut (dimmer, right). One shared element.
 // Behavior: appears after a hover delay (instantly while moving between neighbours), hides the moment the pointer
-// leaves, the target is pressed, focus leaves or Escape is pressed. Keyboard focus shows it too. No animation.
+// leaves, the target is pressed, focus leaves or Escape is pressed. Keyboard focus shows it too. It appears with a short
+// accent flash (CSS, components.css); reduced motion turns that off.
 // Two ways in: attachTooltip() for a control you build, delegateTooltips() for a whole subtree (the engine's controls,
 // which are created and recycled by code this folder does not own).
 import { el, overlayHost, clampToViewport } from './dom.js';
 
-export const TOOLTIP_DELAY = 500;
+export const TOOLTIP_DELAY = 250;
 const WARM_WINDOW = 300; // after one tooltip hides, the next one opens without the delay for this long
 
 let tip = null; // the shared element, { node, name, state, shortcut, description }
@@ -21,7 +22,7 @@ function ensure() {
     if (tip) return tip;
     const name = el('span', { class: 'tooltip__name', dir: 'auto' });
     const state = el('span', { class: 'tooltip__state' });
-    const shortcut = el('kbd', { class: 'tooltip__shortcut' });
+    const shortcut = el('kbd', { class: 'tooltip__shortcut' }); // holds one .tooltip__key per key of the combination
     const description = el('div', { class: 'tooltip__description', dir: 'auto' });
     const node = el('div', { class: 'tooltip', role: 'tooltip', id: 'ui-tooltip', hidden: true }, el('div', { class: 'tooltip__head' }, name, state, shortcut), description);
     tip = { node, name, state, shortcut, description };
@@ -33,7 +34,9 @@ function fill(content) {
     t.name.textContent = content.name || '';
     t.state.textContent = content.state || '';
     t.state.hidden = !content.state;
-    t.shortcut.textContent = content.shortcut || '';
+    // "Ctrl+Shift+S" becomes three key caps; a lone "+" or a key that is itself "+" stays one cap.
+    const keys = String(content.shortcut || '').split(/(?<=.)\+(?=.)/).filter(Boolean);
+    t.shortcut.replaceChildren(...keys.map((key) => el('span', { class: 'tooltip__key' }, key)));
     t.shortcut.hidden = !content.shortcut;
     t.description.textContent = content.description || '';
     t.description.hidden = !content.description;

@@ -183,7 +183,7 @@
 .songlist-resizer:hover::after,
 .songlist-resizer:focus-visible::after,
 .songlist-resizer[data-dragging]::after {
-    background: var(--accent);
+    background: var(--text-primary); /* white, not the accent: dim at rest, white on hover, keyboard focus and drag (PB-13) */
     top: 4px;
     bottom: 4px;
     width: 2px;

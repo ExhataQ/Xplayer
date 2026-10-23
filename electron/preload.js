@@ -43,6 +43,7 @@ const groups = {
     metadata: {
         getAudioMetadata: (fileUrl) => ipcRenderer.invoke('get-audio-metadata', fileUrl),
         saveAudioMetadata: (params) => ipcRenderer.invoke('save-audio-metadata', params),
+        saveAudioMetadataMany: (items) => ipcRenderer.invoke('save-audio-metadata-many', items),
         exportAudioMetadataJson: (params) => ipcRenderer.invoke('export-audio-metadata-json', params),
         importAudioMetadataJson: () => ipcRenderer.invoke('import-audio-metadata-json'),
         searchOnlineMetadata: (params) => ipcRenderer.invoke('search-online-metadata', params),

@@ -49,29 +49,55 @@ export function clearPeaksCache() {
     decodeQueue = Promise.resolve();
 }
 
-const keyOf = (song) => `${song.id}:${Math.round(Number(song.duration) || 0)}:${song.url || song.path || ''}`;
+// Bump when the meaning of the stored bytes changes, so peaks saved by an older scaling are never reused.
+export const PEAKS_VERSION = 2;
+const keyOf = (song) => `v${PEAKS_VERSION}:${song.id}:${Math.round(Number(song.duration) || 0)}:${song.url || song.path || ''}`;
 
-/** channels: Float32Array[] (PCM). Returns `bins` bytes: the loudest absolute sample in each slice, scaled so the loudest bin is 255. */
+// Contrast scaling (task PC-03). The first version took the loudest single sample in each slice and divided by the loudest
+// slice. Loud, compressed music has a peak near full scale almost everywhere, so nearly every bar came out near full height.
+// Now each slice is its average level (RMS, which follows loudness rather than single spikes), and the track is stretched
+// between its quiet floor and its loud ceiling, so every song uses the whole height whatever its mastering level.
+export const FLOOR_PERCENTILE = 0.1; // slices at or below this level of the track draw as the shortest bar
+export const CEILING_PERCENTILE = 0.95; // slices at or above this level draw at full height; a few loud spikes do not squash the rest
+export const MIN_SPAN = 0.25; // the floor-to-ceiling distance is never smaller than this share of the ceiling, so a flat or noisy track is not exaggerated
+export const CURVE = 1.15; // above 1 keeps mid levels a little lower than a straight line, so loud parts stand out
+
+const percentile = (sorted, share) => {
+    const at = (sorted.length - 1) * share;
+    const low = Math.floor(at);
+    const high = Math.min(sorted.length - 1, low + 1);
+    return sorted[low] + (sorted[high] - sorted[low]) * (at - low);
+};
+
+/** channels: Float32Array[] (PCM). Returns `bins` bytes: the average level (RMS) of each slice, stretched between the track's quiet floor and loud ceiling (see above), 0..255. */
 export function computePeaks(channels, bins = BINS) {
     const length = channels.length ? channels[0].length : 0;
-    const peaks = new Float32Array(bins);
+    const levels = new Float32Array(bins);
     if (length > 0) {
         for (let bin = 0; bin < bins; bin++) {
             const from = Math.floor((bin * length) / bins);
             const to = Math.max(from + 1, Math.floor(((bin + 1) * length) / bins));
-            let max = 0;
+            let sum = 0;
+            let count = 0;
             for (const channel of channels) {
                 for (let i = from; i < to && i < length; i++) {
-                    const v = channel[i] < 0 ? -channel[i] : channel[i];
-                    if (v > max) max = v;
+                    sum += channel[i] * channel[i];
+                    count++;
                 }
             }
-            peaks[bin] = max;
+            levels[bin] = count ? Math.sqrt(sum / count) : 0;
         }
     }
-    const loudest = peaks.reduce((a, b) => (b > a ? b : a), 0);
+    const sorted = Float32Array.from(levels).sort();
+    const ceiling = percentile(sorted, CEILING_PERCENTILE);
     const out = new Uint8Array(bins);
-    if (loudest > 0) for (let i = 0; i < bins; i++) out[i] = Math.round((peaks[i] / loudest) * 255);
+    if (!(ceiling > 0)) return out; // silence: all zero
+    const floor = percentile(sorted, FLOOR_PERCENTILE);
+    const span = Math.max(ceiling - floor, ceiling * MIN_SPAN);
+    for (let i = 0; i < bins; i++) {
+        const unit = Math.min(1, Math.max(0, (levels[i] - floor) / span));
+        out[i] = Math.round(Math.pow(unit, CURVE) * 255);
+    }
     return out;
 }
 
@@ -146,8 +172,9 @@ export function drawWaveform(canvas, peaks, { progress = 0, played, unplayed, ba
     for (let bar = 0; bar < count; bar++) {
         const from = Math.floor((bar * peaks.length) / count);
         const to = Math.max(from + 1, Math.floor(((bar + 1) * peaks.length) / count));
-        let value = 0;
-        for (let i = from; i < to; i++) if (peaks[i] > value) value = peaks[i];
+        let total = 0;
+        for (let i = from; i < to; i++) total += peaks[i];
+        const value = total / (to - from); // the average of the bins in this bar; the maximum would push every bar toward full height
         const height = Math.max(minBar, (value / 255) * cssHeight);
         ctx.fillStyle = bar < split ? played : unplayed;
         ctx.fillRect(bar * (barWidth + gap), (cssHeight - height) / 2, barWidth, height);

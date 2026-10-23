@@ -91,7 +91,9 @@ describe('B finish in the new shell', { concurrency: false }, () => {
         await page.close();
     });
 
-    test('a Persian title lines up on the right of its cell, an English one on the left', TEST_OPTIONS, async (t) => {
+    // Reverses the right-aligned half of D29 (owner, round 2; PB-11): every title starts at the left of its cell, and each text block
+    // keeps its own letter order through unicode-bidi: plaintext.
+    test('a Persian title starts on the left of its cell like an English one, and keeps its own direction', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open();
         const edges = await page.evaluate(() => {
@@ -107,8 +109,8 @@ describe('B finish in the new shell', { concurrency: false }, () => {
             return { fa: place(titles[0]), en: place(titles[1]) };
         });
         assert.equal(edges.fa.bidi, 'plaintext');
-        assert.ok(edges.fa.right < edges.fa.left, `Persian should hug the right edge (left ${edges.fa.left}, right ${edges.fa.right})`);
-        assert.ok(edges.en.left < edges.en.right, 'English should hug the left edge');
+        assert.ok(edges.fa.left < 1, `Persian should start at the left edge (left ${edges.fa.left}, right ${edges.fa.right})`);
+        assert.ok(edges.en.left < 1, 'English should start at the left edge');
         await page.close();
     });
 

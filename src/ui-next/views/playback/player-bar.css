@@ -79,6 +79,15 @@
     visibility: hidden;
 }
 
+/* ---------- volume handle while dragging (PC-04) ----------
+ * The handle is hidden at rest and shown on hover (shell.css). The engine puts the class "dragging" on the volume slider
+ * while the mouse button is held (playback/15g), and the old stylesheet showed the handle for hover OR dragging. The
+ * new one lost the second half, so pulling the pointer past the end of the bar toward zero ended the hover and the
+ * handle vanished mid-drag. Higher specificity than shell.css; no !important (the engine writes inline styles). */
+.player-host #volume-slider.dragging #volume-knob {
+    opacity: 1;
+}
+
 /* ---------- slider focus (C-01) ---------- */
 .player-host .progress-container:focus-visible,
 .player-host #volume-slider:focus-visible,

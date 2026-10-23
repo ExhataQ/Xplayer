@@ -12,9 +12,17 @@ import { switchView } from '../adapter/actions.js';
 import { getCurrentView } from '../adapter/store.js';
 import { whenLibraryReady } from '../adapter/library-bridge.js';
 import { mountLibraryPanel } from '../views/library/library-panel.js';
+import { registerPanel, showPanel } from './panels.js';
+import { mountRightPanelSlot } from './right-panel.js';
+import { mountAiChrome } from './ai-chrome.js';
+import { appMenuGroups, toMenuItems, installMenuHotkeys } from './app-menu.js';
+import { AI_VIEW_ID, mountAiChat, leaveAiChat } from './ai-slots.js';
+import { registerAi } from '../views/ai/register.js';
 import { attachSongList } from '../views/library/song-list.js';
 import { mountSearchView } from '../views/library/search-view.js';
 import { viewsReady, whenViewsReady } from '../adapter/songlist-bridge.js';
+import { mountHome } from '../views/home/home.js';
+import { openHomeItem } from '../adapter/home-bridge.js';
 import { mountLyricsModes, leaveLyrics } from '../views/tools/lyrics.js';
 import { mountMetadata, leaveMetadata } from '../views/tools/metadata.js';
 import { engineEvent, engineView as currentEngineViewName, watchLyricsEditors } from '../adapter/engine-api.js';
@@ -29,14 +37,35 @@ import { installSpaceRule } from './space-key.js';
 
 // Rail order follows decision D4.
 const VIEWS = [
-    { id: 'home', label: 'Home', icon: 'house', note: 'Not built yet.' },
-    { id: 'library', label: 'Library', icon: 'library', note: 'Your songs.', panel: true, engine: 'all-songs', songlist: true },
-    { id: 'search', label: 'Search', icon: 'search', note: 'Find songs by title, artist or album.', engine: 'all-songs', songlist: true, search: true },
-    { id: 'recent', label: 'Recently played', icon: 'clock', note: 'The songs you played lately.', engine: 'history', songlist: true },
-    { id: 'lyrics', label: 'Lyrics', icon: 'text-align-start', note: 'Lyrics of the song that is playing.', engine: 'lyrics', mount: mountLyricsModes, leave: leaveLyrics },
-    { id: 'metadata', label: 'Metadata', icon: 'tag', note: 'Tags and cover of the song that is playing.', enginePanel: 'metadata', mount: mountMetadata, leave: leaveMetadata },
-    { id: 'settings', label: 'Settings', icon: 'sliders-horizontal', note: 'Playback, library, backup and appearance.', engine: 'settings', end: true, mount: mountAppearanceSettings }
+    { id: 'home', label: 'Home', icon: 'house', note: 'Pick up where you left off.', own: true, mount: mountHomeView, leave: leaveHome },
+    { id: 'library', label: 'Library', icon: 'library', note: 'Your songs.', panel: 'library', engine: 'all-songs', songlist: true },
+    { id: 'search', label: 'Search', icon: 'search', note: 'Find songs by title, artist or album.', panel: 'search', engine: 'all-songs', songlist: true, search: true },
+    { id: 'recent', label: 'Recently played', icon: 'clock', note: 'The songs you played lately.', panel: 'recent', engine: 'history', songlist: true },
+    { id: 'lyrics', label: 'Lyrics', icon: 'text-align-start', note: 'Lyrics of the song that is playing.', end: true, engine: 'lyrics', mount: mountLyricsModes, leave: leaveLyrics },
+    { id: 'metadata', label: 'Metadata', icon: 'tag', note: 'Tags and cover of the song that is playing.', end: true, enginePanel: 'metadata', mount: mountMetadata, leave: leaveMetadata },
+    { id: 'settings', label: 'Settings', icon: 'sliders-horizontal', note: 'Playback, library, backup and appearance.', engine: 'settings', end: true, mount: mountAppearanceSettings },
+    // The AI chat is a main view without a rail item: the top bar button, the menu and the hotkey open it (shell/ai-slots.js).
+    { id: AI_VIEW_ID, label: 'AI chat', icon: 'sparkles', note: 'Ask for a playlist, a tidy-up or a shuffle.', own: true, rail: false, mount: mountAiChat, leave: leaveAiChat }
 ];
+
+// Home belongs to the shell: no engine view sits behind it. A song card plays the song. A playlist, album or artist card goes to
+// Library first (so the engine's list is back in the host and the rail follows) and then opens that item, which also works
+// when the engine is already on that item: showView('library') moves it to all-songs, so the second switch is never a no-op.
+let home = null;
+
+function openHomeCard(item) {
+    if (item.kind !== 'song') showView('library');
+    openHomeItem(item);
+}
+
+function mountHomeView(host) {
+    home = mountHome(host, { open: openHomeCard });
+}
+
+function leaveHome() {
+    if (home) home.destroy();
+    home = null;
+}
 
 const ENGINE_VIEWS = Object.freeze({
     library: 'all-songs',
@@ -62,8 +91,11 @@ const RAIL_BY_ENGINE_VIEW = Object.freeze({
     'settings-advanced': 'settings'
 });
 
-// Decision D8 names the four groups. Their items are not decided yet, so each shows one disabled placeholder.
-const MENU = ['File', 'View', 'Playback', 'Help'].map((group) => ({ group, items: ['Not built yet'] }));
+let aiChrome = null;
+
+// The application menu and its hotkeys live in shell/app-menu.js; the AI entries come from shell/ai-chrome.js.
+const toggleQueue = () => document.querySelector('[aria-controls="queue-panel"]')?.click();
+const menuGroups = () => appMenuGroups({ goTo: (id) => selectView(id), toggleQueue, ai: aiChrome ? aiChrome.menu() : {} });
 
 const NARROW_WINDOW = 1000; // below this the panel gives its space to the view (the minimum window is 800)
 const PANEL_KEY = 'xplayer.ui-next.panel';
@@ -103,13 +135,8 @@ function buildTitlebar() {
     logo.setAttribute('aria-expanded', 'false');
     attachTooltip(logo, { name: 'Application menu' });
 
-    const items = MENU.flatMap(({ group, items: entries }, index) => [
-        ...(index ? [{ type: 'separator' }] : []),
-        { type: 'heading', label: group },
-        ...entries.map((label) => ({ label, disabled: true })) // filled in by a later task
-    ]);
     logo.addEventListener('click', () => {
-        const open = openMenu({ anchor: logo, items, onClose: () => logo.setAttribute('aria-expanded', 'false') });
+        const open = openMenu({ anchor: logo, items: toMenuItems(menuGroups()), onClose: () => logo.setAttribute('aria-expanded', 'false') });
         if (open) logo.setAttribute('aria-expanded', 'true');
     });
 
@@ -119,6 +146,10 @@ function buildTitlebar() {
     const bar = $('.titlebar');
     bar.prepend(logo);
     bar.querySelector('.titlebar__window').before(bell);
+    // The right panel's button sits before the bell. It stays hidden until a provider registers (shell/right-panel.js, PA-16).
+    mountRightPanelSlot({ host: $('.right-host'), button: bell, leftPanel: $('.panel-host') });
+    installMenuHotkeys(menuGroups);
+    aiChrome = mountAiChrome({ bell, goTo: (id) => selectView(id), current: () => $('.view-host').dataset.view });
 }
 
 // The engine buttons in the title bar are built by the adapter and only carry an aria-label: give them the same tooltip as
@@ -135,8 +166,12 @@ function tooltipTitlebarButtons() {
 
 function buildRail(onSelect) {
     const rail = $('.rail');
+    let endStarted = false; // the items marked `end` form the bottom group; the first one carries the space above it
     for (const view of VIEWS) {
-        const button = el('button', `rail-btn${view.end ? ' rail-btn--end' : ''}`, icon(view.icon, { size: 20 }));
+        if (view.rail === false) continue;
+        const startsEnd = view.end && !endStarted;
+        endStarted ||= Boolean(view.end);
+        const button = el('button', `rail-btn${startsEnd ? ' rail-btn--end' : ''}`, icon(view.icon, { size: 20 }));
         button.type = 'button';
         button.dataset.view = view.id;
         button.setAttribute('aria-label', view.label);
@@ -152,7 +187,8 @@ function buildPanelToggle(panel) {
     const narrow = window.matchMedia(`(max-width: ${NARROW_WINDOW}px)`);
     let saved = readPanelState();
     let narrowCompact = narrow.matches;
-    const shown = () => (narrow.matches ? (narrowCompact ? 'compact' : 'expanded') : saved);
+    let collapsible = true; // only a panel that asks for it (Library) can collapse
+    const shown = () => (!collapsible ? 'expanded' : narrow.matches ? (narrowCompact ? 'compact' : 'expanded') : saved);
     const toggle = iconButton({
         icon: 'chevron-left',
         label: 'Collapse panel',
@@ -175,6 +211,7 @@ function buildPanelToggle(panel) {
         panel.dataset.panel = state;
         toggle.replaceChildren(iconEl(open ? 'chevron-left' : 'chevron-right', { size: 18 }));
         toggle.setAttribute('aria-pressed', String(open));
+        toggle.hidden = !collapsible;
         toggle.tooltip.update({ state: open ? 'Open' : 'Collapsed' });
     }
     narrow.addEventListener('change', () => {
@@ -183,9 +220,16 @@ function buildPanelToggle(panel) {
     });
     paint();
     $('.panel-host__header').append(toggle);
+    return {
+        setCollapsible(value) {
+            collapsible = Boolean(value);
+            paint();
+        }
+    };
 }
 
-let library = null;
+let panelToggle = null;
+let panelItem = null; // the rail item whose panel is in the slot
 let songList = null;
 let searchView = null;
 let engineReady = false;
@@ -211,23 +255,17 @@ function showView(id, options = {}) {
         if (button.dataset.view === view.id) button.setAttribute('aria-current', 'page');
         else button.removeAttribute('aria-current');
     }
-    $('.panel-host__title').textContent = view.label;
-    const body = $('.panel-host__body');
-    const note = body.querySelector('.panel-note') || body.appendChild(el('div', 'panel-note'));
-    if (view.panel) {
-        if (library) library.show();
-        else library = mountLibraryPanel(body);
-    } else if (library) {
-        library.hide();
-    }
-    note.hidden = Boolean(view.panel);
-    note.textContent = view.panel ? '' : view.note;
+    // A panel item owns the panel; a main-view item (Home, Lyrics, Metadata, Settings) leaves it as it is (DP2).
+    if (view.panel) showPanelFor(view);
     host.dataset.view = view.id;
+    if (aiChrome) aiChrome.sync();
     if (searchView) searchView.detach();
     searchView = null;
     if (songList) songList.detach();
     songList = null;
     releaseEngineView(host); // the engine's content must be back in its host before anything else is drawn here
+    leaveHome(); // also when the engine moved us away (fromEngine skips leave())
+    leaveAiChat();
     host.replaceChildren();
     if (view.engine && showEngineView(host, view.engine)) {
         if (view.songlist) songList = attachSongList(host, { toolbar: !view.search });
@@ -239,6 +277,10 @@ function showView(id, options = {}) {
         if (view.mount) view.mount(host, options);
         return true;
     }
+    if (view.own) {
+        view.mount(host, options); // a view the shell draws itself (Home)
+        return true;
+    }
     // The engine loads after the shell, so on the first call its views cannot be drawn yet: try again once it is there.
     if (view.engine && !viewsReady()) whenViewsReady(() => host.dataset.view === view.id && showView(view.id));
     const section = el('section', 'empty-view');
@@ -248,7 +290,33 @@ function showView(id, options = {}) {
     return false;
 }
 
+// The panel slot: the item's registered panel when there is one, otherwise a title and the item's note.
+function showPanelFor(view) {
+    panelItem = view.id;
+    $('.panel-host__title').textContent = view.label;
+    const body = $('.panel-host__body');
+    const note = body.querySelector('.panel-note') || body.appendChild(el('div', 'panel-note'));
+    const shown = showPanel(view.panel, body);
+    note.hidden = shown.registered;
+    note.textContent = shown.registered ? '' : view.note;
+    if (panelToggle) panelToggle.setCollapsible(shown.collapsible);
+    setPanelClosed(false);
+}
+
+function setPanelClosed(closed) {
+    const panel = $('.panel-host');
+    if (closed) panel.dataset.closed = '';
+    else delete panel.dataset.closed;
+}
+
 function selectView(id) {
+    const view = VIEWS.find((v) => v.id === id);
+    // Choosing the panel item that is already showing closes its panel; choosing it again opens it (PA-04).
+    if (view?.panel && panelItem === id && $('.view-host').dataset.view === id) {
+        setPanelClosed($('.panel-host').dataset.closed === undefined);
+        return;
+    }
+    if (view?.panel && $('.panel-host').dataset.closed !== undefined) setPanelClosed(false);
     const engineView = ENGINE_VIEWS[id] || (id === 'settings' ? 'settings' : null);
     const engineViewShown = showView(id);
     if (!engineView || engineViewShown) return;
@@ -284,8 +352,10 @@ function init() {
     setNotificationNavigator((view) => showView(view)); // a notification can point at a rail view (PA-06)
     syncAccentFromEngine();
     buildRail(selectView);
-    buildPanelToggle(panel);
+    panelToggle = buildPanelToggle(panel);
     buildPanelResizer(panel); // drag the panel's edge, or use the arrow keys (task A-10)
+    registerAi(); // Agent E's screens plug in here (views/ai/register.js)
+    registerPanel('library', { mount: mountLibraryPanel, collapsible: true }); // Search and Recents register theirs the same way (PB-02)
     showView('library');
     mountPlayback(); // player controls, waveform seek bar, queue and cover viewer (tasks C-01 to C-04)
     whenLibraryReady(() => {

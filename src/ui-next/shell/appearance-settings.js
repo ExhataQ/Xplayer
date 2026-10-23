@@ -5,6 +5,8 @@
 // is opened (and when you come back from Advanced), so a small observer, alive only while Settings is shown, puts it back.
 
 import { el, segmented, attachTooltip } from '../components/index.js';
+import { buildAiSettingsSection } from './ai-slots.js';
+import { layoutSettings, resetSettingsPage } from './settings-layout.js';
 import { THEMES, ACCENTS, DENSITIES, getAppearance, setAppearance, watchAppearance } from './appearance.js';
 
 let observer = null;
@@ -77,6 +79,7 @@ function build() {
 /** Called after the engine has drawn Settings into `host`. */
 export function mountAppearanceSettings(host) {
     stop();
+    resetSettingsPage(); // opening Settings from the rail starts on the hub; a redraw by the engine (Advanced > Back) keeps the page
     const inject = () => {
         const title = [...host.querySelectorAll('.settings-section-title')].find((node) => node.textContent.trim() === 'Theme Color');
         const old = title && title.closest('.settings-section');
@@ -84,6 +87,9 @@ export function mountAppearanceSettings(host) {
         old.dataset.replaced = 'true';
         old.hidden = true;
         old.before(build());
+        const ai = buildAiSettingsSection(el); // Agent E's section, when registered (PA-17)
+        if (ai) old.before(ai);
+        layoutSettings(host); // the hub of cards and one page per group (PA-11)
     };
     inject();
     observer = new MutationObserver(() => (host.dataset.view === 'settings' ? inject() : stop()));
