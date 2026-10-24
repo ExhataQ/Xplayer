@@ -13,7 +13,7 @@
 //   watchLyricsEditors(callback) -> unsubscribe(); callback({ write, sync }) when an editor opens or closes
 
 const engine = () => window;
-const EVENTS = new Set(['view:changed', 'lyrics:changed', 'queue:indexChanged', 'rightPanel:tabChanged', 'playback:stateChanged']);
+const EVENTS = new Set(['view:changed', 'lyrics:changed', 'queue:indexChanged', 'rightPanel:tabChanged', 'playback:stateChanged', 'history:added', 'playlist:listChanged']);
 
 export function nowPlaying() {
     const { currentQueueIndex: index, playbackQueue: queue } = engine();

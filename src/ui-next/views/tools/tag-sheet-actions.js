@@ -10,7 +10,7 @@
 //   api.listColumns()                      -> [{ key, label, multi, shown }]
 //   api.loadSongs(sourceId)                -> { ok, added, total }
 //   api.setColumns(keys)                   -> { ok, columns }
-//   api.readTags()                         -> Promise<{ ok, unreadable }>   reads tags the library does not hold, for the shown columns
+//   api.readTags()                         -> Promise<{ ok, unreadable, problem? }>   reads tags the library does not hold, for the shown columns; problem says why a file could not be read (for example Python or mutagen is missing)
 //   api.getSheet({ offset, limit })        -> { columns, total, checked, changes, rows: [{ id, values, changedKeys }] }  values: null = not read yet
 //   api.findRows({ column, text })         -> { ok, ids }   rows whose value contains the text (not case sensitive)
 //   api.checkRows(ids) / checkAll() / uncheckAll()   -> { ok, checked }
@@ -20,12 +20,26 @@
 //   api.preview()                          -> { ok, total, songs, changes: [{ id, title, key, before, after }] }
 //   api.discardChanges()                   -> { ok }
 //   api.requestApply()                     -> Promise<{ ok, saved, failed }>  the person reviews and presses Apply
-//   api.undoLast()                         -> Promise<{ ok }>   puts back what the last apply changed
+//   api.undoLast()                         -> Promise<{ ok }>   puts back what the last apply changed. Every apply is also written to the durable undo journal
+//        (PD-06, kind 'tag-sheet', the same entry shape as the AI's set_tags), so Undo still works after a restart and from the notification.
+//        Without a journal it falls back to an in-memory Undo that lasts until the app closes.
+//   api.findTags({ ids?, threshold?, mode? })  -> Promise<{ ok, staged, review, none, unchanged, failed, cancelled, stopped }>   (PD-05)
+//        looks the checked rows (or ids) up on MusicBrainz and finds the original album. Confident matches (threshold, default 0.85) are
+//        STAGED like any other edit; unsure ones wait in a review queue. Nothing is written: the person reviews and applies as usual.
+//        Slow on purpose (about 3 to 4 seconds a song). One search at a time, at most 2000 songs. mode 'add' (default) | 'replace'.
+//   api.getFindings()                      -> { ok, running, items: [{ id, title, release, confidence, reasons, changes }], last }   the review queue
+//   api.acceptFindings(ids?) / skipFindings(ids?)  -> { ok }   stage (or drop) queued matches; ids default to all of them
+//   api.cancelFind()                       -> { ok }   stop a running search after the song being worked on
 
 import * as model from './tag-sheet-model.js';
 import * as realBridge from '../../adapter/tag-sheet-bridge.js';
 
 const { COLUMNS } = model;
+// The tags the finder looks at and may answer with: the ones the sheet can show and stage (the MusicBrainz ids are not sheet columns).
+const FINDER_COLUMNS = ['title', 'artist', 'album', 'albumArtist', 'year', 'genre', 'label'];
+const FINDER_FIELDS = ['album', 'albumArtist', 'year', 'genre', 'label'];
+const FIND_LIMIT = 2000;
+const eta = (seconds) => (seconds < 90 ? `${Math.max(5, Math.round(seconds / 5) * 5)} s` : `${Math.round(seconds / 60)} min`);
 const asText = (value) => (Array.isArray(value) ? value.join('; ') : String(value ?? ''));
 const fail = (error) => ({ ok: false, error });
 
@@ -34,9 +48,11 @@ export function createTagSheetActions(bridge = realBridge) {
     const checked = new Set();
     const listeners = new Set();
     let lastBatch = null; // [{ id, fileUrl, metadata }] previous values of what the last apply changed
+    let lastEntryId = null; // the journal entry of that apply; after a restart, the newest tag-sheet entry that is still undoable
     let reviewer = null;
     let reading = false;
     let lastOutcome = null;
+    const finder = { running: false, queue: new Map(), last: null }; // queue: song id -> a match that is not sure enough to stage by itself
 
     const changed = () => listeners.forEach((listener) => listener());
     const titleOf = (id) => asText(model.valueOf(sheet, id, 'title')) || 'A song';
@@ -85,19 +101,130 @@ export function createTagSheetActions(bridge = realBridge) {
         if (!saved?.success) throw new Error(saved?.error || 'Could not save the tags');
         const savedCount = saved.results.filter((result) => result?.success).length;
         const failed = absorb(items, saved.results, true);
+        lastEntryId = await journalBatch(lastBatch);
         lastOutcome = { ok: failed.length === 0, saved: savedCount, failed };
-        bridge.notify(failed.length ? `Saved ${savedCount} of ${items.length} songs. ${failed.length} problem${failed.length === 1 ? '' : 's'}.` : `Saved ${items.length} song${items.length === 1 ? '' : 's'}.`, failed.length ? 'warning' : 'success', 4000);
+        announceSaved(items.length, savedCount, failed);
         changed();
         return lastOutcome;
     }
 
+    const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+    const journal = (name, ...args) => bridge.journal?.(name, ...args);
+
+    /** One journal entry for one apply: the old values, in the shape the AI's set_tags undo already reads (arrays kept, so multi-value tags come back exactly). */
+    async function journalBatch(batch) {
+        if (!batch || !bridge.journal) return null;
+        const labels = new Set();
+        for (const item of batch) for (const key of Object.keys(item.metadata)) labels.add(COLUMNS[key]?.label || key);
+        try {
+            const recorded = await journal('aiJournalRecord', {
+                kind: 'tag-sheet',
+                summary: `Tags of ${plural(batch.length, 'song')}: ${[...labels].join(', ')}`,
+                changes: [{ type: 'set_tags', undo: { changed: batch.map(({ fileUrl, metadata }) => ({ fileUrl, previous: metadata })) } }]
+            });
+            return recorded?.ok ? recorded.entry.id : null;
+        } catch (error) {
+            return null; // a journal that cannot be written must never stop a save that already happened
+        }
+    }
+
+    /** The shell notification with an Undo button; the engine's toast when the shell has none. */
+    function announceSaved(total, savedCount, failed) {
+        const title = failed.length ? `Saved ${savedCount} of ${total} songs` : `Saved ${plural(total, 'song')}`;
+        const batch = lastBatch;
+        const entryId = lastEntryId;
+        if (!bridge.notice) return bridge.notify(failed.length ? `Saved ${savedCount} of ${total} songs. ${plural(failed.length, 'problem')}.` : `Saved ${plural(total, 'song')}.`, failed.length ? 'warning' : 'success', 4000);
+        let note = null;
+        const detail = failed.length ? `${plural(failed.length, 'problem')}: ${failed[0]}` : batch && !entryId ? 'Undo works until the app is closed.' : '';
+        note = bridge.notice({ title, detail, kind: failed.length ? 'warning' : 'success', important: failed.length > 0, action: batch ? { label: 'Undo', onClick: () => undoFromNotice(entryId, batch, note) } : null });
+    }
+
+    async function undoFromNotice(entryId, batch, note) {
+        let result;
+        if (entryId && entryId !== lastEntryId) result = await undoOlder(entryId); // a later apply came after this one
+        else if (!entryId && batch !== lastBatch) result = fail('That change can no longer be undone from here.');
+        else result = await undoLast();
+        note?.update({ action: null });
+        bridge.notice?.(result.ok ? { title: 'Undone', detail: 'The old tags were put back.', kind: 'success' } : { title: 'Could not undo everything', detail: result.error, kind: 'warning', important: true });
+        return result;
+    }
+
+    /** Reads these files again, so the rows show what the files hold now (after an undo that did not go through the sheet). */
+    async function rereadUrls(urls) {
+        const ids = sheet.order.filter((id) => urls.has(sheet.rows.get(id)?.url));
+        for (let i = 0; i < ids.length; i += 4) {
+            await Promise.all(ids.slice(i, i + 4).map(async (id) => {
+                const result = await bridge.readTags(sheet.rows.get(id)?.url);
+                if (sheet.rows.has(id)) model.addRows(sheet, [rowFromRead(id, result)]);
+            }));
+        }
+    }
+
+    /** Undoes a journal entry the sheet does not hold in memory (after a restart, or one that was not the last apply). */
+    async function undoOlder(id) {
+        if (!bridge.undoJournalEntry) return fail('Undo is not available.');
+        const entry = await journal('aiJournalGet', id);
+        if (!entry || !Array.isArray(entry.changes)) {
+            if (id === lastEntryId) { lastEntryId = null; changed(); }
+            return fail('That change is no longer in the undo journal.');
+        }
+        if (entry.status === 'undone') {
+            if (id === lastEntryId) { lastEntryId = null; changed(); }
+            return fail('That change was already undone.');
+        }
+        const urls = new Set(entry.changes.flatMap((change) => (change.undo?.changed || []).map((file) => file.fileUrl)));
+        const result = await bridge.undoJournalEntry(id);
+        await rereadUrls(urls);
+        if (!result.ok) {
+            changed();
+            return fail(`Undone, with problems: ${(result.failures || []).map((f) => f.message).slice(0, 3).join('; ')}`);
+        }
+        if (id === lastEntryId) lastEntryId = null;
+        changed();
+        return { ok: true };
+    }
+
+    /**
+     * After a restart the in-memory batch is gone; the newest tag-sheet entry in the journal that was not undone can still be.
+     * Called when the sheet is shown, not when this module loads (the page API is not ready that early), and tried again at the next
+     * mount until the journal has answered once.
+     */
+    let restored = false;
+    async function restoreUndo() {
+        if (restored) return;
+        try {
+            const list = await journal('aiJournalList');
+            if (!Array.isArray(list)) return; // no journal (yet)
+            restored = true;
+            if (lastBatch || lastEntryId) return;
+            const newest = list.find((entry) => entry.kind === 'tag-sheet');
+            if (newest && newest.status === 'done') {
+                lastEntryId = newest.id;
+                changed();
+            }
+        } catch (error) {
+            // no journal: the in-memory Undo is all there is
+        }
+    }
+
     async function undoLast() {
-        if (!lastBatch) return fail('There is nothing to undo.');
+        if (!lastBatch && !lastEntryId) return fail('There is nothing to undo.');
+        if (lastEntryId && (await journal('aiJournalGet', lastEntryId))?.status === 'undone') {
+            lastBatch = null; // undone from somewhere else (Edit > Undo): writing the old values again could overwrite newer edits
+            lastEntryId = null;
+            changed();
+            return fail('That change was already undone.');
+        }
+        if (!lastBatch) return undoOlder(lastEntryId);
         const items = lastBatch;
         const saved = await bridge.writeTags(items.map(({ fileUrl, metadata }) => ({ fileUrl, metadata })));
         if (!saved?.success) return fail(saved?.error || 'Undo failed.');
         const problems = absorb(items, saved.results, false);
         lastBatch = null;
+        if (lastEntryId && problems.length === 0) {
+            await journal('aiJournalMarkUndone', lastEntryId);
+            lastEntryId = null;
+        }
         changed();
         return problems.length ? { ok: false, error: `Undone, with problems: ${problems.join('; ')}` } : { ok: true };
     }
@@ -108,7 +235,7 @@ export function createTagSheetActions(bridge = realBridge) {
             const row = sheet.rows.get(id);
             return row.url && !row.unreadable && sheet.columns.some((key) => !(key in row));
         });
-        if (reading) return { ok: true, unreadable: sheet.order.filter((id) => sheet.rows.get(id).unreadable).length };
+        if (reading) return unreadableSummary();
         reading = true;
         try {
             for (let todo = need(); todo.length > 0; todo = need()) {
@@ -116,7 +243,7 @@ export function createTagSheetActions(bridge = realBridge) {
                     await Promise.all(todo.slice(i, i + 4).map(async (id) => {
                         const result = await bridge.readTags(sheet.rows.get(id)?.url);
                         if (!sheet.rows.has(id)) return;
-                        model.addRows(sheet, [result?.success ? { id, ...result.metadata } : { id, unreadable: true }]);
+                        model.addRows(sheet, [rowFromRead(id, result)]);
                     }));
                     changed();
                 }
@@ -124,7 +251,136 @@ export function createTagSheetActions(bridge = realBridge) {
         } finally {
             reading = false;
         }
-        return { ok: true, unreadable: sheet.order.filter((id) => sheet.rows.get(id).unreadable).length };
+        return unreadableSummary();
+    }
+
+    /** How many rows could not be read, and the first reason given (one reason is enough: a missing backend gives the same one for every file). */
+    function unreadableSummary() {
+        const bad = sheet.order.filter((id) => sheet.rows.get(id).unreadable);
+        const reason = bad.map((id) => sheet.rows.get(id).problem).find(Boolean);
+        return reason ? { ok: true, unreadable: bad.length, problem: reason } : { ok: true, unreadable: bad.length };
+    }
+
+    /**
+     * What a read of one file gives the sheet. A successful read is the whole file: a tag the reader does not mention is empty, so it is
+     * filled in as empty. Without that, a reader that leaves out empty tags would make the sheet re-read the same files for ever.
+     */
+    function rowFromRead(id, result) {
+        if (!result?.success) return { id, unreadable: true, problem: result?.error || 'The tags could not be read' };
+        const have = sheet.rows.get(id) || {};
+        const empty = Object.fromEntries(Object.entries(COLUMNS).filter(([key]) => !(key in have)).map(([key, def]) => [key, def.multi ? [] : '']));
+        return { id, ...empty, ...result.metadata };
+    }
+
+    /** Reads the file tags the finder compares against, for these rows only (rows the library already holds fully are not read again). */
+    async function readKeys(ids, keys) {
+        const todo = ids.filter((id) => {
+            const row = sheet.rows.get(id);
+            return row?.url && !row.unreadable && keys.some((key) => !(key in row));
+        });
+        for (let i = 0; i < todo.length; i += 4) {
+            await Promise.all(todo.slice(i, i + 4).map(async (id) => {
+                const result = await bridge.readTags(sheet.rows.get(id)?.url);
+                if (!sheet.rows.has(id)) return;
+                model.addRows(sheet, [rowFromRead(id, result)]);
+            }));
+        }
+    }
+
+    /** Stages one match like any typed edit (add keeps old values of multi-value tags, album and year are replaced). Never writes. */
+    function stageMatch(match, mode) {
+        for (const [key, value] of Object.entries(match.patch)) model.applyValue(sheet, [match.id], key, value, mode);
+    }
+
+    async function cancelFind() {
+        if (!finder.running) return fail('No search is running.');
+        await bridge.cancelFindTags?.();
+        return { ok: true };
+    }
+
+    async function findTags({ ids, threshold, mode = 'add' } = {}) {
+        if (finder.running) return fail('A tag search is already running.');
+        if (!['add', 'replace'].includes(mode)) return fail('mode must be add or replace.');
+        if (threshold !== undefined && !(Number(threshold) >= 0 && Number(threshold) <= 1)) return fail('threshold must be between 0 and 1.');
+        const target = (ids || [...checked]).filter(known);
+        if (target.length === 0) return fail('No rows to look up. Check some rows or pass ids.');
+        if (target.length > FIND_LIMIT) return fail(`Look up at most ${FIND_LIMIT} songs at a time (${target.length} given).`);
+        finder.running = true;
+        changed();
+        let notice = null;
+        try {
+            await readKeys(target, FINDER_COLUMNS);
+            const rows = target.filter((id) => sheet.rows.has(id) && sheet.rows.get(id).url && !sheet.rows.get(id).unreadable);
+            const skipped = target.length - rows.length;
+            if (rows.length === 0) {
+                const why = target.map((id) => sheet.rows.get(id)?.problem).find(Boolean);
+                return fail(why ? `None of those songs could be read: ${why}` : 'None of those songs could be read.');
+            }
+            const songs = rows.map((id) => {
+                const row = sheet.rows.get(id);
+                return { id, fileUrl: row.url, tags: Object.fromEntries(FINDER_COLUMNS.map((key) => [key, row[key] ?? ''])) };
+            });
+            notice = bridge.progressNotice?.({ title: `Finding tags for ${songs.length} song${songs.length === 1 ? '' : 's'}`, kind: 'job', onCancel: () => cancelFind(), target: { view: 'metadata' } }) || null;
+            const startedAt = Date.now();
+            const reply = await bridge.findTags({ songs, options: { rule: 'original', autoThreshold: threshold === undefined ? undefined : Number(threshold), fields: FINDER_FIELDS } }, ({ done, total }) => {
+                const left = done >= 3 ? ((Date.now() - startedAt) / done) * (total - done) / 1000 : 0;
+                notice?.update({ percent: Math.round((done / total) * 100), status: `${done} of ${total}${left >= 5 ? `, about ${eta(left)} left` : ''}` });
+            });
+            if (!reply?.success) {
+                notice?.fail({ title: 'Finding tags failed', detail: reply?.error || '', kind: 'error' });
+                return fail(reply?.error || 'The search failed.');
+            }
+            const counts = { staged: 0, review: 0, none: 0, unchanged: 0, error: 0 };
+            const problems = [];
+            for (const result of reply.results) {
+                if (!known(result.id)) continue; // taken out of the sheet while the search ran
+                finder.queue.delete(result.id);
+                if (result.decision === 'auto') {
+                    stageMatch(result, mode);
+                    counts.staged += 1;
+                } else if (result.decision === 'review') {
+                    finder.queue.set(result.id, { id: result.id, release: result.release, confidence: result.confidence, reasons: result.reasons, patch: result.patch, changes: result.changes });
+                    counts.review += 1;
+                } else if (result.decision === 'error') {
+                    counts.error += 1;
+                    problems.push(`${titleOf(result.id)}: ${result.error}`);
+                } else counts[result.decision] += 1;
+            }
+            finder.last = { ...counts, total: songs.length, skipped, cancelled: Boolean(reply.cancelled), stopped: reply.stopped || null, message: reply.message || '', problems: problems.slice(0, 50) };
+            const nothing = counts.none + counts.unchanged;
+            const detail = `${counts.staged} staged, ${counts.review} to review, ${nothing} nothing to change${counts.error ? `, ${counts.error} failed` : ''}.${reply.message ? ` ${reply.message}` : ''}`;
+            const title = reply.cancelled ? 'Tag search stopped' : reply.stopped ? 'Tag search ended early' : 'Finished finding tags';
+            notice?.done({ title, detail, kind: reply.cancelled || reply.stopped || counts.error ? 'warning' : 'success', target: { view: 'metadata', label: 'Open the tag sheet' }, important: counts.review > 0 });
+            return { ok: true, staged: counts.staged, review: counts.review, none: counts.none, unchanged: counts.unchanged, failed: counts.error, skipped, cancelled: Boolean(reply.cancelled), stopped: reply.stopped || null };
+        } catch (error) {
+            notice?.fail({ title: 'Finding tags failed', detail: error?.message || '', kind: 'error' });
+            return fail(error?.message || 'The search failed.');
+        } finally {
+            finder.running = false;
+            changed();
+        }
+    }
+
+    function getFindings() {
+        const items = [...finder.queue.values()].map((entry) => ({ id: entry.id, title: titleOf(entry.id), release: entry.release, confidence: entry.confidence, reasons: [...entry.reasons], changes: Object.entries(entry.changes).map(([key, change]) => ({ key, before: change.from, after: change.to })) }));
+        return { ok: true, running: finder.running, items, last: finder.last && { ...finder.last } };
+    }
+
+    function acceptFindings(ids, { mode = 'add' } = {}) {
+        const target = (ids || [...finder.queue.keys()]).filter((id) => finder.queue.has(id) && known(id));
+        for (const id of target) {
+            stageMatch(finder.queue.get(id), mode);
+            finder.queue.delete(id);
+        }
+        changed();
+        return { ok: true, accepted: target.length };
+    }
+
+    function skipFindings(ids) {
+        const target = (ids || [...finder.queue.keys()]).filter((id) => finder.queue.has(id));
+        for (const id of target) finder.queue.delete(id);
+        changed();
+        return { ok: true, skipped: target.length };
     }
 
     const api = {
@@ -184,7 +440,10 @@ export function createTagSheetActions(bridge = realBridge) {
         },
         removeRows(ids) {
             model.removeRows(sheet, ids || []);
-            for (const id of ids || []) checked.delete(id);
+            for (const id of ids || []) {
+                checked.delete(id);
+                finder.queue.delete(id);
+            }
             changed();
             return { ok: true, total: sheet.order.length };
         },
@@ -213,6 +472,7 @@ export function createTagSheetActions(bridge = realBridge) {
         },
         discardChanges() {
             model.discard(sheet);
+            finder.queue.clear();
             changed();
             return { ok: true };
         },
@@ -223,7 +483,12 @@ export function createTagSheetActions(bridge = realBridge) {
             await reviewer();
             return lastOutcome ? { ...lastOutcome } : { ok: false, saved: 0, failed: [], cancelled: true };
         },
-        undoLast
+        undoLast,
+        findTags,
+        getFindings,
+        acceptFindings,
+        skipFindings,
+        cancelFind
     };
 
     const ui = {
@@ -233,7 +498,9 @@ export function createTagSheetActions(bridge = realBridge) {
         commit,
         undoLast,
         readMissing,
-        hasUndo: () => lastBatch !== null,
+        hasUndo: () => lastBatch !== null || lastEntryId !== null,
+        restoreUndo,
+        finder: { run: findTags, cancel: cancelFind, findings: getFindings, accept: acceptFindings, skip: skipFindings, running: () => finder.running },
         isDirty: () => model.changes(sheet).length > 0,
         subscribe(listener) {
             listeners.add(listener);

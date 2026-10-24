@@ -44,6 +44,9 @@ const groups = {
         getAudioMetadata: (fileUrl) => ipcRenderer.invoke('get-audio-metadata', fileUrl),
         saveAudioMetadata: (params) => ipcRenderer.invoke('save-audio-metadata', params),
         saveAudioMetadataMany: (items) => ipcRenderer.invoke('save-audio-metadata-many', items),
+        findTagsMany: (request) => ipcRenderer.invoke('find-tags-many', request),
+        cancelFindTags: () => ipcRenderer.invoke('cancel-find-tags'),
+        onFindTagsProgress: (cb) => ipcRenderer.on('find-tags-progress', (event, info) => cb(info)),
         exportAudioMetadataJson: (params) => ipcRenderer.invoke('export-audio-metadata-json', params),
         importAudioMetadataJson: () => ipcRenderer.invoke('import-audio-metadata-json'),
         searchOnlineMetadata: (params) => ipcRenderer.invoke('search-online-metadata', params),
@@ -54,13 +57,31 @@ const groups = {
     files: {
         showFileInExplorer: (filePath) => ipcRenderer.send('show-file-in-explorer', filePath),
         deleteFile: (filePath) => ipcRenderer.send('delete-file', filePath),
-        readAudioBytes: (fileUrl) => ipcRenderer.invoke('read-audio-bytes', fileUrl)
+        readAudioBytes: (fileUrl) => ipcRenderer.invoke('read-audio-bytes', fileUrl),
+        getWaveformPeaks: (key) => ipcRenderer.invoke('waveform-peaks:get', key),
+        setWaveformPeaks: (key, bytes) => ipcRenderer.invoke('waveform-peaks:set', key, bytes)
     },
     lyrics: {
         saveLyricsFile: (defaultName, contents) => ipcRenderer.invoke('save-lyrics-file', defaultName, contents),
         readLyricsFile: () => ipcRenderer.invoke('read-lyrics-file'),
         searchOnlineLyrics: (params) => ipcRenderer.invoke('search-online-lyrics', params),
         downloadOnlineLyrics: (params) => ipcRenderer.invoke('download-online-lyrics', params)
+    },
+    ai: {
+        aiGetStatus: () => ipcRenderer.invoke('ai:get-status'),
+        aiSetSettings: (patch) => ipcRenderer.invoke('ai:set-settings', patch),
+        aiSetKey: (key) => ipcRenderer.invoke('ai:set-key', key),
+        aiClearKey: () => ipcRenderer.invoke('ai:clear-key'),
+        aiListModels: (params) => ipcRenderer.invoke('ai:list-models', params),
+        aiKeyInfo: () => ipcRenderer.invoke('ai:key-info'),
+        aiDescribePrivacy: () => ipcRenderer.invoke('ai:describe-privacy'),
+        aiPlan: (params) => ipcRenderer.invoke('ai:plan', params),
+        aiTranslateLyrics: (params) => ipcRenderer.invoke('ai:translate-lyrics', params),
+        aiCancel: () => ipcRenderer.invoke('ai:cancel'),
+        aiJournalList: () => ipcRenderer.invoke('ai:journal-list'),
+        aiJournalGet: (id) => ipcRenderer.invoke('ai:journal-get', id),
+        aiJournalRecord: (entry) => ipcRenderer.invoke('ai:journal-record', entry),
+        aiJournalMarkUndone: (id) => ipcRenderer.invoke('ai:journal-mark-undone', id)
     }
 };
 

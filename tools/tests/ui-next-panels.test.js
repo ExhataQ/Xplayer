@@ -58,13 +58,12 @@ describe('panel slots', { concurrency: false }, () => {
         await page.close();
     });
 
-    test('an unregistered panel item shows its title and note, and no collapse arrow', TEST_OPTIONS, async (t) => {
+    test('a panel item that cannot collapse (Recents) shows its title and no collapse arrow', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open();
         assert.equal(await collapse(page).isVisible(), true, 'Library collapses');
         await rail(page, 'recent').click();
         assert.equal(await page.locator('.panel-host__title').innerText(), 'Recently played');
-        assert.match(await page.locator('.panel-note').innerText(), /songs you played/i);
         assert.equal(await collapse(page).isVisible(), false);
         assert.equal(await page.locator('.panel-host').getAttribute('data-panel'), 'expanded');
         await rail(page, 'library').click();

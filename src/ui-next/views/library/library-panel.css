@@ -19,7 +19,8 @@
     --panel-cover-size: 32px;
 }
 
-.panel-host__body--library {
+/* The doubled selector beats the shell's `.panel-host__body` padding, which kept the list 16 px off the wall and the scroll bar with it (PB-05). */
+.panel-host__body.panel-host__body--library {
     display: flex;
     flex-direction: column;
     padding: 0;
@@ -108,7 +109,7 @@
 }
 .library-panel .left-panel-main-list-content {
     overflow-y: auto;
-    scrollbar-width: thin;
+    scrollbar-width: auto; /* the system's full-width bar, not the thin one: easier to grab, and it sits on the panel's right wall (PB-05) */
     scrollbar-color: var(--border-strong) transparent;
 }
 .library-panel .left-panel-main-list {
@@ -286,8 +287,8 @@
     background: var(--surface-raised);
 }
 .library-panel .lazy-skeleton .ph-left-cover-skeleton {
-    width: 44px;
-    height: 44px;
+    width: var(--panel-cover-size);
+    height: var(--panel-cover-size);
 }
 .library-panel .lazy-skeleton .ph-left-title {
     width: 60%;

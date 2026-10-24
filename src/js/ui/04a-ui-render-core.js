@@ -445,6 +445,7 @@ export function renderRightPanelItem(song, config = {}) {
 // ==============================================================================
 export function renderSongsList(songs, listId = VIEWS.ALL_SONGS) {
     if (currentView === VIEWS.SETTINGS) return;
+    songs = applyListSort(listId, songs); // callers may pass a raw array; draw it in the list's sort so rows match getSongsForList (PB-08)
 
     const songListContainer = document.getElementById('song-list-container');
     if (songListContainer && songListContainer.style.display === 'none') {

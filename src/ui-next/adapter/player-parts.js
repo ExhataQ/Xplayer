@@ -71,8 +71,12 @@ function follow() {
     }
 }
 
-/** Subscribes to playback position. The first subscriber attaches the single shared listeners; the last one removes them. */
-export function onTime(callback) {
+/**
+ * Subscribes to playback position. The first subscriber attaches the single shared listeners; the last one removes them.
+ * With { immediate: true } the callback also gets the current state once, now (a view that starts while a song is already
+ * playing or paused would otherwise wait for the next time event, which a paused song never sends).
+ */
+export function onTime(callback, { immediate = false } = {}) {
     if (!listeners.size) {
         const first = activeAudio();
         if (!first) return () => {};
@@ -80,6 +84,7 @@ export function onTime(callback) {
         watcher = setInterval(follow, 150);
     }
     listeners.add(callback);
+    if (immediate && audio) callback(snapshot());
     return () => {
         listeners.delete(callback);
         if (!listeners.size) {

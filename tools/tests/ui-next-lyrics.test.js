@@ -103,6 +103,19 @@ describe('Lyrics in the new shell', { concurrency: false }, () => {
             window.playSongFromList(s.id);
         }, { plain, lrc });
 
+    test('Lyrics in the rail opens the Sync tool when a song is playing, and the View page when nothing is (PC-07)', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open();
+        await toLyrics(page);
+        assert.equal(await page.evaluate(() => document.querySelector('.lyrics-bar .tab[aria-selected="true"]').textContent), 'View');
+        await page.click('.rail-btn[data-view="library"]');
+        await play(page);
+        await toLyrics(page);
+        await page.waitForFunction(() => document.querySelector('.lyrics-bar .tab[aria-selected="true"]')?.textContent === 'Sync', null, { timeout: 4000 });
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
     test('opens from the rail: engine page in the host, node identity intact, bar above it, nothing playing', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open();

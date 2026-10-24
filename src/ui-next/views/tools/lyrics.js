@@ -11,6 +11,7 @@
 import { tabs, el } from '../../components/index.js';
 import { adoptLyricsEditors } from '../../adapter/engine-view.js';
 import { isPlaying } from '../../adapter/store.js';
+import { mountAiLyricsBar } from '../../shell/ai-slots.js';
 import { engineAction, engineConfirm, engineEvent, engineView, lyricsEditorDirty, lyricsEditors, nowPlaying, watchLyricsEditors } from '../../adapter/engine-api.js';
 
 const MODE_OF_VIEW = { lyrics: 'view', 'online-lyrics': 'find', 'smart-lyrics': 'batch' };
@@ -47,8 +48,12 @@ export function leaveLyrics() {
     return true;
 }
 
-/** Puts the mode bar above the engine page that is already in `host`. Safe to call again: the previous bar is removed first. */
-export function mountLyricsModes(host) {
+/**
+ * Puts the mode bar above the engine page that is already in `host`. Safe to call again: the previous bar is removed first.
+ * options.chosen: the person picked Lyrics in the rail or a menu. With a song playing that opens the Sync tool (PC-07, brief 4.1);
+ * with nothing playing, or when the engine opened its own lyrics page, it stays on the View page.
+ */
+export function mountLyricsModes(host, options = {}) {
     stop();
     host.querySelector(':scope > .lyrics-bar')?.remove();
 
@@ -62,6 +67,7 @@ export function mountLyricsModes(host) {
     });
     const hint = el('p', { class: 'lyrics-bar__hint', role: 'status' });
     const bar = el('div', { class: 'lyrics-bar' }, el('div', { class: 'lyrics-bar__song' }, title, artist), el('div', { class: 'lyrics-bar__modes' }, modes.el), hint);
+    mountAiLyricsBar(bar); // Agent E: the Translate controls (original / translated, translate now, auto-translate); nothing when AI is not set up
 
     // Leaves an open editor (asking first when something would be lost), then opens `mode`. Returns without opening when the person
     // chose to keep editing. The sync editor asks with the engine's own dialog, which answers later: the person picks the tab again.
@@ -97,4 +103,5 @@ export function mountLyricsModes(host) {
     };
     host.prepend(bar);
     paint();
+    if (options.chosen && nowPlaying() && !lyricsEditors().sync && !lyricsEditors().write) go('sync');
 }

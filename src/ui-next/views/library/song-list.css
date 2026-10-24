@@ -145,6 +145,64 @@
         visibility: hidden;
     }
 }
+/* Title, Album and Time are buttons that sort the list (task PB-08). The arrow shows only on the sorted column. */
+.songlist-head__sort {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    max-width: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+}
+.songlist-head__sort:hover:not(:disabled) {
+    color: var(--text-secondary);
+}
+.songlist-head__sort:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+.songlist-head__sort:disabled {
+    cursor: default;
+}
+.songlist-head__sort[data-dir='asc'],
+.songlist-head__sort[data-dir='desc'] {
+    color: var(--text-primary);
+}
+.songlist-head__sort-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.songlist-head__sort-arrow {
+    flex: none;
+    width: 6px;
+    height: 6px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    opacity: 0;
+    transform: translateY(-2px) rotate(45deg);
+}
+.songlist-head__sort[data-dir='asc'] .songlist-head__sort-arrow {
+    opacity: 1;
+    transform: translateY(1px) rotate(-135deg);
+}
+.songlist-head__sort[data-dir='desc'] .songlist-head__sort-arrow {
+    opacity: 1;
+}
+.songlist-head__time .songlist-head__sort {
+    margin-left: auto;
+}
+@media (prefers-reduced-motion: no-preference) {
+    .songlist-head__sort-arrow {
+        transition: opacity 120ms ease, transform 120ms ease;
+    }
+}
 .songlist-head__tail {
     display: flex;
     align-items: center;

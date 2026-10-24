@@ -1,7 +1,7 @@
 // The AI parts of the window chrome (PA-17): the chat button next to the bell, the menu entries and the hotkeys.
 // What they call comes from shell/ai-slots.js; the shell hands in how to switch views.
 import { iconButton } from '../components/index.js';
-import { AI_VIEW_ID, AI_SHORTCUTS, aiEnabled, hasAiChat, getAiCommands, watchAiStatus, openAiChat, setAiChatOpener } from './ai-slots.js';
+import { AI_VIEW_ID, AI_SHORTCUTS, aiEnabled, hasAiChat, getAiCommands, watchAiStatus, openAiChat, setAiChatOpener, setAiChatCloser, setAiNavigator, setAiPopupHost, setAiQueueOpener, hasAiPopup, isAiPopupOpen, toggleAiPopup } from './ai-slots.js';
 
 const OFF_HINT = 'Turn on AI in Settings';
 
@@ -12,13 +12,26 @@ export function mountAiChrome({ bell, goTo, current }) {
         icon: 'sparkles',
         label: 'AI chat',
         size: 'sm',
+        className: 'ai-btn',
         pressed: false,
         tooltip: () => (aiEnabled() ? {} : { name: OFF_HINT, state: 'AI is off' }),
-        onClick: () => (!aiEnabled() ? goTo('settings') : current() === AI_VIEW_ID ? goTo(returnTo) : openAiChat())
+        onClick: () => (!aiEnabled() ? goTo('settings') : toggleChat())
     });
+    // The chat opens as a small pop-up (a layer over the page); from there it can be expanded into the big view and back.
+    const layer = document.createElement('div');
+    layer.className = 'ai-popup-layer';
+    document.body.append(layer);
+    setAiPopupHost(layer);
+    const toggleChat = () => (current() === AI_VIEW_ID ? goTo(returnTo) : hasAiPopup() ? toggleAiPopup() : openAiChat());
     button.hidden = true;
     bell.before(button);
 
+    setAiNavigator(goTo);
+    setAiQueueOpener(() => {
+        const toggle = document.querySelector('[aria-controls="queue-panel"]');
+        if (toggle && toggle.getAttribute('aria-expanded') !== 'true') toggle.click();
+    });
+    setAiChatCloser(() => goTo(returnTo));
     setAiChatOpener(() => {
         if (current() !== AI_VIEW_ID) returnTo = current() || 'library';
         goTo(AI_VIEW_ID);
@@ -30,13 +43,13 @@ export function mountAiChrome({ bell, goTo, current }) {
         // Off: still focusable and clickable (it leads to Settings), but announced as unavailable with the reason as its name.
         button.setAttribute('aria-disabled', String(!on));
         button.setAttribute('aria-label', on ? 'AI chat' : OFF_HINT);
-        button.setAttribute('aria-pressed', String(on && current() === AI_VIEW_ID));
+        button.setAttribute('aria-pressed', String(on && (current() === AI_VIEW_ID || isAiPopupOpen())));
     }
     watchAiStatus(paint);
     paint();
 
     const run = (name) => {
-        const fn = name === 'chat' ? (aiEnabled() ? () => (current() === AI_VIEW_ID ? goTo(returnTo) : openAiChat()) : null) : aiEnabled() || name === 'undo' ? getAiCommands()[name] : null;
+        const fn = name === 'chat' ? (aiEnabled() ? toggleChat : null) : aiEnabled() || name === 'undo' ? getAiCommands()[name] : null;
         if (typeof fn === 'function') fn();
     };
     const keyOf = { a: 'chat', s: 'shuffle', u: 'undo' };

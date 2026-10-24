@@ -79,6 +79,93 @@ for (const [label, count] of [['small library (rows in normal flow)', 30], ['lar
             await page.mouse.up();
         });
 
+        test('clicking Title sorts the list: ascending, descending, then back to its own order (PB-08)', TEST_OPTIONS, async (t) => {
+            if (!guard(t)) return;
+            const { page, errors } = await open();
+            const firstTitle = () => page.locator('.view-host .song-item:not(.lazy-skeleton) .song-title').first().textContent().then((s) => s.trim());
+            const dir = () => page.locator('.songlist-head__sort[data-sort="title"]').getAttribute('data-dir');
+            const title = page.locator('.songlist-head__sort[data-sort="title"]');
+            const natural = await firstTitle();
+            assert.equal(await dir(), 'none');
+            await title.click();
+            await page.waitForFunction(() => document.querySelector('.songlist-head__sort[data-sort="title"]').dataset.dir === 'asc');
+            assert.equal(await firstTitle(), natural, 'the fixture is already in title order, so ascending starts the same');
+            await title.click();
+            await page.waitForFunction((was) => document.querySelector('.view-host .song-item:not(.lazy-skeleton) .song-title').textContent.trim() !== was, natural);
+            assert.equal(await dir(), 'desc');
+            assert.match(await title.getAttribute('aria-label'), /sorted descending/);
+            await title.click();
+            await page.waitForFunction((was) => document.querySelector('.view-host .song-item:not(.lazy-skeleton) .song-title').textContent.trim() === was, natural);
+            assert.equal(await dir(), 'none');
+            assert.deepEqual(errors, []);
+        });
+
+        test('the rows on screen, the engine list and the play queue are in one order after a sort (PB-08)', TEST_OPTIONS, async (t) => {
+            if (!guard(t)) return;
+            const { page } = await open();
+            const title = page.locator('.songlist-head__sort[data-sort="title"]');
+            await title.click();
+            await title.click();
+            await page.waitForFunction(() => document.querySelector('.songlist-head__sort[data-sort="title"]').dataset.dir === 'desc');
+            const shown = () => page.evaluate(() => [...document.querySelectorAll('.view-host .song-item:not(.lazy-skeleton) .song-title')].slice(0, 6).map((e) => e.textContent.trim()));
+            const engine = await page.evaluate(() => window.getSongsForList('all-songs').slice(0, 6).map((s) => s.title.trim()));
+            assert.deepEqual(await shown(), engine, 'the engine reads the same order it draws');
+            await page.locator('.view-host .song-item:not(.lazy-skeleton)').nth(2).locator('.song-number-item').click();
+            await page.waitForFunction(() => window.currentQueueIndex >= 0 && window.playbackQueue && window.playbackQueue.length > 0);
+            const played = await page.evaluate(() => {
+                const item = window.playbackQueue[window.currentQueueIndex];
+                return { playing: (item.song || item).title.trim(), queue: window.playbackQueue.slice(0, 6).map((q) => (q.song || q).title.trim()) };
+            });
+            assert.equal(played.playing, engine[2], 'the row that was clicked is the song that plays');
+            assert.deepEqual(played.queue, engine, 'the queue follows the sorted order');
+        });
+
+        test('the playing row stays marked when the order changes, and History cannot be sorted (PB-08)', TEST_OPTIONS, async (t) => {
+            if (!guard(t)) return;
+            const { page } = await open();
+            // A playlist in a deliberately unsorted order (3, 1, 2), so every sort click moves the playing row somewhere else.
+            const view = await page.evaluate(() => {
+                const playlist = window.createPlaylist('Sort test');
+                for (const title of ['Song title number 3', 'Song title number 1', 'Song title number 2']) {
+                    window.addSongToPlaylist(window.SONGS_DATA.find((s) => s.title === title).id, playlist.id);
+                }
+                window.openPlaylist(playlist.id);
+                return `playlist-${playlist.id}`;
+            });
+            await page.waitForFunction((v) => window.currentView === v && document.querySelectorAll('.view-host .song-item:not(.lazy-skeleton)').length === 3, view);
+            const order = () => page.evaluate(() => [...document.querySelectorAll('.view-host .song-item:not(.lazy-skeleton) .song-title')].map((e) => e.textContent.trim().replace('Song title number ', '')));
+            const playing = () => page.evaluate(() => [...document.querySelectorAll('.view-host .song-item.playing .song-title')].map((e) => e.textContent.trim().replace('Song title number ', '')));
+            assert.deepEqual(await order(), ['3', '1', '2']);
+            await page.locator('.view-host .song-item:not(.lazy-skeleton)').first().locator('.song-number-item').click();
+            await page.waitForSelector('.view-host .song-item.playing');
+            assert.deepEqual(await playing(), ['3']);
+            const title = page.locator('.songlist-head__sort[data-sort="title"]');
+            for (const [click, rows] of [[1, ['1', '2', '3']], [2, ['3', '2', '1']], [3, ['3', '1', '2']]]) {
+                await title.click();
+                await page.waitForFunction((want) => [...document.querySelectorAll('.view-host .song-item:not(.lazy-skeleton) .song-title')].map((e) => e.textContent.trim().replace('Song title number ', '')).join() === want.join(), rows);
+                assert.deepEqual(await playing(), ['3'], `after click ${click} song 3 is still the one marked as playing`);
+                // The engine also keeps the playing row's position. It must follow the song to its new row, not stay on the old slot.
+                const where = await page.evaluate((v) => ({ row: [...document.querySelectorAll('.view-host .song-item:not(.lazy-skeleton)')].findIndex((r) => r.classList.contains('playing')), stored: window.activeSlotHighlights[v] }), view);
+                assert.equal(where.stored, where.row, `after click ${click} the stored highlight is the playing row's position`);
+            }
+            // Sort, leave the list, open it again from the library: the engine hands the renderer the playlist's own unsorted songs, and
+            // the sort is still applied there, so the rows and the header both show it.
+            await title.click();
+            await page.waitForFunction(() => document.querySelector('.songlist-head__sort[data-sort="title"]').dataset.dir === 'asc');
+            await page.evaluate(() => window.switchView('all-songs'));
+            await page.waitForFunction(() => window.currentView === 'all-songs');
+            await page.evaluate((v) => window.openPlaylist(v.replace('playlist-', '')), view);
+            await page.waitForFunction((v) => window.currentView === v && document.querySelectorAll('.view-host .song-item:not(.lazy-skeleton)').length === 3, view);
+            assert.deepEqual(await order(), ['1', '2', '3'], 'coming back to the list shows it still sorted');
+            assert.equal(await title.getAttribute('data-dir'), 'asc');
+            assert.deepEqual(await page.evaluate((v) => window.getSongsForList(v).map((s) => s.title.replace('Song title number ', '')), view), ['1', '2', '3']);
+            await page.evaluate(() => window.switchView('history'));
+            await page.waitForFunction(() => window.currentView === 'history');
+            await page.waitForFunction(() => [...document.querySelectorAll('.songlist-head__sort')].every((b) => b.disabled));
+            await page.evaluate(() => window.switchView('all-songs'));
+            await page.waitForFunction(() => window.currentView === 'all-songs' && ![...document.querySelectorAll('.songlist-head__sort')].some((b) => b.disabled));
+        });
+
         test('Space after a mouse click does not draw the selection ring; Tab does, and keeps it through Space (PB-12)', TEST_OPTIONS, async (t) => {
             if (!guard(t)) return;
             const { page } = await open();
@@ -422,6 +509,7 @@ describe('song list sources', () => {
 
     test('the bridge stays small, and the song list files use tokens only (no raw colors)', () => {
         assert.ok(codeLines(path.join(NEXT_SRC, 'adapter', 'songlist-bridge.js')) <= 40, 'songlist-bridge.js size');
+        assert.ok(codeLines(path.join(NEXT_SRC, 'adapter', 'songsort-bridge.js')) <= 20, 'songsort-bridge.js size (PB-08)');
         for (const f of ['views/library/song-list.css', 'adapter/songlist-rows.css']) {
             const text = fs.readFileSync(path.join(NEXT_SRC, f), 'utf8');
             assert.doesNotMatch(text, /#[0-9a-fA-F]{3,8}\b(?![\w-])/, `${f} has a hex color`);

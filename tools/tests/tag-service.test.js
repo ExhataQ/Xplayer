@@ -54,3 +54,27 @@ test('writeMany keeps going after a failure and never writes a file it could not
 test('writeMany with nothing to do returns an empty list', async () => {
     assert.deepEqual(await createTagService(fakeBackend({})).writeMany(undefined), []);
 });
+
+test('writeMany: when the backend itself is missing, every song says so, with the reason, and nothing is written', async () => {
+    const { createTagService } = require('../../electron/tag-service');
+    const message = 'Tags cannot be read or saved yet: the Python package "mutagen" is not installed. Install it with: python -m pip install mutagen';
+    let writes = 0;
+    const service = createTagService({
+        getAudioMetadata: async () => ({ success: false, reason: 'no-mutagen', error: message }),
+        saveAudioMetadata: async () => { writes += 1; return { success: true, metadata: {} }; }
+    });
+    const out = await service.writeMany([{ fileUrl: 'file:///a.mp3', metadata: { album: 'X' } }, { fileUrl: 'file:///b.mp3', metadata: { album: 'X' } }]);
+    assert.deepEqual(out, [{ fileUrl: 'file:///a.mp3', success: false, error: message, reason: 'no-mutagen' }, { fileUrl: 'file:///b.mp3', success: false, error: message, reason: 'no-mutagen' }]);
+    assert.equal(writes, 0);
+});
+
+test('writeMany: a plain failure of one file has no reason field, and a failed save passes its reason through', async () => {
+    const { createTagService } = require('../../electron/tag-service');
+    const service = createTagService({
+        getAudioMetadata: async (url) => (url.includes('bad') ? { success: false, error: 'Unsupported file type' } : { success: true, metadata: { album: '' } }),
+        saveAudioMetadata: async () => ({ success: false, reason: 'failed', error: 'PermissionError' })
+    });
+    const out = await service.writeMany([{ fileUrl: 'file:///bad.mp3', metadata: {} }, { fileUrl: 'file:///ok.mp3', metadata: { album: 'X' } }]);
+    assert.deepEqual(out[0], { fileUrl: 'file:///bad.mp3', success: false, error: 'Unsupported file type' });
+    assert.deepEqual(out[1], { fileUrl: 'file:///ok.mp3', success: false, error: 'PermissionError', reason: 'failed' });
+});

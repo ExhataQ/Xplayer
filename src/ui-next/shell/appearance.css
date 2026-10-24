@@ -126,7 +126,7 @@
     top: 0;
     right: 0;
     bottom: 0;
-    width: 8px;
+    width: 4px; /* it sits over the panel's right wall, where the list's scroll bar is: kept thin so the bar stays easy to grab (PB-05) */
     z-index: 2;
     cursor: col-resize;
     touch-action: none;

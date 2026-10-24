@@ -9,8 +9,8 @@ function when(entry) {
     return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-/** Adds the search field and the recent-searches list to `host`. Returns { field, show(query), detach() }. */
-export function mountSearchView(host) {
+/** Adds the search field and the recent-searches list to `host`. `start` is a query to show at once (the panel's "show in main view", PB-03). Returns { field, show(query), detach() }. */
+export function mountSearchView(host, start = '') {
     let query = '';
     const field = textField({
         label: 'Search your library',
@@ -61,6 +61,11 @@ export function mountSearchView(host) {
     }
 
     host.insertBefore(page, host.firstChild);
+    if (start.trim()) {
+        query = start;
+        field.setValue(start);
+        runSearch(start);
+    }
     paint();
     field.input.focus();
     const stop = onRecentSearchesChange(() => {

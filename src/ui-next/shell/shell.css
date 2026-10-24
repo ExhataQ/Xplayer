@@ -63,15 +63,27 @@
     display: flex;
     align-items: center;
     gap: var(--space-1);
-    padding: 0 0 0 var(--space-2);
-    background: var(--surface-ground);
-    border-bottom: 1px solid var(--border-subtle);
+    /* The title bar and the rail are one bar (PA-03, brief 2.1): the logo sits at the far left, as in a standard window, level with the
+       other title bar buttons, and there is no line between the logo and Home. The line under the title bar starts where the rail ends
+       (see ::after below). */
+    padding: 0 0 0 var(--space-3);
+    background: var(--surface-panel);
     -webkit-app-region: drag;
     user-select: none;
     position: relative;
 }
 .titlebar button {
     -webkit-app-region: no-drag;
+}
+.titlebar::after {
+    content: '';
+    position: absolute;
+    left: var(--rail-width);
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: var(--border-subtle);
+    pointer-events: none;
 }
 .titlebar .nav-btn,
 .titlebar .icon-btn {
@@ -142,28 +154,19 @@
     flex-direction: column;
     align-items: center;
     gap: var(--space-1);
-    padding: var(--space-2) 0;
-    background: var(--surface-ground);
+    padding: var(--space-1) 0 var(--space-2); /* the first icon sits close under the title bar */
+    background: var(--surface-panel); /* the title bar, the rail and the panels are one color; the main view is darker */
     border-right: 1px solid var(--border-subtle);
 }
 .rail-btn {
-    width: 40px;
-    height: 40px;
+    width: var(--rail-button);
+    height: var(--rail-button);
 }
 .rail-btn[aria-current='page'] {
     background: var(--surface-selected);
     color: var(--text-primary);
 }
-.rail-btn[aria-current='page']::before {
-    content: '';
-    position: absolute;
-    left: -8px;
-    top: 10px;
-    bottom: 10px;
-    width: 2px;
-    border-radius: var(--radius-pill);
-    background: var(--accent);
-}
+/* The active bar, the icon states and the icon animations are in shell/rail.css. */
 .rail-btn--end {
     margin-top: auto;
 }
@@ -244,6 +247,15 @@
 .panel-host[data-panel='compact'] .panel-host__header {
     justify-content: center;
     padding: 0;
+}
+.panel-host__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+.panel-host__action[hidden],
+.panel-host[data-panel='compact'] .panel-host__action {
+    display: none; /* the plus is for the open panel only: the compact strip has no room for it (PB-06) */
 }
 .panel-host__title {
     font-size: var(--text-md);

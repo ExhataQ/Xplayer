@@ -1,0 +1,216 @@
+/* ui-next rail (task PA-03, brief 2.3 and 2.5 to 2.8): the rule under Home, the active bar, the icon states and the icon animations.
+ * Tokens only. The rail's box, colors and buttons are in shell.css.
+ *
+ * Two kinds of motion, never together on one icon:
+ *   - hover: Home, Library, Search, Recents do one small movement and come back to where they were;
+ *   - click: Settings (the gear turns), Lyrics (the bars bounce) and Metadata (the tag swings) do theirs when their page opens.
+ * Home also fills up when it opens, and loses the fill at once when you leave. All motion is off when the person asks for less
+ * motion; the states then simply change without animating.
+ */
+
+/* ---------- Home is set apart ---------- */
+
+.rail-sep {
+    flex: none;
+    width: 32px;
+    height: 1px;
+    margin: 0 0 var(--space-2); /* the rail's own gap under Home, more room before Library */
+    background: var(--border-strong);
+}
+
+/* ---------- the active bar ---------- */
+
+.rail-btn::before {
+    content: '';
+    position: absolute;
+    left: calc((var(--rail-width) - var(--rail-button)) / -2); /* on the rail's edge */
+    top: 4px;
+    bottom: 4px; /* a little shorter than the hover area */
+    width: 3px;
+    border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
+    background: var(--accent);
+    opacity: 0;
+    transform: scaleY(0);
+    transition: transform 260ms var(--motion-ease), opacity 160ms var(--motion-ease);
+    pointer-events: none;
+}
+.rail-btn[aria-current='page']::before,
+.rail-btn[data-panel-current]::before {
+    opacity: 1;
+    transform: scaleY(1);
+}
+
+/* ---------- icon states ---------- */
+
+.rail-btn > svg {
+    width: var(--rail-icon);
+    height: var(--rail-icon);
+    transition: scale var(--motion-fast) var(--motion-ease), stroke-width var(--motion-fast) var(--motion-ease);
+}
+/* Every page that is open: the icon grows a little and its line gets bolder. */
+.rail-btn[aria-current='page'] > svg {
+    scale: 1.08;
+    stroke-width: 2.1;
+}
+
+/* The pages that take over the main view (Home, Lyrics, Metadata) change more: accent color and their own change of shape. */
+.rail-btn[data-view='home'][aria-current='page'],
+.rail-btn[data-view='lyrics'][aria-current='page'],
+.rail-btn[data-view='metadata'][aria-current='page'] {
+    color: var(--accent);
+}
+
+/* Home fills up from the bottom; the door shows as a gap in the fill. The transition is on the open state only, so leaving Home
+   takes the fill away at once. */
+.rail-btn[data-view='home'] .rail-fill {
+    fill: var(--accent);
+    clip-path: inset(100% 0 0 0);
+}
+.rail-btn[data-view='home'][aria-current='page'] .rail-fill {
+    clip-path: inset(0 0 0 0);
+    transition: clip-path 420ms var(--motion-ease);
+}
+.rail-btn[data-view='home'][aria-current='page'] .rail-door {
+    stroke: var(--surface-selected);
+    transition: stroke 200ms var(--motion-ease) 180ms;
+}
+
+/* Metadata: the tag is filled and its hole shows through. */
+.rail-btn[data-view='metadata'] > svg path {
+    fill: currentColor;
+    fill-opacity: 0;
+}
+.rail-btn[data-view='metadata'][aria-current='page'] > svg path {
+    fill-opacity: 1;
+    transition: fill-opacity 300ms var(--motion-ease);
+}
+.rail-btn[data-view='metadata'][aria-current='page'] > svg circle {
+    stroke: var(--surface-selected);
+    fill: var(--surface-selected);
+}
+
+/* ---------- motion ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+    /* on hover (after a short pause, see playOnHover in shell.js): one movement, then back to the start, finished even if the pointer leaves */
+    .rail-btn[data-view='home'][data-play] > svg {
+        animation: rail-hop 560ms ease-in-out;
+    }
+    .rail-btn[data-view='library'][data-play] > svg {
+        animation: rail-tilt 640ms ease-in-out;
+    }
+    .rail-btn[data-view='search'][data-play] > svg {
+        animation: rail-nudge 560ms ease-in-out;
+    }
+    .rail-btn[data-view='recent'][data-play] > svg path:last-child {
+        transform-origin: 12px 12px; /* the clock turns its hands, not the whole icon */
+        animation: rail-tick 800ms ease-in-out;
+    }
+
+    /* on click (the page opens): Settings, Lyrics, Metadata */
+    .rail-btn[data-view='settings'][aria-current='page'] > svg {
+        animation: rail-turn 700ms var(--motion-ease);
+    }
+    .rail-btn[data-view='lyrics'][aria-current='page'] > svg path {
+        animation: rail-bounce 640ms ease-in-out;
+    }
+    .rail-btn[data-view='lyrics'][aria-current='page'] > svg path:nth-child(2) {
+        animation-delay: 60ms;
+    }
+    .rail-btn[data-view='lyrics'][aria-current='page'] > svg path:nth-child(3) {
+        animation-delay: 120ms;
+    }
+    .rail-btn[data-view='lyrics'][aria-current='page'] > svg path:nth-child(4) {
+        animation-delay: 180ms;
+    }
+    .rail-btn[data-view='lyrics'][aria-current='page'] > svg path:nth-child(5) {
+        animation-delay: 240ms;
+    }
+    .rail-btn[data-view='metadata'][aria-current='page'] > svg {
+        transform-origin: 50% 20%;
+        animation: rail-swing 640ms ease-in-out;
+    }
+}
+
+@keyframes rail-hop {
+    0%,
+    100% {
+        transform: none;
+    }
+    40% {
+        transform: translateY(-3px);
+    }
+}
+@keyframes rail-tilt {
+    0%,
+    100% {
+        transform: none;
+    }
+    30% {
+        transform: rotate(-9deg);
+    }
+    65% {
+        transform: rotate(6deg);
+    }
+}
+@keyframes rail-nudge {
+    0%,
+    100% {
+        transform: none;
+    }
+    50% {
+        transform: translate(1.5px, -1.5px) rotate(10deg);
+    }
+}
+@keyframes rail-tick {
+    from {
+        transform: rotate(0);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+@keyframes rail-turn {
+    from {
+        transform: rotate(0);
+    }
+    to {
+        transform: rotate(90deg); /* the gear has eight teeth: a quarter turn lands on the same shape */
+    }
+}
+@keyframes rail-bounce {
+    0%,
+    100% {
+        transform: scaleY(1);
+    }
+    30% {
+        transform: scaleY(0.35);
+    }
+    65% {
+        transform: scaleY(1.12);
+    }
+}
+@keyframes rail-swing {
+    0%,
+    100% {
+        transform: none;
+    }
+    30% {
+        transform: rotate(14deg);
+    }
+    65% {
+        transform: rotate(-8deg);
+    }
+}
+
+/* ---------- less motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+    .rail-btn::before,
+    .rail-btn > svg,
+    .rail-btn[data-view='home'] .rail-fill,
+    .rail-btn[data-view='home'] .rail-door,
+    .rail-btn[data-view='metadata'] > svg path {
+        transition: none;
+    }
+}

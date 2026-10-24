@@ -21,3 +21,23 @@
 .view-host[data-engine] .playlist-hero-section {
     display: none;
 }
+
+/* Dropping audio files on the list (PA-15): the engine adds .drag-over to the wrapper while files are dragged over it (core/startup.js)
+ * and imports them on drop. The old screen drew this overlay; the new one had no rule for it, so the drop worked with no sign of it. */
+.view-host[data-engine] > .content-wrapper.drag-over::after {
+    content: 'Drop files to import';
+    position: absolute;
+    inset: var(--space-2, 8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    border: 2px dashed var(--accent);
+    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    color: var(--accent);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-semibold);
+    pointer-events: none;
+    z-index: var(--layer-toast);
+}

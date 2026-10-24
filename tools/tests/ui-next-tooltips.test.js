@@ -322,6 +322,7 @@ describe('tooltip rollout and shared Space rule in the new shell with the real e
         await page.waitForFunction(() => document.querySelector('.view-host').dataset.view === 'settings', null, { timeout: 3000 });
         // the accent swatches of the Appearance section (A-10) are radios: Space picks one and does not start playback
         const pink = '.segmented__item[aria-label="Pink"]';
+        await page.locator('.settings-card[data-page="general"]').click(); // Settings opens on a hub; Appearance is on General
         await page.waitForSelector(pink);
         await page.focus(pink);
         await page.keyboard.press('Space');

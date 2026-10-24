@@ -30,11 +30,14 @@ const { saveLyricsFile, readLyricsFile } = require('./file-operations');
 const { searchLyrics, downloadLyricsFile } = require('./online-lyrics');
 const { getAudioMetadata, saveAudioMetadata, saveAudioCover } = require('./metadata-editor');
 const { createTagService } = require('./tag-service');
+const { createTagFinder } = require('./tag-finder');
 const { searchOnlineMetadata, getOnlineMetadata } = require('./online-metadata');
 const songsStore = require('./songs-store');
 const { configPath: settingsFile, getOutputDir } = require('./storage-paths');
 const checks = require('./ipc-checks');
 const { readAudioBytes } = require('./audio-bytes');
+const { readPeaks, writePeaks } = require('./waveform-peaks');
+const { createAiService, registerAiIpc } = require('./ai/ipc');
 
 const thumbarIconPath = path.join(getOutputDir(), 'icons');
 const OUTPUT_DIR = getOutputDir();
@@ -55,6 +58,14 @@ function updateDeployedSongMetadata(fileUrl, metadata) {
     } catch (e) { return false; }
     return found;
 }
+
+// AI assistant: settings, key, planning and the undo journal (electron/ai/). Off until the person adds a key.
+registerAiIpc(ipcMain, createAiService({
+    configDir: require('./storage-paths').getConfigDir(),
+    safeStorage: require('electron').safeStorage,
+    // Free tag candidates from MusicBrainz (the same search the metadata editor uses; it spaces its own requests).
+    lookupTags: async (song) => (await searchOnlineMetadata({ fileUrl: `ai:${song.id}`, title: song.title, artist: song.artist, album: song.album, duration: song.duration })).results
+}));
 
 // The page asks for the song list once, while it is being set up (see preload.js).
 ipcMain.on('songs-store:load', (event) => {
@@ -96,6 +107,9 @@ ipcMain.handle('get-audio-metadata', async (event, fileUrl) => {
 
 // The waveform decodes audio in the page, which cannot read files itself (electron/audio-bytes.js).
 ipcMain.handle('read-audio-bytes', async (event, fileUrl) => readAudioBytes(fileUrl));
+// Saved peaks, so a track's waveform is not decoded again (electron/waveform-peaks.js). The key is hashed, never used as a path.
+ipcMain.handle('waveform-peaks:get', async (event, key) => readPeaks(key));
+ipcMain.handle('waveform-peaks:set', async (event, key, bytes) => writePeaks(key, bytes));
 
 ipcMain.handle('save-audio-metadata', async (event, params) => {
     try {
@@ -118,6 +132,43 @@ ipcMain.handle('save-audio-metadata-many', async (event, items) => {
         for (const result of results) if (result.success) updateDeployedSongMetadata(result.fileUrl, result.metadata || {});
         return { success: true, results };
     } catch (error) { return { success: false, error: error.message || 'Failed to save metadata' }; }
+});
+
+// The multi tag finder (task PD-05). Looks songs up on MusicBrainz, one at a time, and reports what it found per song. It writes nothing:
+// the renderer stages the answers in the tag sheet and the person reviews them before anything reaches a file. One run at a time;
+// progress goes out on 'find-tags-progress'; 'cancel-find-tags' stops it before the next song.
+const MAX_FIND_MANY = 2000;
+const FIND_FIELDS = new Set(['album', 'albumArtist', 'year', 'genre', 'label', 'musicBrainzTrackId', 'musicBrainzAlbumId', 'musicBrainzOriginalAlbumId']);
+let findRun = null;
+ipcMain.handle('find-tags-many', async (event, request) => {
+    if (findRun) return { success: false, error: 'A tag search is already running.' };
+    const songs = request && request.songs;
+    const options = (request && request.options) || {};
+    if (!Array.isArray(songs) || songs.length > MAX_FIND_MANY) return { success: false, error: `Send a list of at most ${MAX_FIND_MANY} songs` };
+    const wellFormed = (song) => song && (typeof song.id === 'string' || typeof song.id === 'number') && typeof song.fileUrl === 'string' && song.tags && typeof song.tags === 'object' && !Array.isArray(song.tags);
+    if (!songs.every(wellFormed)) return { success: false, error: 'Every song needs an id, a fileUrl and a tags object' };
+    if (options.rule !== undefined && options.rule !== 'original') return { success: false, error: 'Only the "original" rule is available' };
+    const threshold = options.autoThreshold === undefined ? undefined : Number(options.autoThreshold);
+    if (threshold !== undefined && !(threshold >= 0 && threshold <= 1)) return { success: false, error: 'autoThreshold must be between 0 and 1' };
+    if (options.fields !== undefined && !(Array.isArray(options.fields) && options.fields.every((field) => FIND_FIELDS.has(field)))) return { success: false, error: 'Unknown tag in fields' };
+    const run = { cancelled: false };
+    findRun = run;
+    try {
+        const outcome = await createTagFinder().findMany(songs, {
+            rule: 'original',
+            autoThreshold: threshold,
+            fields: options.fields,
+            shouldCancel: () => run.cancelled,
+            onProgress: ({ done, total, result }) => {
+                try { event.sender.send('find-tags-progress', { done, total, decision: result.decision }); } catch (error) { run.cancelled = true; /* the window is gone: nobody is waiting for the rest */ }
+            }
+        });
+        return { success: true, ...outcome };
+    } catch (error) { return { success: false, error: error.message || 'The tag search failed' }; } finally { findRun = null; }
+});
+ipcMain.handle('cancel-find-tags', async () => {
+    if (findRun) findRun.cancelled = true;
+    return { cancelled: Boolean(findRun) };
 });
 
 ipcMain.handle('export-audio-metadata-json', async (event, params) => {

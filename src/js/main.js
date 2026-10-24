@@ -41,6 +41,7 @@ import './ui/subscribers/04v-right-panel-events.js';
 import './core/storage-schema.js';
 import './core/03-storage.js';
 import './library/03a-recents.js';
+import './library/03n-song-sort.js';
 import './search/03b-search-engine.js';
 import './ui/06i-theme-switcher.js';
 import './ui/04b-render-playlists-folders.js';

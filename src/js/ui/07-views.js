@@ -532,12 +532,24 @@ export function getSongsForPrefixedList(listId) {
 
 export function getSongsForList(listId) {
     const prefixed = getSongsForPrefixedList(listId);
-    if (prefixed !== null) return prefixed;
+    if (prefixed !== null) return applyListSort(listId, prefixed);
 
     const provider = listProviders[listId];
-    if (!provider) return getActiveSongs();
+    if (!provider) return applyListSort(listId, getActiveSongs());
 
-    return provider.getSongs();
+    return applyListSort(listId, provider.getSongs());
+}
+
+// A click on Title, Album or Time in the track list header (task PB-08). Stores the sort for the list; when that list is the one on
+// screen it is drawn again in the new order and the playing row is marked in its new place. The play queue is not rebuilt: it keeps
+// the order it had when the song was started, and the next song that is started from this list uses the new order.
+export function changeSongListSort(listId, key, dir) {
+    const sort = setSongListSort(listId, key, dir);
+    if (currentView === listId) {
+        refreshCurrentView();
+        reapplyHighlightAfterFilter(listId, getSongsForList(listId));
+    }
+    return sort;
 }
 
 export function getSongCountForList(listId) {
@@ -1145,6 +1157,7 @@ if (typeof registerLegacyGlobals === 'function') {
         resetLeftPanelActiveState,
         activateLeftPanelItem,
         refreshCurrentView,
+        changeSongListSort,
         updateAllCounts,
         getCurrentViewDisplayName,
         setSubheroVisibility,

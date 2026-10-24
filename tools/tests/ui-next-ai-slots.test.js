@@ -58,6 +58,7 @@ describe('AI slots', { concurrency: false }, () => {
                     return { destroy: () => window.__ai.destroyed++ };
                 }
             });
+            slots.registerAiPopup(null); // these tests cover the big-view path (used when there is no pop-up); the pop-up is tested in ui-next-ai.test.js
             slots.registerAiSettings({ mount(container, ctx) { container.textContent = 'ai settings body, enabled=' + ctx.getStatus().enabled; } });
             slots.registerAiCommands({ undo: () => window.__ai.undo++, shuffle: () => window.__ai.shuffle++ });
             slots.setAiStatus(initial);
@@ -72,14 +73,18 @@ describe('AI slots', { concurrency: false }, () => {
     };
     const menuTexts = async (page, group) => (await (await openGroup(page, group)).locator('[role="menuitem"]').allInnerTexts());
 
-    test('with nothing registered there is no AI button, no Settings section and no AI menu entry', TEST_OPTIONS, async (t) => {
+    // Agent E's views/ai/register.js is called by the shell at start-up, so the AI parts exist from the first frame. The slots were
+    // first tested with nothing registered (before register.js did anything); the other tests below register their own stand-ins.
+    test('at start-up the real AI screens are registered: a disabled chat button, no rail item, and the AI menu entries', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open();
-        assert.equal(await button(page).count(), 1);
-        assert.equal(await button(page).isHidden(), true);
+        await button(page).waitFor({ state: 'visible', timeout: 3000 });
+        assert.equal(await button(page).getAttribute('aria-disabled'), 'true');
         assert.equal(await page.locator('.rail-btn[data-view="ai-chat"]').count(), 0);
         const texts = [...(await menuTexts(page, 'Edit')), ...(await menuTexts(page, 'Tools')), ...(await menuTexts(page, 'Playback'))].join('|');
-        assert.doesNotMatch(texts, /AI chat|AI shuffle|Undo/);
+        assert.match(texts, /AI chat/);
+        assert.match(texts, /AI shuffle/);
+        assert.match(texts, /Undo/);
         assert.deepEqual(errors, []);
         await page.close();
     });

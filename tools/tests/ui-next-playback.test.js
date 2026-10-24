@@ -91,6 +91,7 @@ describe('playback surfaces in the new shell with the real engine', { concurrenc
             return result.success ? { success: true, data: Buffer.from(result.data).toString('base64') } : result;
         });
         await page.addInitScript((mode) => (window.__ipcMode = mode), ipc);
+        await page.addInitScript(() => localStorage.setItem('xplayer.ui-next.waveform', 'on')); // the waveform is off by default (PC-03); these tests are about it
         await page.goto('file://' + path.join(dir, 'ui-next', 'index.html').replace(/\\/g, '/'));
         await waitForAppSettled(page, 3000);
         await page.evaluate(([a, b]) => SONGS_DATA.forEach((s, i) => (s.url = i === 1 ? b : a)), [urlA, urlB]);

@@ -149,11 +149,38 @@
 [aria-controls='notification-center'] svg {
     transform-origin: 50% 15%;
 }
-[aria-controls='notification-center'][data-ring] svg {
-    animation: bell-ring 600ms var(--motion-ease);
+/* The bell and the AI chat button share one look: the same hover motion, and the accent while their panel or page is open. */
+.icon-btn[aria-controls='notification-center'][aria-expanded='true'] {
+    color: var(--accent);
 }
-[aria-controls='notification-center']:hover svg {
-    animation: bell-hover 360ms var(--motion-ease);
+.icon-btn[aria-controls='notification-center'][aria-expanded='true']:hover {
+    color: var(--accent-hover);
+}
+@media (prefers-reduced-motion: no-preference) {
+    [aria-controls='notification-center'][data-ring] svg {
+        animation: bell-ring 600ms var(--motion-ease);
+    }
+    [aria-controls='notification-center']:hover svg {
+        animation: bell-hover 360ms var(--motion-ease);
+    }
+    /* the AI sparkles pop and settle, pivoting on their middle */
+    .ai-btn:hover svg {
+        animation: ai-pop 520ms var(--motion-ease);
+    }
+}
+@keyframes ai-pop {
+    0% {
+        transform: scale(1) rotate(0);
+    }
+    35% {
+        transform: scale(1.18) rotate(14deg);
+    }
+    65% {
+        transform: scale(0.94) rotate(-8deg);
+    }
+    100% {
+        transform: scale(1) rotate(0);
+    }
 }
 @keyframes bell-ring {
     0% {

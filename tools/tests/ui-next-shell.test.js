@@ -331,9 +331,9 @@ describe('ui-next shell with the real engine', { concurrency: false }, () => {
         assert.equal(await page.locator('.rail-btn[aria-current="page"]').getAttribute('data-view'), 'settings');
         // Settings shows the engine's own page since D-05 (adapter/engine-view.js); the other rail items still show the empty view.
         assert.equal(await page.locator('.view-host .settings-panel-title').textContent(), 'Settings');
-        await page.click('.panel-host__header .icon-btn');
+        await page.click('.panel-host__header [aria-pressed]');
         assert.equal(await page.locator('.panel-host').getAttribute('data-panel'), 'compact');
-        await page.click('.panel-host__header .icon-btn');
+        await page.click('.panel-host__header [aria-pressed]');
         assert.equal(await page.locator('.panel-host').getAttribute('data-panel'), 'expanded');
         await page.click('.logo-btn');
         assert.equal(await page.locator('.menu').isVisible(), true);
@@ -383,7 +383,7 @@ describe('ui-next shell with the real engine', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page } = await open();
         const panel = () => page.locator('.panel-host').getAttribute('data-panel');
-        const toggle = page.locator('.panel-host__header .icon-btn');
+        const toggle = page.locator('.panel-host__header [aria-pressed]');
         await page.setViewportSize({ width: 1400, height: 800 });
         assert.equal(await panel(), 'expanded');
         await page.setViewportSize({ width: 900, height: 800 });

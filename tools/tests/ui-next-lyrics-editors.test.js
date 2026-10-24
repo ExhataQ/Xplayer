@@ -408,7 +408,7 @@ describe('Lyrics editors in the new shell', { concurrency: false }, () => {
 
     test('text contrast 4.5:1 in Write and Sync, three themes', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
-        const { page } = await open();
+        const { page } = await open({ width: 1240, height: 800 }); // wide enough for the full (not the compact) editor layout, whatever the rail's width
         await toLyrics(page);
         await play(page);
         await toSync(page);

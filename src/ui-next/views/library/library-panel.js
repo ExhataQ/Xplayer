@@ -1,9 +1,11 @@
 // Library panel (task B-02, decision D9): filter chips, find, sort, and the engine's one list of everything you own.
 // The rows are the engine's (strategy L1, decision D21); this file builds the controls and keeps them in step.
 
-import { chipGroup, segmented, textField, iconButton, el } from '../../components/index.js';
+import { chipGroup, segmented, textField, iconButton, openMenu, el } from '../../components/index.js';
 import { setPanelRowHeight } from '../../adapter/songlist-bridge.js';
 import { watchAppearance } from '../../shell/appearance.js';
+import { showCreateDialog } from '../../adapter/library-create.js';
+import { showNewPlaylist, showNewFolder } from '../../adapter/menu-bridge.js';
 import { mountLibraryList, setLibraryView, libraryItemCount, openLibraryFolder, closeLibraryFolder, onLibraryChange, whenLibraryReady } from '../../adapter/library-bridge.js';
 
 // The chips choose item types. All Songs and Liked Songs are playlists as far as the person is concerned.
@@ -19,6 +21,9 @@ const SORTS = [
     { value: 'recent', label: 'Recent' },
     { value: 'name', label: 'A to Z' }
 ];
+
+// The plus in the panel header (PB-06): the shell puts it before the collapse arrow, for the Library only.
+export const LIBRARY_HEADER_ACTION = { icon: 'plus', label: 'New playlist or folder', onClick: showCreateDialog };
 
 const STORE_KEY = 'xplayer.ui-next.library';
 
@@ -96,6 +101,19 @@ export function mountLibraryPanel(body) {
     body.classList.add('panel-host__body--library');
     body.append(root);
     mountLibraryList(list);
+
+    // Right click on empty space (not on a row: the engine has its own menu there) offers the two things the plus makes.
+    root.addEventListener('contextmenu', (event) => {
+        if (event.target.closest('.left-panel-main-item, input, button')) return;
+        event.preventDefault();
+        openMenu({
+            point: { x: event.clientX, y: event.clientY },
+            items: [
+                { label: 'New playlist', icon: 'list-music', onSelect: showNewPlaylist },
+                { label: 'New folder', icon: 'folder', onSelect: showNewFolder }
+            ]
+        });
+    });
 
     // Keeps the folder bar and the "nothing here" message in step with whatever the engine just drew.
     let ready = false;

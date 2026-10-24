@@ -1,0 +1,194 @@
+/* Search and Recents panels (task PB-02): rows for playlists and songs in the left panel. Tokens only. */
+
+.panel-host__body.panel-host__body--lists {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+}
+.plist-panel {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+}
+.plist-panel[hidden] {
+    display: none;
+}
+.plist-panel__bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4) var(--space-3);
+}
+.plist-panel__bar .field {
+    flex: 1;
+    min-width: 0;
+}
+.plist-panel__chips {
+    padding: 0 var(--space-4) var(--space-3);
+}
+.plist-panel .field__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+.plist-results {
+    flex: 1;
+    min-height: 0;
+    padding: 0 var(--space-2) var(--space-3);
+    overflow-y: auto;
+    scrollbar-width: auto;
+    scrollbar-color: var(--border-strong) transparent;
+}
+.plist-section__title {
+    margin: var(--space-3) var(--space-2) var(--space-1);
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.plist-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.plist-list--nested {
+    padding-left: var(--space-6);
+}
+.plist-list--nested .plist-item {
+    height: var(--left-item-height, var(--panel-row-height));
+}
+.plist-more {
+    display: block;
+    width: calc(100% - var(--space-4));
+    margin: var(--space-2) var(--space-2) 0;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: none;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: var(--text-sm);
+    cursor: pointer;
+}
+.plist-more:hover {
+    background: var(--surface-raised);
+    color: var(--text-primary);
+}
+.plist-more:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+.auto-load__end {
+    height: 1px;
+    list-style: none;
+}
+.auto-load__loading {
+    padding: var(--space-3);
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    text-align: center;
+    list-style: none;
+}
+/* The rows are the Library's rows: same height, cover size, gap and text (PB-21). */
+.plist-item {
+    display: flex;
+    align-items: center;
+    height: var(--left-item-height, var(--panel-row-height));
+    border-radius: var(--radius-md);
+}
+.plist-item:hover {
+    background: var(--surface-raised);
+}
+.plist-row {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+    height: 100%;
+    padding: 0 var(--space-3) 0 0;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: none;
+    color: var(--text-primary);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.plist-row:focus-visible,
+.plist-toggle:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+}
+.plist-row__cover {
+    display: flex;
+    flex: none;
+    width: var(--panel-cover-size);
+    height: var(--panel-cover-size);
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    background: var(--surface-raised);
+}
+.plist-row__cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.plist-row__text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.plist-row__title,
+.plist-row__sub {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.plist-row__title {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+}
+.plist-row__sub,
+.plist-row__time {
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+}
+.plist-row--text {
+    padding-left: var(--space-3);
+}
+.plist-row__time {
+    flex: none;
+    font-variant-numeric: tabular-nums;
+}
+.plist-toggle {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+.plist-toggle:hover {
+    background: var(--surface-raised);
+    color: var(--text-primary);
+}
+.plist-empty {
+    padding: var(--space-6) var(--space-4);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    text-align: center;
+}

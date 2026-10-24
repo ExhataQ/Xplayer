@@ -3,14 +3,14 @@
 // Enter or a double click resets it. It is hidden while the panel is collapsed.
 
 const KEY = 'xplayer.ui-next.panel-width';
-export const DEFAULT_WIDTH = 300;
+export const DEFAULT_WIDTH = 340;
 export const MIN_WIDTH = 240;
-export const MAX_WIDTH = 480;
+export const MAX_WIDTH = 560;
 const MIN_VIEW = 420;
-const RAIL = 56;
+const railWidth = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--rail-width')) || 68; // the token, so a wider rail never squeezes the view
 const STEP = 16;
 
-const limit = () => Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, window.innerWidth - RAIL - MIN_VIEW));
+const limit = () => Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, window.innerWidth - railWidth() - MIN_VIEW));
 const clamp = (value) => Math.round(Math.max(MIN_WIDTH, Math.min(limit(), value)));
 
 function read() {

@@ -101,6 +101,19 @@ test('follows the Cover Art Archive redirects, upgrades http:// image links and 
     assert.equal(calls.some((u) => u.endsWith('/1.jpg')), false, 'the huge original must not be downloaded when a 1200px thumbnail exists');
 });
 
+test('skipCover (the multi tag finder, PD-05) returns the tags without any Cover Art Archive request or cover file', async () => {
+    calls = [];
+    routes = { ...musicBrainzRoutes(), [CAA]: { status: 200, body: { images: [] } } };
+    const before = cacheFiles().length;
+    const r = await withVirtualTime(getOnlineMetadata({ fileUrl: 'file:///skip.mp3', recordingId: REC, releaseId: REL, title: 'Song', skipCover: true }));
+    assert.equal(r.success, true);
+    assert.equal(r.metadata.album, 'Album');
+    assert.equal(r.coverStatus, 'none');
+    assert.equal(r.coverPath, '');
+    assert.equal(calls.some((u) => u.includes('coverartarchive.org')), false, 'no cover request at all');
+    assert.equal(cacheFiles().length, before, 'no cover file written');
+});
+
 test('a release without cover art reports "none" and still returns the metadata', async () => {
     calls = [];
     routes = { ...musicBrainzRoutes(), [CAA]: { status: 404, body: '' } };

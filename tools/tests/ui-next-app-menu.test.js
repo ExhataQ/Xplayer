@@ -81,9 +81,11 @@ describe('application menu', { concurrency: false }, () => {
         const viewMenu = await openGroup(page, 'View');
         await item(viewMenu, 'Home').click();
         assert.equal(await view(page), 'home');
+        const panelOnly = { search: 'Search', recent: 'Recently played' }; // panel items leave the main view alone (PB-02)
         for (const [key, id] of [['Control+2', 'library'], ['Control+3', 'search'], ['Control+4', 'recent'], ['Control+1', 'home'], ['Control+,', 'settings']]) {
             await page.keyboard.press(key);
-            assert.equal(await view(page), id, key);
+            if (panelOnly[id]) assert.equal(await page.locator('.panel-host__title').innerText(), panelOnly[id], key);
+            else assert.equal(await view(page), id, key);
         }
         await page.close();
     });
@@ -122,7 +124,7 @@ describe('application menu', { concurrency: false }, () => {
         await closeMenus(page);
         await page.evaluate(() => document.querySelectorAll('.playlist-modal-overlay').forEach((n) => n.click())); // the engine's shuffle button opens its mode dialog
         await page.locator('.rail-btn[data-view="search"]').click();
-        await page.locator('.view-host input').first().focus();
+        await page.locator('.panel-host input').first().focus();
         await page.keyboard.press('Control+ArrowRight');
         assert.equal(await hits(page, '#next-btn'), 1, 'the arrows belong to the text box');
         await page.close();

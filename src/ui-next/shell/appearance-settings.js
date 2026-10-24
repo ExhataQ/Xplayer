@@ -6,6 +6,7 @@
 
 import { el, segmented, attachTooltip } from '../components/index.js';
 import { buildAiSettingsSection } from './ai-slots.js';
+import { buildWaveformSection } from '../views/playback/waveform-setting.js';
 import { layoutSettings, resetSettingsPage } from './settings-layout.js';
 import { THEMES, ACCENTS, DENSITIES, getAppearance, setAppearance, watchAppearance } from './appearance.js';
 
@@ -89,6 +90,7 @@ export function mountAppearanceSettings(host) {
         old.before(build());
         const ai = buildAiSettingsSection(el); // Agent E's section, when registered (PA-17)
         if (ai) old.before(ai);
+        old.before(buildWaveformSection({ el, segmented })); // Agent C's waveform on/off (PC-03); it belongs to the Playback group
         layoutSettings(host); // the hub of cards and one page per group (PA-11)
     };
     inject();

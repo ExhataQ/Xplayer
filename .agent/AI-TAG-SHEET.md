@@ -24,10 +24,20 @@ await a.requestApply();                  // the person reviews and applies
 ```
 
 ## Calls
-`listSources()`, `listColumns()`, `loadSongs(sourceId)`, `setColumns(keys)`, `readTags()`, `getSheet({ offset, limit })`, `findRows({ column, text })`, `checkRows(ids)`, `checkAll()`, `uncheckAll()`, `removeRows(ids)`, `setCell({ id, key, value })`, `applyTag({ column, value, mode, ids })`, `preview()`, `discardChanges()`, `requestApply()`, `undoLast()`. The comment at the top of the file lists what each returns.
+`listSources()`, `listColumns()`, `loadSongs(sourceId)`, `setColumns(keys)`, `readTags()`, `getSheet({ offset, limit })`, `findRows({ column, text })`, `checkRows(ids)`, `checkAll()`, `uncheckAll()`, `removeRows(ids)`, `setCell({ id, key, value })`, `applyTag({ column, value, mode, ids })`, `preview()`, `discardChanges()`, `requestApply()`, `undoLast()`, and for the online tag finder `findTags({ ids?, threshold?, mode? })`, `getFindings()`, `acceptFindings(ids?)`, `skipFindings(ids?)`, `cancelFind()`. The comment at the top of the file lists what each returns.
 
 ## Limits
 - Multi-value tags (artist, genre, composer...) are separated by `;`. A comma never splits a name.
 - `requestApply()` only works while the sheet is open (Metadata, Many songs). Otherwise it says so.
 - Undo covers the last apply only and is kept until the app closes.
 - Not connected to any chat or model yet: wiring the AI to `tagSheetApi` is Agent E's task.
+
+## Finding tags online (task PD-05)
+`findTags()` looks the checked rows (or `ids`) up on MusicBrainz and finds the original album. It only looks things up and stages; it never writes to a file.
+- A confident match (confidence at or above `threshold`, default 0.85) is **staged** like any other edit: album, album artist, year, genre and label. Check it with `preview()`.
+- An unsure match waits in a review queue. `getFindings()` lists it (song, release, confidence, before and after). `acceptFindings(ids)` stages the ones the person wants, `skipFindings(ids)` drops them. Without ids they mean all of them. Do not accept for the person unless they asked you to.
+- It is slow on purpose: about 3 to 4 seconds a song, at most 2000 songs, one search at a time. Tell the person before you start a long one. The person sees progress in the notifications and can cancel there; `cancelFind()` does the same.
+- `mode` is `add` (default: keeps genres and other multi-value tags, replaces album and year) or `replace`.
+- If it answers with a message about Python or mutagen, tags cannot be read on this computer yet. Say that plainly; do not retry in a loop.
+- Everything staged still goes through `requestApply()` and the person's review, and Undo covers it.
+- Every apply is also written to the durable undo journal (PD-06), so `undoLast()` still works after a restart and the person gets an Undo button on the "Saved" notification. If it answers "already undone", the person (or Edit > Undo) did it; do not try again.

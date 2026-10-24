@@ -93,7 +93,7 @@ describe('settings layout', { concurrency: false }, () => {
         const { page } = await open();
         const expected = {
             general: ['Appearance', 'Right Panel', 'Window', 'Startup screen'],
-            playback: ['Playback & Audio', 'Smart Shuffle'],
+            playback: ['Playback & Audio', 'Player bar', 'Smart Shuffle'],
             library: ['Music Library Folders', 'Play from URL — Save Location'],
             data: ['Backup & Restore', 'Advanced']
         };

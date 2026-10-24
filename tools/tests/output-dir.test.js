@@ -131,6 +131,7 @@ describe('the real files, run with a fake electron', () => {
         for (const name of fs.readdirSync(ELECTRON_DIR)) {
             if (name.endsWith('.js')) fs.copyFileSync(path.join(ELECTRON_DIR, name), path.join(copyDir, name));
         }
+        fs.cpSync(path.join(ELECTRON_DIR, 'ai'), path.join(copyDir, 'ai'), { recursive: true }); // main.js loads ./ai/ipc
         store = require('../../electron/songs-store');
         realLoad = Module._load;
         realSetTimeout = global.setTimeout;

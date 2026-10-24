@@ -146,7 +146,7 @@ describe('B finish in the new shell', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page, errors } = await open();
         await page.waitForSelector('.library-panel .left-panel-main-item:not(.lazy-skeleton)');
-        await page.locator('.panel-host__header button').click();
+        await page.locator('.panel-host__header [aria-pressed]').click();
         await page.waitForFunction(() => document.querySelector('.panel-host').dataset.panel === 'compact');
         const info = await page.evaluate(() => {
             const host = document.querySelector('.panel-host');
@@ -170,7 +170,7 @@ describe('B finish in the new shell', { concurrency: false }, () => {
         assert.ok(info.cover >= 40, 'cover is drawn');
         assert.ok(Math.abs(info.coverCenter - 36) < 3, `cover is centered (${info.coverCenter})`);
         assert.ok(info.nameWidth <= 1 && info.nameText.length > 0, 'name is clipped, not removed');
-        await page.locator('.panel-host__header button').click();
+        await page.locator('.panel-host__header [aria-pressed]').click();
         await page.waitForFunction(() => document.querySelector('.panel-host').dataset.panel === 'expanded');
         assert.equal(await page.locator('.library-panel__controls').isVisible(), true);
         assert.deepEqual(errors, []);

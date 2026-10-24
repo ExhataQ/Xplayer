@@ -178,8 +178,10 @@
 
     /* window layout */
     --titlebar-height: 36px;
-    --rail-width: 56px;
-    --panel-width: 300px;
+    --rail-width: 68px;
+    --rail-button: 44px; /* a rail button: the hover area, and the height of the active bar */
+    --rail-icon: 20px;
+    --panel-width: 340px;
     --player-height: 88px;
     --window-min-width: 800px;
     --window-min-height: 600px;
@@ -201,8 +203,8 @@
 
     --row-height: 56px;
     --row-height-compact: 36px;
-    --panel-row-height: 61px; /* library panel rows (the engine reads the live value, ui/05b setLeftItemHeight) */
-    --panel-row-height-compact: 44px;
+    --panel-row-height: 72px; /* library panel rows (the engine reads the live value, ui/05b setLeftItemHeight) */
+    --panel-row-height-compact: 48px;
     --row-playing-bg: var(--accent-soft);
 
     --tooltip-bg: var(--surface-raised);

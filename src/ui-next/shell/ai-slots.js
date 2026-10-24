@@ -17,6 +17,13 @@ let settings = null;
 let chat = null;
 let commands = {};
 let opener = null; // set by the shell: shows the chat view
+let navigator = null; // set by the shell: switches the main view by id
+let closer = null; // set by the shell: leaves the chat view, back to where the person was
+let popup = null; // set by views/ai: the small chat window { open, toggle }
+let popupHost = null; // set by the shell: the layer the pop-up is drawn into
+let popupOpen = false;
+let queueOpener = null; // set by the shell: shows the queue panel
+let lyricsBar = null; // set by views/ai: the Translate controls in the lyrics bar
 
 export const AI_VIEW_ID = 'ai-chat';
 export const AI_SHORTCUTS = { chat: 'Ctrl+Shift+A', shuffle: 'Ctrl+Shift+S', undo: 'Ctrl+Shift+U' };
@@ -57,12 +64,84 @@ export function setAiChatOpener(fn) {
     opener = fn;
 }
 
+/** Used by the shell: how a main view is opened by id. */
+export function setAiNavigator(fn) {
+    navigator = fn;
+}
+
+/** Used by the shell: how the chat view is left. */
+export function setAiChatCloser(fn) {
+    closer = fn;
+}
+
+/** Used by the shell: the page layer the chat pop-up lives in. */
+export function setAiPopupHost(node) {
+    popupHost = node;
+}
+
+/** For E's screens: the pop-up chat. `spec` = { open(), toggle() }; E reports open/closed through setAiPopupOpen. */
+export function registerAiPopup(spec) {
+    popup = spec || null;
+    notifyAll();
+}
+export const getAiPopupHost = () => popupHost;
+export const hasAiPopup = () => Boolean(popup && popupHost);
+export const isAiPopupOpen = () => popupOpen;
+export function setAiPopupOpen(open) {
+    popupOpen = Boolean(open);
+    notifyAll();
+}
+export const toggleAiPopup = () => popup && popup.toggle();
+
+/** Used by the shell: how the queue panel is opened. */
+export function setAiQueueOpener(fn) {
+    queueOpener = fn;
+}
+export const openAiQueue = () => queueOpener && queueOpener();
+
+/** For E's screens: shows a main view by id (library, search, recents, lyrics, metadata, settings). */
+export const openAiPanel = (id) => navigator && navigator(id);
+
+/** The Translate controls of the lyrics bar. `spec` = { mount(host, ctx) }; the lyrics view calls mountAiLyricsBar(host) when it draws its bar. */
+export function registerAiLyricsBar(spec) {
+    lyricsBar = spec || null;
+}
+export function mountAiLyricsBar(host) {
+    if (lyricsBar) lyricsBar.mount(host, contextFor(host));
+}
+
+/** For E's screens: leaves the big chat view. */
+export function closeAiChatView() {
+    if (closer) closer();
+}
+
+/** For E's screens: shows Settings (where the AI section lives). */
+export function openAiSettings() {
+    if (!navigator) return;
+    navigator('settings');
+    // Settings opens on its hub: go on to the AI page once the hub is drawn.
+    let tries = 0;
+    const open = () => {
+        const card = document.querySelector('.settings-card[data-page="ai"]');
+        if (card) card.click();
+        else if (tries++ < 20) requestAnimationFrame(open);
+    };
+    requestAnimationFrame(open);
+}
+
+/** Shows the chat: the pop-up when there is one, else the big view. */
 export function openAiChat() {
+    if (popup && popupHost) popup.open();
+    else if (opener && chat) opener();
+}
+
+/** Shows the chat as the big view (the pop-up's Expand button). */
+export function openAiChatView() {
     if (opener && chat) opener();
 }
 
 /** The status as E's code sees it, tied to one piece of DOM: the listener goes away when the node leaves the page. */
-function contextFor(node) {
+export function contextFor(node) {
     return {
         getStatus: () => status,
         onStatus(fn) {

@@ -15,6 +15,7 @@ const MAX_DRAWN = 1000;
 let applyColumn = 'genre';
 let applyText = '';
 let note = '';
+let readProblem = ''; // why files could not be read (for example Python or mutagen is missing), shown once in the status line
 
 export const tagSheetDirty = () => ui.isDirty();
 
@@ -32,6 +33,7 @@ export function mountTagSheet(host) {
     const off = ui.subscribe(() => (root.isConnected ? paint(root, { skipRead: true }) : off()));
     ui.setReviewer(() => review(root));
     paint(root);
+    ui.restoreUndo(); // after a restart, offers Undo for the last apply that the journal still holds
 }
 
 function topValues(key) {
@@ -45,9 +47,16 @@ function topValues(key) {
 
 function paint(root, { skipRead = false } = {}) {
     const focused = document.activeElement?.dataset?.focusKey;
-    root.replaceChildren(toolbar(root), applyBar(root), table(root), footer(root));
+    root.replaceChildren(toolbar(root), applyBar(root), finderBar(root), table(root), footer(root));
     if (focused) root.querySelector(`[data-focus-key="${focused}"]`)?.focus();
-    if (!skipRead) api.readTags();
+    if (!skipRead) {
+        api.readTags().then((result) => {
+            const next = result.problem || '';
+            if (next === readProblem || !root.isConnected) return;
+            readProblem = next;
+            paint(root, { skipRead: true });
+        });
+    }
 }
 
 function toolbar(root) {
@@ -70,6 +79,37 @@ function toolbar(root) {
             paint(root);
         } }), column.label))));
     return el('div', { class: 'tag-sheet__toolbar' }, load, columns);
+}
+
+const showValue = (value) => (Array.isArray(value) ? value.join('; ') : value) || '(empty)';
+
+/** Find tags online (PD-05): looks the checked songs up, stages the sure matches like any edit, and lists the unsure ones here to accept or skip. */
+function finderBar(root) {
+    const found = ui.finder.findings();
+    const running = ui.finder.running();
+    const find = el('button', { type: 'button', class: 'tag-sheet__button', disabled: running || checked.size === 0, title: 'Looks the checked songs up on MusicBrainz and stages the original album, year, genre and label. Nothing is written until you review and apply.', onclick: async () => {
+        const result = await ui.finder.run();
+        if (!result.ok) {
+            note = result.error;
+            paint(root, { skipRead: true });
+        }
+    } }, 'Find tags online');
+    const cancel = running ? el('button', { type: 'button', class: 'tag-sheet__button', onclick: () => ui.finder.cancel() }, 'Cancel search') : null;
+    const last = found.last ? `Last search: ${found.last.staged} staged, ${found.last.review} to review, ${found.last.none + found.last.unchanged} nothing to change${found.last.error ? `, ${found.last.error} failed` : ''}.` : '';
+    const state = running ? 'Looking songs up, about 3 to 4 seconds each. Progress is in the notifications.' : last;
+    const shown = found.items.slice(0, 50);
+    const queue = found.items.length === 0 ? null : el('div', { class: 'tag-sheet__findings' },
+        el('div', { class: 'tag-sheet__finder-row' },
+            el('strong', {}, `${found.items.length} song${found.items.length === 1 ? '' : 's'} need${found.items.length === 1 ? 's' : ''} your review`),
+            el('button', { type: 'button', class: 'tag-sheet__button', onclick: () => ui.finder.accept() }, 'Accept all'),
+            el('button', { type: 'button', class: 'tag-sheet__button', onclick: () => ui.finder.skip() }, 'Skip all')),
+        el('ul', { class: 'tag-sheet__finding-list' }, shown.map((item) => el('li', { class: 'tag-sheet__finding' },
+            el('span', { class: 'tag-sheet__finding-title' }, item.title),
+            el('span', { class: 'tag-sheet__finding-detail' }, `${item.release.title}${item.release.date ? ` (${String(item.release.date).slice(0, 4)})` : ''}, ${Math.round(item.confidence * 100)}% sure. ${item.changes.map((change) => `${COLUMNS[change.key]?.label || change.key}: ${showValue(change.before)} → ${showValue(change.after)}`).join('; ')}`),
+            el('button', { type: 'button', class: 'tag-sheet__button', onclick: () => ui.finder.accept([item.id]) }, 'Accept'),
+            el('button', { type: 'button', class: 'tag-sheet__button', onclick: () => ui.finder.skip([item.id]) }, 'Skip')))),
+        found.items.length > shown.length ? el('p', { class: 'tag-sheet__hint' }, `Showing the first ${shown.length}. Accept or skip these to see the rest.`) : null);
+    return el('div', { class: 'tag-sheet__finder' }, el('div', { class: 'tag-sheet__finder-row' }, find, cancel, state ? el('span', { class: 'tag-sheet__hint', role: 'status' }, state) : null), queue);
 }
 
 function applyBar(root) {
@@ -107,7 +147,8 @@ function cell(root, id, key) {
     const staged = sheet.staged.get(id)?.[key] !== undefined;
     const td = el('td', { class: `tag-sheet__cell${staged ? ' is-changed' : ''}`, tabindex: 0, 'data-focus-key': `${id}:${key}`, title: staged ? 'Changed. Not saved yet.' : '' });
     if (!loaded) {
-        td.append(el('span', { class: 'tag-sheet__loading' }, sheet.rows.get(id).unreadable ? 'unreadable' : '…'));
+        const row = sheet.rows.get(id);
+        td.append(el('span', { class: 'tag-sheet__loading', title: row.unreadable ? row.problem || '' : '' }, row.unreadable ? 'unreadable' : '…'));
     } else if (Array.isArray(value)) {
         td.append(...value.map((v) => el('span', { class: 'tag-sheet__tag' }, v)));
     } else td.append(value);
@@ -180,7 +221,7 @@ function footer(root) {
     const changed = ui.pending().length > 0 || ui.isDirty();
     const count = api.getSheet({ limit: 1 }).changes;
     return el('div', { class: 'tag-sheet__footer' },
-        el('span', { class: 'tag-sheet__status', role: 'status' }, `${sheet.order.length} songs, ${checked.size} checked, ${count} change${count === 1 ? '' : 's'}.${note ? ` ${note}` : ''}`),
+        el('span', { class: 'tag-sheet__status', role: 'status' }, `${sheet.order.length} songs, ${checked.size} checked, ${count} change${count === 1 ? '' : 's'}.${note ? ` ${note}` : ''}${readProblem ? ` ${readProblem}` : ''}`),
         el('span', { class: 'tag-sheet__spacer' }),
         el('button', { type: 'button', class: 'tag-sheet__button', disabled: checked.size === 0, onclick: () => {
             api.removeRows([...checked]);

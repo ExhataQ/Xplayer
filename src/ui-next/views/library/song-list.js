@@ -5,6 +5,8 @@
 import { el, iconButton, openMenu } from '../../components/index.js';
 import { createListToolbar } from './list-toolbar.js';
 import { trackInputMode } from './input-mode.js';
+import { nextSort } from './song-sort.js';
+import { canSortList, listSort, changeListSort } from '../../adapter/songsort-bridge.js';
 import { isSongView, currentSongView, onSongViewChange, setRowHeight, listElement, listTitle, onListTitleChange, listSongCount } from '../../adapter/songlist-bridge.js';
 import { listKind, listCover, onListCoverChange } from '../../adapter/listbar-bridge.js';
 import { getAppearance, setAppearance, watchAppearance } from '../../shell/appearance.js';
@@ -108,9 +110,21 @@ export function attachSongList(host, { toolbar = false } = {}) {
     }
 
     // ----- header -----
-    const titleCell = el('div', { class: 'songlist-head__cell songlist-head__cell--title' }, 'Title');
-    const albumCell = el('div', { class: 'songlist-head__cell songlist-head__cell--album' }, 'Album');
-    const time = el('span', { class: 'songlist-head__time' }, 'Time');
+    // Title, Album and Time sort the list (task PB-08). The engine does the sorting; these buttons only ask for it and show the state.
+    const sortButtons = {};
+    const sortButton = (key, label) => {
+        const button = el(
+            'button',
+            { type: 'button', class: 'songlist-head__sort', dataset: { sort: key, dir: 'none' }, onclick: () => cycleSort(key) },
+            el('span', { class: 'songlist-head__sort-label' }, label),
+            el('span', { class: 'songlist-head__sort-arrow', 'aria-hidden': 'true' })
+        );
+        sortButtons[key] = { button, label };
+        return button;
+    };
+    const titleCell = el('div', { class: 'songlist-head__cell songlist-head__cell--title' }, sortButton('title', 'Title'));
+    const albumCell = el('div', { class: 'songlist-head__cell songlist-head__cell--album' }, sortButton('album', 'Album'));
+    const time = el('span', { class: 'songlist-head__time' }, sortButton('time', 'Time'));
     const columnsButton = iconButton({
         icon: 'columns-3',
         label: 'Columns and row height',
@@ -136,6 +150,29 @@ export function attachSongList(host, { toolbar = false } = {}) {
         el('div', { class: 'songlist-head__tail' }, time, columnsButton),
         resizer
     );
+
+    function paintSort(view = currentSongView()) {
+        const sortable = canSortList(view);
+        const sort = sortable ? listSort(view) : null;
+        for (const [key, { button, label }] of Object.entries(sortButtons)) {
+            const dir = sort && sort.key === key ? sort.dir : 'none';
+            button.dataset.dir = dir;
+            button.disabled = !sortable;
+            button.setAttribute(
+                'aria-label',
+                !sortable ? label : dir === 'none' ? `Sort by ${label}` : dir === 'asc' ? `${label}, sorted ascending. Activate to sort descending` : `${label}, sorted descending. Activate to clear the sort`
+            );
+        }
+    }
+
+    // A click on a column: ascending, then descending, then back to the list's own order.
+    function cycleSort(key) {
+        const view = currentSongView();
+        if (!canSortList(view)) return;
+        const next = nextSort(listSort(view), key);
+        changeListSort(view, next ? next.key : null, next ? next.dir : 'asc');
+        paintSort(view);
+    }
 
     // ----- applying state -----
     const columnWidths = () => ({ title: titleCell.getBoundingClientRect().width, album: albumCell.getBoundingClientRect().width });
@@ -181,6 +218,7 @@ export function attachSongList(host, { toolbar = false } = {}) {
     function showForView(view) {
         header.hidden = !isSongView(view);
         bar.hidden = header.hidden;
+        paintSort(view);
         paintBar();
         measureScrollbar();
     }

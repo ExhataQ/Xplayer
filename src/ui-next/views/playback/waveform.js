@@ -110,13 +110,31 @@ async function decode(song) {
     return computePeaks(channels, BINS);
 }
 
+// A saved copy (see setPeaksStore) that has the right size, put into memory; null when there is none or the store fails.
+async function readStored(key) {
+    if (!persistent) return null;
+    try {
+        const stored = await persistent.get(key);
+        if (!stored || stored.length !== BINS) return null;
+        remember(key, stored);
+        return stored;
+    } catch (_) {
+        return null;
+    }
+}
+
 function remember(key, peaks) {
     memory.delete(key);
     memory.set(key, peaks);
     while (memory.size > MEMORY_LIMIT) memory.delete(memory.keys().next().value);
 }
 
-export function getPeaks(song) {
+/**
+ * Peaks for `song`, or null (no waveform). With { cachedOnly: true } nothing is decoded: the answer is the peaks already in
+ * memory or saved on disk, or null. The seek bar asks that way first, so a track heard before shows its waveform at once
+ * and only a new track waits for the (slow) decode.
+ */
+export function getPeaks(song, { cachedOnly = false } = {}) {
     if (!song || !song.url) return Promise.resolve(null);
     if (Number(song.duration) > MAX_SECONDS) return Promise.resolve(null);
     const key = keyOf(song);
@@ -125,19 +143,23 @@ export function getPeaks(song) {
         remember(key, hit);
         return Promise.resolve(hit);
     }
+    if (cachedOnly) return readStored(key);
     if (pending.has(key)) return pending.get(key);
     const job = (async () => {
         await decodeQueue.catch(() => {});
         try {
             if (memory.has(key)) return memory.get(key); // finished while this one waited
-            const stored = persistent ? await persistent.get(key) : null;
-            if (stored && stored.length === BINS) {
-                remember(key, stored);
-                return stored;
-            }
+            const stored = await readStored(key);
+            if (stored) return stored;
             const peaks = await decode(song);
             remember(key, peaks);
-            if (persistent) await persistent.set(key, peaks);
+            if (persistent) {
+                try {
+                    await persistent.set(key, peaks);
+                } catch (_) {
+                    /* a failed save only means the next play decodes again; the peaks just decoded are still good */
+                }
+            }
             return peaks;
         } catch (_) {
             return null; // undecodable or unreadable: the bar stays plain; failures are not cached, a later call may retry
@@ -150,12 +172,19 @@ export function getPeaks(song) {
     return job;
 }
 
+// The look of the bars in the seek bar (task PC-03, brief 6.2). Kept in one place so it can be tuned by eye.
+//   - narrower than the bar, so the tallest bar stops short of the edges instead of filling the whole height;
+//   - the unplayed bars use the tertiary text color at 55% instead of the old border color. The border color was 1.4:1 against the
+//     player background (the bars were nearly invisible); this is about 2.6:1 on all three themes and keeps the played (accent) bars
+//     clearly apart, because they are full strength.
+export const DESIGN = Object.freeze({ barWidth: 2, gap: 1, minBar: 2, heightShare: 0.72, unplayedAlpha: 0.55 });
+
 /**
  * Draws `peaks` as centered bars on `canvas`. `progress` is 0..1: bars before it use `played`, the rest `unplayed`.
  * Colors are passed in (read from the theme tokens by the caller), so this file holds no color values.
  * Returns the number of bars drawn.
  */
-export function drawWaveform(canvas, peaks, { progress = 0, played, unplayed, barWidth = 2, gap = 1, minBar = 2 } = {}) {
+export function drawWaveform(canvas, peaks, { progress = 0, played, unplayed, unplayedAlpha = 1, barWidth = 2, gap = 1, minBar = 2, heightShare = 1 } = {}) {
     const ratio = window.devicePixelRatio || 1;
     const cssWidth = canvas.clientWidth || canvas.width / ratio;
     const cssHeight = canvas.clientHeight || canvas.height / ratio;
@@ -164,20 +193,27 @@ export function drawWaveform(canvas, peaks, { progress = 0, played, unplayed, ba
     if (canvas.width !== width) canvas.width = width; // assigning the size clears and reallocates the canvas: only when it changed
     if (canvas.height !== height) canvas.height = height;
     const ctx = canvas.getContext('2d');
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    ctx.clearRect(0, 0, cssWidth, cssHeight);
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // everything below is in device pixels, so bars are whole pixels at any display scaling (125%, 150%)
+    ctx.clearRect(0, 0, width, height);
     if (!peaks || !peaks.length) return 0;
-    const count = Math.max(1, Math.floor((cssWidth + gap) / (barWidth + gap)));
+    const bar = Math.max(1, Math.round(barWidth * ratio));
+    const pitch = bar + Math.max(1, Math.round(gap * ratio));
+    const count = Math.max(1, Math.floor((width + pitch - bar) / pitch));
     const split = Math.max(0, Math.min(1, progress)) * count;
-    for (let bar = 0; bar < count; bar++) {
-        const from = Math.floor((bar * peaks.length) / count);
-        const to = Math.max(from + 1, Math.floor(((bar + 1) * peaks.length) / count));
+    const room = Math.max(1, Math.round(height * heightShare));
+    const least = Math.max(1, Math.round(minBar * ratio));
+    for (let index = 0; index < count; index++) {
+        const from = Math.floor((index * peaks.length) / count);
+        const to = Math.max(from + 1, Math.floor(((index + 1) * peaks.length) / count));
         let total = 0;
         for (let i = from; i < to; i++) total += peaks[i];
         const value = total / (to - from); // the average of the bins in this bar; the maximum would push every bar toward full height
-        const height = Math.max(minBar, (value / 255) * cssHeight);
-        ctx.fillStyle = bar < split ? played : unplayed;
-        ctx.fillRect(bar * (barWidth + gap), (cssHeight - height) / 2, barWidth, height);
+        let tall = Math.min(height, Math.max(least, Math.round((value / 255) * room)));
+        if ((height - tall) % 2 !== 0 && tall < height) tall += 1; // an even gap above and below keeps the bar centered
+        ctx.globalAlpha = index < split ? 1 : unplayedAlpha;
+        ctx.fillStyle = index < split ? played : unplayed;
+        ctx.fillRect(index * pitch, (height - tall) / 2, bar, tall);
     }
+    ctx.globalAlpha = 1;
     return count;
 }

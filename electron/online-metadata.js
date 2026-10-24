@@ -384,7 +384,7 @@ async function searchOnlineMetadata({ fileUrl, title, artist, album, duration, s
     return { success: true, results: recordings, cachePath };
 }
 
-async function getOnlineMetadata({ fileUrl, recordingId, releaseId, title='' }) {
+async function getOnlineMetadata({ fileUrl, recordingId, releaseId, title='', skipCover=false }) {
     if (!recordingId && !releaseId) throw new Error('MusicBrainz recording or release ID is required');
     if (!recordingId && releaseId) {
         const relOnly = await mbFetch(buildUrl(`${MB_BASE}/release/${encodeURIComponent(releaseId)}`, { inc:'artist-credits+recordings+labels+release-groups', fmt:'json' }));
@@ -414,7 +414,7 @@ async function getOnlineMetadata({ fileUrl, recordingId, releaseId, title='' }) 
     let coverUrl = '';
     let coverStatus = 'none'; // 'downloaded' | 'none' (the release has no cover art) | 'failed'
     let coverError = '';
-    if (selectedReleaseId) {
+    if (selectedReleaseId && !skipCover) { // skipCover: the multi tag finder (PD-05) wants tags only
         try {
             const coverMeta = await requestJson(`${CAA_BASE}/release/${encodeURIComponent(selectedReleaseId)}`, { maxRetries: 3 });
             const image = (coverMeta.images || []).find(x => x.front) || first(coverMeta.images);

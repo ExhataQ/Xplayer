@@ -138,7 +138,7 @@ describe('Home in the shell', { concurrency: false }, () => {
         await page.close();
     });
 
-    test('a song card plays that song even when the engine\'s last view does not contain it', TEST_OPTIONS, async (t) => {
+    test('a song card opens the song\'s album and plays it, even when the engine\'s last view does not contain it', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, seeded } = await open();
         // The engine's current view is the two-song playlist; the song on Home (number 40) is not in it.
@@ -149,8 +149,8 @@ describe('Home in the shell', { concurrency: false }, () => {
         await home(page);
         await card(page, 'recent-songs', seeded.farSong.title).first().click();
         await page.waitForFunction((title) => document.getElementById('player-title')?.textContent.includes(title), seeded.farSong.title);
-        assert.equal(await page.evaluate(() => document.querySelector('.view-host').dataset.view), 'home', 'a song card stays on Home');
-        assert.equal(await page.evaluate(() => window.playbackQueue.length), 60, 'the queue is the whole library');
+        assert.equal(await page.evaluate(() => document.querySelector('.view-host').dataset.view), 'library', 'a song card opens the song\'s album (PB-17)');
+        assert.equal(await page.evaluate(() => window.playbackQueue.length), 1, 'the queue is that album (one song in the test library)');
         await page.close();
     });
 
@@ -158,7 +158,7 @@ describe('Home in the shell', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page } = await open();
         await home(page);
-        await page.locator('.rail-btn[data-view="search"]').click();
+        await page.locator('.rail-btn[data-view="library"]').click(); // Search is a panel item and leaves Home on screen (PB-02)
         assert.equal(await page.locator('.home').count(), 0);
         await home(page);
         assert.equal(await page.locator('.home').count(), 1);

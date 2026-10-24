@@ -19,7 +19,7 @@
 //                                   until start-up has finished (whenAppReady in core/legacy.js).
 //   desktopApi.names()              every 'group.name', for tests
 //
-// Groups: window, library, metadata, files, lyrics. They are the same groups the preload
+// Groups: window, library, metadata, files, lyrics, ai. They are the same groups the preload
 // exposes (electron/preload.js). The calls go through the flat names, which the preload keeps
 // as aliases, so this works with the test stub and with either preload shape.
 // The preload has no generic invoke(channel, ...): add a named call in the preload and in the table below instead.
@@ -67,6 +67,9 @@ export const desktopApi = (function () {
             getAudioMetadata: 'invoke',
             saveAudioMetadata: 'invoke',
             saveAudioMetadataMany: 'invoke',
+            findTagsMany: 'invoke',
+            cancelFindTags: 'invoke',
+            onFindTagsProgress: 'on',
             exportAudioMetadataJson: 'invoke',
             importAudioMetadataJson: 'invoke',
             searchOnlineMetadata: 'invoke',
@@ -77,13 +80,31 @@ export const desktopApi = (function () {
         files: {
             showFileInExplorer: 'send',
             deleteFile: 'send',
-            readAudioBytes: 'invoke'
+            readAudioBytes: 'invoke',
+            getWaveformPeaks: 'invoke',
+            setWaveformPeaks: 'invoke'
         },
         lyrics: {
             saveLyricsFile: 'invoke',
             readLyricsFile: 'invoke',
             searchOnlineLyrics: 'invoke',
             downloadOnlineLyrics: 'invoke'
+        },
+        ai: {
+            aiGetStatus: 'invoke',
+            aiSetSettings: 'invoke',
+            aiSetKey: 'invoke',
+            aiClearKey: 'invoke',
+            aiListModels: 'invoke',
+            aiKeyInfo: 'invoke',
+            aiDescribePrivacy: 'invoke',
+            aiPlan: 'invoke',
+            aiTranslateLyrics: 'invoke',
+            aiCancel: 'invoke',
+            aiJournalList: 'invoke',
+            aiJournalGet: 'invoke',
+            aiJournalRecord: 'invoke',
+            aiJournalMarkUndone: 'invoke'
         }
     };
 

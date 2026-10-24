@@ -242,9 +242,8 @@ describe('main process hands out and updates the library through songs.json', ()
         root = tempDir();
         const copy = path.join(root, 'electron');
         fs.mkdirSync(copy);
-        for (const name of fs.readdirSync(path.join(__dirname, '..', '..', 'electron'))) {
-            if (name.endsWith('.js')) fs.copyFileSync(path.join(__dirname, '..', '..', 'electron', name), path.join(copy, name));
-        }
+        // main.js also requires files in subfolders (./ai/...), so copy the whole folder; only source files are needed
+        fs.cpSync(path.join(__dirname, '..', '..', 'electron'), copy, { recursive: true, filter: (from) => !/node_modules|\.py$|\.json$/.test(from) });
         // The tag editor needs Python; stand in for it.
         fs.writeFileSync(path.join(copy, 'metadata-editor.js'),
             "module.exports = { getAudioMetadata: async () => ({ success: true, metadata: { title: 'Old title' } }), saveAudioCover: async () => ({}), saveAudioMetadata: async () => ({ success: true, metadata: { title: 'Edited title' } }) };");

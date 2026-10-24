@@ -189,23 +189,23 @@ describe('A-10 appearance and resizing with the real engine', { concurrency: fal
             return { engine: LEFT_ITEM_HEIGHT, rows: rows.length, height: Math.round(rows[0].getBoundingClientRect().height), pitch: tops.length > 1 ? tops[1] - tops[0] : 0, cover: Math.round(document.querySelector('.library-panel .main-item-cover-wrapper').getBoundingClientRect().height) };
         });
 
-    test('density D61: library panel rows are 61 px comfortable and 44 px compact, live, and the engine uses the same height', TEST_OPTIONS, async (t) => {
+    test('density D61: library panel rows are 72 px comfortable and 48 px compact, live, and the engine uses the same height', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open();
-        assert.deepEqual(await panelRows(page), { ...(await panelRows(page)), engine: 61, height: 61, pitch: 61, cover: 44 });
+        assert.deepEqual(await panelRows(page), { ...(await panelRows(page)), engine: 72, height: 72, pitch: 72, cover: 44 });
         await goto(page, 'settings');
         await section(page).getByRole('radio', { name: 'Compact' }).click();
-        await page.waitForFunction(() => LEFT_ITEM_HEIGHT === 44, null, { timeout: 3000 });
+        await page.waitForFunction(() => LEFT_ITEM_HEIGHT === 48, null, { timeout: 3000 });
         await goto(page, 'library');
         const compact = await panelRows(page);
-        assert.deepEqual([compact.engine, compact.height, compact.pitch, compact.cover], [44, 44, 44, 32]);
+        assert.deepEqual([compact.engine, compact.height, compact.pitch, compact.cover], [48, 48, 48, 32]);
         assert.ok(compact.rows >= 2, 'the panel still lists its items');
         await goto(page, 'settings');
         await section(page).getByRole('radio', { name: 'Comfortable' }).click();
-        await page.waitForFunction(() => LEFT_ITEM_HEIGHT === 61, null, { timeout: 3000 });
+        await page.waitForFunction(() => LEFT_ITEM_HEIGHT === 72, null, { timeout: 3000 });
         await goto(page, 'library');
         const back = await panelRows(page);
-        assert.deepEqual([back.engine, back.height, back.pitch, back.cover], [61, 61, 61, 44]);
+        assert.deepEqual([back.engine, back.height, back.pitch, back.cover], [72, 72, 72, 44]);
         assert.deepEqual(errors, []);
         await page.close();
     });
@@ -214,7 +214,7 @@ describe('A-10 appearance and resizing with the real engine', { concurrency: fal
         if (!guard(t)) return;
         const { page } = await open({ store: { 'xplayer.ui-next.appearance': JSON.stringify({ theme: 'warm-graphite', accent: 'theme', density: 'compact' }) } });
         const rows = await panelRows(page);
-        assert.deepEqual([rows.engine, rows.height, rows.pitch], [44, 44, 44]);
+        assert.deepEqual([rows.engine, rows.height, rows.pitch], [48, 48, 48]);
         await page.close();
     });
 
@@ -251,30 +251,30 @@ describe('A-10 appearance and resizing with the real engine', { concurrency: fal
         const { page } = await open();
         const handle = page.locator('.panel-resizer');
         const width = () => page.locator('.panel-host').evaluate((n) => Math.round(n.getBoundingClientRect().width));
-        assert.equal(await width(), 300);
+        assert.equal(await width(), 340);
         assert.equal(await handle.getAttribute('role'), 'separator');
         const box = await handle.boundingBox();
         await page.mouse.move(box.x + box.width / 2, box.y + 200);
         await page.mouse.down();
         await page.mouse.move(box.x + box.width / 2 + 60, box.y + 200, { steps: 4 });
         await page.mouse.up();
-        assert.equal(await width(), 360);
-        assert.equal(await handle.getAttribute('aria-valuenow'), '360');
+        assert.equal(await width(), 400);
+        assert.equal(await handle.getAttribute('aria-valuenow'), '400');
         await handle.focus();
         await page.keyboard.press('ArrowLeft');
-        assert.equal(await width(), 344);
+        assert.equal(await width(), 384);
         await page.keyboard.press('Home');
         assert.equal(await width(), 240);
         await page.keyboard.press('End');
-        assert.equal(await width(), 480);
+        assert.equal(await width(), 560);
         await page.keyboard.press('Enter');
-        assert.equal(await width(), 300);
+        assert.equal(await width(), 340);
         await handle.dblclick();
-        assert.equal(await width(), 300);
+        assert.equal(await width(), 340);
         await page.keyboard.press('End');
         await page.reload();
         await waitForAppSettled(page, 3000);
-        assert.equal(await width(), 480, 'the width is saved');
+        assert.equal(await width(), 560, 'the width is saved');
         await page.close();
     });
 

@@ -474,6 +474,52 @@
     opacity: var(--control-disabled-opacity);
     cursor: default;
 }
+.tag-sheet__finder {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+.tag-sheet__finder-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+.tag-sheet__findings {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background: var(--surface-panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+}
+.tag-sheet__finding-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    max-height: 14rem;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+}
+.tag-sheet__finding {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+.tag-sheet__finding-title {
+    flex: 0 1 12rem;
+    min-width: 0;
+    font-weight: 600;
+}
+.tag-sheet__finding-detail {
+    flex: 1 1 18rem;
+    min-width: 0;
+    color: var(--text-secondary);
+}
 .tag-sheet__button.is-primary {
     background: var(--accent);
     color: var(--text-on-accent);

@@ -1,0 +1,40 @@
+/* The Play from URL button in the title bar (task PA-08, brief 10.1). Tokens only.
+ * The two halves of the chain pull apart and click back together: once on hover or keyboard focus, and again, quicker, when pressed.
+ * It returns to where it started. Off with reduced motion. */
+
+@media (prefers-reduced-motion: no-preference) {
+    .url-btn:is(:hover, :focus-visible) .link-a {
+        animation: url-link-a 620ms var(--motion-ease);
+    }
+    .url-btn:is(:hover, :focus-visible) .link-b {
+        animation: url-link-b 620ms var(--motion-ease);
+    }
+    .url-btn:active svg {
+        scale: 0.88;
+    }
+}
+
+@keyframes url-link-a {
+    0%,
+    100% {
+        transform: translate(0, 0);
+    }
+    40% {
+        transform: translate(2.2px, -2.2px);
+    }
+    62% {
+        transform: translate(-0.4px, 0.4px); /* a little past closed, like a click */
+    }
+}
+@keyframes url-link-b {
+    0%,
+    100% {
+        transform: translate(0, 0);
+    }
+    40% {
+        transform: translate(-2.2px, 2.2px);
+    }
+    62% {
+        transform: translate(0.4px, -0.4px);
+    }
+}

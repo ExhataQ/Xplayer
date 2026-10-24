@@ -23,7 +23,8 @@ const ORIGINAL_FLAT_NAMES = [
     'onThumbarPrev', 'onThumbarPlayPause', 'onThumbarNext', 'onWindowMaximize', 'onScanCoverBatch',
     'onScanCoversComplete', 'updateThumbarPlayState'
 ];
-const GROUPS = ['window', 'library', 'metadata', 'files', 'lyrics'];
+const GROUPS = ['window', 'library', 'metadata', 'files', 'lyrics', 'ai'];
+const AI_NAMES = ['aiGetStatus', 'aiSetSettings', 'aiSetKey', 'aiClearKey', 'aiListModels', 'aiKeyInfo', 'aiDescribePrivacy', 'aiPlan', 'aiTranslateLyrics', 'aiCancel', 'aiJournalList', 'aiJournalGet', 'aiJournalRecord', 'aiJournalMarkUndone'];
 
 // Runs preload.js with a fake 'electron' and returns what it exposed, plus the ipc calls made.
 function loadPreload() {
@@ -66,7 +67,7 @@ test('preload: every flat name is in exactly one group, and the group call uses 
     for (const g of GROUPS) assert.equal(typeof api[g], 'object', `electronAPI.${g}`);
     const inGroups = GROUPS.flatMap((g) => Object.keys(api[g]).map((n) => [g, n]));
     const names = inGroups.map(([, n]) => n);
-    assert.deepEqual([...names].sort(), ORIGINAL_FLAT_NAMES.concat(['welcomeSelectFolder', 'getStartupSongs', 'readAudioBytes', 'cancelDownload', 'cancelCoverSearch', 'getUiChoice', 'setUiChoice']).sort(), 'groups cover every old name, plus welcomeSelectFolder, getStartupSongs, readAudioBytes, the two cancel calls (D41) and the two interface-choice calls (Phase 4)');
+    assert.deepEqual([...names].sort(), ORIGINAL_FLAT_NAMES.concat(['welcomeSelectFolder', 'getStartupSongs', 'readAudioBytes', 'getWaveformPeaks', 'setWaveformPeaks', 'cancelDownload', 'cancelCoverSearch', 'getUiChoice', 'setUiChoice', 'findTagsMany', 'cancelFindTags', 'onFindTagsProgress', ...AI_NAMES]).sort(), 'groups cover every old name, plus welcomeSelectFolder, getStartupSongs, readAudioBytes, the two saved-peaks calls (PC-03), the two cancel calls (D41), the two interface-choice calls (Phase 4) and the ai group (Polish 1, Agent E)');
     assert.equal(new Set(names).size, names.length, 'no name in two groups');
     for (const [g, n] of inGroups) {
         calls.length = 0;
@@ -124,10 +125,28 @@ test('preload: the new welcomeSelectFolder uses the channel 06b used through inv
     assert.deepEqual(calls[0], { kind: 'invoke', channel: 'welcome-select-folder', args: [] });
 });
 
+test('preload: the tag finder calls use their own channels, and the request goes through untouched', () => {
+    const { exposed, calls } = loadPreload();
+    const request = { songs: [{ id: 1, fileUrl: 'file:///a.mp3', tags: {} }], options: { autoThreshold: 0.9 } };
+    exposed.api.metadata.findTagsMany(request);
+    exposed.api.metadata.cancelFindTags();
+    exposed.api.metadata.onFindTagsProgress(() => {});
+    assert.deepEqual(calls.map((c) => [c.kind, c.channel]), [['invoke', 'find-tags-many'], ['invoke', 'cancel-find-tags'], ['on', 'find-tags-progress']]);
+    assert.deepEqual(calls[0].args, [request]);
+});
+
 test('preload: readAudioBytes (the waveform) asks the main process on read-audio-bytes, with the url only', () => {
     const { exposed, calls } = loadPreload();
     exposed.api.files.readAudioBytes('file:///a.mp3');
     assert.deepEqual(calls[0], { kind: 'invoke', channel: 'read-audio-bytes', args: ['file:///a.mp3'] });
+});
+
+test('preload: the saved waveform peaks go to their own two channels, key and bytes only', () => {
+    const { exposed, calls } = loadPreload();
+    exposed.api.files.getWaveformPeaks('v2:k');
+    exposed.api.files.setWaveformPeaks('v2:k', 'bytes');
+    assert.deepEqual(calls[0], { kind: 'invoke', channel: 'waveform-peaks:get', args: ['v2:k'] });
+    assert.deepEqual(calls[1], { kind: 'invoke', channel: 'waveform-peaks:set', args: ['v2:k', 'bytes'] });
 });
 
 test('desktopApi: lists exactly the calls the preload groups expose', () => {

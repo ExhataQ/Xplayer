@@ -9,3 +9,4 @@ export { statusIndicator, progress } from './status.js';
 export { openDialog, confirmDialog } from './dialog.js';
 export { openMenu } from './menu.js';
 export { emptyState } from './empty-state.js';
+export { autoLoad, createPager } from './auto-load.js';

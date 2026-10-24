@@ -498,6 +498,9 @@ if (typeof registerLegacyGlobals === 'function') {
         addSyncedLyricsVariant,
         setSyncedLyricsForSong,
         setActiveSyncedLyricsVariant,
+        getActiveSyncedLyricsForSong, // the three below are used by the AI translation (adapter/ai-lyrics.js)
+        renameSyncedLyricsVariant,
+        deleteSyncedLyricsVariant,
         clearSyncedLyricsForSong,
         openLyricsEditor,
         openLyricsEditorForSong,

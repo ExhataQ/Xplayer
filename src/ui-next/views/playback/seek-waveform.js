@@ -1,15 +1,21 @@
-// The waveform inside the seek bar (task C-02). The engine still owns seeking: a press on the bar is handled by the
+// The waveform inside the seek bar (task C-02, reworked in PC-03). The engine still owns seeking: a press on the bar is handled by the
 // engine exactly as before, because the canvas is a passive picture over the bar (pointer-events: none) and the bar
 // keeps its size rules. This only draws, from peaks (waveform.js) and the playback position (adapter/player-parts.js).
 //
-// While no waveform is available (loading, no song, a track over the length limit, an unreadable file) the plain bar
-// stays exactly as it was.
+// While no waveform is available (turned off in Settings, loading, no song, a track over the length limit, an unreadable file) the
+// plain bar stays exactly as it was. The waveform is off until the person turns it on (waveform-setting.js); turning it on or off
+// takes effect at once, with no restart.
+//
+// Speed (brief 6.1). A track heard before shows its waveform at once: saved peaks (memory, then the file in the settings folder)
+// are asked for right away. Only a track with no saved peaks waits LOAD_DELAY before it is decoded, so skipping through songs
+// never starts a decode for a song that is left at once.
 
 import { playerPart, onTime } from '../../adapter/player-parts.js';
-import { readAudioBytes } from '../../adapter/playback-bridge.js';
-import { getPeaks, drawWaveform, setBytesReader, readWithXhr, MAX_SECONDS } from './waveform.js';
+import { readAudioBytes, loadSavedPeaks, saveSavedPeaks } from '../../adapter/playback-bridge.js';
+import { getPeaks, drawWaveform, setBytesReader, setPeaksStore, readWithXhr, MAX_SECONDS, DESIGN } from './waveform.js';
+import { isWaveformOn, watchWaveform } from './waveform-setting.js';
 
-const LOAD_DELAY = 300; // ms: skipping through songs quickly never starts a decode for a song that is left at once
+const LOAD_DELAY = 150; // ms before a track with no saved peaks is decoded (was 300; the decode itself is the slow part)
 
 export function mountSeekWaveform() {
     const seek = playerPart('seek');
@@ -23,12 +29,11 @@ export function mountSeekWaveform() {
         if (!result.success) throw new Error(result.reason);
         return result.data;
     });
+    // Peaks are kept on disk, so the second play of a track needs no decoding. Without a desktop bridge both calls do nothing.
+    setPeaksStore({ get: loadSavedPeaks, set: saveSavedPeaks });
 
-    const canvas = document.createElement('canvas');
-    canvas.className = 'waveform-canvas';
-    canvas.setAttribute('aria-hidden', 'true');
-    seek.append(canvas);
-
+    let canvas = null;
+    let parts = null; // what is alive while the waveform is on: { stopTime, resize, theme }
     let peaks = null;
     let src = '';
     let sample = { currentTime: 0, duration: 0, playing: false, at: 0 };
@@ -39,7 +44,7 @@ export function mountSeekWaveform() {
 
     const colors = () => {
         const style = getComputedStyle(document.documentElement);
-        return { played: style.getPropertyValue('--accent').trim(), unplayed: style.getPropertyValue('--border-strong').trim() };
+        return { played: style.getPropertyValue('--accent').trim(), unplayed: style.getPropertyValue('--text-tertiary').trim() };
     };
 
     const fraction = () => {
@@ -51,37 +56,45 @@ export function mountSeekWaveform() {
 
     const draw = (force = false) => {
         frame = 0;
-        if (!peaks) return;
+        if (!peaks || !canvas) return;
         const progress = fraction();
         const key = `${Math.round(progress * canvas.clientWidth)}|${canvas.clientWidth}`;
         if (force || key !== lastKey) {
             lastKey = key;
-            drawWaveform(canvas, peaks, { progress, ...colors() });
+            drawWaveform(canvas, peaks, { progress, ...DESIGN, ...colors() });
         }
         if (sample.playing || seek.classList.contains('dragging')) frame = requestAnimationFrame(() => draw());
     };
     const schedule = (force = false) => {
-        if (!frame) frame = requestAnimationFrame(() => draw(force));
+        if (canvas && !frame) frame = requestAnimationFrame(() => draw(force));
     };
 
     const clear = () => {
         peaks = null;
         lastKey = '';
         seek.classList.remove('has-waveform');
-        const ctx = canvas.getContext('2d');
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
     };
 
-    const load = async (wanted, duration) => {
-        const result = await getPeaks({ id: wanted, duration, url: wanted });
-        if (wanted !== src || !result) return; // the track changed meanwhile, or there is no waveform: keep the plain bar
+    const show = (wanted, result) => {
+        if (!parts || wanted !== src || !result) return false; // turned off, the track changed meanwhile, or there is no waveform: keep the plain bar
         peaks = result;
         seek.classList.add('has-waveform');
         schedule(true);
+        return true;
     };
 
-    const stopTime = onTime((time) => {
+    const load = async (wanted, duration) => {
+        const song = { id: wanted, duration, url: wanted };
+        show(wanted, await getPeaks(song));
+    };
+
+    // Called for every time event while the waveform is on.
+    const onSample = (time) => {
         sample = { currentTime: time.currentTime, duration: time.duration, playing: time.playing, at: performance.now() };
         if (time.src !== src) {
             src = time.src;
@@ -92,29 +105,57 @@ export function mountSeekWaveform() {
         }
         if (src && src !== triedSrc && time.duration > 0 && time.duration <= MAX_SECONDS && !peaks && !loadTimer) {
             const wanted = src;
-            loadTimer = setTimeout(() => {
-                loadTimer = 0;
-                if (wanted !== src) return;
-                triedSrc = wanted;
-                load(wanted, sample.duration);
-            }, LOAD_DELAY);
+            const duration = time.duration;
+            triedSrc = wanted;
+            // Saved peaks first, with no delay. Only when there are none is the track decoded, after the short wait.
+            getPeaks({ id: wanted, duration, url: wanted }, { cachedOnly: true }).then((saved) => {
+                if (show(wanted, saved) || wanted !== src || !parts) return;
+                loadTimer = setTimeout(() => {
+                    loadTimer = 0;
+                    if (wanted === src && parts) load(wanted, duration); // the same duration as the saved-peaks lookup, so both build the same cache key
+                }, LOAD_DELAY);
+            });
         }
         schedule();
-    });
+    };
 
-    // Redraw when the bar changes size or the theme or accent changes.
-    const resize = new ResizeObserver(() => schedule(true));
-    resize.observe(seek);
-    const theme = new MutationObserver(() => schedule(true));
-    theme.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-accent'] });
+    function start() {
+        if (parts) return;
+        canvas = document.createElement('canvas');
+        canvas.className = 'waveform-canvas';
+        canvas.setAttribute('aria-hidden', 'true');
+        seek.append(canvas);
+        // Redraw when the bar changes size or the theme or accent changes.
+        const resize = new ResizeObserver(() => schedule(true));
+        resize.observe(seek);
+        const theme = new MutationObserver(() => schedule(true));
+        theme.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-accent'] });
+        parts = { stopTime: onTime(onSample, { immediate: true }), resize, theme }; // immediate: a song may already be playing, or paused
+    }
+
+    function stop() {
+        if (!parts) return;
+        parts.stopTime();
+        parts.resize.disconnect();
+        parts.theme.disconnect();
+        parts = null;
+        clearTimeout(loadTimer);
+        loadTimer = 0;
+        cancelAnimationFrame(frame);
+        frame = 0;
+        clear();
+        canvas.remove();
+        canvas = null;
+        src = '';
+        triedSrc = '';
+    }
+
+    const apply = (on) => (on ? start() : stop());
+    apply(isWaveformOn());
+    const unwatch = watchWaveform(apply);
 
     return () => {
-        stopTime();
-        resize.disconnect();
-        theme.disconnect();
-        clearTimeout(loadTimer);
-        cancelAnimationFrame(frame);
-        canvas.remove();
-        seek.classList.remove('has-waveform');
+        unwatch();
+        stop();
     };
 }

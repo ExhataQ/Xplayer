@@ -320,7 +320,9 @@ describe('phase 1 gate: static checks', () => {
     });
 
     test('every icon the new screen names exists in icons.js', async () => {
-        const { ICONS } = await import(pathToFileURL(path.join(NEXT_SRC, 'icons', 'icons.js')).href);
+        const generated = await import(pathToFileURL(path.join(NEXT_SRC, 'icons', 'icons.js')).href);
+        const custom = await import(pathToFileURL(path.join(NEXT_SRC, 'icons', 'custom-icons.js')).href); // drawn for this app (PA-03)
+        const ICONS = { ...generated.ICONS, ...custom.CUSTOM_ICONS };
         const skipDirs = ['fonts'];
         const files = [];
         (function walk(d) {

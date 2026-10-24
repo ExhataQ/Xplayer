@@ -16,7 +16,7 @@ export const DEFAULT_WIDTH = 320;
 export const MIN_WIDTH = 280;
 export const MAX_WIDTH = 420;
 const MIN_LIST = 420;
-const RAIL = 56;
+const railWidth = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--rail-width')) || 68; // the token, so a wider rail never squeezes the view
 const STEP = 16;
 
 let provider = null;
@@ -53,7 +53,7 @@ export function mountRightPanelSlot({ host, button: anchor, leftPanel }) {
     let wasFitting = true;
 
     const leftWidth = () => (leftPanel && !leftPanel.hidden && getComputedStyle(leftPanel).display !== 'none' ? leftPanel.getBoundingClientRect().width : 0);
-    const room = () => window.innerWidth - RAIL - leftWidth() - MIN_LIST; // what the right panel may take without squeezing the list
+    const room = () => window.innerWidth - railWidth() - leftWidth() - MIN_LIST; // what the right panel may take without squeezing the list
     const width = () => Math.round(Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, savedWidth, Math.max(MIN_WIDTH, room()))));
     const fits = () => room() >= MIN_WIDTH;
 

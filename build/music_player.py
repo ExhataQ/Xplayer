@@ -204,6 +204,14 @@ def generate_html_template(songs_data, placeholder_image):
             if os.path.exists(src):
                 shutil.copy2(src, dst)
 
+        # electron/ai/ (the AI assistant's main-process code) is a folder, not one file in the list above.
+        ai_src = os.path.join(electron_dir, "ai")
+        ai_dst = os.path.join(app_dir, "ai")
+        if os.path.isdir(ai_src):
+            if os.path.exists(ai_dst):
+                shutil.rmtree(ai_dst)
+            shutil.copytree(ai_src, ai_dst)
+
     # Phase: folder restructure. node_modules used to be synced from the separate
     # "more tools/node_modules" folder (the old UI playground's dependencies, which
     # happened to also include jimp/sharp/music-metadata). That folder has been

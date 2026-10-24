@@ -9,8 +9,17 @@
 //                       items: [{ fileUrl, metadata }] with only the tags to change
 //   refreshSongs(results)   copies saved tags into the engine's in-memory songs (library and queue) and repaints its lists, like the single editor does
 //   notify(message, type, ms)   the engine's notification
+//   findTags(request, onProgress) -> Promise<{ success, results?, summary?, cancelled?, stopped?, message?, error? }>   the multi tag finder (PD-05).
+//                       request: { songs: [{ id, fileUrl, tags }], options: { rule, autoThreshold, fields } }; onProgress({ done, total, decision }) per song.
+//                       It only looks things up; it never writes a tag.
+//   cancelFindTags()    stop the running search after the song being worked on
+//   progressNotice(options) / notice(options)   the shell's notification API (shell/notify.js: notifyProgress and notify)
+//   journal(name, ...args)   the durable undo journal (PD-06, electron/ai/journal.js, E's) through the ai group: name is aiJournalRecord, aiJournalGet,
+//                       aiJournalList or aiJournalMarkUndone. An answer of { ok: false } means there is no journal and the sheet keeps its in-memory Undo
+//   undoJournalEntry(id) -> { ok, failures }   E's undo for any journal entry (adapter/ai-bridge.js), the same code the AI's Undo button uses
 //   infoModel()      -> { song, fields, settings }  the playing song, the extended-info field list and which are switched on (song-info.js)
 //   setInfoField(key, on)   switch one extended-info field on or off (the engine stores it)
+
 
 const engine = () => window;
 const call = (name, ...args) => (typeof engine()[name] === 'function' ? engine()[name](...args) : null);
@@ -73,6 +82,28 @@ export function refreshSongs(results) {
 }
 
 export const notify = (message, type = 'info', ms = 3000) => call('showNotification', message, type, ms);
+
+// The preload offers no way to unsubscribe, so one listener is added for the whole session and hands each event to the current run.
+let onFindProgress = null;
+let listening = false;
+export function findTags(request, onProgress) {
+    const api = engine().electronAPI;
+    if (typeof api?.findTagsMany !== 'function') return Promise.resolve({ success: false, error: 'Finding tags is not available' });
+    if (!listening && typeof api.onFindTagsProgress === 'function') {
+        api.onFindTagsProgress((info) => onFindProgress && onFindProgress(info));
+        listening = true;
+    }
+    onFindProgress = onProgress || null;
+    return Promise.resolve(api.findTagsMany(request)).finally(() => {
+        onFindProgress = null;
+    });
+}
+
+export const cancelFindTags = () => (typeof engine().electronAPI?.cancelFindTags === 'function' ? engine().electronAPI.cancelFindTags() : Promise.resolve({ cancelled: false }));
+
+export { notifyProgress as progressNotice, notify as notice } from '../shell/notify.js';
+export { undoEntry as undoJournalEntry } from './ai-bridge.js';
+export const journal = (name, ...args) => (typeof window.desktopApi?.ai?.[name] === 'function' ? window.desktopApi.ai[name](...args) : Promise.resolve({ ok: false, error: 'There is no undo journal' }));
 
 export function infoModel() {
     return { song: call('getCurrentSongForInfo'), fields: Array.isArray(engine().EXTENDED_METADATA_FIELDS) ? engine().EXTENDED_METADATA_FIELDS : [], settings: call('getExtendedMetadataSettings') || {} };

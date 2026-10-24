@@ -33,6 +33,32 @@ export async function readAudioBytes(fileUrl) {
     }
 }
 
+/**
+ * Saved waveform peaks (electron/waveform-peaks.js). Both return quietly when there is no desktop bridge or the call fails:
+ * a missing saved copy only means the track is decoded again. `key` is the cache key the waveform builds; `bytes` a Uint8Array.
+ */
+export async function loadSavedPeaks(key) {
+    const api = window.desktopApi;
+    if (!api || !api.supports('files.getWaveformPeaks')) return null;
+    try {
+        const result = await api.files.getWaveformPeaks(key);
+        return result && result.success && result.data ? new Uint8Array(result.data) : null;
+    } catch (_) {
+        return null;
+    }
+}
+
+export async function saveSavedPeaks(key, bytes) {
+    const api = window.desktopApi;
+    if (!api || !api.supports('files.setWaveformPeaks')) return false;
+    try {
+        const result = await api.files.setWaveformPeaks(key, bytes);
+        return Boolean(result && result.success);
+    } catch (_) {
+        return false;
+    }
+}
+
 /** True when `src` is a real cover picture, not the engine's placeholder or the empty one the adapter starts with. */
 export function hasCoverArt(src) {
     if (!src || src.startsWith('data:image/gif;base64,R0lGODlhAQABAAAAACH5')) return false;

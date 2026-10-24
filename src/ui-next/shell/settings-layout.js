@@ -9,7 +9,7 @@ import { el, iconEl, iconButton } from '../components/index.js';
 
 export const SETTINGS_GROUPS = [
     { id: 'general', label: 'General', icon: 'sliders-horizontal', summary: 'Appearance, window and startup screen', titles: ['Appearance', 'Right Panel', 'Window', 'Interface', 'Startup screen'] },
-    { id: 'playback', label: 'Playback', icon: 'volume-2', summary: 'Crossfade, fades, volume levelling and Smart Shuffle', titles: ['Playback', 'Smart Shuffle'] },
+    { id: 'playback', label: 'Playback', icon: 'volume-2', summary: 'Crossfade, fades, volume levelling, waveform and Smart Shuffle', titles: ['Playback', 'Player bar', 'Smart Shuffle'] },
     { id: 'library', label: 'Library', icon: 'folder', summary: 'Music folders and where downloads are saved', titles: ['Music Library', 'Play from URL'] },
     { id: 'ai', label: 'AI', icon: 'sparkles', summary: 'Assistant, provider and privacy', titles: ['AI'] },
     { id: 'data', label: 'Data', icon: 'download', summary: 'Backup, restore and advanced options', titles: ['Backup', 'Advanced'] }
