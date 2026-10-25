@@ -34,6 +34,14 @@ test('merge functions skip songs whose urls already exist', () => {
     ]);
 });
 
+test('merge functions report the songs that were already in the list, so a drop of a known file can say so', () => {
+    const existing = [{ id: 0, url: 'file:///a.mp3' }, { id: 1, url: 'file:///b.mp3' }];
+    const result = mergeAppend(existing, [{ url: 'file:///b.mp3' }, { url: 'file:///c.mp3' }]);
+    assert.deepStrictEqual(result.known, [{ id: 1, url: 'file:///b.mp3' }]);
+    assert.deepStrictEqual(result.newSongs.map((song) => song.url), ['file:///c.mp3']);
+    assert.deepStrictEqual(mergeAppend(existing, [{ url: 'file:///z.mp3' }]).known, []);
+});
+
 test('merge functions return null for empty incoming data', () => {
     assert.equal(mergeAppend([], []), null);
     assert.equal(mergePrepend([], null), null);

@@ -1,10 +1,25 @@
-// ==============================================================================
+﻿// ==============================================================================
 // START-UP
 // ==============================================================================
 // Runs once the page has loaded: draws the first views, wires the window-level listeners and removes
 // the loading screen. Loaded after the state modules and before every other module, so its
 // DOMContentLoaded handler runs before theirs, as the player script's did.
 
+function droppedFilePath(file) {
+    if (!file) return '';
+
+    if (typeof desktopApi !== 'undefined' &&
+        desktopApi.supports('files.getPathForFile')) {
+        try {
+            const path = desktopApi.files.getPathForFile(file);
+            if (typeof path === 'string' && path) return path;
+        } catch (e) {
+            // Fall back to the legacy Electron File.path property.
+        }
+    }
+
+    return typeof file.path === 'string' ? file.path : '';
+}
 document.addEventListener('DOMContentLoaded', function () {
     if (typeof getWindowSettings === 'function' && desktopApi.supports('window.setMinimizeOnClose')) {
         desktopApi.window.setMinimizeOnClose(getWindowSettings().minimizeOnClose);
@@ -293,7 +308,8 @@ document.addEventListener('DOMContentLoaded', function () {
             for (let i = 0; i < files.length; i++) {
                 const ext = '.' + files[i].name.split('.').pop().toLowerCase();
                 if (supportedExtensions.includes(ext)) {
-                    filePaths.push(files[i].path);
+                    const filePath = droppedFilePath(files[i]);
+                    if (filePath) filePaths.push(filePath);
                 }
             }
 

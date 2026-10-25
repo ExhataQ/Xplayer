@@ -42,8 +42,20 @@ export function importDroppedFiles(filePaths) {
                 }
 
                 showNotification(`Imported ${result.newSongs.length} song(s)`, 'success', 3000);
+            } else if (result.success && Array.isArray(result.known) && result.known.length > 0) {
+                // The files are in the library already. After a delete the entry stays in the list, hidden for this session:
+                // dropping the file again brings it back.
+                const hidden = result.known.filter((song) => deletedSongIds.has(song.id));
+                if (hidden.length === 0) {
+                    showNotification('Already in your library', 'info', 2500);
+                    return;
+                }
+                hidden.forEach((song) => deletedSongIds.delete(song.id));
+                onSongsChanged();
+                if (typeof refreshCurrentViewAfterMutation === 'function') refreshCurrentViewAfterMutation();
+                showNotification(`Added back ${hidden.length} song(s)`, 'success', 3000);
             } else {
-                showNotification('No new songs to import', 'warning', 2000);
+                showNotification(result.error ? `Could not import: ${result.error}` : 'No new songs to import', 'warning', 3000);
             }
         })
         .catch((err) => {

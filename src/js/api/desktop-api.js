@@ -82,7 +82,8 @@ export const desktopApi = (function () {
             deleteFile: 'send',
             readAudioBytes: 'invoke',
             getWaveformPeaks: 'invoke',
-            setWaveformPeaks: 'invoke'
+            setWaveformPeaks: 'invoke',
+            getPathForFile: 'sync'
         },
         lyrics: {
             saveLyricsFile: 'invoke',

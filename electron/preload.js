@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 // What the renderer may call, in groups. src/js/api/desktop-api.js lists the same groups.
 // The flat names (electronAPI.closeApp, ...) are kept as aliases of the grouped ones
@@ -59,7 +59,15 @@ const groups = {
         deleteFile: (filePath) => ipcRenderer.send('delete-file', filePath),
         readAudioBytes: (fileUrl) => ipcRenderer.invoke('read-audio-bytes', fileUrl),
         getWaveformPeaks: (key) => ipcRenderer.invoke('waveform-peaks:get', key),
-        setWaveformPeaks: (key, bytes) => ipcRenderer.invoke('waveform-peaks:set', key, bytes)
+        setWaveformPeaks: (key, bytes) => ipcRenderer.invoke('waveform-peaks:set', key, bytes),
+        // A dropped File has no .path in newer Electron: this is how the page gets the real path of a file the person dropped.
+        getPathForFile: (file) => {
+            try {
+                return webUtils.getPathForFile(file) || '';
+            } catch (e) {
+                return '';
+            }
+        }
     },
     lyrics: {
         saveLyricsFile: (defaultName, contents) => ipcRenderer.invoke('save-lyrics-file', defaultName, contents),

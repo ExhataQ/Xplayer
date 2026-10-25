@@ -216,6 +216,9 @@ function mergeSongs(existingSongs, newSongs, prepend = false) {
     if (!Array.isArray(existingSongs)) return null;
 
     const existingUrls = new Set(existingSongs.map((song) => song.url));
+    const incomingUrls = new Set(newSongs.map((song) => song.url));
+    // The songs that were already in the list: a dropped file that is in it (even hidden, after a delete) is not new.
+    const known = existingSongs.filter((song) => incomingUrls.has(song.url)).map((song) => ({ id: song.id, url: song.url }));
     const uniqueNewSongs = newSongs
         .filter((song) => !existingUrls.has(song.url))
         .map((song, index) => ({
@@ -229,7 +232,8 @@ function mergeSongs(existingSongs, newSongs, prepend = false) {
 
     return {
         songs: merged,
-        newSongs: uniqueNewSongs
+        newSongs: uniqueNewSongs,
+        known
     };
 }
 
@@ -279,14 +283,15 @@ async function scanDroppedFiles(filePaths, outputDir) {
     if (!merged) {
         return {
             success: false,
-            error: 'No valid songs found'
+            error: 'No valid songs found (the files could not be read)'
         };
     }
 
     return {
         success: true,
         songs: merged.songs,
-        newSongs: merged.newSongs
+        newSongs: merged.newSongs,
+        known: merged.known
     };
 }
 

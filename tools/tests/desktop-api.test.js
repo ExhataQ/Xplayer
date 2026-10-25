@@ -33,7 +33,8 @@ function loadPreload() {
     let exposed;
     const fakeElectron = {
         contextBridge: { exposeInMainWorld: (name, api) => { exposed = { name, api }; } },
-        ipcRenderer: { invoke: record('invoke'), send: record('send'), on: record('on'), sendSync: record('sendSync') }
+        ipcRenderer: { invoke: record('invoke'), send: record('send'), on: record('on'), sendSync: record('sendSync') },
+        webUtils: { getPathForFile: (file) => (file && file.fakePath) || '' }
     };
     const realLoad = Module._load;
     Module._load = function (request, ...rest) { return request === 'electron' ? fakeElectron : realLoad.call(this, request, ...rest); };
@@ -67,9 +68,10 @@ test('preload: every flat name is in exactly one group, and the group call uses 
     for (const g of GROUPS) assert.equal(typeof api[g], 'object', `electronAPI.${g}`);
     const inGroups = GROUPS.flatMap((g) => Object.keys(api[g]).map((n) => [g, n]));
     const names = inGroups.map(([, n]) => n);
-    assert.deepEqual([...names].sort(), ORIGINAL_FLAT_NAMES.concat(['welcomeSelectFolder', 'getStartupSongs', 'readAudioBytes', 'getWaveformPeaks', 'setWaveformPeaks', 'cancelDownload', 'cancelCoverSearch', 'getUiChoice', 'setUiChoice', 'findTagsMany', 'cancelFindTags', 'onFindTagsProgress', ...AI_NAMES]).sort(), 'groups cover every old name, plus welcomeSelectFolder, getStartupSongs, readAudioBytes, the two saved-peaks calls (PC-03), the two cancel calls (D41), the two interface-choice calls (Phase 4) and the ai group (Polish 1, Agent E)');
+    assert.deepEqual([...names].sort(), ORIGINAL_FLAT_NAMES.concat(['welcomeSelectFolder', 'getStartupSongs', 'readAudioBytes', 'getWaveformPeaks', 'setWaveformPeaks', 'getPathForFile', 'cancelDownload', 'cancelCoverSearch', 'getUiChoice', 'setUiChoice', 'findTagsMany', 'cancelFindTags', 'onFindTagsProgress', ...AI_NAMES]).sort(), 'groups cover every old name, plus welcomeSelectFolder, getStartupSongs, readAudioBytes, the two saved-peaks calls (PC-03), getPathForFile (the path of a dropped file, PA-15), the two cancel calls (D41), the two interface-choice calls (Phase 4) and the ai group (Polish 1, Agent E)');
     assert.equal(new Set(names).size, names.length, 'no name in two groups');
     for (const [g, n] of inGroups) {
+        if (n === 'getPathForFile') continue; // answers from the page's own File object, no ipc call (tested below)
         calls.length = 0;
         api[n]('a', 'b');
         api[g][n]('a', 'b');
@@ -147,6 +149,13 @@ test('preload: the saved waveform peaks go to their own two channels, key and by
     exposed.api.files.setWaveformPeaks('v2:k', 'bytes');
     assert.deepEqual(calls[0], { kind: 'invoke', channel: 'waveform-peaks:get', args: ['v2:k'] });
     assert.deepEqual(calls[1], { kind: 'invoke', channel: 'waveform-peaks:set', args: ['v2:k', 'bytes'] });
+});
+
+test('preload: getPathForFile gives the real path of a dropped file (newer Electron has no file.path), and an empty string when it cannot', () => {
+    const { exposed } = loadPreload();
+    assert.equal(exposed.api.files.getPathForFile({ fakePath: 'C:/m/a.mp3' }), 'C:/m/a.mp3');
+    assert.equal(exposed.api.files.getPathForFile({}), '');
+    assert.equal(exposed.api.getPathForFile({ fakePath: 'x.mp3' }), 'x.mp3', 'the flat alias too');
 });
 
 test('desktopApi: lists exactly the calls the preload groups expose', () => {
