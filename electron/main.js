@@ -7,7 +7,7 @@ app.disableHardwareAcceleration();
 let mainWindow = null;
 let minimizeOnClose = false;
 
-const { createWindow, saveWindowState, setMinimizeOnClose, switchUi } = require('./window-manager');
+const { createWindow, saveWindowState, setMinimizeOnClose, switchUi, openToolWindow } = require('./window-manager');
 const { activeChoice } = require('./ui-entry');
 const { showLoadingWindow, updateLoadingProgress, hideLoadingWindow } = require('./loading-window');
 const {
@@ -28,12 +28,13 @@ const {
 const { getDownloadFolder, saveDownloadFolder, resetDownloadFolder, download, cancelDownload } = require('./downloads');
 const { saveLyricsFile, readLyricsFile } = require('./file-operations');
 const { searchLyrics, downloadLyricsFile } = require('./online-lyrics');
-const { getAudioMetadata, saveAudioMetadata, saveAudioCover } = require('./metadata-editor');
+const { getAudioMetadata, saveAudioMetadata, saveAudioCover, warmUpTagBackend } = require('./metadata-editor');
 const { createTagService } = require('./tag-service');
 const { createTagFinder } = require('./tag-finder');
 const { searchOnlineMetadata, getOnlineMetadata } = require('./online-metadata');
 const { annotateSearch } = require('./release-rank');
 const songsStore = require('./songs-store');
+const { refreshMissingTags } = require('./tag-builder');
 const { configPath: settingsFile, getOutputDir } = require('./storage-paths');
 const checks = require('./ipc-checks');
 const { readAudioBytes } = require('./audio-bytes');
@@ -53,6 +54,7 @@ function updateDeployedSongMetadata(fileUrl, metadata) {
             const song = songs.find((x) => String(x.url || '').replace(/\\/g, '/') === target);
             if (!song) return undefined;
             fields.forEach((key) => { if (metadata[key] !== undefined) song[key] = metadata[key]; });
+            refreshMissingTags(song, metadata);
             found = true;
             return songs;
         });
@@ -102,8 +104,14 @@ ipcMain.handle('choose-cover-image', async () => {
 });
 
 ipcMain.handle('get-audio-metadata', async (event, fileUrl) => {
+    const started = Date.now();
     try { return await getAudioMetadata(fileUrl); }
     catch (error) { return { success: false, error: error.message || 'Failed to read metadata' }; }
+    finally {
+        // One file per call. A slow one is written to the log with its name, so a freeze that comes back can be told apart from a slow file.
+        const took = Date.now() - started;
+        if (took > 1000) console.warn(`[metadata] reading the tags of one file took ${took} ms: ${String(fileUrl).slice(-120)}`);
+    }
 });
 
 // The waveform decodes audio in the page, which cannot read files itself (electron/audio-bytes.js).
@@ -424,6 +432,7 @@ app.whenReady().then(async () => {
 
     ipcMain.handle('get-ui-choice', () => activeChoice());
     ipcMain.handle('set-ui-choice', (event, choice) => switchUi(choice));
+    ipcMain.handle('open-tool-window', (event, tool, songId) => openToolWindow(tool, songId));
 
     ipcMain.on('close-app', () => {
         saveWindowState(mainWindow);
@@ -621,6 +630,8 @@ app.whenReady().then(async () => {
 
     if (!needsSetup) {
         mainWindow = createWindow();
+        // Load the tag library in the background once the page is up, so the first Metadata editor does not wait for it.
+        mainWindow.webContents.once('did-finish-load', () => setTimeout(warmUpTagBackend, 4000));
     }
 });
 

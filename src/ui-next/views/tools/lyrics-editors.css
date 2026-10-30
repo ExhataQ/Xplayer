@@ -147,8 +147,9 @@ body > :is(.lyrics-editor-overlay, .sync-editor-overlay) {
     min-width: 0;
     min-height: 0;
 }
+/* The Sync editor's own bar (title, the song's name, Close) is not shown: the Lyrics tabs above it already say where you are and leave it. */
 .view-host[data-engine='lyrics'] .sync-editor-header {
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);

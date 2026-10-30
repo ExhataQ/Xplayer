@@ -1,6 +1,6 @@
 // Right panel content (task PC-13; written by Agent A as a stand-in for the file missing from the owner's tree. Agent C's styles are
 // already in player-bar.css (.rp-now, .rp-line), so this file follows those class names and Agent C's version can replace it).
-// A header with the two size buttons, then the cover (a click opens the big picture), then title and artist, then the lyrics: timed lines follow the song (past,
+// The cover (a click opens the big picture), the header with the translation and size buttons, then the lyrics: timed lines follow the song (past,
 // active, coming) and a click on one moves the song there; plain lyrics are shown as text. With no lyrics the cover and the track
 // info stay alone (DP11a). When the person scrolls away, "Follow lyrics" brings the active line back.
 // The engine is reached only through adapter/playback-bridge.js, adapter/player-parts.js and adapter/engine-api.js.
@@ -11,6 +11,9 @@ import { onTime } from '../../adapter/player-parts.js';
 import { engineEvent } from '../../adapter/engine-api.js';
 import { bigCoverSource, openBigPicture } from './cover-viewer.js';
 import { defaultCover } from '../../adapter/default-cover.js';
+import { translationPair } from '../../adapter/ai-lyrics.js';
+import { displayChoice, onDisplayChange, pairLines } from '../../shell/lyrics-display.js';
+import { mountAiLyricsBar } from '../../shell/ai-slots.js';
 
 /** Index of the timed line that is playing at `time`, or -1 before the first line. */
 export function activeLineIndex(lines, time) {
@@ -23,8 +26,8 @@ export function activeLineIndex(lines, time) {
 }
 
 const FOLLOW_PAUSE_MS = 4000;
-const ICON_FILL = { out: 'maximize', in: 'minimize' };
-const ICON_ONLY = { out: 'unfold-vertical', in: 'fold-vertical' };
+const ICON_FILL = { out: 'corners-out', in: 'corners-in' }; // four corners, apart and together: fill the whole app
+const ICON_ONLY = { out: 'maximize-2', in: 'minimize-2' }; // the two diagonal arrows, apart and together: lyrics only
 
 function build(body, controls) {
     body.classList.add('rp-now');
@@ -37,12 +40,17 @@ function build(body, controls) {
     const lyrics = el('div', { class: 'rp-now__lyrics', tabindex: '0', 'aria-label': 'Lyrics' });
     const follow = el('button', { class: 'rp-now__follow', type: 'button' }, 'Follow lyrics');
     follow.hidden = true;
-    // The header: the title, and the two size buttons on its right. Standard icons: four corners out (in while it is on) for filling the
-    // app with the lyrics, and two vertical arrows apart (together while it is on) for lyrics only.
+    // The header: the title, and the two size buttons on its right. Four corners out (in while it is on) for filling the
+    // app with the lyrics, and two diagonal arrows apart (together while it is on) for lyrics only.
     const fill = iconButton({ icon: ICON_FILL.out, label: 'Fill the app with the lyrics', size: 'sm', pressed: false, onClick: () => controls && controls.setFull(!controls.state().full) });
     const lyricsOnly = iconButton({ icon: ICON_ONLY.out, label: 'Lyrics only', size: 'sm', pressed: false, onClick: () => controls && controls.setLyricsOnly(!controls.state().lyricsOnly) });
-    const header = el('div', { class: 'rp-now__header' }, el('span', { class: 'rp-now__header-title' }, 'Lyrics'), el('div', { class: 'rp-now__tools' }, fill, lyricsOnly));
-    body.append(header, frame, el('div', { class: 'rp-now__info' }, title, artist, note), lyrics, follow);
+    // Left of the size buttons: the translation controls (translate, and one view button). Drawn by the AI part, and only
+    // when there is something to do: AI set up, or a song with a translation.
+    const aiTools = el('div', { class: 'rp-now__ai' });
+    mountAiLyricsBar(aiTools);
+    const header = el('div', { class: 'rp-now__header' }, el('span', { class: 'rp-now__header-title' }, 'Lyrics'), el('div', { class: 'rp-now__tools' }, aiTools, fill, lyricsOnly));
+    // The header sits under the cover. The song's name is not repeated here (the player bar shows it); only the note about the lyrics is.
+    body.append(frame, header, el('div', { class: 'rp-now__info' }, note), lyrics, follow);
     const syncTools = () => {
         const state = controls ? controls.state() : { lyricsOnly: false, full: false };
         lyricsOnly.setAttribute('aria-pressed', String(state.lyricsOnly));
@@ -111,7 +119,7 @@ function build(body, controls) {
             picture.src = src;
         }
         title.textContent = song ? song.title : '';
-        artist.textContent = song ? song.artist : '';
+        artist.textContent = song ? song.artist || 'Unknown Artist' : '';
         lines = null;
         nodes = [];
         active = -1;
@@ -123,13 +131,21 @@ function build(body, controls) {
             note.textContent = 'Nothing is playing';
             return;
         }
-        if (song.synced && song.synced.length) {
+        // A song with a translation shows both texts, or one of them, in the layout the person chose (shell/lyrics-display.js).
+        const pair = translationPair(song);
+        const choice = displayChoice();
+        const both = Boolean(pair && pair.translated.length && choice.mode === 'both');
+        const synced = pair && pair.original.length ? (choice.mode === 'translated' && pair.translated.length ? pair.translated : both ? pairLines(pair.original, pair.translated) : pair.original) : song.synced;
+        if (synced && synced.length) {
             note.textContent = '';
-            lines = song.synced;
+            lines = synced;
             // An instrumental marker ([instrumental]) shows as a note, like the old lyrics page did; a blank line stays a gap.
             nodes = lines.map((line) => {
                 const shown = line.instrumental ? '\u266A' : line.text;
-                return el('div', { class: !shown ? 'rp-line rp-line--empty' : line.instrumental ? 'rp-line rp-line--instrumental' : 'rp-line', dir: 'auto', onClick: () => shown && seekTo(line.time) }, shown || '');
+                const go = () => shown && seekTo(line.time);
+                const klass = !shown ? 'rp-line rp-line--empty' : line.instrumental ? 'rp-line rp-line--instrumental' : 'rp-line';
+                if (!both || !line.translation) return el('div', { class: klass, dir: 'auto', onClick: go }, shown || '');
+                return el('div', { class: `${klass} rp-line--pair`, dir: 'auto', onClick: go }, el('span', { class: 'rp-line__orig', dir: 'auto' }, shown), el('span', { class: 'rp-line__tr', dir: 'auto' }, line.translation));
             });
             lyrics.append(...nodes);
             setActive(activeLineIndex(lines, lastTime));
@@ -171,7 +187,9 @@ function build(body, controls) {
     // Lyrics added, edited or removed while the song plays: the engine says so with lyrics:changed; as a second check the text is compared once a second.
     const signature = () => {
         const song = currentLyrics();
-        return song ? `${song.id}|${song.plain}|${song.synced ? song.synced.map((l) => `${l.time}:${l.text}`).join('\n') : ''}` : '';
+        const pair = song ? translationPair(song) : null;
+        const shown = pair ? `${displayChoice().mode}|${pair.language}|${pair.translated.map((l) => `${l.time}:${l.text}`).join('\n')}` : '';
+        return song ? `${song.id}|${song.plain}|${song.synced ? song.synced.map((l) => `${l.time}:${l.text}`).join('\n') : ''}|${shown}` : '';
     };
     let seen = signature();
     const check = setInterval(() => {
@@ -181,7 +199,7 @@ function build(body, controls) {
             refresh();
         }
     }, 1000);
-    const stops = [controls ? controls.onChange(syncTools) : () => {}, () => clearInterval(check), engineEvent('queue:indexChanged', refresh), engineEvent('lyrics:changed', refresh), () => stopTime()];
+    const stops = [controls ? controls.onChange(syncTools) : () => {}, () => clearInterval(check), engineEvent('queue:indexChanged', refresh), engineEvent('lyrics:changed', refresh), onDisplayChange(refresh), () => stopTime()];
     watchTime();
     refresh();
     seen = signature();

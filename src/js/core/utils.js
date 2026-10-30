@@ -4,8 +4,18 @@
 
 // Pure helpers with no dependencies: HTML escaping and id generation.
 
+// A value that is not a string (a number, an object) is turned into text first, so one odd lyric line cannot throw.
+// The first such value is logged once, so its source can be found.
+let warnedNonString = false;
 export function escapeHtml(text) {
     if (!text) return '';
+    if (typeof text !== 'string') {
+        if (!warnedNonString) {
+            warnedNonString = true;
+            console.warn('escapeHtml: got a non-string value', typeof text, text);
+        }
+        text = String(text);
+    }
     return text.replace(/[&<>]/g, function (m) {
         if (m === '&') return '&amp;';
         if (m === '<') return '&lt;';

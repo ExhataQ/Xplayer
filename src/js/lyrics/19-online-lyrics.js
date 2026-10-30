@@ -42,7 +42,8 @@ let smartLyricsFinderState = {
     status: '',
     stopRequested: false,
     skipExisting: true,
-    lrclibCache: new Map()
+    lrclibCache: new Map(),
+    listIds: []
 };
 
 function createSmartLyricsFinderState() {
@@ -56,7 +57,8 @@ function createSmartLyricsFinderState() {
         status: '',
         stopRequested: false,
         skipExisting: true,
-        lrclibCache: new Map()
+        lrclibCache: new Map(),
+        listIds: [] // the songs the person loaded into the finder (from a playlist, album, ...): the finder works on this list only
     };
 }
 
@@ -74,13 +76,105 @@ export function openSmartLyricsFinder() {
 
 export function getSmartLyricsFinderSongs() {
     const query = String(smartLyricsFinderState.query || '').toLowerCase().trim();
-    const songs = typeof SONGS_DATA !== 'undefined' ? SONGS_DATA : (typeof getActiveSongs === 'function' ? getActiveSongs() : []);
+    // Only the loaded list: nothing is listed until the person loads songs (a whole library would be a long, useless list at start).
+    const all = typeof SONGS_DATA !== 'undefined' ? SONGS_DATA : [];
+    const byId = new Map(all.map((song) => [song.id, song]));
+    // (The old screen has no way to load a list, so it still lists the whole library.)
+    const songs = smartLyricsExternalView ? smartLyricsFinderState.listIds.map((id) => byId.get(id)).filter(Boolean) : all;
     if (!query) return songs;
     const tokens = query.split(/\s+/).filter(Boolean);
     return songs.filter(song => {
         const haystack = `${song.title || ''} ${song.artist || ''} ${song.album || ''}`.toLowerCase();
         return tokens.every(token => haystack.includes(token));
     });
+}
+
+// ---- The finder's page is drawn by the new interface (views/tools/lyrics-many.js) when it has said so: the engine then only keeps the state
+// and says `smartLyrics:changed` whenever the list, the selection, a result or the progress changed.
+let smartLyricsExternalView = false;
+
+export function setSmartLyricsExternalView(on) {
+    smartLyricsExternalView = Boolean(on);
+}
+
+function smartLyricsChanged() {
+    if (smartLyricsExternalView) emit('smartLyrics:changed', {});
+}
+
+/** Puts songs (ids) into the finder's list. Returns how many were new. */
+export function addSmartLyricsFinderSongs(ids) {
+    const state = smartLyricsFinderState;
+    if (state.processing) return 0;
+    const have = new Set(state.listIds);
+    let added = 0;
+    for (const id of Array.isArray(ids) ? ids : []) {
+        if (have.has(id)) continue;
+        have.add(id);
+        state.listIds.push(id);
+        added++;
+    }
+    smartLyricsChanged();
+    return added;
+}
+
+/** Takes songs (ids) out of the list, the selection and the results. */
+export function removeSmartLyricsFinderSongs(ids) {
+    const state = smartLyricsFinderState;
+    if (state.processing) return;
+    const gone = new Set(ids);
+    state.listIds = state.listIds.filter((id) => !gone.has(id));
+    for (const id of gone) {
+        state.selectedIds.delete(id);
+        state.results.delete(id);
+    }
+    smartLyricsChanged();
+}
+
+export function clearSmartLyricsFinderList() {
+    const state = smartLyricsFinderState;
+    if (state.processing) return;
+    state.listIds = [];
+    state.selectedIds.clear();
+    state.results.clear();
+    state.status = '';
+    smartLyricsChanged();
+}
+
+/** What the page shows above its list. */
+export function getSmartLyricsFinderInfo() {
+    const state = smartLyricsFinderState;
+    return { mode: state.mode, skipExisting: state.skipExisting, processing: state.processing, status: state.status, query: state.query, selected: state.selectedIds.size, selectedIds: [...state.selectedIds], listed: state.listIds.length, shown: getSmartLyricsFinderSongs().length };
+}
+
+/** One page of rows for the list: plain data, so the page never touches the engine's songs. */
+export function getSmartLyricsFinderRows(offset = 0, count = 40) {
+    const state = smartLyricsFinderState;
+    const has = (song) => {
+        const text = state.mode === 'lrc' ? (typeof getSyncedLyricsForSong === 'function' ? getSyncedLyricsForSong(song) : '') : (typeof getLyricsForSong === 'function' ? getLyricsForSong(song) : '');
+        return Boolean(text && String(text).trim());
+    };
+    return getSmartLyricsFinderSongs().slice(offset, offset + count).map((song) => {
+        const result = state.results.get(song.id);
+        const status = result ? (result.instrumental ? 'instrumental' : result.success ? result.type : 'missing') : song.instrumental ? 'instrumental' : has(song) ? 'has' : '';
+        return { id: song.id, title: song.title || '', artist: song.artist || '', album: song.album || '', cover: song.cover || '', selected: state.selectedIds.has(song.id), status, error: (result && result.error) || '' };
+    });
+}
+
+// Instrumental songs are remembered by file (the library keeps no such field of its own), and put back on the songs when the app starts.
+const INSTRUMENTAL_KEY = 'xplayer.instrumentalSongs';
+const readInstrumental = () => (typeof storageReadJson === 'function' ? storageReadJson(INSTRUMENTAL_KEY, {}) : {});
+
+export function applyStoredInstrumentalFlags() {
+    const stored = readInstrumental();
+    if (typeof SONGS_DATA === 'undefined') return;
+    for (const song of SONGS_DATA) if (song.url && stored[song.url]) song.instrumental = true;
+}
+
+function rememberInstrumental(song) {
+    if (!song.url || typeof storageWriteJson !== 'function') return;
+    const stored = readInstrumental();
+    stored[song.url] = true;
+    storageWriteJson(INSTRUMENTAL_KEY, stored);
 }
 
 export function stopSmartLyricsFinder() {
@@ -131,12 +225,14 @@ export function handleSmartLyricsFinderSearch(value) {
 }
 
 export function updateSmartLyricsFinderSelectionCount() {
+    smartLyricsChanged();
     const el = document.getElementById('smart-lyrics-selection-count');
     if (el) el.textContent = `${smartLyricsFinderState.selectedIds.size} selected`;
     updateSmartLyricsFinderToolbarState();
 }
 
 export function updateSmartLyricsFinderProgress() {
+    smartLyricsChanged();
     const el = document.getElementById('smart-lyrics-progress');
     if (el) el.textContent = smartLyricsFinderState.status || '';
 }
@@ -183,6 +279,7 @@ export function buildSmartLyricsRowHTML(song, index) {
 }
 
 export function updateSmartLyricsFinderList() {
+    smartLyricsChanged();
     const list = document.getElementById('smart-lyrics-song-list');
     if (!list) return;
     const songs = getSmartLyricsFinderSongs();
@@ -230,7 +327,15 @@ export async function searchLyricsForSmartSong(song, mode) {
     const match = results.find(item =>
         String(type === 'lrc' ? item.syncedLyrics || '' : item.plainLyrics || '').trim()
     );
-    if (!match) return { success: false, type, error: 'No matching lyrics found' };
+    if (!match) {
+        // LRCLIB marks a track with no words as instrumental: that is an answer, not a miss.
+        const instrumental = results.find((item) => item.instrumental);
+        if (instrumental) {
+            markSongInstrumental(song.id);
+            return { success: true, instrumental: true, type, error: '' };
+        }
+        return { success: false, type, error: 'No matching lyrics found' };
+    }
     const text = getOnlineLyricsText(match, type);
     const isInstrumental = Boolean(match.instrumental);
     return {
@@ -249,6 +354,7 @@ export async function runSmartLyricsFinder(allSongs = false) {
     if (smartLyricsFinderState.skipExisting) {
         const mode = smartLyricsFinderState.mode;
         targets = targets.filter(song => {
+            if (song.instrumental) return false;
             if (mode === 'lrc') {
                 const existing = typeof getSyncedLyricsForSong === 'function' ? getSyncedLyricsForSong(song) : null;
                 return !existing || String(existing).trim() === '';
@@ -333,6 +439,7 @@ export async function runSmartLyricsFinder(allSongs = false) {
 }
 
 export function renderSmartLyricsFinder() {
+    if (smartLyricsExternalView) return smartLyricsChanged();
     const mainContentInner = document.querySelector('.main-content-inner');
     if (!mainContentInner) return;
     let root = document.getElementById('lyrics-view-root');
@@ -637,6 +744,7 @@ export function markSongInstrumental(songId) {
     const song = SONGS_DATA.find((s) => s.id === songId);
     if (!song) return;
     song.instrumental = true;
+    rememberInstrumental(song);
 }
 
 export function applyOnlineLyricsToSong(songId, text, type, isInstrumental = false) {
@@ -1170,6 +1278,14 @@ if (typeof registerLegacyGlobals === 'function') {
         buildSmartLyricsRowHTML,
         runSmartLyricsFinder,
         renderSmartLyricsFinder,
+        setSmartLyricsExternalView,
+        addSmartLyricsFinderSongs,
+        removeSmartLyricsFinderSongs,
+        clearSmartLyricsFinderList,
+        getSmartLyricsFinderInfo,
+        getSmartLyricsFinderRows,
+        applyStoredInstrumentalFlags,
+        markSongInstrumental,
         openOnlineLyricsView,
         setOnlineLyricsSearchButtonActive,
         toggleOnlineLyricsSearchView,

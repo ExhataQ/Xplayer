@@ -7,11 +7,11 @@ const path = require('path');
 const { createKeyStore } = require('./key-store');
 const { createJournal } = require('./journal');
 const { createOpenRouterProvider, AiError } = require('./provider');
-const { planFromPrompt } = require('./planner');
+const { planFromPrompt, MODES, normalizeMode } = require('./planner');
 const { translateLyrics } = require('./translate');
 const { SONG_FIELDS, describePolicy } = require('./privacy');
 
-const DEFAULT_SETTINGS = { enabled: false, privacyAccepted: false, model: 'openrouter/free', translateLanguage: '', autoTranslate: false };
+const DEFAULT_SETTINGS = { enabled: false, privacyAccepted: false, model: 'openrouter/free', translateLanguage: '', autoTranslate: false, mode: 'medium' };
 const LANGUAGE = /^[\p{L}\p{M}][\p{L}\p{M} '().-]{0,39}$/u;
 const MODEL_ID = /^[A-Za-z0-9._\-/:]{1,100}$/;
 const MAX_SONGS_IN = 20000;
@@ -31,7 +31,8 @@ function createAiService({ configDir, safeStorage, provider, lookupTags }) {
                 privacyAccepted: data.privacyAccepted === true,
                 model: typeof data.model === 'string' && MODEL_ID.test(data.model) ? data.model : DEFAULT_SETTINGS.model,
                 translateLanguage: typeof data.translateLanguage === 'string' && LANGUAGE.test(data.translateLanguage) ? data.translateLanguage : '',
-                autoTranslate: data.autoTranslate === true
+                autoTranslate: data.autoTranslate === true,
+                mode: normalizeMode(data.mode)
             };
         } catch (e) {
             return { ...DEFAULT_SETTINGS };
@@ -60,6 +61,7 @@ function createAiService({ configDir, safeStorage, provider, lookupTags }) {
         if (typeof p.model === 'string' && MODEL_ID.test(p.model)) next.model = p.model;
         if (typeof p.translateLanguage === 'string' && (p.translateLanguage === '' || LANGUAGE.test(p.translateLanguage))) next.translateLanguage = p.translateLanguage;
         if (typeof p.autoTranslate === 'boolean') next.autoTranslate = p.autoTranslate;
+        if (MODES.includes(p.mode)) next.mode = p.mode;
         writeSettings(next);
         return getStatus();
     }
@@ -87,7 +89,7 @@ function createAiService({ configDir, safeStorage, provider, lookupTags }) {
         if (running) return { ok: false, error: 'busy' };
         running = new AbortController();
         try {
-            return await planFromPrompt({ provider: ai, model: status.model, request: p.request, songs: p.songs, signal: running.signal, useWeb: p.useWeb === true, lookupTags, history: p.history, includeLyrics: p.includeLyrics === true });
+            return await planFromPrompt({ provider: ai, model: status.model, request: p.request, songs: p.songs, signal: running.signal, useWeb: p.useWeb === true, lookupTags, history: p.history, includeLyrics: p.includeLyrics === true, context: p.context && typeof p.context === 'object' ? p.context : null, mode: status.mode });
         } catch (error) {
             return fail(error);
         } finally {

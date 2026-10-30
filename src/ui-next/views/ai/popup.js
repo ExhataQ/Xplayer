@@ -1,6 +1,7 @@
 // The chat as a small pop-up window (opened by the top bar button, Ctrl+Shift+A or Playback > AI shuffle). It lives in a layer the
 // shell provides, stays open while the person moves between views, and can be expanded into the big chat view and shrunk back.
-// The conversation is shared between the two (it lives in ai-chat.js).
+// The conversation is shared between the two (it lives in ai-chat.js). The window's own button is Minimize: the window goes away and
+// the conversation waits.
 
 import { getAiPopupHost, setAiPopupOpen, contextFor, openAiChatView, closeAiChatView, registerAiPopup } from '../../shell/ai-slots.js';
 import { el } from '../../components/index.js';
@@ -67,6 +68,7 @@ export function openPopup() {
         'keydown',
         (event) => {
             if (event.key !== 'Escape') return;
+            if (panel && panel.querySelector('.ai-modelwin:not([hidden])')) return; // the model window closes itself first
             event.stopPropagation();
             closePopup();
         },

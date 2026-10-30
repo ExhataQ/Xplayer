@@ -10,22 +10,21 @@
 //   full         the panel covers the whole app below the title bar and above the player, lyrics only (not remembered)
 //   controls = { state() -> { lyricsOnly, full }, setLyricsOnly(on), setFull(on), onChange(callback) -> stop }
 // Behavior: width 280 to 420 (default 320), dragged by its left edge or with the arrow keys, saved. The list always keeps
-// MIN_LIST px. When the window cannot spare that, the panel is not shown (the saved choice is kept and comes back when the window
-// widens); the button then opens it as an overlay on top of the list, until the window changes size class.
+// Its width and whether it shows are decided in shell/panel-layout.js (PA-19): when the window is narrow, the left panel steps aside
+// for it by default; opening the left panel puts it in the right panel's place, and opening the right one takes it back.
 import { iconButton, iconEl } from '../components/index.js';
+import { RIGHT, setSaved, setWanted, noteOpened, shownWidth, onLayout } from './panel-layout.js';
 
 const KEY_OPEN = 'xplayer.ui-next.right-open';
 const KEY_WIDTH = 'xplayer.ui-next.right-width';
 const KEY_LYRICS_ONLY = 'xplayer.ui-next.right-lyrics-only';
 export const DEFAULT_WIDTH = 320;
-export const MIN_WIDTH = 280;
-export const MAX_WIDTH = 420;
-const MIN_LIST = 420;
-const railWidth = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--rail-width')) || 68; // the token, so a wider rail never squeezes the view
+export const MIN_WIDTH = RIGHT.min;
+export const MAX_WIDTH = RIGHT.max;
 const STEP = 16;
 
 let provider = null;
-const listeners = new Set();
+const listeners = new Set(); // paint() of the mounted slot, run when a provider registers
 
 export function registerRightPanel(spec) {
     if (typeof spec?.mount !== 'function') throw new Error('registerRightPanel needs a mount function');
@@ -56,14 +55,11 @@ export function mountRightPanelSlot({ host, button: anchor, leftPanel }) {
     let lyricsOnly = read(KEY_LYRICS_ONLY, 'false') === 'true';
     let full = false;
     const changeListeners = new Set();
-    let overlayOpen = false; // the person opened it in a window too small to push the list
     let mounted = null;
-    let wasFitting = true;
 
-    const leftWidth = () => (leftPanel && !leftPanel.hidden && getComputedStyle(leftPanel).display !== 'none' ? leftPanel.getBoundingClientRect().width : 0);
-    const room = () => window.innerWidth - railWidth() - leftWidth() - MIN_LIST; // what the right panel may take without squeezing the list
-    const width = () => Math.round(Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, savedWidth, Math.max(MIN_WIDTH, room()))));
-    const fits = () => room() >= MIN_WIDTH;
+    // The widths and which panel shows are decided in shell/panel-layout.js (PA-19): the right panel shows unless the layout disables it.
+    const width = () => shownWidth('right');
+    const visible = () => Boolean(provider) && savedOpen && !document.documentElement.hasAttribute('data-right-disabled');
 
     const toggle = iconButton({ icon: 'panel-right', label: 'Right panel', size: 'sm', pressed: false, className: 'right-panel-btn', onClick: () => api.toggle() });
     toggle.hidden = true;
@@ -78,43 +74,40 @@ export function mountRightPanelSlot({ host, button: anchor, leftPanel }) {
     handle.setAttribute('aria-valuemin', String(MIN_WIDTH));
     host.append(handle);
 
-    const visible = () => Boolean(provider) && (fits() ? savedOpen : overlayOpen);
-
-    function paint() {
-        const has = Boolean(provider);
-        toggle.hidden = !has;
+    // Draws what the layout decided. It does not change the layout, so the layout can call it.
+    function syncRight() {
         const show = visible();
-        const overlay = show && !fits();
         host.hidden = !show;
-        host.toggleAttribute('data-overlay', overlay);
         if (!show) full = false;
         host.dataset.mode = full ? 'full' : lyricsOnly ? 'lyrics' : 'normal';
         handle.hidden = full;
         document.documentElement.toggleAttribute('data-right-full', full); // the title bar's line follows (shell/shell.css)
-        document.documentElement.style.setProperty('--right-width', `${width()}px`);
         toggle.setAttribute('aria-pressed', String(show));
         toggle.replaceChildren(iconEl(show ? 'panel-right-filled' : 'panel-right', { size: 18 })); // open: the right window is filled, in the normal text color (not the accent)
-
         handle.setAttribute('aria-valuenow', String(width()));
-        handle.setAttribute('aria-valuemax', String(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, room()))));
+        handle.setAttribute('aria-valuemax', String(MAX_WIDTH));
         if (show && !mounted) mounted = provider.mount(body, controls) || {};
         else if (mounted) (show ? mounted.show : mounted.hide)?.();
+    }
+
+    // Tells the layout what the person wants, then draws the result.
+    function paint() {
+        toggle.hidden = !provider;
+        setWanted('right', Boolean(provider) && savedOpen);
+        syncRight();
     }
 
     const api = {
         isOpen: visible,
         open() {
-            if (fits()) {
-                savedOpen = true;
-                write(KEY_OPEN, true);
-            } else overlayOpen = true;
+            savedOpen = true;
+            write(KEY_OPEN, true);
+            noteOpened('right'); // in a narrow window the right panel takes the left one's place
             paint();
         },
         close() {
-            if (fits()) {
-                savedOpen = false;
-                write(KEY_OPEN, false);
-            } else overlayOpen = false;
+            savedOpen = false;
+            write(KEY_OPEN, false);
             paint();
         },
         toggle() {
@@ -144,7 +137,7 @@ export function mountRightPanelSlot({ host, button: anchor, leftPanel }) {
     const setWidth = (value) => {
         savedWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, Math.round(value)));
         write(KEY_WIDTH, savedWidth);
-        paint();
+        setSaved('right', savedWidth); // the layout clamps it to what the window can spare, and draws
     };
     handle.addEventListener('pointerdown', (event) => {
         if (event.button !== 0) return;
@@ -178,23 +171,11 @@ export function mountRightPanelSlot({ host, button: anchor, leftPanel }) {
             controls.setFull(false);
             return;
         }
-        if (event.key === 'Escape' && host.hasAttribute('data-overlay')) {
-            event.stopPropagation();
-            api.close();
-            toggle.focus();
-        }
     });
 
-    const onSize = () => {
-        const nowFits = fits();
-        if (nowFits !== wasFitting) overlayOpen = false; // a new size class starts from the saved choice
-        wasFitting = nowFits;
-        paint();
-    };
-    window.addEventListener('resize', onSize);
-    if (leftPanel && typeof ResizeObserver === 'function') new ResizeObserver(onSize).observe(leftPanel);
-    listeners.add(onSize);
-    wasFitting = fits();
+    onLayout(syncRight); // the layout changes with the window and with the left panel: draw the right panel again
+    listeners.add(paint);
+    setSaved('right', savedWidth);
     paint();
     return api;
 }

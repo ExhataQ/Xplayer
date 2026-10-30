@@ -75,7 +75,10 @@ describe('build', () => {
     const build = fs.readFileSync(path.join(ROOT, 'build', 'music_player.py'), 'utf8');
 
     test('copies ui-entry.js and the src/ui-next folder into the app', () => {
-        assert.match(build, /"ui-entry\.js"/);
+        // Every .js file in electron/ is copied (os.listdir + endswith), so ui-entry.js only has to exist there.
+        assert.match(build, /os\.listdir\(electron_dir\)/);
+        assert.match(build, /name\.endswith\("\.js"\)/);
+        assert.ok(fs.existsSync(path.join(ROOT, 'electron', 'ui-entry.js')));
         assert.match(build, /"src", "ui-next"/);
         assert.match(build, /copytree\(ui_next_src, ui_next_dst\)/);
     });

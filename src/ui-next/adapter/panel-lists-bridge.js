@@ -11,7 +11,7 @@ const engine = () => window;
 const read = (name, ...args) => (typeof engine()[name] === 'function' ? engine()[name](...args) || [] : []);
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
-const song = (s) => ({ kind: 'song', id: s.id, title: String(s.title || ''), subtitle: String(s.artist || ''), cover: s.cover || '' });
+const song = (s) => ({ kind: 'song', id: s.id, title: String(s.title || ''), subtitle: String(s.artist || 'Unknown Artist'), cover: s.cover || '' });
 
 /** Everything that matches `query`, by kind. Each list is complete; the panel pages through it (components/auto-load.js). */
 export function searchLibrary(query) {

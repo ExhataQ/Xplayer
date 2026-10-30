@@ -117,6 +117,7 @@ function createWindow() {
         if (url !== mainWindow.webContents.getURL()) event.preventDefault();
     });
 
+    mainWindow.on('closed', closeToolWindows);
     mainWindow.setAlwaysOnTop(true);
     setTimeout(() => {
         mainWindow.setAlwaysOnTop(false);
@@ -195,8 +196,56 @@ function switchUi(choice) {
     return { ok: true, ui: chosen };
 }
 
+// A tool window (Metadata or Sync) is the same page started with ?tool=<name>&song=<id>: it shows only that tool, in its own big window,
+// so the tool can sit next to the player. One window per tool: asking again brings the open one forward (and sends it the new song).
+const TOOLS = { metadata: 'Metadata editor', sync: 'Sync lyrics' };
+const toolWindows = new Map();
+
+function openToolWindow(tool, songId) {
+    if (!Object.prototype.hasOwnProperty.call(TOOLS, tool)) return { ok: false, error: 'Unknown tool' };
+    const song = songId === undefined || songId === null ? '' : String(songId).slice(0, 200);
+    const existing = toolWindows.get(tool);
+    if (existing && !existing.isDestroyed()) {
+        existing.webContents.send('tool-window:song', song);
+        if (existing.isMinimized()) existing.restore();
+        existing.focus();
+        return { ok: true, reused: true };
+    }
+    const entry = activeEntry();
+    if (!entry.includes('ui-next')) return { ok: false, error: 'Tool windows need the new interface' };
+    const work = require('electron').screen.getPrimaryDisplay().workAreaSize;
+    const win = new BrowserWindow({
+        width: Math.min(1400, Math.round(work.width * 0.85)),
+        height: Math.min(940, Math.round(work.height * 0.9)),
+        minWidth: 800,
+        minHeight: 600,
+        title: TOOLS[tool],
+        backgroundColor: '#0e1013',
+        autoHideMenuBar: true,
+        icon: path.join(__dirname, 'icon.png'),
+        webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: false, preload: path.join(__dirname, 'preload.js') }
+    });
+    win.setMenuBarVisibility(false);
+    win.loadFile(path.join(getOutputDir(), ...entry.split('/')), { query: { tool, song } });
+    win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    win.webContents.on('will-navigate', (event, url) => {
+        if (url !== win.webContents.getURL()) event.preventDefault();
+    });
+    win.on('closed', () => toolWindows.delete(tool));
+    toolWindows.set(tool, win);
+    return { ok: true, reused: false };
+}
+
+// The tool windows belong to the main window: they close with it.
+function closeToolWindows() {
+    for (const win of toolWindows.values()) if (!win.isDestroyed()) win.close();
+    toolWindows.clear();
+}
+
 module.exports = {
     createWindow,
+    openToolWindow,
+    closeToolWindows,
     switchUi,
     getMainWindow,
     saveWindowState,

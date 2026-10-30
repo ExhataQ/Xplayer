@@ -8,19 +8,21 @@ import { normalizeCustom, designCss } from './theme-design.js';
 const KEY = 'xplayer.ui-next.appearance';
 const SONGLIST_KEY = 'xplayer.ui-next.songlist'; // B-03 saved density here before it became an appearance choice
 
+// Order (PA-20): the default first, then the black, grey and yellow group, then the colored darks, then High Contrast.
+// Custom (the builder's theme) comes after this list, in the picker.
 export const THEMES = [
     { id: 'warm-graphite', label: 'Warm Graphite' },
-    { id: 'deep-forest', label: 'Deep Forest' },
-    { id: 'espresso-copper', label: 'Espresso and Copper' },
     { id: 'pure-black', label: 'Pure Black' },
     { id: 'graphite-gold', label: 'Graphite Gold' },
     { id: 'carbon-honey', label: 'Carbon and Honey' },
-    { id: 'high-contrast', label: 'High Contrast' },
+    { id: 'deep-forest', label: 'Deep Forest' },
+    { id: 'espresso-copper', label: 'Espresso and Copper' },
     { id: 'midnight-blue', label: 'Midnight Blue' },
     { id: 'aubergine-rose', label: 'Aubergine and Rose' },
     { id: 'ocean-teal', label: 'Ocean Teal' },
     { id: 'crimson-noir', label: 'Crimson Noir' },
-    { id: 'violet-night', label: 'Violet Night' }
+    { id: 'violet-night', label: 'Violet Night' },
+    { id: 'high-contrast', label: 'High Contrast' }
 ];
 export const DENSITIES = [
     { id: 'comfortable', label: 'Comfortable' },
@@ -32,14 +34,24 @@ export const SCROLLBARS = [
 ];
 export const SCROLLBAR_SHAPES = [
     { id: 'bar', label: 'Flush bar' },
-    { id: 'tab', label: 'Wall tab' }
+    { id: 'standard', label: 'Standard' }
 ];
 export const SCROLLBAR_CATS = [
     { id: 'off', label: 'Off' },
     { id: 'on', label: 'On' }
 ];
+// The cat's skins (shown in Settings only while the cat scrollbar is on). Classic is the detailed yellow and orange cat; the others are
+// flat, minimalist silhouettes in one color (shell/cat-scrollbar.js, cat-scrollbar.css).
+export const SCROLLBAR_CAT_SKINS = [
+    { id: 'classic', label: 'Classic' },
+    { id: 'black', label: 'Black' },
+    { id: 'white', label: 'White' },
+    { id: 'ginger', label: 'Ginger' },
+    { id: 'blue', label: 'Blue' },
+    { id: 'rose', label: 'Rose' }
+];
 export const CUSTOM_ID = 'custom'; // the theme the person builds (shell/theme-builder.js); it is not in THEMES because it has no fixed colors
-export const DEFAULTS = { theme: THEMES[0].id, density: 'comfortable', scrollbar: 'theme', scrollbarShape: 'bar', scrollbarCat: 'off' };
+export const DEFAULTS = { theme: THEMES[0].id, density: 'comfortable', scrollbar: 'neutral', scrollbarShape: 'standard', scrollbarCat: 'off', scrollbarCatSkin: 'classic' };
 
 const pick = (list, value, fallback) => (list.some((item) => item.id === value) ? value : fallback);
 
@@ -47,7 +59,7 @@ export function normalize(saved) {
     const s = saved && typeof saved === 'object' ? saved : {};
     const custom = normalizeCustom(s.custom);
     const theme = s.theme === CUSTOM_ID && custom ? CUSTOM_ID : pick(THEMES, s.theme, DEFAULTS.theme);
-    return { theme, density: pick(DENSITIES, s.density, DEFAULTS.density), scrollbar: pick(SCROLLBARS, s.scrollbar, DEFAULTS.scrollbar), scrollbarShape: pick(SCROLLBAR_SHAPES, s.scrollbarShape, DEFAULTS.scrollbarShape), scrollbarCat: pick(SCROLLBAR_CATS, s.scrollbarCat, DEFAULTS.scrollbarCat), custom };
+    return { theme, density: pick(DENSITIES, s.density, DEFAULTS.density), scrollbar: pick(SCROLLBARS, s.scrollbar, DEFAULTS.scrollbar), scrollbarShape: pick(SCROLLBAR_SHAPES, s.scrollbarShape === 'tab' ? 'standard' : s.scrollbarShape, DEFAULTS.scrollbarShape), scrollbarCat: pick(SCROLLBAR_CATS, s.scrollbarCat, DEFAULTS.scrollbarCat), scrollbarCatSkin: pick(SCROLLBAR_CAT_SKINS, s.scrollbarCatSkin, DEFAULTS.scrollbarCatSkin), custom };
 }
 
 function read() {
@@ -103,8 +115,9 @@ function apply(state) {
     delete root.dataset.accent; // the accent presets are gone; a value left by an older version or the engine's own buttons does nothing
     root.dataset.density = state.density;
     root.dataset.scrollbar = state.scrollbar; // 'theme' (the accent) or 'neutral' (scrollbar.css)
-    root.dataset.scrollbarShape = state.scrollbarShape; // 'bar' or 'tab' (scrollbar.css)
+    root.dataset.scrollbarShape = state.scrollbarShape; // 'bar' or 'standard' (scrollbar.css); 'tab' is an older name for 'standard'
     root.dataset.scrollbarCat = state.scrollbarCat; // 'off' or 'on' (shell/cat-scrollbar.js draws the cat)
+    root.dataset.scrollbarCatSkin = state.scrollbarCatSkin; // which cat (shell/cat-scrollbar.js)
     // The custom theme is the fifteen values a theme has, set on <html> itself (they win over any [data-theme] block).
     for (const name of VAR_NAMES) root.style.removeProperty(`--c-${name}`);
     if (state.theme === CUSTOM_ID && state.custom) for (const name of VAR_NAMES) root.style.setProperty(`--c-${name}`, state.custom.vars[name]);
@@ -118,10 +131,10 @@ apply(state);
 
 export const getAppearance = () => ({ ...state });
 
-/** Change one or more of { theme, density, scrollbar, scrollbarShape, scrollbarCat, custom }; `custom` is { colors: { ground, surface, ink, accent }, exact?, panels?, style? } (shell/theme-design.js says what panels and style hold). Saves, applies and tells every watcher. `defer: true` (a color being dragged) saves after a quiet moment instead of at once. */
+/** Change one or more of { theme, density, scrollbar, scrollbarShape, scrollbarCat, scrollbarCatSkin, custom }; `custom` is { colors: { ground, surface, ink, accent }, exact?, panels?, style? } (shell/theme-design.js says what panels and style hold). Saves, applies and tells every watcher. `defer: true` (a color being dragged) saves after a quiet moment instead of at once. */
 export function setAppearance(patch, { defer = false } = {}) {
     const next = normalize({ ...state, ...patch });
-    if (next.theme === state.theme && next.density === state.density && next.scrollbar === state.scrollbar && next.scrollbarShape === state.scrollbarShape && next.scrollbarCat === state.scrollbarCat && JSON.stringify(next.custom) === JSON.stringify(state.custom)) return;
+    if (next.theme === state.theme && next.density === state.density && next.scrollbar === state.scrollbar && next.scrollbarShape === state.scrollbarShape && next.scrollbarCat === state.scrollbarCat && next.scrollbarCatSkin === state.scrollbarCatSkin && JSON.stringify(next.custom) === JSON.stringify(state.custom)) return;
     state = next;
     if (defer) write();
     else save();

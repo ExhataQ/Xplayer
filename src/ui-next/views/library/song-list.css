@@ -135,13 +135,16 @@
     border-radius: 50%;
 }
 .songlist-bar[data-kind] .songlist-bar__text {
-    flex: 1 1 260px;
+    flex: 1 1 0; /* stays beside the cover: a long name gets a smaller size (song-list.js fitTitle), it does not drop to the next line */
+    min-width: 0;
 }
 .songlist-bar[data-kind] .songlist-bar__title {
-    white-space: normal;
-    overflow-wrap: anywhere;
-    font-size: clamp(var(--text-2xl), 4vw, var(--text-4xl));
-    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    font-size: var(--text-4xl); /* the starting size; song-list.js sets the size that fits, 24 to 56 px */
+    line-height: 1.2;
     margin-top: var(--space-1);
 }
 .songlist-bar[data-kind] .songlist-bar__count {
@@ -166,6 +169,21 @@
     width: 48px;
     height: 48px;
 }
+/* PA-19 (--bp-short-height 720px): a short window gives the list the height. The cover goes to 96 px, and the buttons sit beside the title. */
+@media (max-height: 720px) {
+    .songlist-bar[data-kind='all-songs'] .songlist-bar__cover,
+    .songlist-bar[data-kind='album'] .songlist-bar__cover,
+    .songlist-bar[data-kind='playlist'] .songlist-bar__cover,
+    .songlist-bar[data-kind='artist'] .songlist-bar__cover,
+    .songlist-bar[data-kind='favorites'] .songlist-bar__cover {
+        width: 96px;
+        height: 96px;
+    }
+    .songlist-bar[data-kind] .list-toolbar {
+        flex: 0 1 auto;
+        margin-top: 0;
+    }
+}
 
 /* ---------- header row ---------- */
 .songlist-head {
@@ -188,6 +206,19 @@
     background: var(--surface-ground);
 }
 .songlist-head[hidden] {
+    display: none;
+}
+/* The header's line runs on to the wall. The scrollbar sits beside the scrolled content, so the header (and its bottom line) stops
+   where the bar starts, and a piece of it inside the scroller would be cut off there. This piece lives in the wrapper, behind the
+   scroller, and song-list.js keeps it at the header's height and as wide as the bar. */
+.songlist-head-edge {
+    position: absolute;
+    right: 0;
+    height: 1px;
+    background: var(--border-subtle);
+    pointer-events: none;
+}
+.songlist-head-edge[hidden] {
     display: none;
 }
 .songlist-head__cell {
@@ -357,6 +388,15 @@ body.songlist-resizing {
 @container songhost (max-width: 560px) {
     .list-toolbar__find {
         width: 140px;
+    }
+    /* A narrow list (the view at its 420 px minimum): the right block and the side space give the Title column the room.
+       At 420 px the Title column was about 94 px wide ("Son…"); now about 180 px. The header and the rows read these. */
+    .songlist-head,
+    .songlist-bar,
+    .view-host[data-songlist] .song-item {
+        --sl-side: 16px;
+        --sl-gap: var(--space-3);
+        --sl-right: 128px;
     }
 }
 .list-toolbar .icon-btn--solid {

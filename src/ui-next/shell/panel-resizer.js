@@ -1,17 +1,16 @@
-// Drag handle on the library panel's right edge (task A-10). The width is the user's choice, saved, and kept inside what the window
-// can spare: the view always keeps at least MIN_VIEW px. Keyboard: Left and Right move it by 16 px, Home and End jump to the limits,
-// Enter or a double click resets it.
+// Drag handle on the library panel's right edge (task A-10). The width is the user's choice, saved. What is shown is decided in
+// shell/panel-layout.js (PA-19), which keeps the view at its minimum and steps a side panel aside when the window is too narrow.
+// Keyboard: Left and Right move it by 16 px, Home and End jump to the limits, Enter or a double click resets it.
+
+import { LEFT, setSaved, shownWidth, watchLayout } from './panel-layout.js';
 
 const KEY = 'xplayer.ui-next.panel-width';
 export const DEFAULT_WIDTH = 340;
-export const MIN_WIDTH = 240;
-export const MAX_WIDTH = 560;
-const MIN_VIEW = 420;
-const railWidth = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--rail-width')) || 68; // the token, so a wider rail never squeezes the view
+export const MIN_WIDTH = LEFT.min;
+export const MAX_WIDTH = LEFT.max;
 const STEP = 16;
 
-const limit = () => Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, window.innerWidth - railWidth() - MIN_VIEW));
-const clamp = (value) => Math.round(Math.max(MIN_WIDTH, Math.min(limit(), value)));
+const clamp = (value) => Math.round(Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, value)));
 
 function read() {
     try {
@@ -41,12 +40,11 @@ export function buildPanelResizer(panel) {
     handle.setAttribute('aria-valuemin', String(MIN_WIDTH));
     panel.append(handle);
 
-    // The saved width is the choice; a small window only limits what is shown, so widening it brings the choice back.
+    // The saved width is the choice; the layout decides what is shown, so widening the window brings the choice back.
     function paint() {
-        const shown = clamp(saved);
-        document.documentElement.style.setProperty('--panel-width', `${shown}px`);
-        handle.setAttribute('aria-valuenow', String(shown));
-        handle.setAttribute('aria-valuemax', String(limit()));
+        setSaved('left', saved);
+        handle.setAttribute('aria-valuenow', String(shownWidth('left')));
+        handle.setAttribute('aria-valuemax', String(MAX_WIDTH));
     }
     const set = (value) => {
         saved = clamp(value);
@@ -58,7 +56,7 @@ export function buildPanelResizer(panel) {
         if (event.button !== 0) return;
         event.preventDefault();
         const startX = event.clientX;
-        const startWidth = clamp(saved);
+        const startWidth = shownWidth('left');
         handle.setPointerCapture(event.pointerId);
         handle.dataset.dragging = '';
         const move = (e) => set(startWidth + e.clientX - startX);
@@ -73,14 +71,14 @@ export function buildPanelResizer(panel) {
         handle.addEventListener('pointercancel', end);
     });
     handle.addEventListener('keydown', (event) => {
-        const now = clamp(saved);
+        const now = shownWidth('left');
         const next = { ArrowLeft: now - STEP, ArrowRight: now + STEP, Home: MIN_WIDTH, End: MAX_WIDTH, Enter: DEFAULT_WIDTH }[event.key];
         if (next === undefined) return;
         event.preventDefault();
         set(next);
     });
     handle.addEventListener('dblclick', () => set(DEFAULT_WIDTH));
-    window.addEventListener('resize', paint);
+    watchLayout(panel); // PA-19: the layout follows the window's size and this panel's open state
     paint();
     return handle;
 }

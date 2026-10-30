@@ -44,6 +44,14 @@ const ACTIONS = {
         schema: { type: 'object', required: ['playlist', 'songs'], additionalProperties: false, properties: { playlist: NAME, songs: SONG_REFS } },
         describe: (a) => `Add ${a.songs.length} song${a.songs.length === 1 ? '' : 's'} to the playlist "${a.playlist}"`
     },
+    remove_from_playlist: {
+        title: 'Remove songs from a playlist',
+        changesData: true,
+        owner: 'library',
+        refs: ['songs'],
+        schema: { type: 'object', required: ['playlist', 'songs'], additionalProperties: false, properties: { playlist: NAME, songs: SONG_REFS } },
+        describe: (a) => `Remove ${a.songs.length} song${a.songs.length === 1 ? '' : 's'} from the playlist "${a.playlist}"`
+    },
     put_playlist_in_folder: {
         title: 'Put a playlist in a folder',
         changesData: true,
@@ -81,6 +89,14 @@ const ACTIONS = {
         owner: 'shell',
         schema: { type: 'object', required: ['panel'], additionalProperties: false, properties: { panel: { type: 'string', enum: ['queue', 'library', 'search', 'recents', 'lyrics', 'metadata', 'settings'] } } },
         describe: (a) => `Open ${a.panel === 'queue' ? 'the queue' : `the ${a.panel} screen`}`
+    },
+    play_next: {
+        title: 'Queue songs to play next',
+        changesData: false,
+        owner: 'player',
+        refs: ['songs'],
+        schema: { type: 'object', required: ['songs'], additionalProperties: false, properties: { songs: SONG_REFS } },
+        describe: (a) => `Play ${a.songs.length} song${a.songs.length === 1 ? '' : 's'} next, after the one playing`
     },
     set_play_order: {
         title: 'Build a play order',

@@ -244,7 +244,7 @@
     justify-content: space-between;
     gap: var(--space-2);
     min-height: 40px;
-    margin-top: calc(-1 * var(--space-2));
+    margin-top: var(--space-1);
     padding: 0 var(--space-3) 0 var(--space-4);
     border-bottom: 1px solid var(--border-subtle);
 }
@@ -255,16 +255,31 @@
 }
 .rp-now__tools {
     display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+.rp-now__ai {
+    display: flex;
+    gap: var(--space-1);
+    margin-inline-end: var(--space-1);
+    padding-inline-end: var(--space-1);
+    border-inline-end: 1px solid var(--border-subtle);
+}
+.rp-now__ai:not(:has(.ai-lyrics-tools:not([hidden]))) {
+    display: none;
+}
+.ai-lyrics-tools {
+    display: flex;
     gap: var(--space-1);
 }
 .right-host[data-mode='full'] .rp-now__header {
     padding-inline: max(var(--space-6), calc((100% - 820px) / 2));
 }
-/* The right panel button keeps the normal text color when the panel is open: the filled right window says it, not the accent. */
-.icon-btn.right-panel-btn[aria-pressed='true'] {
+/* The right and left panel buttons keep the normal text color when the panel is open: the filled right window says it, not the accent. */
+.icon-btn:is(.right-panel-btn, .left-panel-btn)[aria-pressed='true'] {
     color: var(--text-primary);
 }
-.icon-btn.right-panel-btn[aria-pressed='true']:is(:hover, .is-hover):not(:disabled) {
+.icon-btn:is(.right-panel-btn, .left-panel-btn)[aria-pressed='true']:is(:hover, .is-hover):not(:disabled) {
     color: var(--text-primary);
 }
 /* A window too small to push the list: the panel floats over it, from under the title bar to above the player. */
@@ -297,6 +312,16 @@
 
 .panel-host[data-closed] {
     display: none; /* the person clicked the active rail item: the panel is closed until a panel item is chosen again */
+}
+/* PA-19: a narrow window shows the right panel in place of the left one (shell/panel-layout.js sets this). */
+:root[data-left-disabled] .panel-host {
+    display: none;
+}
+/* PA-19: below 900 px the volume bar folds away; the volume icon stays (--bp-narrow-width). Time labels stay. */
+@media (max-width: 900px) {
+    .player-host #volume-slider {
+        display: none;
+    }
 }
 .panel-host__header {
     display: flex;
@@ -591,4 +616,14 @@
         outline: 2px solid Highlight;
         outline-offset: 2px;
     }
+}
+
+/* ---------- a tool window (shell/tool-popout.js): the Metadata editor or the Sync tool alone, in a window of its own ---------- */
+html[data-tool-window] .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: 'view';
+}
+html[data-tool-window] :is(.titlebar, .rail, .panel-host, .right-host, .player-host, .panel-resizer, .lyrics-bar) {
+    display: none !important;
 }

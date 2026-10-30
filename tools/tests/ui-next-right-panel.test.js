@@ -88,7 +88,7 @@ describe('right panel slot', { concurrency: false }, () => {
 
     test('the keyboard resizes within 280 to 420 and the width and open state are remembered', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
-        const { page } = await open();
+        const { page } = await open(1600); // wide enough for both panels at any saved width (the panels give up room first, PA-19)
         await register(page);
         await button(page).click();
         await page.locator('.right-resizer').focus();
@@ -110,7 +110,7 @@ describe('right panel slot', { concurrency: false }, () => {
 
     test('dragging the left edge widens the panel', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
-        const { page } = await open();
+        const { page } = await open(1600);
         await register(page);
         await button(page).click();
         const box = await page.locator('.right-resizer').boundingBox();
@@ -122,32 +122,33 @@ describe('right panel slot', { concurrency: false }, () => {
         await page.close();
     });
 
-    test('in a window too narrow to push the list the panel floats over it, and Escape closes it', TEST_OPTIONS, async (t) => {
+    test('PA-19: at the window minimum (800 px) the open right panel shows at its minimum (280 px) and stays open, and the list keeps its minimum', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
-        const { page } = await open(700);
+        const { page } = await open(800);
         await register(page);
         await button(page).click();
         assert.equal(await host(page).isVisible(), true);
-        assert.equal(await host(page).getAttribute('data-overlay'), '');
+        assert.equal(await host(page).getAttribute('data-overlay'), null, 'no overlay: the panel takes its place beside the list');
+        assert.equal(await host(page).evaluate((n) => Math.round(n.getBoundingClientRect().width)), 280);
         const list = await page.locator('.view-host').evaluate((n) => Math.round(n.getBoundingClientRect().width));
-        assert.ok(list >= 420 - 2, 'the list keeps its width under the overlay');
-        assert.equal(await page.evaluate(() => localStorage.getItem('xplayer.ui-next.right-open')), null, 'the saved choice is untouched');
-        await page.locator('.right-host').focus().catch(() => {});
-        await page.locator('.right-resizer').focus();
-        await page.keyboard.press('Escape');
-        assert.equal(await host(page).isHidden(), true);
+        assert.ok(list >= 420 - 2, `the list keeps its minimum (${list})`);
         await page.close();
     });
 
-    test('a saved open panel hides itself when the window shrinks and comes back when it widens', TEST_OPTIONS, async (t) => {
+    test('PA-19: a saved open panel keeps its width while the window fits it, drops to its minimum (280 px) and stays open at 800 px, and comes back when it widens', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open();
         await register(page);
         await button(page).click();
-        await page.setViewportSize({ width: 700, height: 860 });
-        await page.waitForFunction(() => document.querySelector('.right-host').hidden);
+        const width = () => host(page).evaluate((n) => Math.round(n.getBoundingClientRect().width));
+        assert.equal(await width(), 320);
+        await page.setViewportSize({ width: 800, height: 860 });
+        await page.waitForTimeout(200);
+        assert.equal(await host(page).isVisible(), true, 'still shown at the minimum');
+        assert.equal(await width(), 280);
         await page.setViewportSize({ width: 1400, height: 860 });
-        await page.waitForFunction(() => !document.querySelector('.right-host').hidden);
+        await page.waitForTimeout(200);
+        assert.equal(await width(), 320);
         await page.close();
     });
 });

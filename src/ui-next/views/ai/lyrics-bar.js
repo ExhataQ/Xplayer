@@ -1,16 +1,17 @@
-// The Translate controls in the lyrics bar (mounted by views/tools/lyrics.js through shell/ai-slots.js, mountAiLyricsBar):
-//   [Original | Translated]   shown once the song has an AI translation; it switches the lyrics version the lyrics view shows
-//   [Translate]               translates this song into the default language (asks for one when none is set)
-//   [Auto]                    translate every song that starts (the setting also lives in Settings, AI)
-// Nothing is drawn until AI is turned on and set up.
+// The translation controls in the header of the right panel and of its full-size mode (views/playback/right-panel-content.js mounts
+// them through shell/ai-slots.js, mountAiLyricsBar). Two icon buttons:
+//   Translate   translates this song into the default language (asks for one when none is set); needs AI set up
+//   View        one button for what the lyrics show: both texts, the translation only (the original is hidden), the original only.
+//               A click moves to the next one and the icon says which is on. It appears once the song has a translation.
+// What is shown is kept by shell/lyrics-display.js; the panel draws it. ("Translate every song" is in Settings, AI.)
 
-import { el, button, chip, segmented, textField, openDialog } from '../../components/index.js';
-import { getStatus, setSettings, currentLyrics } from '../../adapter/ai-bridge.js';
-import { translationState, showOriginal, showTranslation, watchSong } from '../../adapter/ai-lyrics.js';
+import { el, iconButton, iconEl, textField, openDialog } from '../../components/index.js';
+import { getStatus, currentLyrics } from '../../adapter/ai-bridge.js';
+import { translationPair, watchSong } from '../../adapter/ai-lyrics.js';
+import { displayChoice, nextMode, setMode, onDisplayChange } from '../../shell/lyrics-display.js';
 import { notify } from '../../shell/notify.js';
 import { translateSong, isTranslating } from './translate-flow.js';
 import { explain } from './ai-messages.js';
-import { refreshStatus } from './ai-state.js';
 
 const ready = (s) => Boolean(s && s.enabled && s.hasKey && s.privacyAccepted);
 export const LANGUAGES = ['English', 'Persian', 'Arabic', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Russian', 'Turkish', 'Hindi', 'Japanese', 'Korean', 'Chinese'];
@@ -50,48 +51,40 @@ export async function translateNow(language) {
     if (!result.ok) return notify({ title: 'Could not translate', detail: explain(result), kind: 'error' });
     return notify(
         result.saved
-            ? { title: `Translated into ${result.targetLanguage}`, detail: 'Use Original / Translated in the lyrics bar to switch.', kind: 'success', where: 'toast' }
-            : { title: 'Translated, but not saved', detail: 'These lyrics have no timing, so the translation could not be added to the lyrics view. Ask in the AI chat to copy it.', kind: 'warning', where: 'both' }
+            ? { title: `Translated into ${result.targetLanguage}`, detail: 'The right panel shows it with the original; the buttons in its header change that.', kind: 'success', where: 'toast' }
+            : { title: 'Translated, but not saved', detail: 'These lyrics have no timing, so the translation could not be shown with the lyrics. Ask in the AI chat to copy it.', kind: 'warning', where: 'both' }
     );
 }
 
+// One icon per state of the View button, and what a click will do from there.
+const VIEW = {
+    both: { icon: 'text-both', label: 'Showing the original and the translation. Click to hide the original' },
+    translated: { icon: 'eye-off', label: 'Showing the translation only. Click to show the original only' },
+    original: { icon: 'translation-off', label: 'Showing the original only. Click to show both' }
+};
+
 export function buildLyricsControls(host, ctx) {
-    const toggle = segmented({
-        label: 'Lyrics language',
-        value: 'translated',
-        items: [{ value: 'original', label: 'Original' }, { value: 'translated', label: 'Translated' }],
-        onChange: (value) => {
-            const song = currentLyrics();
-            if (song) (value === 'original' ? showOriginal : showTranslation)(song.id);
-        }
-    });
-    const translateButton = button({ label: 'Translate', size: 'sm', onClick: () => translateNow() });
-    const auto = chip({
-        label: 'Auto',
-        pressed: false,
-        onClick: async () => {
-            const status = await getStatus();
-            await setSettings({ autoTranslate: !status.autoTranslate });
-            await refreshStatus();
-        }
-    });
-    auto.title = 'Translate every song that starts into the default language';
-    const root = el('div', { class: 'ai-lyrics-tools', hidden: true }, toggle.el, translateButton, auto);
+    const translate = iconButton({ icon: 'languages', label: 'Translate lyrics', size: 'sm', onClick: () => translateNow() });
+    const view = iconButton({ icon: VIEW.both.icon, label: VIEW.both.label, size: 'sm', onClick: () => setMode(nextMode(displayChoice().mode)) });
+    const root = el('div', { class: 'ai-lyrics-tools', hidden: true }, translate, view);
 
     function paint() {
-        const status = ctx.getStatus();
-        root.hidden = !ready(status);
-        auto.setAttribute('aria-pressed', String(Boolean(status.autoTranslate)));
         const song = currentLyrics();
-        const state = song ? translationState(song) : { has: false };
-        toggle.el.hidden = !state.has;
-        if (state.has) toggle.setValue(state.showing ? 'translated' : 'original');
-        translateButton.disabled = !song || !song.lyrics || isTranslating(song.id);
+        const has = Boolean(song && translationPair(song));
+        const shown = VIEW[displayChoice().mode];
+        translate.hidden = !ready(ctx.getStatus());
+        translate.disabled = !song || !song.lyrics || isTranslating(song.id);
+        view.hidden = !has;
+        view.replaceChildren(iconEl(shown.icon, { size: 18 }));
+        view.setAttribute('aria-label', shown.label);
+        view.title = shown.label;
+        root.hidden = translate.hidden && !has;
     }
 
     const stop = watchSong(() => (root.isConnected ? paint() : stop()));
-    const off = ctx.onStatus(paint);
+    const offStatus = ctx.onStatus(paint);
+    const offDisplay = onDisplayChange(paint);
     host.append(root);
     paint();
-    return { destroy: () => (stop(), off()) };
+    return { destroy: () => (stop(), offStatus(), offDisplay()) };
 }

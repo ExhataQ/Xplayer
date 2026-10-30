@@ -88,6 +88,11 @@ describe('A-10 appearance and resizing with the real engine', { concurrency: fal
         await page.locator(`.rail-btn[data-view="${view}"]`).click();
         if (view === 'settings') await page.locator('.settings-menu [data-page="general"]').click(); // Settings opens on General, where Appearance is
         await page.waitForTimeout(150);
+        // Library's rail item toggles its panel: from another view with the panel open, the first click closes it (PA-04). Open it again.
+        if (view === 'library' && !(await page.locator('.panel-host').isVisible())) {
+            await page.locator(`.rail-btn[data-view="${view}"]`).click();
+            await page.waitForTimeout(150);
+        }
     };
     const section = (page) => page.locator('.view-host .appearance');
 
@@ -274,12 +279,11 @@ describe('A-10 appearance and resizing with the real engine', { concurrency: fal
         const sizes = () => page.evaluate(() => ({ panel: Math.round(document.querySelector('.panel-host').getBoundingClientRect().width), view: Math.round(document.querySelector('.view-host').getBoundingClientRect().width) }));
         assert.equal((await sizes()).panel, 480);
         await page.setViewportSize({ width: 800, height: 600 });
-        await page.waitForFunction((n) => Math.round(document.querySelector('.panel-host').getBoundingClientRect().width) === n, 72, { timeout: 3000 });
-        assert.equal((await sizes()).panel, 72, 'a narrow window collapses the panel by itself');
-        await page.getByRole('button', { name: 'Collapse panel' }).click(); // opens it again for this window size
+        // PA-19: a narrow window shrinks the panel first (the view keeps 640 while it can), then the panel sits at its minimum (240) and the view shrinks.
+        await page.waitForFunction((n) => Math.round(document.querySelector('.panel-host').getBoundingClientRect().width) === n, 240, { timeout: 3000 });
         const small = await sizes();
         assert.ok(small.view >= 420, `view keeps room: ${JSON.stringify(small)}`);
-        assert.ok(small.panel >= 240 && small.panel <= 324);
+        assert.equal(small.panel, 240, 'the panel is at its minimum, and the view shrinks beside it');
         await page.setViewportSize({ width: 1400, height: 860 });
         await page.waitForFunction((n) => Math.round(document.querySelector('.panel-host').getBoundingClientRect().width) === n, 480, { timeout: 3000 });
         assert.equal((await sizes()).panel, 480);

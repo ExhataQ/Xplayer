@@ -124,13 +124,13 @@ Decided in the owner's round 2 (no longer open): keep the X logo for now (10.2 o
 | PE-02 Provider interface, main-process client, named preload group `ai`, key storage, settings | 19.2 | In review | DP6, DP9 | Add the group to `electron/preload.js` and `src/js/api/desktop-api.js`; calls only from the main process |
 | PE-03 Action list, schema, validation, preview, execute | 19.2 | In review | PE-02 | The model returns structured actions only; the app never runs model-written code. Actions call the engine and the tag service through the adapter |
 | PE-04 Undo journal and notifications with an Undo button | 19.1 | In review | PA-06 | One journal, saved to disk, capped, each entry holds what it changed and the old values. Undo was found only in the lyrics editor code |
-| PE-05 Reorganize the library from the person's description | 19.3 | Not started | PE-03, PB-06 | Folders and playlists, always with a preview |
+| PE-05 Reorganize the library from the person's description | 19.3 | In review | PE-03, PB-06 | **Built 2026-10-30** (`reports/P1-PE-05-08-11-chat-context.md`): the assistant now sees the queue, every playlist with its songs and the folders with the playlists inside, so it reuses what exists. New action `remove_from_playlist` (with Undo) next to create/add/move; Library > plus > "Organize with AI…". Always with the preview and Apply. Not run in Electron |
 | PE-06 Translate lyrics | 19.3 | In review | PE-03 | `lyrics/21-language-detect.js` exists; keep LRC timings |
 | PE-07 AI shuffle | 19.3 | In review | PE-03 | Builds on `playback/10b-playback-smart-shuffle.js` |
-| PE-08 AI metadata editing and web search | 19.3 | Not started | PE-03, PD-01 | Uses D's tag service; investigate how web search is provided and what it sends |
+| PE-08 AI metadata editing and web search | 19.3 | In review | PE-03, PD-01 | **Built 2026-10-30**: `set_tags` already writes through D's tag service (journal and Undo); the tag sheet has "Fill with AI…" which hands the sheet's songs to the chat. Web search = the free MusicBrainz lookup (title, artist, album of the first 10 rows; the playing, queued, selected and sheet songs are first), not OpenRouter's paid web plugin. Writing needs D's review path unchanged. Not run in Electron |
 | PE-09 Privacy screen and AI settings page | 19.4, 19.6 | In review | DP6, PA-11 | **Slot ready (A, 2026-10-22):** `registerAiSettings({ mount(container, ctx) })` from `views/ai/register.js`. See `P1-PA-17-ai-slots.md` |
-| PE-10 Chat UI and the top bar icon next to the bell | 18.4, 19.5 | In review | PA-03, PA-05 | **Slot ready (A, 2026-10-22):** `registerAiChat({ mount(host, ctx) })`; the shell draws the button and gates it on `setAiStatus`. See `P1-PA-17-ai-slots.md` |
-| PE-11 Contextual AI buttons through the app | 19.5 | Not started | PE-05 to PE-08 | Translate on lyrics, fill tags in the editor, organize in the library panel, AI shuffle in the player |
+| PE-10 Chat UI and the top bar icon next to the bell | 18.4, 19.5 | In review | PA-03, PA-05 | **Reworked 2026-10-30 (owner request):** one box with ready-made messages on top, the model as a small window, a Low/Medium/High mode with a bars logo, options menu and Send inside the box; the pop-up's Close is now Minimize; no more All songs / Selected / Playing now: the assistant sees everything at once. Earlier note:  **Slot ready (A, 2026-10-22):** `registerAiChat({ mount(host, ctx) })`; the shell draws the button and gates it on `setAiStatus`. See `P1-PA-17-ai-slots.md` |
+| PE-11 Contextual AI buttons through the app | 19.5 | In review | PE-05 to PE-08 | **Built 2026-10-30**: translate on lyrics (lyrics bar, existing) and in the chat ("Translate the song playing"); AI shuffle (Playback menu, existing); Library > plus > "Organize with AI…"; tag sheet > "Fill with AI…". New `askAi(text, { send, songs })` in `shell/ai-slots.js` for any other button. Shown only when AI is on |
 | PE-12 Download from the web through chat | 19.5 | Covered | DP8 | Unclear what to download, from where, and how it differs from Play from URL. Downloads with Cancel already exist (`electron/downloads.js`, D41) |
 
 ## Session notes (Agent D, 2026-10-21)
@@ -142,6 +142,10 @@ See PLAN.md section 8. Assumed present from Agent A for this session only: PA-03
 
 Known test failures that are not caused by any task (checked 2026-10-22: the same 11 files fail on the zip before the A, B and D patches): `cancel-running-work` (2 tests, timing), `ui-next-lyrics-find` ("at the smallest window nothing scrolls sideways and the album column makes room", a real layout issue for C), and 9 files that need `acorn` or ESLint, which are not installed in the check sandbox (`drag-drop-modules`, `lint`, `render-modules`, `core/state-*.js setters`, `ui-core-render-module`, `ui-handlers`, `ui-views-module`, `ui-virtual-scroll-modules`, `window-contract`). Run them on the owner's machine with `npm install` done.
 Open decisions DP1 to DP14 above. The ones that block building soonest: DP1 and DP2 (rail, panel, colors), DP7 (tag backend), DP9 (any new bridge), DP6 (AI).
+
+## Question from E (2026-10-30), adapter budget (DP14)
+
+`adapter/ai-bridge.js` grew from 206 to 245 counted lines (the assistant now reads the queue, playlists and folders and sorts the songs it sends, and two actions were added). It could not live elsewhere: the data is on the page. The AI adapters together are 284 of the 300 they share, so the static test passes, but the plan total was already over (DP14). Owner: confirm, or ask E to fold `collectContext` and the sorting into `engine-api`.
 
 ## Requests from B to A
 
@@ -178,6 +182,8 @@ Open decisions DP1 to DP14 above. The ones that block building soonest: DP1 and 
 | PC-11 | `reports/P1-PC-11-queue-opens-on-drag.md` | Done |
 | PC-08 | `reports/P1-PC-08-lyrics-finder-and-write.md` | Done (not run in a browser) |
 | PC-12 | `reports/P1-PC-12-old-screen-audit.md` | Done (not run in a browser) |
+| Owner round 2026-10-30 | `reports/P1-owner-round-2026-10-30.md` | In review (not run in a browser) |
+| Owner round 2 2026-10-30 | `reports/P1-owner-round-2-2026-10-30.md` | In review (not run in a browser) |
 | PB-07, PB-21 | `reports/P1-PB-21-uniform-panels-and-cover-files.md` | Done |
 | PB-04 | `reports/P1-PB-04-collapsed-library.md` | Done |
 | PC-13, PA-16, PC-07 | `reports/P1-PC-13-lyrics-header-and-tools.md` | Done |
@@ -196,3 +202,4 @@ Open decisions DP1 to DP14 above. The ones that block building soonest: DP1 and 
 | PD-05 | `reports/P1-PD-05-finder-integration.md` | Done |
 | PE-01 | `reports/P1-PE-01-openrouter.md` | In review |
 | PE-02, PE-03, PE-04 | `reports/P1-PE-02-03-04-ai-core.md` | In review |
+| PE-05, PE-08, PE-10, PE-11 | `reports/P1-PE-05-08-11-chat-context.md` | In review |

@@ -17,6 +17,12 @@ export function aiShuffle() {
     openAiChat();
 }
 
+/** Contextual buttons elsewhere in the app (Library > Organize with AI, tag sheet > Fill with AI): the chat opens with the request. */
+export function aiAsk(text, { send = false, songs = null } = {}) {
+    queuePrompt(text, { send, songs });
+    openAiChat();
+}
+
 export function registerAi() {
     registerAiSettings({ mount: buildAiSettings });
     registerAiChat({ mount: (host, ctx) => mountChat(host, ctx, { mode: 'view', onShrink: shrink }) });
@@ -24,6 +30,6 @@ export function registerAi() {
     registerAiLyricsBar({ mount: buildLyricsControls });
     registerHandler('open_panel', ({ panel }) => (panel === 'queue' ? openAiQueue() : openAiPanel(panel)) || {});
     startAutoTranslate();
-    registerAiCommands({ undo: undoLast, shuffle: aiShuffle });
+    registerAiCommands({ undo: undoLast, shuffle: aiShuffle, ask: aiAsk });
     refreshStatus();
 }

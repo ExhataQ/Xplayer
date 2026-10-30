@@ -5,7 +5,7 @@
 // (adapter/legacy-dom-adapter.js).
 
 import { icon } from '../icons/icons.js';
-import { attachTooltip, iconButton, openMenu, emptyState } from '../components/index.js';
+import { attachTooltip, iconButton, iconEl, openMenu, emptyState } from '../components/index.js';
 import { logo as logoMark } from '../startup/logo.js';
 import { showEngineView, showEnginePanel, releaseEngineView, syncAccentFromEngine } from '../adapter/engine-view.js';
 import { switchView, playSongFromList } from '../adapter/actions.js';
@@ -19,19 +19,21 @@ import { installShuffleMenu } from '../adapter/shuffle-menu.js';
 import { mountRecentsPanel } from '../views/library/recents-panel.js';
 import { registerPanel, showPanel } from './panels.js';
 import { mountRightPanelSlot } from './right-panel.js';
+import { openLeft } from './panel-layout.js';
 import { mountAiChrome } from './ai-chrome.js';
 import { appMenuGroups, toMenuItems, installMenuHotkeys } from './app-menu.js';
-import { AI_VIEW_ID, mountAiChat, leaveAiChat, hasAiChat } from './ai-slots.js';
+import { AI_VIEW_ID, mountAiChat, leaveAiChat, hasAiChat, openAiChat } from './ai-slots.js';
 import { registerAi } from '../views/ai/register.js';
 import { attachSongList } from '../views/library/song-list.js';
 import { mountSearchView } from '../views/library/search-view.js';
 import { viewsReady, whenViewsReady } from '../adapter/songlist-bridge.js';
 import { mountHome } from '../views/home/home.js';
-import { showPlayFromUrl } from '../adapter/menu-bridge.js';
+import { showPlayFromUrl, showNewPlaylist } from '../adapter/menu-bridge.js';
 import { openHomeItem } from '../adapter/home-bridge.js';
 import { mountLyricsModes, leaveLyrics } from '../views/tools/lyrics.js';
 import { mountMetadata, leaveMetadata } from '../views/tools/metadata.js';
-import { engineEvent, engineView as currentEngineViewName, watchLyricsEditors } from '../adapter/engine-api.js';
+import { engineAction, engineEvent, engineView as currentEngineViewName, watchLyricsEditors } from '../adapter/engine-api.js';
+import { startToolWindow } from './tool-popout.js';
 import { mountPlayback } from '../views/playback/playback.js';
 import { mountNotifications } from './notification-center.js';
 import { setNotificationNavigator } from './notify.js';
@@ -82,8 +84,18 @@ function openHomeCard(item) {
     showView('library', { after: () => openHomeItem(item) });
 }
 
+// What the empty Home offers (PB-23). The music folders are in Settings, Library; the AI chat is offered only when it is there.
+function homeActions() {
+    return {
+        newPlaylist: () => showNewPlaylist(),
+        playFromUrl: () => showPlayFromUrl(),
+        askAi: hasAiChat() ? () => openAiChat() : null,
+        folders: () => selectView('settings')
+    };
+}
+
 function mountHomeView(host) {
-    home = mountHome(host, { open: openHomeCard });
+    home = mountHome(host, { open: openHomeCard, actions: homeActions() });
 }
 
 function leaveHome() {
@@ -129,12 +141,41 @@ function buildTitlebar() {
 
     const bar = $('.titlebar');
     bar.prepend(logo);
+    mountLeftPanelToggle(bar);
     bar.querySelector('.titlebar__spacer').after(urlButton); // first of the tools; the right panel, AI and bell buttons follow it
     bar.querySelector('.titlebar__window').before(bell);
     // The right panel's button sits before the bell. It stays hidden until a provider registers (shell/right-panel.js, PA-16).
     mountRightPanelSlot({ host: $('.right-host'), button: bell, leftPanel: $('.panel-host') });
     installMenuHotkeys(menuGroups);
     aiChrome = mountAiChrome({ bell, goTo: goToMainView, current: () => $('.view-host').dataset.view });
+}
+
+// The left panel's button, between the X logo and Back / Forward (the right panel has its own at the other end). It shows the panel's state the same
+// way: the left window is filled while the panel is open. In a narrow window where the right panel took the place, a click brings it back.
+function mountLeftPanelToggle(bar) {
+    const toggle = iconButton({ icon: 'panel-left', label: 'Left panel', size: 'sm', pressed: false, className: 'left-panel-btn' });
+    bar.querySelector('.titlebar__nav').before(toggle); // between the X logo and Back / Forward
+    const panel = $('.panel-host');
+    const root = document.documentElement;
+    const shown = () => panel.dataset.closed === undefined && !root.hasAttribute('data-left-disabled');
+    function paint() {
+        const on = shown();
+        toggle.setAttribute('aria-pressed', String(on));
+        toggle.replaceChildren(iconEl(on ? 'panel-left-filled' : 'panel-left', { size: 18 }));
+    }
+    toggle.addEventListener('click', () => {
+        if (root.hasAttribute('data-left-disabled')) {
+            setPanelClosed(false);
+            openLeft();
+        } else if (panel.dataset.closed === undefined) setPanelClosed(true);
+        else if (panelItem) setPanelClosed(false);
+        else selectView('library'); // nothing was ever shown in the panel: open it on the Library
+        paint();
+    });
+    const watch = new MutationObserver(paint);
+    watch.observe(panel, { attributes: true, attributeFilter: ['data-closed'] });
+    watch.observe(root, { attributes: true, attributeFilter: ['data-left-disabled'] });
+    paint();
 }
 
 // The engine buttons in the title bar are built by the adapter and only carry an aria-label: give them the same tooltip as
@@ -395,17 +436,27 @@ function goToMainView(id) {
 
 function selectView(id) {
     const view = VIEWS.find((v) => v.id === id);
+    // PA-19: a narrow window can hide the left panel while it is "open" (the right panel took its place). Choosing a panel item then
+    // brings the left panel back, in the right panel's place, instead of closing a panel nobody can see.
+    const hidden = document.documentElement.hasAttribute('data-left-disabled');
     // Search and Recents are panel items only (PB-02): they fill the panel and leave the main view as it is (DP2).
     if (view?.panelOnly) {
-        if (panelItem === id) setPanelClosed($('.panel-host').dataset.closed === undefined);
-        else showPanelFor(view);
+        if (panelItem === id) {
+            if (hidden) openLeft();
+            else setPanelClosed($('.panel-host').dataset.closed === undefined);
+        } else {
+            showPanelFor(view);
+            if (hidden) openLeft();
+        }
         return;
     }
     // Choosing the panel item that is already showing closes its panel; choosing it again opens it (PA-04).
     if (view?.panel && panelItem === id && $('.view-host').dataset.view === id) {
-        setPanelClosed($('.panel-host').dataset.closed === undefined);
+        if (hidden) openLeft();
+        else setPanelClosed($('.panel-host').dataset.closed === undefined);
         return;
     }
+    if (view?.panel && hidden) openLeft();
     if (view?.panel && $('.panel-host').dataset.closed !== undefined) setPanelClosed(false);
     const engineView = view?.engine || null;
     const engineViewShown = showView(id, { chosen: true }) !== 'unavailable'; // chosen: the person picked this item (the Lyrics item then opens Sync, PC-07)
@@ -491,6 +542,7 @@ function init() {
     mountPlayback(); // player controls, waveform seek bar, queue and cover viewer (tasks C-01 to C-04)
     whenLibraryReady(() => {
         engineReady = true;
+        engineAction('applyStoredInstrumentalFlags'); // songs the finder found to be instrumental are marked again after a restart
         installShuffleMenu(); // the shuffle button opens a floating menu, not the engine's dialog (PB-07)
         navHistory.refresh();
         if (pendingEngineView) {
@@ -501,6 +553,7 @@ function init() {
         } else {
             syncRailSelection(getCurrentView());
         }
+        startToolWindow(showView); // in a Metadata or Sync window: start its song and show only that tool
     });
     // The engine can change page by itself (the lyrics button in the player bar, the end of a song, its own Back button): followEngine.
     engineEvent('view:changed', (detail) => followEngine((detail && detail.view) || currentEngineViewName()));

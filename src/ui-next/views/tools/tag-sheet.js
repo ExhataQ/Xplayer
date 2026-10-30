@@ -8,6 +8,7 @@
 
 import { el, openDialog } from '../../components/index.js';
 import { tagSheetApi as api, tagSheetUi as ui } from './tag-sheet-actions.js';
+import { aiAvailable, askAi } from '../../shell/ai-slots.js';
 import { COLUMNS, normalize, valueOf } from './tag-sheet-model.js';
 
 const { sheet, checked } = ui;
@@ -78,7 +79,11 @@ function toolbar(root) {
             api.setColumns(keys);
             paint(root);
         } }), column.label))));
-    return el('div', { class: 'tag-sheet__toolbar' }, load, columns);
+    // PE-11: hands the songs in the sheet to the AI chat; it proposes tag changes that come back through the same review and Undo.
+    const ask = aiAvailable() && ui.sheet.order.length
+        ? el('button', { type: 'button', class: 'btn btn--outline btn--sm', 'data-focus-key': 'ai-fill', onclick: () => askAi('Fill in the missing tags (genre, year, album artist) for the songs in my tag sheet. Change a tag only when you are confident.', { songs: [...ui.sheet.order] }) }, 'Fill with AI…')
+        : null;
+    return el('div', { class: 'tag-sheet__toolbar' }, load, columns, ask);
 }
 
 const showValue = (value) => (Array.isArray(value) ? value.join('; ') : value) || '(empty)';

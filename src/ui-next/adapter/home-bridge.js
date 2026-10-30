@@ -23,7 +23,7 @@ export function homeData() {
     const group = (kind, list, viewId, count) =>
         byPlayedOrder(list.map((x) => ({ kind, id: x.id, viewId: viewId(x), title: String(x.name || ''), subtitle: count(x), cover: x.cover || '' })), order);
     return {
-        songs: read('getRecentlyPlayedSongs').map((s) => ({ kind: 'song', id: s.id, viewId: '', title: String(s.title || ''), subtitle: String(s.artist || ''), cover: s.cover || '', played: true })),
+        songs: read('getRecentlyPlayedSongs').map((s) => ({ kind: 'song', id: s.id, viewId: '', title: String(s.title || ''), subtitle: String(s.artist || 'Unknown Artist'), cover: s.cover || '', played: true })),
         playlists: group('playlist', read('getPlaylists'), (p) => `playlist-${p.id}`, (p) => plural((p.songs || []).length, 'song')),
         albums: group('album', read('getAlbums'), (a) => a.id, (a) => plural(a.songCount || 0, 'song')),
         artists: group('artist', read('getArtists'), (a) => a.id, (a) => plural(a.songCount || 0, 'song'))

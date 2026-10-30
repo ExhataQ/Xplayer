@@ -5,7 +5,10 @@
 // The plan has already been checked and previewed by electron/ai/ (main process); this file never talks
 // to the AI service and never runs anything that is not in the fixed action list.
 //
-//   collectSongs(fields, { onlySelected })  -> light song copies for planning (only the fields the main process allows)
+//   collectSongs(fields, { includeLyrics }) -> light song copies for planning, the whole library with the playing, queued, selected and
+//                                              playlist songs first (only the fields the main process allows)
+//   collectContext()                        -> the queue, the playlists and the folders, as real ids and names (the main process turns the
+//                                              ids into song numbers)
 //   runPlan(plan, summary)                  -> { ok, applied, failure, warnings, entryId }
 //   undoEntry(id)                           -> { ok, failures }
 //   canRun(type)                            -> true when this file can carry out that action type
@@ -34,23 +37,54 @@ export function lyricsFor(song) {
     return read('getSyncedLyricsForSong') || read('getLyricsForSong');
 }
 
-// scope: 'all', 'selected' or 'now' (the playing song). With includeLyrics only the first LYRICS_SONGS songs are read (the main process caps it too).
+// The assistant sees everything at once: the whole library, with the song playing now, the queue, the selected songs and the playlist
+// songs first (the main process cuts the table at a size limit, and the end of the list is the part that can be cut), and flags that say
+// which are playing, selected and favorites. With includeLyrics the first LYRICS_SONGS songs of that order carry their lyrics.
 const LYRICS_SONGS = 40;
-export function collectSongs(fields, { scope = 'all', includeLyrics = false } = {}) {
+const queuedSongs = () => (engine().playbackQueue || []).map((item) => (item ? item.song || item : null)).filter(Boolean);
+
+function prioritized(all, now, picked) {
+    const byId = new Map(all.map((s) => [s.id, s]));
+    const order = [];
+    const seen = new Set();
+    const take = (id) => {
+        if (seen.has(id) || !byId.has(id)) return;
+        seen.add(id);
+        order.push(byId.get(id));
+    };
+    if (now) take(now.id);
+    for (const song of queuedSongs()) take(song.id);
+    for (const id of picked || []) take(id);
+    for (const playlist of typeof engine().getPlaylists === 'function' ? engine().getPlaylists() : []) for (const id of playlist.songs || []) take(id);
+    for (const song of all) take(song.id);
+    return order;
+}
+
+export function collectSongs(fields, { includeLyrics = false, focus = null } = {}) {
     const all = engine().SONGS_DATA || [];
-    const picked = engine().selectedSongIds;
+    const picked = new Set([...(engine().selectedSongIds || []), ...(focus || [])]); // `focus`: songs a contextual button is about
     const now = playingSong();
-    let list = all;
-    if (scope === 'now') list = now ? all.filter((s) => s.id === now.id) : [];
-    else if (scope === 'selected' && picked && picked.size) list = all.filter((s) => picked.has(s.id));
-    if (includeLyrics) list = list.slice(0, LYRICS_SONGS);
+    const list = prioritized(all, now, picked);
     const favorites = new Set(typeof engine().getFavorites === 'function' ? engine().getFavorites() : []);
-    return list.map((s) => {
-        const copy = { id: s.id, duration: s.duration, favorite: favorites.has(s.id), playing: Boolean(now && now.id === s.id) };
-        for (const field of fields) copy[field] = s[field];
-        if (includeLyrics) copy.lyrics = lyricsFor(s);
+    return list.map((s, i) => {
+        const copy = { id: s.id, duration: s.duration, favorite: favorites.has(s.id), playing: Boolean(now && now.id === s.id), selected: Boolean(picked && picked.has(s.id)) };
+        for (const field of fields) if (!(field in copy)) copy[field] = s[field];
+        if (includeLyrics && i < LYRICS_SONGS) copy.lyrics = lyricsFor(s);
         return copy;
     });
+}
+
+/** The queue (in play order, with the position of the song playing), every playlist with its songs, and the folders with the playlists inside. Real ids and names; electron/ai/privacy.js turns the ids into numbers. */
+export function collectContext() {
+    const playlists = typeof engine().getPlaylists === 'function' ? engine().getPlaylists() : [];
+    const nameOf = new Map(playlists.map((p) => [p.id, p.name]));
+    const folders = typeof engine().getFolders === 'function' ? engine().getFolders() : [];
+    return {
+        queue: queuedSongs().map((s) => s.id),
+        queueIndex: typeof engine().currentQueueIndex === 'number' ? engine().currentQueueIndex : -1,
+        playlists: playlists.map((p) => ({ name: p.name, songs: [...(p.songs || [])] })),
+        folders: folders.map((f) => ({ name: f.name, playlists: (f.children || []).filter((c) => c.type === 'playlist' && nameOf.has(c.id)).map((c) => nameOf.get(c.id)) }))
+    };
 }
 
 // ---- the calls the AI screens make (views never touch window.desktopApi themselves) ----
@@ -80,10 +114,10 @@ export const hasPlayingSong = () => Boolean(playingSong());
 export const libraryCount = () => (engine().SONGS_DATA || []).length;
 
 /** Asks for a plan. Only the fields the main process allows are copied out of the library. */
-export async function plan({ request, scope = 'all', useWeb = false, includeLyrics = false, history = [] }) {
+export async function plan({ request, useWeb = false, includeLyrics = false, history = [], focus = null }) {
     const status = await getStatus();
-    const songs = collectSongs(status.songFields || [], { scope, includeLyrics });
-    const result = await ai().aiPlan({ request, useWeb, includeLyrics, history, songs });
+    const songs = collectSongs(status.songFields || [], { includeLyrics, focus });
+    const result = await ai().aiPlan({ request, useWeb, includeLyrics, history, songs, context: collectContext() });
     return { ...result, libraryTotal: songs.length };
 }
 
@@ -134,6 +168,11 @@ const HANDLERS = {
         const added = songs.filter((id) => engine().addSongToPlaylist(id, target.id));
         return { undo: { playlistId: target.id, songIds: added } };
     },
+    remove_from_playlist({ playlist, songs }) {
+        const target = findPlaylist(playlist);
+        const removed = songs.filter((id) => engine().removeSongFromPlaylist(id, target.id));
+        return { undo: { playlistId: target.id, songIds: removed } };
+    },
     put_playlist_in_folder({ playlist, folder }) {
         const target = findPlaylist(playlist);
         const destination = findFolder(folder);
@@ -141,6 +180,15 @@ const HANDLERS = {
         engine().addToFolder(destination.id, target.id, 'playlist', false);
         refresh('folder:listChanged');
         return { undo: { playlistId: target.id, folderId: destination.id, previousFolderId: before ? before.id : null } };
+    },
+    play_next({ songs }) {
+        const library = new Set((engine().SONGS_DATA || []).map((s) => s.id));
+        const wanted = songs.filter((id) => library.has(id));
+        if (!wanted.length) throw new Error('None of those songs are in the library');
+        // Each song goes right after the one playing, so adding them last to first keeps the order the plan gave.
+        for (const id of [...wanted].reverse()) engine().addSongToQueueNext(id);
+        if (typeof engine().updateQueueDisplay === 'function') engine().updateQueueDisplay();
+        return {};
     },
     set_play_order({ songs }) {
         const library = new Map((engine().SONGS_DATA || []).map((s) => [s.id, s]));
@@ -199,6 +247,7 @@ const UNDO = {
     create_playlist: (u) => u.playlistId && engine().deletePlaylist(u.playlistId),
     create_folder: (u) => u.folderId && engine().deleteFolder(u.folderId, false),
     add_to_playlist: (u) => u.songIds.forEach((id) => engine().removeSongFromPlaylist(id, u.playlistId)),
+    remove_from_playlist: (u) => u.songIds.forEach((id) => engine().addSongToPlaylist(id, u.playlistId)), // they come back at the end of the playlist
     put_playlist_in_folder(u) {
         engine().removeItemFromFolder(u.folderId, u.playlistId, 'playlist');
         if (u.previousFolderId) engine().addToFolder(u.previousFolderId, u.playlistId, 'playlist', false);

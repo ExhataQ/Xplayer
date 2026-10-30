@@ -44,7 +44,8 @@ function runScan(args, options = {}) {
             env: {
                 ...process.env,
                 MUSIC_PLAYER_CONFIG_DIR: getConfigDir(),
-                ELECTRON_RUN_AS_NODE: '1'
+                ELECTRON_RUN_AS_NODE: '1',
+                ...(options.env || {})
             }
         });
 
@@ -335,6 +336,8 @@ async function rebuildFromFolders(outputDir, options = {}) {
         onFastResult: options.onFastResult,
         onCoverBatch: options.onCoverBatch,
         onScanComplete: options.onScanComplete,
+        // forceAll: read every file again instead of reusing songs whose file did not change (see scan-folder.js)
+        env: options.forceAll ? { XPLAYER_RESCAN_ALL: '1' } : undefined,
         resolveOnFastResult: options.streamed
     });
 

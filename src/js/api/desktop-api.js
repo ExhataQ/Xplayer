@@ -37,6 +37,8 @@ export const desktopApi = (function () {
             focusWindow: 'send',
             getUiChoice: 'invoke',
             setUiChoice: 'invoke',
+            openToolWindow: 'invoke',
+            onToolWindowSong: 'on',
             updateThumbarPlayState: 'send',
             onThumbarPrev: 'on',
             onThumbarPlayPause: 'on',

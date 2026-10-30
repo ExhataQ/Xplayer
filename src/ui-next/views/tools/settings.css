@@ -73,6 +73,7 @@
 }
 .settings-menu .tabs {
     min-width: max-content;
+    justify-content: center; /* the category tabs sit in the middle of the page, not against the left edge */
 }
 
 @media (prefers-reduced-motion: no-preference) {

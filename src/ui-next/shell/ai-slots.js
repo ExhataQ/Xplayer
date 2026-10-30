@@ -35,6 +35,16 @@ const notifyAll = () => {
 export const getAiStatus = () => status;
 export const aiEnabled = () => Boolean(status.enabled && (status.privacyAccepted ?? true));
 export const hasAiChat = () => Boolean(chat);
+/** True when a button that hands work to the AI should be shown: the chat is registered and AI is on. */
+export const aiAvailable = () => hasAiChat() && aiEnabled();
+/**
+ * For other screens (contextual buttons): opens the chat with `text` in the box, or sends it at once with `send`. `songs` (ids) are
+ * the songs the request is about; they count as selected for that one request, on top of the real selection.
+ */
+export function askAi(text, { send = false, songs = null } = {}) {
+    if (typeof commands.ask === 'function') commands.ask(text, { send, songs });
+    else openAiChat();
+}
 export const getAiCommands = () => commands;
 export const watchAiStatus = (fn) => (listeners.add(fn), () => listeners.delete(fn));
 

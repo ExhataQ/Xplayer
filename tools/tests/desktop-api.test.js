@@ -68,7 +68,7 @@ test('preload: every flat name is in exactly one group, and the group call uses 
     for (const g of GROUPS) assert.equal(typeof api[g], 'object', `electronAPI.${g}`);
     const inGroups = GROUPS.flatMap((g) => Object.keys(api[g]).map((n) => [g, n]));
     const names = inGroups.map(([, n]) => n);
-    assert.deepEqual([...names].sort(), ORIGINAL_FLAT_NAMES.concat(['welcomeSelectFolder', 'getStartupSongs', 'readAudioBytes', 'getWaveformPeaks', 'setWaveformPeaks', 'getPathForFile', 'cancelDownload', 'cancelCoverSearch', 'getUiChoice', 'setUiChoice', 'findTagsMany', 'cancelFindTags', 'onFindTagsProgress', ...AI_NAMES]).sort(), 'groups cover every old name, plus welcomeSelectFolder, getStartupSongs, readAudioBytes, the two saved-peaks calls (PC-03), getPathForFile (the path of a dropped file, PA-15), the two cancel calls (D41), the two interface-choice calls (Phase 4) and the ai group (Polish 1, Agent E)');
+    assert.deepEqual([...names].sort(), ORIGINAL_FLAT_NAMES.concat(['welcomeSelectFolder', 'getStartupSongs', 'readAudioBytes', 'getWaveformPeaks', 'setWaveformPeaks', 'getPathForFile', 'cancelDownload', 'cancelCoverSearch', 'getUiChoice', 'setUiChoice', 'openToolWindow', 'onToolWindowSong', 'findTagsMany', 'cancelFindTags', 'onFindTagsProgress', ...AI_NAMES]).sort(), 'groups cover every old name, plus welcomeSelectFolder, getStartupSongs, readAudioBytes, the two saved-peaks calls (PC-03), getPathForFile (the path of a dropped file, PA-15), the two cancel calls (D41), the two interface-choice calls (Phase 4) and the ai group (Polish 1, Agent E)');
     assert.equal(new Set(names).size, names.length, 'no name in two groups');
     for (const [g, n] of inGroups) {
         if (n === 'getPathForFile') continue; // answers from the page's own File object, no ipc call (tested below)
@@ -99,7 +99,7 @@ const ORIGINAL_CHANNELS = {
     saveAudioMetadata: ['invoke', 'save-audio-metadata'], saveAudioMetadataMany: ['invoke', 'save-audio-metadata-many'], exportAudioMetadataJson: ['invoke', 'export-audio-metadata-json'],
     importAudioMetadataJson: ['invoke', 'import-audio-metadata-json'], onThumbarPrev: ['on', 'thumbar-prev'],
     onThumbarPlayPause: ['on', 'thumbar-playpause'], onThumbarNext: ['on', 'thumbar-next'],
-    onWindowMaximize: ['on', 'window-maximized'], onScanCoverBatch: ['on', 'scan-cover-batch'],
+    onWindowMaximize: ['on', 'window-maximized'], onScanCoverBatch: ['on', 'scan-cover-batch'], openToolWindow: ['invoke', 'open-tool-window'], onToolWindowSong: ['on', 'tool-window:song'],
     onScanCoversComplete: ['on', 'scan-covers-complete'], updateThumbarPlayState: ['send', 'update-thumbar-state']
 };
 

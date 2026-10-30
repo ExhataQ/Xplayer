@@ -295,7 +295,7 @@ export function renderSyncEditor() {
                 <div>
                     <div class="sync-editor-title">Sync Editor</div>
                     <div class="sync-editor-song">${escapeHtml(song ? song.title : 'Unknown')} — ${escapeHtml(
-        song ? song.artist : 'Unknown Artist'
+        (song && song.artist) || 'Unknown Artist'
     )}</div>
                 </div>
                 <button class="sync-editor-close" data-action="attemptCancelSyncEditor" aria-label="Close">

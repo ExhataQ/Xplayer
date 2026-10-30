@@ -103,6 +103,25 @@ export function attachSongList(host, { toolbar = false } = {}) {
     const barCount = el('span', { class: 'songlist-bar__count' });
     const listTools = toolbar ? createListToolbar() : null;
     const bar = el('div', { class: 'songlist-bar' }, barCover, el('div', { class: 'songlist-bar__text' }, barLabel, el('div', { class: 'songlist-bar__line' }, barTitle, barCount)), listTools ? listTools.el : '');
+    // The hero title stays on one line and gets smaller as its room shrinks, as the old screen did (adjustHeroTitleSize in js/core/01-sizes.js).
+    // The largest size that fits is used, never below TITLE_MIN; at that size a longer name is cut with an ellipsis.
+    const TITLE_MAX = 56;
+    const TITLE_MIN = 24;
+    let fittedFor = '';
+    function fitTitle() {
+        const room = barTitle.parentElement.clientWidth;
+        const key = `${barTitle.textContent}|${room}|${bar.dataset.kind}`;
+        if (key === fittedFor) return;
+        fittedFor = key;
+        if (!room || !bar.dataset.kind) return void barTitle.style.removeProperty('font-size');
+        barTitle.style.fontSize = `${TITLE_MAX}px`;
+        const natural = barTitle.scrollWidth; // the text's width at the largest size
+        const size = natural <= room ? TITLE_MAX : Math.max(TITLE_MIN, Math.floor((TITLE_MAX * room) / natural));
+        barTitle.style.fontSize = `${size}px`;
+    }
+    const titleObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(fitTitle) : null;
+    if (titleObserver) titleObserver.observe(barTitle.parentElement);
+
     let lastView = '';
     function paintBar() {
         const view = currentSongView();
@@ -118,6 +137,7 @@ export function attachSongList(host, { toolbar = false } = {}) {
         barCover.replaceChildren(...(cover ? [cover] : []));
         barTitle.textContent = listTitle(host);
         barCount.textContent = `${n} ${n === 1 ? 'song' : 'songs'}`;
+        fitTitle();
         if (listTools) {
             if (view !== lastView) listTools.reset();
             else listTools.update();
@@ -198,11 +218,23 @@ export function attachSongList(host, { toolbar = false } = {}) {
         resizer.setAttribute('aria-valuenow', String(Math.round(state.share * 100)));
     }
 
+    // The header's bottom line continues across the scrollbar's width, up to the panel's wall (a piece outside the scroller, see song-list.css).
+    const edge = el('div', { class: 'songlist-head-edge', 'aria-hidden': 'true', hidden: '' });
+    function placeEdge() {
+        const node = content();
+        const wrapper = node && node.parentElement;
+        const bar = node ? node.offsetWidth - node.clientWidth : 0;
+        edge.hidden = !wrapper || header.hidden || bar <= 0;
+        if (edge.hidden) return;
+        edge.style.width = `${bar}px`;
+        edge.style.top = `${Math.round(header.getBoundingClientRect().bottom - wrapper.getBoundingClientRect().top) - 1}px`;
+    }
     function measureScrollbar() {
         const node = content();
         if (!node) return;
         host.style.setProperty('--sl-scrollbar', `${Math.max(0, node.offsetWidth - node.clientWidth)}px`);
         placeResizer();
+        placeEdge();
     }
 
     let lastHeight = 0;
@@ -325,6 +357,17 @@ export function attachSongList(host, { toolbar = false } = {}) {
         host.insertBefore(bar, wrapper || host.firstChild);
         host.insertBefore(header, wrapper || host.firstChild);
     }
+    if (scroller && scroller.parentElement) scroller.parentElement.insertBefore(edge, scroller); // before the scroller: its scrollbar paints over the piece
+    let edgeQueued = false;
+    const onScroll = () => {
+        if (edgeQueued) return;
+        edgeQueued = true;
+        requestAnimationFrame(() => {
+            edgeQueued = false;
+            placeEdge();
+        });
+    };
+    if (scroller) scroller.addEventListener('scroll', onScroll, { passive: true });
     paint();
     showForView(currentSongView());
     const unsubscribeView = onSongViewChange(showForView);
@@ -362,7 +405,10 @@ export function attachSongList(host, { toolbar = false } = {}) {
             unsubscribeTitle();
             unsubscribeCover();
             observer.disconnect();
+            if (scroller) scroller.removeEventListener('scroll', onScroll);
+            edge.remove();
             countObserver.disconnect();
+            if (titleObserver) titleObserver.disconnect();
             if (listTools) listTools.destroy();
             bar.remove();
             header.remove();

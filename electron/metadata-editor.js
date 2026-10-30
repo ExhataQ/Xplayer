@@ -82,4 +82,12 @@ const { getAudioMetadata, saveAudioMetadata, saveAudioCover } = createTagBackend
     python,
     mode: process.env.XPLAYER_TAG_BACKEND
 });
-module.exports = { getAudioMetadata, saveAudioMetadata, saveAudioCover, createPythonRunner, fileUrlToPath };
+// The first read of a session loads the tag library (a large package): done a few seconds after start, in the background, so the first time the
+// Metadata editor opens it does not wait for that. A missing package is not an error here: the read falls back to Python as before.
+function warmUpTagBackend() {
+    return Promise.resolve()
+        .then(() => require('./tag-lib-adapter').loadLibrary())
+        .catch(() => {});
+}
+
+module.exports = { getAudioMetadata, saveAudioMetadata, saveAudioCover, createPythonRunner, fileUrlToPath, warmUpTagBackend };

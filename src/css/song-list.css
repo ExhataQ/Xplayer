@@ -777,6 +777,14 @@ body.in-lyrics-view #active-hover-styles-set {
     background: var(--bg-modal);
 }
 
+/* PA-19 (--bp-short-height 720px): a short window gives the list the height. */
+@media (max-height: 720px) {
+    .playlist-hero-cover {
+        width: 96px;
+        height: 96px;
+    }
+}
+
 .playlist-hero-cover svg {
     width: 100%;
     height: 100%;

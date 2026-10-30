@@ -11,9 +11,10 @@
 import { tabs, el } from '../../components/index.js';
 import { adoptLyricsEditors } from '../../adapter/engine-view.js';
 import { isPlaying } from '../../adapter/store.js';
-import { mountAiLyricsBar } from '../../shell/ai-slots.js';
 import { notifyProgress, openNotificationTarget } from '../../shell/notify.js';
 import { createFinderNotice } from './lyrics-finder-notice.js';
+import { mountManySongs } from './lyrics-many.js';
+import { inToolWindow, toolWindowButton } from '../../shell/tool-popout.js';
 import { confirmDialogOpen, engineAction, engineConfirm, engineEvent, engineView, lyricsEditorDirty, lyricsEditors, nowPlaying, watchLyricsEditors } from '../../adapter/engine-api.js';
 
 const MODE_OF_VIEW = { 'online-lyrics': 'find', 'smart-lyrics': 'batch' };
@@ -112,17 +113,33 @@ export function mountLyricsModes(host, options = {}) {
     watchFinder();
     stop();
     host.querySelector(':scope > .lyrics-bar')?.remove();
+    host.querySelector(':scope > .lyrics-many-host')?.remove();
+    engineAction('setSmartLyricsExternalView', true); // the Batch page is drawn here (lyrics-many.js), so the engine must not draw its own
 
-    const title = el('span', { class: 'lyrics-bar__title', dir: 'auto' });
-    const artist = el('span', { class: 'lyrics-bar__artist', dir: 'auto' });
+    // The tabs sit in the middle of the bar; the song's name is not repeated here (the player and the right panel show it).
     const modes = tabs({
         label: 'Lyrics mode',
-        items: [{ id: 'find', label: 'Find' }, { id: 'batch', label: 'Many songs' }, { id: 'write', label: 'Write' }, { id: 'sync', label: 'Sync' }],
+        items: [{ id: 'find', label: 'Find' }, { id: 'batch', label: 'Batch' }, { id: 'write', label: 'Write' }, { id: 'sync', label: 'Sync' }],
         value: 'find',
         onChange: (mode) => go(mode)
     });
-    const bar = el('div', { class: 'lyrics-bar' }, el('div', { class: 'lyrics-bar__song' }, title, artist), el('div', { class: 'lyrics-bar__modes' }, modes.el));
-    mountAiLyricsBar(bar); // Agent E: the Translate controls (original / translated, translate now, auto-translate); nothing when AI is not set up
+    // Sync apart from the main page, next to the player (shown on the Sync tab). The editor here is closed first.
+    const windowButton = toolWindowButton('sync', (open) => whenClosed(closeEditors(), open));
+    windowButton.hidden = true;
+    const bar = el('div', { class: 'lyrics-bar' }, el('div', { class: 'lyrics-bar__modes' }, modes.el), windowButton);
+    let many = null; // { node, stop } while the Batch tab is showing
+
+    function showMany(on) {
+        if (on && !many) {
+            const node = el('div', { class: 'lyrics-many-host' });
+            host.append(node);
+            many = { node, stop: mountManySongs(node) };
+        } else if (!on && many) {
+            many.stop();
+            many.node.remove();
+            many = null;
+        }
+    }
 
     // Leaves an open editor (asking first when something would be lost), then opens `mode`. Does not open it when the person chose to keep
     // editing. The sync editor asks with the engine's own dialog, which answers later: the tab opens when the answer is Discard.
@@ -143,12 +160,12 @@ export function mountLyricsModes(host, options = {}) {
         const editors = lyricsEditors();
         const view = engineView();
         const mode = editors.sync ? 'sync' : editors.write ? 'write' : MODE_OF_VIEW[view] || '';
-        title.textContent = song ? song.title : '';
-        artist.textContent = song ? song.artist : '';
         for (const id of ['write', 'sync']) modes.setDisabled(id, !song && !editors[id]);
         if (mode) modes.setValue(mode);
         else for (const tab of modes.el.querySelectorAll('.tab')) tab.setAttribute('aria-selected', 'false');
         host.dataset.lyricsMode = mode || view;
+        showMany(mode === 'batch');
+        windowButton.hidden = mode !== 'sync' || inToolWindow();
         host.dataset.playing = String(isPlaying()); // the sync editor's play button is drawn by CSS from this
     }
 
@@ -157,6 +174,7 @@ export function mountLyricsModes(host, options = {}) {
     offs.push(watchLyricsEditors(live));
     stop = () => {
         for (const off of offs) off();
+        showMany(false);
         stop = () => {};
     };
     host.prepend(bar);

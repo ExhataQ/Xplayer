@@ -14,6 +14,9 @@
     justify-content: space-between;
     gap: var(--space-3) var(--space-6);
 }
+.appearance__row[hidden] {
+    display: none;
+}
 .appearance__label {
     min-width: 180px;
 }
@@ -114,35 +117,63 @@
 .panel-host {
     position: relative;
 }
+/* Both panels' handles look alike: the right panel's (shell/shell.css .right-resizer), mirrored here because this one sits on the right wall. */
 .panel-resizer {
     position: absolute;
     top: 0;
-    right: 0;
+    right: -6px; /* flush bar: outside the panel's right border, in the main view's edge, so it never covers the list's scroll bar */
     bottom: 0;
-    width: 4px; /* it sits over the panel's right wall, where the list's scroll bar is: kept thin so the bar stays easy to grab (PB-05) */
-    z-index: 2;
+    width: 6px;
+    z-index: 3;
     cursor: col-resize;
     touch-action: none;
     -webkit-app-region: no-drag;
 }
-.panel-resizer::after {
+.panel-resizer:hover,
+.panel-resizer[data-dragging],
+.panel-resizer:focus-visible {
+    background: var(--accent-soft);
+    outline: none;
+}
+.panel-resizer:focus-visible {
+    box-shadow: inset 2px 0 0 var(--accent); /* the line hugs the panel's border */
+}
+:root[data-scrollbar-shape='bar'] .panel-host {
+    overflow: visible; /* the handle sticks out past the border; the panel's own body scrolls and clips its content */
+}
+.panel-resizer[hidden] {
+    display: none;
+}
+
+/* Standard scrollbar: both handles are the thin line the left panel had (4px to grab, a 2px accent line on hover, focus and drag).
+   The flush bar keeps the wider handle above. */
+:root[data-scrollbar-shape='standard'] :is(.panel-resizer, .right-resizer) {
+    width: 4px;
+}
+:root[data-scrollbar-shape='standard'] .panel-resizer {
+    right: 0; /* the thin line sits inside the border, as it always did */
+}
+:root[data-scrollbar-shape='standard'] :is(.panel-resizer, .right-resizer):is(:hover, :focus-visible, [data-dragging]) {
+    background: transparent;
+    box-shadow: none;
+}
+:root[data-scrollbar-shape='standard'] :is(.panel-resizer, .right-resizer)::after {
     content: '';
     position: absolute;
     top: 0;
     bottom: 0;
-    right: 0;
     width: 2px;
     background: transparent;
     transition: background-color var(--motion-fast) var(--motion-ease);
 }
-.panel-resizer:is(:hover, :focus-visible, [data-dragging])::after {
+:root[data-scrollbar-shape='standard'] .panel-resizer::after {
+    right: 0;
+}
+:root[data-scrollbar-shape='standard'] .right-resizer::after {
+    left: 0;
+}
+:root[data-scrollbar-shape='standard'] :is(.panel-resizer, .right-resizer):is(:hover, :focus-visible, [data-dragging])::after {
     background: var(--accent);
-}
-.panel-resizer:focus-visible {
-    outline: none;
-}
-.panel-resizer[hidden] {
-    display: none;
 }
 
 /* ---------- theme cards and the theme builder (Settings, Appearance) ---------- */
@@ -380,8 +411,8 @@
 }
 .designer__stage {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: var(--space-4) var(--space-6);
+    grid-template-columns: minmax(0, 1fr); /* the picture is wide enough to read, so the controls go under it */
+    gap: var(--space-4);
     align-items: start;
 }
 .designer__picture,
@@ -401,20 +432,27 @@
     font-size: var(--text-xs);
 }
 
-/* the picture: each region is drawn from the colors that part of the app will really have (--pv-* are set by theme-builder.js) */
+/* The picture: the real window drawn small, with the real proportions (title bar 36, rail 68, library panel 340, right panel 320, player
+   88, on a 1280 x 800 window), so every part is as big next to the others as it is in the app. Sizes are in cqw (a hundredth of the
+   picture's width: 12.8px in the real window). Each region is drawn from the colors that part of the app will really have (--pv-* are
+   set by theme-builder.js). */
 .designer__preview {
-    --pv-r: 3px;
+    --pv-r: 0.55cqw;
     --pv-ground: var(--surface-ground);
+    container-type: inline-size;
     display: grid;
-    grid-template-columns: 11% 22% minmax(0, 1fr) 25%;
-    grid-template-rows: 24px minmax(0, 1fr) 36px;
+    grid-template-columns: 68fr 340fr minmax(0, 552fr) 320fr;
+    grid-template-rows: 36fr 676fr 88fr;
     grid-template-areas:
         'titlebar titlebar titlebar titlebar'
         'rail left main right'
         'player player player player';
+    width: 100%;
+    max-width: 820px;
+    margin-inline: auto;
     aspect-ratio: 16 / 10;
     border: 1px solid var(--border-strong);
-    border-radius: calc(var(--pv-r) * 2 + 2px);
+    border-radius: 6px;
     background: var(--pv-ground);
     overflow: hidden;
 }
@@ -427,17 +465,19 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
+    align-items: stretch;
+    gap: 1cqw;
     min-width: 0;
     min-height: 0;
     margin: 0;
-    padding: 8px;
+    padding: 1.2cqw;
     border: 0;
-    border-radius: 0;
+    border-radius: 0; /* the real panels are plain rectangles */
     background: var(--pv-bg);
     color: var(--pv-ink);
     font: inherit;
+    font-size: 1.5cqw;
+    line-height: 1;
     text-align: start;
     cursor: pointer;
     overflow: hidden;
@@ -446,28 +486,33 @@
     grid-area: titlebar;
     flex-direction: row;
     align-items: center;
-    padding: 0 10px;
+    gap: 0.5cqw;
+    padding: 0 0 0 0.9cqw;
 }
 .designer__region--rail {
     grid-area: rail;
     align-items: center;
-    gap: 9px;
-    padding: 10px 0;
+    gap: 0.9cqw;
+    padding: 1cqw 0;
 }
 .designer__region--left {
     grid-area: left;
 }
 .designer__region--main {
     grid-area: main;
+    padding: 1.4cqw;
+    gap: 1.2cqw;
 }
 .designer__region--right {
     grid-area: right;
 }
 .designer__region--player {
     grid-area: player;
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.9fr) minmax(0, 1fr);
     align-items: center;
-    padding: 0 10px;
+    gap: 1.5cqw;
+    padding: 0 1.4cqw;
 }
 .designer__region[data-side='bottom'] {
     border-bottom: var(--pv-line-w) solid var(--pv-line);
@@ -499,7 +544,7 @@
     display: block;
     flex: none;
     width: 100%;
-    height: 4px;
+    height: 0.5cqw;
     border-radius: var(--radius-pill);
     background: color-mix(in srgb, currentColor 36%, transparent);
 }
@@ -508,7 +553,7 @@
 }
 .dv-line--title {
     width: 70%;
-    height: 5px;
+    height: 0.7cqw;
     background: color-mix(in srgb, currentColor 80%, transparent);
 }
 .dv-line--accent {
@@ -517,32 +562,47 @@
 .dv-box {
     display: block;
     flex: none;
-    width: 14px;
-    height: 14px;
+    width: 2cqw;
+    height: 2cqw;
     border-radius: var(--pv-r);
     background: color-mix(in srgb, currentColor 30%, transparent);
 }
 .dv-box--accent {
     background: var(--pv-accent);
 }
-.dv-box--small {
-    width: 13px;
-    height: 13px;
+.dv-box--rail {
+    width: 3.3cqw;
+    height: 3.3cqw;
 }
 .dv-box--tiny {
-    width: 7px;
-    height: 7px;
+    width: 1.1cqw;
+    height: 1.1cqw;
+}
+.dv-box--small {
+    width: 2.2cqw;
+    height: 2.2cqw;
+}
+.dv-box--cover {
+    width: 4.6cqw;
+    height: 4.6cqw;
+}
+.dv-box--round {
+    border-radius: var(--radius-pill);
 }
 .dv-dot {
     display: block;
     flex: none;
-    width: 10px;
-    height: 10px;
+    width: 1.4cqw;
+    height: 1.4cqw;
     border-radius: var(--radius-pill);
     background: color-mix(in srgb, currentColor 30%, transparent);
 }
 .dv-dot--accent {
     background: var(--pv-accent);
+}
+.dv-dot--play {
+    width: 3.2cqw;
+    height: 3.2cqw;
 }
 .dv-grow {
     flex: 1;
@@ -551,29 +611,31 @@
     display: flex;
     flex: 1;
     flex-direction: column;
-    gap: 3px;
+    gap: 0.5cqw;
     min-width: 0;
 }
 .dv-item,
 .dv-row {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 1cqw;
     width: 100%;
     min-width: 0;
+}
+.dv-item {
+    padding: 0.3cqw 0;
 }
 .dv-row > .dv-line {
     flex: 1 1 0;
     width: auto;
 }
 .dv-row > .dv-line--short {
-    flex-grow: 0.5;
+    flex-grow: 0.4;
 }
 .dv-row--on {
-    margin: -2px -3px;
-    padding: 2px 3px;
-    width: calc(100% + 6px);
-    border-radius: var(--pv-r);
+    margin: 0 -0.8cqw;
+    padding: 0.5cqw 0.8cqw;
+    width: calc(100% + 1.6cqw);
     background: color-mix(in srgb, var(--pv-accent) 16%, transparent);
 }
 .dv-cover {
@@ -584,20 +646,158 @@
     border-radius: var(--pv-r);
     background: color-mix(in srgb, currentColor 22%, transparent);
 }
-.dv-track {
+.dv-cover-pad {
     display: block;
     flex: none;
-    width: 34%;
-    height: 3px;
+    width: 100%;
+    padding: 1.2cqw 0 0; /* the big cover has more air above it, as in the app */
+    box-sizing: border-box;
+}
+.dv-track {
+    display: block;
+    flex: 1;
+    height: 0.45cqw;
     border-radius: var(--radius-pill);
     background: color-mix(in srgb, currentColor 26%, transparent);
     overflow: hidden;
+}
+.dv-track--volume {
+    flex: 1;
 }
 .dv-track-fill {
     display: block;
     width: 45%;
     height: 100%;
     background: var(--pv-accent);
+}
+/* title bar: the X mark, the buttons and the window controls */
+.dv-logo {
+    position: relative;
+    flex: none;
+    width: 2cqw;
+    height: 2cqw;
+    margin-right: 0.4cqw;
+    color: var(--pv-accent);
+}
+.dv-logo::before,
+.dv-logo::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -10%;
+    width: 120%;
+    height: 0.38cqw;
+    border-radius: var(--radius-pill);
+    background: currentColor;
+    transform: rotate(45deg);
+}
+.dv-logo::after {
+    transform: rotate(-45deg);
+}
+.dv-btn {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.2cqw;
+    height: 2.2cqw;
+    border-radius: var(--pv-r);
+    color: color-mix(in srgb, currentColor 70%, transparent);
+    font-size: 1.9cqw;
+    font-weight: 600;
+}
+.dv-btn--panel {
+    position: relative;
+}
+.dv-btn--panel::before {
+    content: '';
+    box-sizing: border-box;
+    width: 1.4cqw;
+    height: 1.2cqw;
+    border: 0.18cqw solid currentColor;
+    border-radius: 0.2cqw;
+    background: linear-gradient(to right, currentColor 0 35%, transparent 35%);
+}
+.dv-btn--panel-right::before {
+    background: linear-gradient(to left, currentColor 0 35%, transparent 35%);
+}
+.dv-win {
+    display: flex;
+    align-self: stretch;
+    margin-left: 0.6cqw;
+}
+.dv-win > span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.6cqw;
+    color: color-mix(in srgb, currentColor 75%, transparent);
+    font-size: 1.7cqw;
+}
+.dv-win__max::before {
+    content: '';
+    box-sizing: border-box;
+    width: 0.95cqw;
+    height: 0.95cqw;
+    border: 0.17cqw solid currentColor;
+}
+.dv-win__min::before {
+    content: '';
+    width: 1cqw;
+    height: 0.17cqw;
+    background: currentColor;
+}
+.dv-win__close::before,
+.dv-win__close::after {
+    content: '';
+    position: absolute;
+    width: 1.3cqw;
+    height: 0.17cqw;
+    background: currentColor;
+    transform: rotate(45deg);
+}
+.dv-win__close::after {
+    transform: rotate(-45deg);
+}
+.dv-win__close {
+    position: relative;
+}
+/* main view: the hero, the sub hero and a list */
+.dv-hero {
+    display: flex;
+    flex: none;
+    align-items: flex-end;
+    gap: 1.4cqw;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 1.6cqw;
+    border-radius: var(--pv-r);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--pv-accent) 38%, transparent), color-mix(in srgb, var(--pv-accent) 6%, transparent));
+}
+.dv-hero .dv-lines {
+    gap: 0.7cqw;
+}
+.dv-subhero {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1cqw;
+    width: 100%;
+    margin-top: 0.4cqw;
+}
+.dv-subhero .dv-line {
+    width: 28%;
+}
+.dv-subhero .dv-line--short {
+    width: 9%;
+}
+.dv-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9cqw;
+    width: 100%;
+    min-height: 0;
 }
 
 /* the tab pages */

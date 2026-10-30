@@ -24,6 +24,7 @@ function makeWorld({ failTagsFor = [] } = {}) {
         playlists: [],
         folders: [],
         playbackQueue: [],
+        currentQueueIndex: -1,
         currentOpenFolderId: null,
         events: [],
         queueSet: null,
@@ -45,7 +46,16 @@ function makeWorld({ failTagsFor = [] } = {}) {
             p.songs.push(songId);
             return true;
         },
-        removeSongFromPlaylist(songId, playlistId) { const p = w.playlists.find((x) => x.id === playlistId); if (p) p.songs = p.songs.filter((s) => s !== songId); },
+        removeSongFromPlaylist(songId, playlistId) {
+            const p = w.playlists.find((x) => x.id === playlistId);
+            if (!p || !p.songs.includes(songId)) return false;
+            p.songs = p.songs.filter((s) => s !== songId);
+            return true;
+        },
+        addSongToQueueNext(songId) {
+            const at = w.currentQueueIndex + 1;
+            w.playbackQueue = [...w.playbackQueue.slice(0, at), { song: w.SONGS_DATA.find((s) => s.id === songId), addedManually: true }, ...w.playbackQueue.slice(at)];
+        },
         createFolder(name) { const f = { id: `f${++seq}`, name, children: [] }; w.folders.unshift(f); return f; },
         deleteFolder(id) { w.folders = w.folders.filter((f) => f.id !== id); },
         addToFolder(folderId, itemId, type) {
@@ -101,23 +111,80 @@ async function load(world) {
     return import(`${BRIDGE}?t=${Math.random()}`);
 }
 
-test('bridge: collectSongs sends only the allowed fields (never url or cover) and can use the selection', async () => {
+test('bridge: collectSongs sends only the allowed fields (never url or cover), with the playing, selected and favorite flags', async () => {
     const { w } = makeWorld();
     w.SONGS_DATA[0].cover = 'data:image/png;base64,AAAA';
     const bridge = await load(w);
     const all = bridge.collectSongs(['title', 'genre']);
-    assert.deepEqual(all[0], { id: 1, duration: 100, favorite: false, playing: false, title: 'One', genre: 'Rock' });
-    assert.equal(all[1].favorite, true);
-    assert.equal(all.length, 3);
-    w.selectedSongIds = new Set([2]);
-    assert.deepEqual(bridge.collectSongs(['title'], { scope: 'selected' }).map((s) => s.id), [2]);
-    assert.equal(bridge.collectSongs(['title'], { scope: 'all' }).length, 3);
-    assert.equal('lyrics' in bridge.collectSongs(['title'])[0], false, 'lyrics are read only when asked for');
+    assert.deepEqual(all[0], { id: 1, duration: 100, favorite: false, playing: false, selected: false, title: 'One', genre: 'Rock' });
+    assert.equal(all.find((s) => s.id === 2).favorite, true);
+    assert.equal(all.length, 3, 'the whole library goes, whatever is selected or playing');
+    assert.equal('lyrics' in all[0], false, 'lyrics are read only when asked for');
+});
+
+test('bridge: the playing song, the queue, the selection and the playlist songs come first, and only they carry lyrics when the list is long', async () => {
+    const { w } = makeWorld();
+    w.SONGS_DATA.push(...Array.from({ length: 60 }, (_, i) => ({ id: 100 + i, title: `Filler ${i}`, duration: 10 })));
     w.getLyricsForSong = (song) => `words of ${song.id}`;
-    w.playbackQueue = [{ song: w.SONGS_DATA[2] }];
+    w.playbackQueue = [{ song: w.SONGS_DATA[2] }, { song: w.SONGS_DATA[0] }];
     w.currentQueueIndex = 0;
-    const now = bridge.collectSongs(['title'], { scope: 'now', includeLyrics: true });
-    assert.deepEqual(now.map((s) => [s.id, s.playing, s.lyrics]), [[3, true, 'words of 3']]);
+    w.selectedSongIds = new Set([2]);
+    w.playlists = [{ id: 'p1', name: 'Calm', songs: [130, 3] }];
+    const bridge = await load(w);
+    const list = bridge.collectSongs(['title'], { includeLyrics: true });
+    assert.deepEqual(list.slice(0, 5).map((s) => s.id), [3, 1, 2, 130, 100], 'playing, the rest of the queue, selected, playlist songs, then the library');
+    assert.deepEqual(list.slice(0, 3).map((s) => [s.playing, s.selected]), [[true, false], [false, false], [false, true]]);
+    assert.equal(list.length, 63);
+    assert.equal(list.filter((s) => s.lyrics).length, 40);
+    assert.equal(list[0].lyrics, 'words of 3');
+});
+
+test('bridge: collectContext gives the queue with the playing position, the playlists with their songs, and the folders with playlist names', async () => {
+    const { w } = makeWorld();
+    w.playbackQueue = [{ song: w.SONGS_DATA[1] }, { song: w.SONGS_DATA[2] }];
+    w.currentQueueIndex = 1;
+    w.playlists = [{ id: 'p1', name: 'Calm', songs: [1, 2] }, { id: 'p2', name: 'Loud', songs: [] }];
+    w.folders = [{ id: 'f1', name: 'Moods', children: [{ id: 'p1', type: 'playlist', shortcut: false }, { id: 'zzz', type: 'folder' }] }];
+    const bridge = await load(w);
+    assert.deepEqual(bridge.collectContext(), {
+        queue: [2, 3], queueIndex: 1,
+        playlists: [{ name: 'Calm', songs: [1, 2] }, { name: 'Loud', songs: [] }],
+        folders: [{ name: 'Moods', playlists: ['Calm'] }]
+    });
+    const calls = [];
+    w.desktopApi.ai.aiGetStatus = async () => ({ songFields: ['title'] });
+    w.desktopApi.ai.aiPlan = async (params) => (calls.push(params), { ok: true });
+    await bridge.plan({ request: 'what is queued?' });
+    assert.deepEqual(Object.keys(calls[0]).sort(), ['context', 'history', 'includeLyrics', 'request', 'songs', 'useWeb']);
+    assert.deepEqual(calls[0].context.queue, [2, 3]);
+    assert.equal(calls[0].songs.length, 3);
+});
+
+test('bridge: remove_from_playlist removes only what was there, and undo puts those songs back', async () => {
+    const { w, journal } = makeWorld();
+    w.playlists = [{ id: 'p1', name: 'Calm', songs: [1, 2] }];
+    const bridge = await load(w);
+    const done = await bridge.runPlan({ summary: 'tidy', actions: [{ type: 'remove_from_playlist', args: { playlist: 'calm', songs: [2, 3] } }] });
+    assert.equal(done.ok, true);
+    assert.deepEqual(w.playlists[0].songs, [1]);
+    assert.deepEqual(journal.get(done.entryId).changes[0].undo, { playlistId: 'p1', songIds: [2] }, 'song 3 was never in it, so it is not "restored"');
+    const back = await bridge.undoEntry(done.entryId);
+    assert.equal(back.ok, true);
+    assert.deepEqual(w.playlists[0].songs.sort(), [1, 2]);
+});
+
+test('bridge: play_next puts the songs right after the one playing, in the order given, and is not journaled', async () => {
+    const { w } = makeWorld();
+    w.playbackQueue = [{ song: w.SONGS_DATA[0] }, { song: w.SONGS_DATA[1] }];
+    w.currentQueueIndex = 0;
+    const bridge = await load(w);
+    const done = await bridge.runPlan({ summary: 'next', actions: [{ type: 'play_next', args: { songs: [3, 2] } }] });
+    assert.equal(done.ok, true);
+    assert.equal(done.entryId, null);
+    assert.deepEqual(w.playbackQueue.map((q) => q.song.id), [1, 3, 2, 2]);
+    const none = await bridge.runPlan({ summary: 'x', actions: [{ type: 'play_next', args: { songs: [99] } }] });
+    assert.equal(none.ok, false);
+    assert.match(none.failure.message, /None of those songs/);
 });
 
 test('bridge: a reorganize plan builds folders and playlists, and undo removes exactly what it made', async () => {
@@ -227,4 +294,18 @@ test('bridge: when one song cannot be written the others keep their undo data; w
     assert.equal(none.entryId, null);
     const gone = await bridge.runPlan({ summary: 'tags', actions: [{ type: 'set_tags', args: { songs: [99], tags: { genre: 'Pop' } } }] });
     assert.match(gone.failure.message, /None of those songs/);
+});
+
+test('bridge: songs a contextual button is about count as selected for that request, and come first', async () => {
+    const { w } = makeWorld();
+    const bridge = await load(w);
+    const list = bridge.collectSongs(['title'], { focus: [3, 2] });
+    assert.deepEqual(list.map((s) => [s.id, s.selected]), [[3, true], [2, true], [1, false]]);
+    assert.equal(w.selectedSongIds.size, 0, 'the real selection is not touched');
+    const calls = [];
+    w.desktopApi.ai.aiGetStatus = async () => ({ songFields: ['title'] });
+    w.desktopApi.ai.aiPlan = async (params) => (calls.push(params), { ok: true });
+    await bridge.plan({ request: 'fill tags', focus: [2] });
+    assert.equal(calls[0].songs[0].id, 2);
+    assert.equal(calls[0].songs[0].selected, true);
 });

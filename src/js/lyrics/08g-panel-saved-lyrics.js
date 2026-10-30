@@ -34,7 +34,7 @@ export function getSavedLyricsEntries() {
             text: String(text),
             song: song,
             title: song ? song.title : 'Unknown Track',
-            artist: song ? song.artist : 'Unknown Artist',
+            artist: (song && song.artist) || 'Unknown Artist',
             duration: song ? song.duration : '—',
             missing: !song
         });
@@ -101,7 +101,7 @@ export function openSavedLyricsViewer(key) {
     }
 
     const title = song ? song.title : 'Unknown Track';
-    const artist = song ? song.artist : 'Unknown Artist';
+    const artist = (song && song.artist) || 'Unknown Artist';
     const lyricsText = store[key];
 
     let overlay = document.getElementById('saved-lyrics-overlay');

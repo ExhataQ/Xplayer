@@ -4,6 +4,7 @@
 import { chipGroup, segmented, textField, iconButton, openMenu, el } from '../../components/index.js';
 import { setPanelRowHeight } from '../../adapter/songlist-bridge.js';
 import { getAppearance, watchAppearance } from '../../shell/appearance.js';
+import { aiAvailable, askAi } from '../../shell/ai-slots.js';
 import { showNewPlaylist, showNewFolder } from '../../adapter/menu-bridge.js';
 import { mountLibraryList, setLibraryView, libraryItemCount, openLibraryFolder, closeLibraryFolder, onLibraryChange, whenLibraryReady } from '../../adapter/library-bridge.js';
 
@@ -25,7 +26,9 @@ const SORTS = [
 // like the shuffle menu, and not another dialog.
 const createItems = () => [
     { label: 'New playlist', icon: 'list-music', onSelect: showNewPlaylist },
-    { label: 'New folder', icon: 'folder', onSelect: showNewFolder }
+    { label: 'New folder', icon: 'folder', onSelect: showNewFolder },
+    // Only when AI is on (PE-11): the chat opens with the start of a request, to finish in the person's words. Nothing is sent yet.
+    ...(aiAvailable() ? [{ type: 'separator' }, { label: 'Organize with AI…', icon: 'sparkles', onSelect: () => askAi('Organize my library into playlists and folders: ') }] : [])
 ];
 
 // The plus in the panel header (PB-06): the shell puts it in the header, for the Library only. It opens the menu under itself.

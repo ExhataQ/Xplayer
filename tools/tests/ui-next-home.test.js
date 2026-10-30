@@ -135,6 +135,27 @@ describe('home shelves', { concurrency: false }, () => {
         assert.equal(await page.locator('.shelf').count(), 0);
     });
 
+    test('PB-23: an empty Home offers the quick actions with a library, and one folder action with no music; with history it has shelves and no empty state', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page } = await open();
+        const draw = (data) =>
+            page.evaluate(async (d) => {
+                const { mountHome } = await import('./ui-next/views/home/home.js');
+                document.querySelector('.view-host').replaceChildren();
+                mountHome(document.querySelector('.view-host'), { read: () => d, actions: { newPlaylist: () => {}, playFromUrl: () => {}, askAi: null, folders: () => {} } });
+            }, data);
+        const labels = () => page.locator('.home .empty-state__actions button').allInnerTexts();
+        await draw({ songs: [], playlists: [], albums: fake('album', 2, { played: false }), artists: fake('artist', 1, { played: false }) });
+        assert.deepEqual(await labels(), ['New playlist', 'Play from URL'], 'AI is not offered when it is not there');
+        assert.match(await page.locator('.home .empty-state__text').innerText(), /2 albums · 1 artist · 0 playlists/);
+        await draw({ songs: [], playlists: [], albums: [], artists: [] });
+        assert.deepEqual(await labels(), ['Music folders']);
+        await draw({ songs: fake('song', 2), playlists: [], albums: [], artists: [] });
+        assert.equal(await page.locator('.home .empty-state').count(), 0, 'with history there is no empty state');
+        assert.ok((await page.locator('.shelf').count()) >= 1);
+        await page.close();
+    });
+
     test('with the real engine data: played songs, albums and artists get shelves, newest first', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open();

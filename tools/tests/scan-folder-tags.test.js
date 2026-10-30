@@ -115,7 +115,7 @@ test('scanSingleFile keeps full title/artist/album/genre/composer/albumArtist an
     assert.ok(song.artist.length > 30, 'artist should not have been cut at 30 chars');
 });
 
-test('scanMultipleFiles falls back to filename/"Unknown Artist" when tags are missing, without truncating the filename', async () => {
+test('scanMultipleFiles falls back to the file name for the title and leaves artist and album empty, without truncating the filename', async () => {
     const mm = { parseFile: async () => { throw new Error('no tags'); } };
     const os2 = require('os');
     const longName = 'A'.repeat(80);
@@ -125,7 +125,8 @@ test('scanMultipleFiles falls back to filename/"Unknown Artist" when tags are mi
         const songs = await scanMultipleFiles([filePath], path.join(os2.tmpdir(), 'fake-covers'), mm);
         assert.equal(songs.length, 1);
         assert.equal(songs[0].title, longName);
-        assert.equal(songs[0].artist, 'Unknown Artist');
+        assert.equal(songs[0].artist, '', 'the screens show "Unknown Artist"; the scan does not save it as text');
+        assert.equal(songs[0].album, '', 'the folder name is not an album');
     } finally {
         require('fs').unlinkSync(filePath);
     }

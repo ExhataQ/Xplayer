@@ -475,7 +475,8 @@ const TAG_BUILD_PROFILES = Object.freeze({
         sampleDurationFallback: false,
         sanitizeUrlControls: false,
         includeCover: true,
-        ensureCoversFolder: false
+        ensureCoversFolder: false,
+        recordFileStat: false
     }),
     FULL: Object.freeze({
         nativeFallbacks: true,
@@ -483,7 +484,8 @@ const TAG_BUILD_PROFILES = Object.freeze({
         sampleDurationFallback: true,
         sanitizeUrlControls: true,
         includeCover: true,
-        ensureCoversFolder: false
+        ensureCoversFolder: false,
+        recordFileStat: false
     }),
     FAST: Object.freeze({
         nativeFallbacks: true,
@@ -491,7 +493,8 @@ const TAG_BUILD_PROFILES = Object.freeze({
         sampleDurationFallback: true,
         sanitizeUrlControls: true,
         includeCover: false,
-        ensureCoversFolder: false
+        ensureCoversFolder: false,
+        recordFileStat: true
     }),
     SINGLE: Object.freeze({
         nativeFallbacks: true,
@@ -499,9 +502,28 @@ const TAG_BUILD_PROFILES = Object.freeze({
         sampleDurationFallback: true,
         sanitizeUrlControls: true,
         includeCover: true,
-        ensureCoversFolder: true
+        ensureCoversFolder: true,
+        recordFileStat: true
     })
 });
+
+// The address a song is saved under. buildSongFromTags and the scan cache (fast-scan.js) must build it the same way.
+function songUrlForPath(filePath, sanitizeUrlControls = true) {
+    let cleanPath = String(filePath).replace(/\\/g, '/');
+    if (sanitizeUrlControls) cleanPath = cleanPath.replace(/[\x00-\x1F\x7F]/g, '');
+    return 'file:///' + cleanPath;
+}
+
+// Raise this whenever the scanner starts saving different values for the same file (a new fallback rule, a new field the screens need).
+// Every song saved under an older number is then read again by the next scan, once, instead of keeping the old values forever.
+// 2: a missing artist or album is saved empty (it used to be the text "Unknown Artist" and the folder name), and missingTags is saved.
+const SCAN_FORMAT = 2;
+
+// What says "this file is as it was when it was scanned, by this version of the scanner": its size and modified time in whole
+// milliseconds, and the scan format.
+function fileStamp(stat) {
+    return { size: stat.size, mtimeMs: Math.floor(stat.mtimeMs), scanFormat: SCAN_FORMAT };
+}
 
 async function buildCoverFromMetadata(metadata, coversFolder, Jimp, profile = TAG_BUILD_PROFILES.FULL) {
     const common = metadata.common || {};
@@ -526,7 +548,9 @@ async function buildCoverFromMetadata(metadata, coversFolder, Jimp, profile = TA
     return { cover: thumbRel || largeCover, largeCover };
 }
 
-async function buildSongFromTags({ filePath, metadata, coversFolder, id = 0, profile = TAG_BUILD_PROFILES.FULL, Jimp = null }) {
+// fileStat: the fs.Stats of the file when the caller already has it; undefined reads it here (only for profiles that record a stamp);
+// null saves the song without a stamp, so the next scan reads the file again (used when the file could not be parsed).
+async function buildSongFromTags({ filePath, metadata, coversFolder, id = 0, profile = TAG_BUILD_PROFILES.FULL, Jimp = null, fileStat }) {
     const fileName = path.basename(filePath, path.extname(filePath));
     const common = metadata && metadata.common ? metadata.common : {};
     const format = metadata && metadata.format ? metadata.format : {};
@@ -534,7 +558,7 @@ async function buildSongFromTags({ filePath, metadata, coversFolder, id = 0, pro
 
     let title = common.title || nativeTags.title || '';
     let artist = common.artist || nativeTags.artist || '';
-    let album = common.album || nativeTags.album || path.basename(path.dirname(filePath));
+    let album = common.album || nativeTags.album || '';
     let composer = (Array.isArray(common.composer) ? common.composer[0] : common.composer) || nativeTags.composer || '';
     let genre = Array.isArray(common.genre) && common.genre.length > 0
         ? common.genre[0]
@@ -550,8 +574,19 @@ async function buildSongFromTags({ filePath, metadata, coversFolder, id = 0, pro
         if (seconds > 0) duration = formatDuration(Math.round(seconds));
     }
 
-    if (!title) title = fileName;
-    if (!artist) artist = 'Unknown Artist';
+    // A tag that is not in the file is saved empty and the screens show their own "Unknown ..." wording (task PM-01).
+    // The title falls back to the file name because a list row cannot be blank. The album does not fall back to the folder name: a folder is not an album.
+    // missingTags remembers what was missing, because a title taken from the file name cannot be told from a real one afterwards.
+    const missingTags = [];
+    let titleText = sanitizeString(title);
+    if (!titleText) {
+        missingTags.push('title');
+        titleText = sanitizeString(fileName);
+    }
+    const artistText = sanitizeString(artist);
+    if (!artistText) missingTags.push('artist');
+    const albumText = sanitizeString(album);
+    if (!albumText) missingTags.push('album');
     composer = String(composer);
     genre = String(genre);
 
@@ -566,19 +601,27 @@ async function buildSongFromTags({ filePath, metadata, coversFolder, id = 0, pro
         }
     }
 
-    let cleanPath = filePath.replace(/\\/g, '/');
-    if (profile.sanitizeUrlControls) cleanPath = cleanPath.replace(/[\x00-\x1F\x7F]/g, '');
+    let stamp = {};
+    if (profile.recordFileStat && fileStat !== null) {
+        try {
+            stamp = fileStamp(fileStat || fs.statSync(filePath));
+        } catch (e) {
+            // Intentionally silent: a file that cannot be read is saved without a stamp, so the next scan parses it again.
+        }
+    }
 
     return {
         id,
-        title: sanitizeString(title),
-        artist: sanitizeString(artist),
-        album: sanitizeString(album),
+        title: titleText,
+        artist: artistText,
+        album: albumText,
         composer: sanitizeString(composer),
         genre: sanitizeString(genre),
         year: sanitizeString(year),
         track: sanitizeString(track),
-        url: 'file:///' + cleanPath,
+        url: songUrlForPath(filePath, profile.sanitizeUrlControls),
+        ...stamp,
+        ...(missingTags.length > 0 ? { missingTags } : {}),
         cover,
         largeCover,
         duration,
@@ -590,8 +633,19 @@ async function buildSongFromTags({ filePath, metadata, coversFolder, id = 0, pro
     };
 }
 
+// After a tag edit saved new values (the same fields main.js copies onto the saved song): a tag that now has a value is no longer missing.
+function refreshMissingTags(song, metadata) {
+    if (!song || !Array.isArray(song.missingTags)) return;
+    song.missingTags = song.missingTags.filter((key) => !(metadata && key in metadata && String(metadata[key] == null ? '' : metadata[key]).trim() !== ''));
+    if (song.missingTags.length === 0) delete song.missingTags;
+}
+
 module.exports = {
+    refreshMissingTags,
     TAG_BUILD_PROFILES,
+    songUrlForPath,
+    fileStamp,
+    SCAN_FORMAT,
     buildSongFromTags,
     buildCoverFromMetadata,
     logCoverError,

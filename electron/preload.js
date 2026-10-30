@@ -13,6 +13,9 @@ const groups = {
         focusWindow: () => ipcRenderer.send('focus-window'),
         getUiChoice: () => ipcRenderer.invoke('get-ui-choice'),
         setUiChoice: (choice) => ipcRenderer.invoke('set-ui-choice', choice),
+        // The Metadata editor or the Sync tool in a window of its own (electron/window-manager.js).
+        openToolWindow: (tool, songId) => ipcRenderer.invoke('open-tool-window', tool, songId),
+        onToolWindowSong: (cb) => ipcRenderer.on('tool-window:song', (event, songId) => cb(songId)),
         updateThumbarPlayState: (isPlaying) => ipcRenderer.send('update-thumbar-state', isPlaying),
         onThumbarPrev: (cb) => ipcRenderer.on('thumbar-prev', () => cb()),
         onThumbarPlayPause: (cb) => ipcRenderer.on('thumbar-playpause', () => cb()),

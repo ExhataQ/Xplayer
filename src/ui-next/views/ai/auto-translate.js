@@ -3,7 +3,7 @@
 // that language. Each translation is one or more requests against the free daily limit, so the setting says so.
 
 import { getStatus, currentLyrics } from '../../adapter/ai-bridge.js';
-import { translationState, onSongChanged } from '../../adapter/ai-lyrics.js';
+import { translationPair, onSongChanged } from '../../adapter/ai-lyrics.js';
 import { notify } from '../../shell/notify.js';
 import { translateSong } from './translate-flow.js';
 import { explain } from './ai-messages.js';
@@ -17,8 +17,8 @@ async function run(songId) {
     if (!status || !status.enabled || !status.hasKey || !status.privacyAccepted || !status.autoTranslate || !status.translateLanguage) return;
     const song = currentLyrics();
     if (!song || song.id !== songId || !song.lyrics) return;
-    const have = translationState(song);
-    if (have.has && have.language.toLowerCase() === status.translateLanguage.toLowerCase()) return;
+    const have = translationPair(song);
+    if (have && have.language.toLowerCase() === status.translateLanguage.toLowerCase()) return;
     const result = await translateSong(song, status.translateLanguage);
     if (result.ok || told.has(result.error) || result.error === 'busy') return;
     told.add(result.error); // one notice per kind of problem, not one per song

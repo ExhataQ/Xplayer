@@ -9,7 +9,8 @@
 //
 // Save, Cancel and Back are the engine's: it closes the editor and the shell goes back to the view the person came from.
 
-import { el, emptyState, segmented } from '../../components/index.js';
+import { el, emptyState, iconButton, tabs } from '../../components/index.js';
+import { inToolWindow, toolWindowButton } from '../../shell/tool-popout.js';
 import { engineAction, engineConfirm, engineEvent, metadataEditor, nowPlaying } from '../../adapter/engine-api.js';
 import { discardTagSheet, mountTagSheet, tagSheetDirty } from './tag-sheet.js';
 import { openSongInfo } from './song-info.js';
@@ -24,8 +25,13 @@ export function mountMetadata(host, options = {}) {
     host.querySelector(':scope > .metadata-mode')?.remove();
     host.querySelector(':scope > .tag-sheet-host')?.remove();
     const sheetHost = el('div', { class: 'tag-sheet-host' });
-    const modeSwitch = segmented({ label: 'Edit', value: mode, items: [{ value: 'one', label: 'One song' }, { value: 'many', label: 'Many songs' }], onChange: (next) => setMode(next) });
-    host.prepend(el('div', { class: 'metadata-mode' }, modeSwitch.el, el('button', { type: 'button', class: 'metadata-mode__info', title: 'Track information for the playing song', onclick: () => openSongInfo() }, 'Info')));
+    // The editor in a window of its own, next to the player. This window's editor is closed first (asking about unsaved changes), so the
+    // same song is never edited in two places.
+    const windowButton = toolWindowButton('metadata', (open) => leaveMetadata() && open());
+    // The same bar as the Lyrics tool: tabs in the middle (views/tools/lyrics.js), the two small buttons beside them.
+    const modeSwitch = tabs({ label: 'Edit', value: mode, items: [{ id: 'one', label: 'One song' }, { id: 'many', label: 'Many songs' }], onChange: (next) => setMode(next) });
+    const infoButton = iconButton({ icon: 'info', label: 'Track information for the playing song', size: 'sm', onClick: () => openSongInfo() });
+    host.prepend(el('div', { class: 'metadata-mode' }, modeSwitch.el, infoButton, inToolWindow() ? null : windowButton));
     host.append(sheetHost);
     const setMode = (next) => {
         if (next === 'many' && metadataEditor().dirty && !engineConfirm('Discard unsaved metadata changes?')) return modeSwitch.setValue('one');

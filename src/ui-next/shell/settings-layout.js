@@ -8,7 +8,7 @@
 import { el, tabs } from '../components/index.js';
 
 export const SETTINGS_GROUPS = [
-    { id: 'general', label: 'General', icon: 'sliders-horizontal', summary: 'Appearance, window and startup screen', titles: ['Appearance', 'Window', 'Interface', 'Startup screen'] },
+    { id: 'general', label: 'General', icon: 'sliders-horizontal', summary: 'Appearance, window and startup screen', titles: ['Appearance', 'Scrollbar', 'Window', 'Interface', 'Startup screen'] },
     { id: 'playback', label: 'Playback', icon: 'volume-2', summary: 'Crossfade, fades, volume levelling, waveform and Smart Shuffle', titles: ['Playback', 'Player bar', 'Smart Shuffle'] },
     { id: 'library', label: 'Library', icon: 'folder', summary: 'Music folders and where downloads are saved', titles: ['Music Library', 'Play from URL'] },
     { id: 'ai', label: 'AI', icon: 'sparkles', summary: 'Assistant, provider and privacy', titles: ['AI'] },
@@ -94,7 +94,7 @@ export function layoutSettings(host) {
     head.append(el('div', { class: 'settings-head__text' }, title, sub));
 
     // The menu bar: one tab per group. A tab carries data-page so a test or a shortcut can reach it by group id.
-    const menu = tabs({ label: 'Settings sections', items: present.map((g) => ({ id: g.id, label: g.label, icon: g.icon })), value: present[0].id, onChange: (id) => show(id) });
+    const menu = tabs({ label: 'Settings sections', items: present.map((g) => ({ id: g.id, label: g.label })), value: present[0].id, onChange: (id) => show(id) });
     for (const node of menu.el.querySelectorAll('.tab')) node.dataset.page = node.dataset.id;
     const bar = el('div', { class: 'settings-menu' }, menu.el);
     head.after(bar);

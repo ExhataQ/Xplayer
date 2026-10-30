@@ -9,6 +9,7 @@ import { refreshStatus } from './ai-state.js';
 import { explain } from './ai-messages.js';
 
 const AUTO = 'openrouter/free';
+export const AUTO_MODEL = AUTO;
 let cache = null; // models loaded this session
 let loading = null;
 const pickers = new Set(); // repaint functions of the pickers on the page
@@ -36,6 +37,9 @@ export function loadModels({ freeOnly = true, force = false } = {}) {
     }
     return loading;
 }
+
+/** The models loaded this session, or null before the first load. */
+export const cachedModels = () => cache;
 
 export function createModelPicker({ label = 'Model', compact = false } = {}) {
     const id = `ai-model-${Math.random().toString(36).slice(2, 8)}`;

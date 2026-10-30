@@ -1,41 +1,47 @@
-// The AI chat (task PE-10): a standard chat box. The conversation is above, the box to type in is at the bottom with the model
-// choice next to it, and the assistant either answers in words or proposes a plan (Apply / Discard) when asked for a change.
+// The AI chat (task PE-10): a standard chat box. The conversation is above. Below it is one box to type in: ready-made messages along
+// its top, the text in the middle, and along its bottom the model (a small window), the mode (Low, Medium, High), the options and the
+// Send button. The assistant sees everything at once, with every request: the whole library (the song playing, the queue and the
+// selected songs first), the queue, the playlists and the folders. It either answers in words or proposes a plan (Apply / Discard).
 // Nothing runs without the preview and the Apply button. It is shown in two shapes (a small window and the big view) by
 // shell/ai-slots.js; the conversation and any request that is still running live in this module, so they survive switching views,
-// closing the window and coming back.
+// minimizing the window and coming back.
 
-import { el, button, iconButton, chip, segmented, textField, emptyState } from '../../components/index.js';
-import { getStatus, plan, cancel, selectedCount, hasPlayingSong, playingSong } from '../../adapter/ai-bridge.js';
+import { el, iconEl, button, iconButton, emptyState } from '../../components/index.js';
+import { getStatus, plan, cancel } from '../../adapter/ai-bridge.js';
 import { openAiSettings, openAiChat, openAiPanel, openAiQueue } from '../../shell/ai-slots.js';
 import { notify } from '../../shell/notify.js';
 import { explain, needsSettings } from './ai-messages.js';
 import { planPreview } from './plan-preview.js';
 import { applyPlan } from './apply-plan.js';
 import { askPrivacy } from './privacy-dialog.js';
-import { createModelPicker } from './model-picker.js';
+import { createModelPopover } from './model-popover.js';
+import { createModeButton, createOptionsButton, modeInfo } from './composer-controls.js';
+import { QUICK_PROMPTS } from './quick-prompts.js';
 import { createLimitsMeter } from './limits-meter.js';
 import { playOrderOf, songList, saveAsPlaylist, announceShuffle } from './shuffle-list.js';
 import { askLanguage } from './lyrics-bar.js';
 import { translateSong } from './translate-flow.js';
 import { currentLyrics } from '../../adapter/ai-bridge.js';
 
-const SUGGESTIONS = ['Shuffle my library for a calm evening', 'Make playlists by mood from my library', 'Fill in missing genres and years', 'Put my playlists into folders by theme'];
 const HISTORY_TURNS = 8;
+const INPUT_MAX_HEIGHT = 140; // px: the text box grows with what is typed, up to about six lines
 
 // ---- state that outlives the screen ----
 const thread = [];
-let scope = 'all';
-let useWeb = false;
-let readLyrics = false;
+const options = { useWeb: false, readLyrics: false }; // the Options menu; kept for the session
 let queued = null;
+let queuedSend = false; // send the queued text as soon as a screen shows it
+let focus = null; // song ids a contextual button said the next request is about (they count as selected, once)
 let pending = null; // the request that is running: { text }
 const screens = new Set(); // the chat screens on the page right now (the window, or the big view)
 
 const redraw = () => screens.forEach((screen) => screen.draw());
 
 /** Text for the box the next time (or right now, if the chat is open). Used by Playback > AI shuffle. */
-export function queuePrompt(text) {
+export function queuePrompt(text, { send = false, songs = null } = {}) {
     queued = text;
+    queuedSend = send;
+    if (Array.isArray(songs) && songs.length) focus = songs.slice(0, 2000);
     screens.forEach((screen) => screen.fill());
 }
 
@@ -69,7 +75,9 @@ async function submit(text) {
     redraw();
     let result;
     try {
-        result = await plan({ request: text, scope, useWeb, includeLyrics: readLyrics, history });
+        const about = focus;
+        focus = null;
+        result = await plan({ request: text, useWeb: options.useWeb, includeLyrics: options.readLyrics, history, focus: about });
     } catch (error) {
         result = { ok: false, error: 'unexpected' };
     }
@@ -78,9 +86,10 @@ async function submit(text) {
     if (result.ok) {
         const reply = result.plan.reply || '';
         if (result.plan.actions.length) {
-            const seen = `Looked at ${result.sentRows} songs with ${result.model}.`;
-            const lyrics = result.withLyrics ? ` Read the lyrics of ${result.withLyrics}.` : readLyrics ? ' No lyrics were found for these songs.' : '';
-            const web = result.lookedUp ? ' Online tag candidates were used.' : useWeb ? ' No online candidates were found.' : '';
+            const around = result.contextLines ? ', the queue and your playlists' : '';
+            const seen = `Looked at ${result.sentRows} songs${around} with ${result.model}${result.mode && result.mode !== 'medium' ? ` (${modeInfo(result.mode).label} mode)` : ''}.${result.omitted ? ` ${result.omitted} more songs did not fit.` : ''}`;
+            const lyrics = result.withLyrics ? ` Read the lyrics of ${result.withLyrics}.` : options.readLyrics ? ' No lyrics were found for these songs.' : '';
+            const web = result.lookedUp ? ' Online tag candidates were used.' : options.useWeb ? ' No online candidates were found.' : '';
             say({ role: 'assistant', plan: result.plan, preview: result.preview, reply, info: seen + lyrics + web, state: 'ready' });
         } else {
             say({ role: 'assistant', text: reply || result.plan.summary || 'I could not do that with what I can do here.' });
@@ -98,72 +107,77 @@ async function submit(text) {
 }
 
 /**
- * opts.mode 'view' (the big main view, with a Make smaller button) or 'popup' (the small window, with Expand and Close).
+ * opts.mode 'view' (the big main view, with a Make smaller button) or 'popup' (the small window, with Expand and Minimize).
  * The conversation is shared, so switching between the two keeps it.
  */
 export function mountChat(host, ctx, opts = {}) {
     const mode = opts.mode === 'popup' ? 'popup' : 'view';
     host.replaceChildren();
 
-    const picker = createModelPicker({ label: 'Model', compact: true });
     const limits = createLimitsMeter(() => (ctx.getStatus() || {}).model);
     const windowButtons =
         mode === 'popup'
-            ? [iconButton({ icon: 'maximize-2', label: 'Expand to the big view', size: 'sm', onClick: () => opts.onExpand && opts.onExpand() }), iconButton({ icon: 'x', label: 'Close the chat', size: 'sm', onClick: () => opts.onClose && opts.onClose() })]
+            ? [iconButton({ icon: 'maximize-2', label: 'Expand to the big view', size: 'sm', onClick: () => opts.onExpand && opts.onExpand() }), iconButton({ icon: 'minus', label: 'Minimize the chat', size: 'sm', onClick: () => opts.onClose && opts.onClose() })]
             : [iconButton({ icon: 'minimize-2', label: 'Make smaller (pop-up)', size: 'sm', onClick: () => opts.onShrink && opts.onShrink() })];
 
     const log = el('div', { class: 'ai-chat__thread', role: 'log', 'aria-live': 'polite', 'aria-label': 'Conversation' });
     const banner = el('div', { class: 'ai-chat__setup' });
-    const suggestions = el('div', { class: 'ai-chat__suggestions' });
-    const composer = textField({ label: 'Message', multiline: true, placeholder: 'Ask anything, or describe a change…' });
-    composer.input.rows = 2;
-    composer.input.addEventListener('keydown', (event) => {
+    const clearButton = button({ label: 'Clear', variant: 'ghost', size: 'sm', onClick: () => (thread.length = 0, redraw()) });
+
+    // ---- the box ----
+    const input = el('textarea', { class: 'ai-composer__input', rows: 1, dir: 'auto', 'aria-label': 'Message', placeholder: 'Ask anything, or describe a change…' });
+    const fit = () => {
+        input.style.height = 'auto';
+        input.style.height = `${Math.min(input.scrollHeight, INPUT_MAX_HEIGHT)}px`;
+    };
+    const setValue = (text) => {
+        input.value = text;
+        fit();
+    };
+    input.addEventListener('input', fit);
+    input.addEventListener('keydown', (event) => {
         event.stopPropagation(); // typing must not trigger the player's single-key shortcuts
         if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
             event.preventDefault();
             send();
         }
     });
-    const sendButton = button({ label: 'Send', variant: 'primary', onClick: () => send() });
-    const stopButton = button({ label: 'Cancel', onClick: () => cancel() });
-    stopButton.hidden = true;
 
-    const scopeControl = segmented({
-        label: 'Which songs the assistant can see',
-        value: scope,
-        items: [{ value: 'all', label: 'All songs' }, { value: 'selected', label: 'Selected' }, { value: 'now', label: 'Playing now' }],
-        onChange: (value) => {
-            scope = value;
-            paintNotes();
-        }
-    });
-    const scopeNote = el('span', { class: 'ai-chat__scope-note' });
-    const webChip = chip({ label: 'Look up tags online', pressed: useWeb, onClick: () => ((useWeb = !useWeb), webChip.setAttribute('aria-pressed', String(useWeb)), paintNotes()) });
-    const lyricsChip = chip({ label: 'AI may read lyrics', pressed: readLyrics, onClick: () => ((readLyrics = !readLyrics), lyricsChip.setAttribute('aria-pressed', String(readLyrics)), paintNotes()) });
-    const translateButton = button({ label: 'Translate lyrics', size: 'sm', onClick: () => translateHere() });
-    const clearButton = button({ label: 'Clear', variant: 'ghost', size: 'sm', onClick: () => (thread.length = 0, redraw()) });
-
-    function paintNotes() {
-        const song = playingSong();
-        const parts = [];
-        if (scope === 'selected') parts.push(`${selectedCount()} selected`);
-        if (scope === 'now') parts.push(song ? `"${song.title}"` : 'nothing is playing');
-        if (readLyrics) parts.push('the first 700 characters of lyrics of up to 40 songs are sent');
-        scopeNote.textContent = parts.join(' · ');
+    const prompts = el('div', { class: 'ai-composer__prompts', role: 'group', 'aria-label': 'Ready-made messages' });
+    for (const item of QUICK_PROMPTS) {
+        const tap = el('button', { type: 'button', class: 'ai-quick', 'data-prompt': item.id }, item.icon ? iconEl(item.icon, { size: 14 }) : '', el('span', {}, item.label));
+        tap.addEventListener('click', () => (item.run === 'translate' ? translateHere() : send(item.text)));
+        prompts.append(tap);
     }
 
-    async function send() {
-        const text = composer.input.value.trim();
-        if (!text || pending) return;
+    const modelPopover = createModelPopover();
+    const modeButton = createModeButton();
+    const optionsNote = el('p', { class: 'ai-composer__note' });
+    const optionsButton = createOptionsButton(options, () => paintNotes());
+    const sendButton = iconButton({ icon: 'send', label: 'Send', variant: 'solid', onClick: () => send() });
+    sendButton.classList.add('ai-composer__send');
+    const stopButton = iconButton({ icon: 'square', label: 'Cancel', onClick: () => cancel() });
+    stopButton.classList.add('ai-composer__stop');
+    stopButton.hidden = true;
+
+    function paintNotes() {
+        const parts = [];
+        if (options.readLyrics) parts.push('The first 700 characters of the lyrics of up to 40 songs are sent');
+        if (options.useWeb) parts.push('The first 10 songs are looked up online');
+        optionsNote.textContent = parts.join(' · ');
+        optionsNote.hidden = parts.length === 0;
+    }
+
+    async function send(text) {
+        const message = (text === undefined ? input.value : text).trim();
+        if (!message || pending) return;
         const current = await getStatus();
         if (!ready(current)) {
-            if (current.enabled && !current.privacyAccepted && (await askPrivacy())) return send();
+            if (current.enabled && !current.privacyAccepted && (await askPrivacy())) return send(text);
             return paintSetup(current);
         }
-        if (scope === 'selected' && selectedCount() === 0) return say({ role: 'assistant', kind: 'error', text: 'Select some songs in the list first, or switch to All songs.' });
-        if (scope === 'now' && !hasPlayingSong()) return say({ role: 'assistant', kind: 'error', text: 'Nothing is playing. Start a song, or switch to All songs.' });
-        composer.setValue('');
-        await submit(text);
+        if (text === undefined) setValue('');
+        await submit(message);
     }
 
     async function applyCard(card) {
@@ -182,6 +196,7 @@ export function mountChat(host, ctx, opts = {}) {
 
     // Translate the playing song into the default language (or the one asked for). The answer goes into the conversation.
     async function translateHere() {
+        if (pending) return;
         const song = currentLyrics();
         if (!song || !song.lyrics) return say({ role: 'assistant', kind: 'error', text: song ? 'This song has no lyrics to translate.' : 'Play a song with lyrics first.' });
         const current = await getStatus();
@@ -243,11 +258,12 @@ export function mountChat(host, ctx, opts = {}) {
             ...thread.map((item) => el('div', { class: `ai-msg ai-msg--${item.role}`, 'data-kind': item.kind || null }, item.plan || item.translation ? card(item) : bubble(item))),
             pending ? el('div', { class: 'ai-msg ai-msg--assistant' }, el('div', { class: 'ai-msg__bubble', role: 'status' }, el('span', { class: 'spinner', 'aria-hidden': 'true' }), pending.text === 'translate' ? ' Translating…' : ' Thinking…')) : ''
         );
-        const on = ready(ctx.getStatus()) && !pending;
-        sendButton.disabled = !on;
-        composer.setDisabled(!ready(ctx.getStatus()) || Boolean(pending));
+        const usable = ready(ctx.getStatus());
+        sendButton.disabled = !usable || Boolean(pending);
+        sendButton.hidden = Boolean(pending);
         stopButton.hidden = !pending;
-        suggestions.hidden = thread.length > 0;
+        input.disabled = !usable || Boolean(pending);
+        for (const tap of prompts.children) tap.disabled = !usable || Boolean(pending);
         clearButton.hidden = thread.length === 0 || Boolean(pending);
         log.scrollTop = log.scrollHeight;
     }
@@ -256,24 +272,27 @@ export function mountChat(host, ctx, opts = {}) {
         const ok = ready(s);
         banner.hidden = ok;
         banner.replaceChildren(...(ok ? [] : [emptyState({ icon: 'sparkles', title: 'Set up AI first', text: `${setupHint(s)} Open Settings, AI, to finish.`, actions: [{ label: 'Open Settings', onClick: openAiSettings }] })]));
-        picker.paint(s);
+        modelPopover.paint(s);
+        modeButton.paint(s);
         if (ok) limits.refresh();
         draw();
     }
-
-    for (const text of SUGGESTIONS) suggestions.append(chip({ label: text, onClick: () => (composer.setValue(text), composer.input.focus()) }));
 
     const screen = {
         draw,
         fill() {
             if (queued === null) return;
-            composer.setValue(queued);
+            const text = queued;
+            const now = queuedSend;
             queued = null;
-            composer.input.focus();
+            queuedSend = false;
+            setValue(text);
+            input.focus();
+            if (now) send();
         },
         afterRequest() {
             limits.refresh(true);
-            if (screens.has(screen)) composer.input.focus();
+            if (screens.has(screen)) input.focus();
         }
     };
     screens.add(screen);
@@ -286,12 +305,14 @@ export function mountChat(host, ctx, opts = {}) {
             limits.el,
             banner,
             log,
-            suggestions,
             el(
                 'div',
-                { class: 'ai-chat__box' },
-                el('div', { class: 'ai-chat__composer' }, composer.el, el('div', { class: 'ai-chat__send' }, sendButton, stopButton)),
-                el('div', { class: 'ai-chat__tools' }, picker.el, scopeControl.el, el('div', { class: 'ai-chat__chips' }, webChip, lyricsChip, translateButton), scopeNote)
+                { class: 'ai-composer' },
+                prompts,
+                input,
+                optionsNote,
+                el('div', { class: 'ai-composer__bar' }, el('div', { class: 'ai-composer__tools' }, modelPopover.button, modeButton.el, optionsButton.el), el('div', { class: 'ai-composer__go' }, stopButton, sendButton)),
+                modelPopover.panel
             )
         )
     );
@@ -304,6 +325,7 @@ export function mountChat(host, ctx, opts = {}) {
     return {
         destroy() {
             off();
+            modelPopover.destroy();
             screens.delete(screen);
         }
     };

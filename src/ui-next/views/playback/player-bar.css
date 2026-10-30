@@ -379,6 +379,9 @@
 .rp-now > :is(.rp-now__cover-frame, .rp-now__info) {
     margin-inline: var(--space-4);
 }
+.rp-now > .rp-now__cover-frame {
+    margin-top: var(--space-6); /* the big cover gets more air above it; its sides stay as they were */
+}
 .rp-now [hidden] {
     display: none;
 }
@@ -461,6 +464,20 @@
 .rp-line--empty {
     min-height: 1em;
     cursor: default;
+}
+/* A line with its translation (shell/lyrics-display.js): the translation under the line, smaller. */
+.rp-line--pair .rp-line__orig,
+.rp-line--pair .rp-line__tr {
+    display: block;
+}
+.rp-line__tr {
+    margin-top: 2px;
+    font-size: 0.8em;
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+.rp-line--active .rp-line__tr {
+    color: var(--accent);
 }
 .rp-plain {
     white-space: pre-wrap;

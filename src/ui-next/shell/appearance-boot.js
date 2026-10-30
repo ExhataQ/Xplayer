@@ -4,9 +4,12 @@
 (function () {
     try {
         var saved = JSON.parse(localStorage.getItem('xplayer.ui-next.appearance') || 'null');
-        if (!saved) return;
         var root = document.documentElement;
-        if (['warm-graphite', 'deep-forest', 'espresso-copper', 'pure-black', 'graphite-gold', 'carbon-honey', 'high-contrast', 'midnight-blue', 'aubergine-rose', 'ocean-teal', 'crimson-noir', 'violet-night'].indexOf(saved.theme) >= 0) root.setAttribute('data-theme', saved.theme);
+        // the defaults: a neutral, standard scrollbar (shell/appearance.js DEFAULTS); a saved choice of the theme color or the flush bar replaces them
+        root.setAttribute('data-scrollbar', 'neutral');
+        root.setAttribute('data-scrollbar-shape', 'standard');
+        if (!saved) return;
+        if (['warm-graphite', 'pure-black', 'graphite-gold', 'carbon-honey', 'deep-forest', 'espresso-copper', 'midnight-blue', 'aubergine-rose', 'ocean-teal', 'crimson-noir', 'violet-night', 'high-contrast'].indexOf(saved.theme) >= 0) root.setAttribute('data-theme', saved.theme);
         if (saved.theme === 'custom' && saved.custom && saved.custom.vars) {
             // the built theme: its saved values, only well-formed ones (shell/appearance.js derives and saves them)
             var names = ['ground', 'surface', 'raised', 'selected', 'line', 'line-strong', 'ink', 'ink-dim', 'ink-faint', 'accent', 'accent-hover', 'accent-own', 'accent-rgb', 'on-accent', 'danger'];
@@ -17,8 +20,8 @@
             }
         }
         if (saved.density === 'compact') root.setAttribute('data-density', 'compact');
-        if (saved.scrollbar === 'neutral') root.setAttribute('data-scrollbar', 'neutral');
-        if (saved.scrollbarShape === 'tab') root.setAttribute('data-scrollbar-shape', 'tab');
+        if (saved.scrollbar === 'theme') root.setAttribute('data-scrollbar', 'theme');
+        if (saved.scrollbarShape === 'bar') root.setAttribute('data-scrollbar-shape', 'bar');
         if (saved.scrollbarCat === 'on') root.setAttribute('data-scrollbar-cat', 'on');
     } catch (e) {
         /* the defaults stay */

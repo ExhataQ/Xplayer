@@ -9,12 +9,12 @@ const path = require('node:path');
 
 const { validate } = require('../../electron/ai/schema');
 const { validatePlan, buildPreview, extractJson, ACTIONS, PLAN_SCHEMA } = require('../../electron/ai/actions');
-const { buildSongTable, describeOutgoing, describePolicy, SONG_FIELDS } = require('../../electron/ai/privacy');
+const { buildSongTable, buildContext, describeOutgoing, describePolicy, SONG_FIELDS, RICH_UP_TO } = require('../../electron/ai/privacy');
 const { createJournal } = require('../../electron/ai/journal');
 const { executePlan, undoEntry } = require('../../electron/ai/executor');
 const { createKeyStore } = require('../../electron/ai/key-store');
 const { createOpenRouterProvider, AiError } = require('../../electron/ai/provider');
-const { planFromPrompt } = require('../../electron/ai/planner');
+const { planFromPrompt, systemPrompt } = require('../../electron/ai/planner');
 const { translateLyrics, splitLyrics } = require('../../electron/ai/translate');
 const { createAiService, registerAiIpc } = require('../../electron/ai/ipc');
 
@@ -498,8 +498,8 @@ test('privacy: lyrics are sent only when asked for, without timestamps, as a sho
     const plain = buildSongTable(songs);
     assert.ok(plain.rows.every((r) => !('lyrics' in r)), 'no lyrics by default');
     const withLyrics = buildSongTable(songs, { includeLyrics: true });
-    assert.equal(withLyrics.rows.length, 40);
-    assert.equal(withLyrics.omitted, 20);
+    assert.equal(withLyrics.rows.length, 60, 'the whole library stays in the table');
+    assert.equal(withLyrics.rows.filter((r) => r.lyrics).length, 40, 'only the first 40 rows carry lyrics');
     assert.match(withLyrics.rows[0].lyrics, /^Line one \/ Line two x/);
     assert.ok(!/\[\d/.test(withLyrics.rows[0].lyrics) && withLyrics.rows[0].lyrics.length <= 700);
     assert.equal(withLyrics.rows[0].playing, 'yes');
@@ -530,4 +530,89 @@ test('service: the default translation language and auto-translate are kept, a b
     assert.equal(svc.getStatus().translateLanguage, 'Persian');
     svc.setSettings({ translateLanguage: '', autoTranslate: false });
     assert.deepEqual([svc.getStatus().translateLanguage, svc.getStatus().autoTranslate], ['', false]);
+});
+
+// ---- the whole picture at once (playing, queue, playlists, folders), and the mode ------------------
+
+test('privacy: the song table carries the playing, selected and favorite flags; a big library keeps only those plus the basics', () => {
+    const small = buildSongTable([{ id: 1, title: 'A', genre: 'Pop', playing: true, selected: true, favorite: true }]);
+    assert.deepEqual([small.rows[0].playing, small.rows[0].selected, small.rows[0].favorite, small.rows[0].genre], ['yes', 'yes', 'yes', 'Pop']);
+    const big = buildSongTable(Array.from({ length: RICH_UP_TO + 1 }, (_, i) => ({ id: i, title: `T${i}`, genre: 'Pop', year: 1999, playing: i === 0 })));
+    assert.equal(big.rows.length, RICH_UP_TO + 1);
+    assert.ok(!('genre' in big.rows[0]) && !('year' in big.rows[0]), 'optional tags are dropped above the limit');
+    assert.equal(big.rows[0].playing, 'yes', 'but the flags stay');
+    assert.ok(SONG_FIELDS.includes('selected'));
+});
+
+test('privacy: the context turns real ids into the table numbers, drops unknown songs and caps what it sends', () => {
+    const numberOf = new Map([['id-a', 1], ['id-b', 2], ['id-c', 3]]);
+    const lines = buildContext({
+        queue: ['id-b', 'ghost', 'id-a'], queueIndex: 0,
+        playlists: [{ name: 'Calm\nMix', songs: ['id-c', 'id-a', 'ghost'] }, { name: '', songs: ['id-a'] }, { name: 'Empty', songs: [] }],
+        folders: [{ name: 'Moods', playlists: ['Calm Mix', 'Empty'] }, { name: 'Nothing', playlists: [] }]
+    }, numberOf);
+    assert.equal(lines[0], 'Queue (play order, song numbers; the song playing now is at position 1): 2, 1');
+    assert.equal(lines[1], 'Playlist "Calm Mix" (3 songs): 3, 1');
+    assert.equal(lines[2], 'Playlist "Empty" (0 songs): none of them in the list above');
+    assert.deepEqual(lines.slice(3), ['Folder "Moods": "Calm Mix", "Empty"', 'Folder "Nothing": empty']);
+    assert.ok(!lines.join('\n').includes('id-'), 'no real id goes out');
+    assert.deepEqual(buildContext(null, numberOf), []);
+    const many = buildContext({ playlists: Array.from({ length: 200 }, (_, i) => ({ name: `P${i}`, songs: [] })) }, numberOf);
+    assert.equal(many.length, 80);
+});
+
+test('planner: queue, playlists and folders reach the prompt as numbers, with the mode as a line and as the reasoning effort', async () => {
+    const seen = [];
+    const songs = [{ id: 'a', title: 'A', artist: 'X', album: 'Y', duration: 10, playing: true }, { id: 'b', title: 'B', artist: 'X', album: 'Y', duration: 20 }];
+    const context = { queue: ['a', 'b'], queueIndex: 0, playlists: [{ name: 'Calm', songs: ['b'] }], folders: [{ name: 'Moods', playlists: ['Calm'] }] };
+    const reply = JSON.stringify({ reply: 'You have two songs queued.', actions: [] });
+    const high = await planFromPrompt({ provider: fakeProvider([reply], seen), model: 'm', request: 'what is in my queue?', songs, context, mode: 'high' });
+    assert.equal(high.ok, true);
+    assert.equal(high.mode, 'high');
+    assert.equal(seen[0].reasoning, 'high');
+    assert.match(seen[0].messages[0].content, /Mode: high/);
+    const prompt = seen[0].messages[seen[0].messages.length - 1].content;
+    assert.match(prompt, /Queue \(play order[^)]*position 1\): 1, 2/);
+    assert.match(prompt, /Playlist "Calm" \(1 songs\): 2/);
+    assert.match(prompt, /Folder "Moods": "Calm"/);
+    const low = await planFromPrompt({ provider: fakeProvider([reply], seen), model: 'm', request: 'hi', songs, mode: 'low' });
+    assert.equal(seen[1].reasoning, 'low');
+    assert.ok(seen[1].maxTokens < seen[0].maxTokens, 'low writes less than high');
+    await planFromPrompt({ provider: fakeProvider([reply], seen), model: 'm', request: 'hi', songs, mode: 'bogus' });
+    assert.equal(seen[2].reasoning, null, 'an unknown mode is medium: no reasoning setting is sent');
+    assert.doesNotMatch(systemPrompt('medium'), /Mode:/);
+});
+
+test('provider: a reasoning effort is sent, and a refusal first drops it, then falls back to plain JSON', async () => {
+    let calls = [];
+    await mk([okReply('{"a":1}')], calls).chat({ model: 'm', messages: [], schema: { type: 'object' }, reasoning: 'high' });
+    assert.deepEqual(calls[0].body.reasoning, { effort: 'high' });
+    calls = [];
+    const r = await mk([{ status: 404, body: { error: { message: 'no endpoint supports reasoning' } }, }, okReply('{"a":1}')], calls).chat({ model: 'm', messages: [], schema: { type: 'object' }, reasoning: 'low' });
+    assert.equal(r.content, '{"a":1}');
+    assert.ok(!('reasoning' in calls[1].body), 'second try has no reasoning');
+    assert.equal(calls[1].body.response_format.type, 'json_schema', 'and still asks for the schema');
+    calls = [];
+    await mk([{ status: 400, body: {} }, { status: 400, body: {} }, okReply('{"a":1}')], calls).chat({ model: 'm', messages: [], schema: { type: 'object' }, reasoning: 'low' });
+    assert.equal(calls.length, 3);
+    assert.equal(calls[2].body.response_format.type, 'json_object');
+    calls = [];
+    await assert.rejects(mk([{ status: 400, body: {} }, { status: 400, body: {} }], calls).chat({ model: 'm', messages: [], reasoning: 'low' }), (e) => e.code === 'bad-request');
+});
+
+test('service: the mode is a saved setting (low, medium or high), and the plan gets the context and the mode', async () => {
+    const seen = [];
+    const { svc } = service({ provider: fakeProvider([JSON.stringify({ reply: 'ok', actions: [] }), JSON.stringify({ reply: 'ok', actions: [] })], seen) });
+    assert.equal(svc.getStatus().mode, 'medium');
+    svc.setSettings({ enabled: true, privacyAccepted: true });
+    svc.setKey('sk-or-v1-abcdefghijklmnop1234');
+    assert.equal(svc.setSettings({ mode: 'high' }).mode, 'high');
+    assert.equal(svc.setSettings({ mode: 'turbo' }).mode, 'high', 'an unknown mode is ignored');
+    const r = await svc.plan({ request: 'what is queued?', songs: SONGS, context: { queue: ['a1'], queueIndex: 0 } });
+    assert.equal(r.ok, true);
+    assert.equal(r.mode, 'high');
+    assert.equal(seen[0].reasoning, 'high');
+    assert.match(seen[0].messages[seen[0].messages.length - 1].content, /Queue \(play order/);
+    const none = await svc.plan({ request: 'hi', songs: SONGS, context: 'not an object' });
+    assert.equal(none.ok, true, 'a bad context is ignored, not an error');
 });

@@ -288,10 +288,13 @@ export function createSongItemHTML(song, index = null, listId = null) {
     });
 }
 
+// A song with no artist saves it empty (and older libraries saved the text "Unknown Artist"); both show the same muted words here.
+const UNKNOWN_ARTIST_HTML = '<span class="song-artist-unknown">Unknown Artist</span>';
+
 export function buildSongArtistHTML(song) {
-    if (!song || !song.artist) return '';
-    const names = typeof getArtistNamesForSong === 'function' ? getArtistNamesForSong(song) : [String(song.artist)];
-    if (names.length === 0) return escapeHtml(String(song.artist));
+    if (!song) return '';
+    const names = song.artist && typeof getArtistNamesForSong === 'function' ? getArtistNamesForSong(song) : song.artist ? [String(song.artist)] : [];
+    if (names.length === 0) return UNKNOWN_ARTIST_HTML;
     const artists = typeof getArtists === 'function' ? getArtists() : [];
     const idByName = {};
     for (const a of artists) idByName[a.name] = a.id;

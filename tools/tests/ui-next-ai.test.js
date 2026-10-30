@@ -17,13 +17,13 @@ const NEXT_SRC = path.join(ROOT, 'src', 'ui-next');
 
 // The fake main process. Everything the page sends is kept in window.__ai.calls.
 const STUB = `<script>
-window.__ai = { calls: [], state: { enabled: false, privacyAccepted: false, hasKey: false, last4: '', model: 'openrouter/free', translateLanguage: '', autoTranslate: false, encryptionAvailable: true, songFields: ['title', 'artist', 'album', 'genre', 'year'] }, journal: [], planResult: null };
+window.__ai = { calls: [], state: { enabled: false, privacyAccepted: false, hasKey: false, last4: '', model: 'openrouter/free', mode: 'medium', translateLanguage: '', autoTranslate: false, encryptionAvailable: true, songFields: ['title', 'artist', 'album', 'genre', 'year'] }, journal: [], planResult: null };
 const A = window.__ai;
 const plan = (name) => ({ ok: true, model: 'a/b:free', sentRows: 3, plan: { summary: 'Make ' + name, actions: [{ type: 'create_playlist', args: { name } }] },
   preview: { summary: 'Make ' + name, changesData: true, counts: {}, lines: [{ index: 0, type: 'create_playlist', title: 'Create playlist', text: 'Create the playlist "' + name + '"', changesData: true }] } });
 const fake = {
   aiGetStatus: async () => ({ ...A.state }),
-  aiSetSettings: async (p) => { for (const k of ['enabled', 'privacyAccepted', 'model', 'translateLanguage', 'autoTranslate']) if (k in p && (k !== 'model' || /^[A-Za-z0-9._\\-/:]{1,100}$/.test(p.model)) && (k !== 'translateLanguage' || /^[A-Za-z ]{0,40}$/.test(p.translateLanguage))) A.state[k] = p[k]; A.calls.push(['settings', p]); return { ...A.state }; },
+  aiSetSettings: async (p) => { for (const k of ['enabled', 'privacyAccepted', 'model', 'mode', 'translateLanguage', 'autoTranslate']) if (k in p && (k !== 'mode' || ['low', 'medium', 'high'].includes(p.mode)) && (k !== 'model' || /^[A-Za-z0-9._\\-/:]{1,100}$/.test(p.model)) && (k !== 'translateLanguage' || /^[A-Za-z ]{0,40}$/.test(p.translateLanguage))) A.state[k] = p[k]; A.calls.push(['settings', p]); return { ...A.state }; },
   aiSetKey: async (k) => { A.calls.push(['key', k.length]); if (k.length < 16) return { ok: false, error: 'bad-key' }; A.state.hasKey = true; A.state.last4 = k.slice(-4); return { ok: true }; },
   aiClearKey: async () => { A.state.hasKey = false; A.state.last4 = ''; return { ok: true }; },
   aiListModels: async () => ({ ok: true, models: [{ id: 'a/b:free', name: 'AB', structured: true }, { id: 'c/d:free', name: 'CD', structured: false }] }),
@@ -202,7 +202,7 @@ describe('AI screens', { concurrency: false }, () => {
         await page.close();
     });
 
-    test('Chat: Discard changes nothing; the selected-songs scope refuses an empty selection; errors say what to do', TEST_OPTIONS, async (t) => {
+    test('Chat: Discard changes nothing; errors say what to do; there is no scope control (the assistant always sees everything)', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open(ON);
         await chatButton(page).click();
@@ -214,13 +214,7 @@ describe('AI screens', { concurrency: false }, () => {
         await chat.getByText('Discarded. Nothing was changed.').waitFor({ timeout: 3000 });
         assert.deepEqual(await playlists(page), []);
 
-        await chat.getByRole('radio', { name: 'Selected' }).click();
-        await chat.getByLabel('Message', { exact: true }).fill('two');
-        await chat.getByRole('button', { name: 'Send' }).click();
-        await chat.getByText('Select some songs in the list first').waitFor({ timeout: 3000 });
-        assert.equal((await calls(page, 'plan')).length, 1, 'no request went out for an empty selection');
-
-        await chat.getByRole('radio', { name: 'All songs' }).click();
+        assert.equal(await chat.getByRole('radio').count(), 0, 'no All songs / Selected / Playing now choice');
         await page.evaluate(() => { window.__ai.planResult = { ok: false, error: 'rate-limit' }; });
         await chat.getByLabel('Message', { exact: true }).fill('three');
         await chat.getByRole('button', { name: 'Send' }).click();
@@ -237,7 +231,9 @@ describe('AI screens', { concurrency: false }, () => {
         await chat.waitFor({ timeout: 3000 });
         const composer = chat.getByLabel('Message', { exact: true });
         assert.match(await composer.inputValue(), /^Build a play order/);
-        await chat.getByRole('button', { name: 'Look up tags online' }).click();
+        await chat.getByRole('button', { name: 'Options' }).click();
+        await page.getByRole('menuitemcheckbox', { name: 'Look up tags online' }).click();
+        await page.keyboard.press('Escape');
         await composer.fill('Build a play order from my library for: running');
         await chat.getByRole('button', { name: 'Send' }).click();
         await chat.getByText('Create the playlist').waitFor({ timeout: 4000 });
@@ -251,7 +247,7 @@ describe('AI screens', { concurrency: false }, () => {
         const { page, errors } = await open(ON);
         await chatButton(page).click();
         const chat = page.locator('.ai-chat');
-        await chat.getByRole('button', { name: 'Translate lyrics' }).click();
+        await chat.getByRole('button', { name: 'Translate the song playing' }).click();
         await chat.getByText(/Play a song with lyrics first|no lyrics to translate/).waitFor({ timeout: 3000 });
         assert.deepEqual(errors, []);
         await page.close();
@@ -289,12 +285,37 @@ describe('AI screens', { concurrency: false }, () => {
         const { page, errors } = await open(ON);
         await chatButton(page).click();
         const popup = page.locator('.ai-popup');
-        const select = popup.locator('.ai-model__select');
-        await select.locator('option[value="a/b:free"]').waitFor({ state: 'attached', timeout: 4000 });
-        await select.selectOption('a/b:free');
-        await popup.getByText('Saved.').waitFor({ timeout: 3000 });
+        await popup.getByRole('button', { name: /^Model:/ }).click();
+        const row = popup.locator('.ai-modelwin__row[data-model="a/b:free"]');
+        await row.waitFor({ timeout: 4000 });
+        await row.click();
+        await popup.locator('.ai-modelwin').waitFor({ state: 'hidden', timeout: 3000 });
+        await popup.getByRole('button', { name: /^Model: b\./ }).waitFor({ timeout: 3000 });
         assert.equal(await page.evaluate(() => window.__ai.state.model), 'a/b:free');
         await popup.locator('.ai-limits').getByText(/Free requests today: 12 of 50 used, 38 left · resets in \d+h \d\dm/).waitFor({ timeout: 3000 });
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('Chat box: ready-made messages sit on top of the box, the mode is chosen in the box and saved, and Send is inside the box', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open(ON);
+        await chatButton(page).click();
+        const popup = page.locator('.ai-popup');
+        const box = popup.locator('.ai-composer');
+        await box.getByLabel('Message', { exact: true }).waitFor({ timeout: 3000 });
+        assert.equal(await box.getByRole('button', { name: 'Send' }).count(), 1, 'Send is inside the box');
+        await box.getByRole('button', { name: 'Translate the song playing' }).waitFor({ timeout: 3000 });
+        await box.getByRole('button', { name: /^Mode: Medium/ }).click();
+        await page.getByRole('menuitemradio', { name: /^High/ }).click();
+        await box.getByRole('button', { name: /^Mode: High/ }).waitFor({ timeout: 3000 });
+        assert.equal(await page.evaluate(() => window.__ai.state.mode), 'high');
+        // A ready-made message is sent at once, with the library, the queue and the playlists.
+        await box.getByRole('button', { name: 'Make playlists by mood' }).click();
+        await popup.getByText('Create the playlist').waitFor({ timeout: 4000 });
+        const sent = (await calls(page, 'plan'))[0];
+        assert.equal(sent.request, 'Make playlists by mood from my library');
+        assert.ok(sent.keys.includes('playing') && sent.keys.includes('selected'), 'rows carry the playing and selected flags');
         assert.deepEqual(errors, []);
         await page.close();
     });
@@ -357,14 +378,14 @@ describe('AI screens', { concurrency: false }, () => {
         await popup.getByLabel('Message', { exact: true }).fill('first');
         await popup.getByRole('button', { name: 'Send' }).click();
         await popup.getByText('Thinking…').waitFor({ timeout: 3000 });
-        await popup.getByRole('button', { name: 'Close the chat' }).click();
+        await popup.getByRole('button', { name: 'Minimize the chat' }).click();
         await page.getByText('The AI answered').first().waitFor({ timeout: 5000 });
         await chatButton(page).click();
         popup = page.locator('.ai-popup');
         await popup.getByText('Create the playlist').waitFor({ timeout: 3000 });
         await popup.getByLabel('Message', { exact: true }).fill('second');
         await popup.getByRole('button', { name: 'Send' }).click();
-        await popup.getByRole('button', { name: 'Close the chat' }).click();
+        await popup.getByRole('button', { name: 'Minimize the chat' }).click();
         await chatButton(page).click();
         await page.locator('.ai-popup').getByText('Thinking…').waitFor({ timeout: 3000 });
         await page.locator('.ai-popup .ai-card').nth(1).waitFor({ timeout: 5000 });
@@ -440,7 +461,7 @@ describe('AI screens', { concurrency: false }, () => {
         await page.close();
     });
 
-    test('Lyrics reading: "AI may read lyrics" and "Playing now" send only the playing song with its lyrics; without the switch no lyrics leave', TEST_OPTIONS, async (t) => {
+    test('Lyrics reading: "AI may read lyrics" sends the lyrics of the playing song (first in the list) with the whole library; without the switch no lyrics leave', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open(ON);
         await playWithLyrics(page);
@@ -451,13 +472,15 @@ describe('AI screens', { concurrency: false }, () => {
         await popup.getByText('Create the playlist').waitFor({ timeout: 4000 });
         let sent = (await calls(page, 'plan'))[0];
         assert.deepEqual([sent.includeLyrics, sent.lyrics], [false, undefined]);
-        await popup.getByRole('radio', { name: 'Playing now' }).click();
-        await popup.getByRole('button', { name: 'AI may read lyrics' }).click();
+        await popup.getByRole('button', { name: 'Options' }).click();
+        await page.getByRole('menuitemcheckbox', { name: 'AI may read lyrics' }).click();
+        await page.keyboard.press('Escape');
         await popup.getByLabel('Message', { exact: true }).fill('what is this song about?');
         await popup.getByRole('button', { name: 'Send' }).click();
         await page.waitForFunction(() => window.__ai.calls.filter((c) => c[0] === 'plan').length === 2);
         sent = (await calls(page, 'plan'))[1];
-        assert.deepEqual([sent.count, sent.includeLyrics], [1, true]);
+        assert.equal(sent.includeLyrics, true);
+        assert.ok(sent.count > 1, 'the whole library goes, not only the playing song');
         assert.match(sent.lyrics, /Hello/);
         assert.deepEqual(errors, []);
         await page.close();

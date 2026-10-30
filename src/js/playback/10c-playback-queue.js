@@ -4,6 +4,7 @@
 // True while the queue has songs past the ones drawn; set by updateQueueDisplay, read when the queue is scrolled to its end.
 let queueHasMoreItems = false;
 const QUEUE_LOAD_MARGIN_PX = 160;
+const QUEUE_DISPLAY_START = 50; // the same starting size createQueueFromSongList uses
 
 export function updateQueueDisplay() {
     const queueList = document.getElementById('queue-list');
@@ -134,6 +135,8 @@ export function updateQueueDisplay() {
     }
 
     // No button: the queue grows as its scroller reaches the end (see watchQueueEnd).
+    // When nothing is left upcoming the queue is finished: the limit goes back to its starting size for the next queue.
+    if (manualQueueSongs.length === 0 && autoQueueSongs.length === 0) setQueueDisplayLimit(QUEUE_DISPLAY_START);
     queueHasMoreItems =
         (isShuffled && shuffleIndex < shuffleOrder.length) ||
         (!isShuffled && manualQueueSongs.length + autoQueueSongs.length > maxDisplay);

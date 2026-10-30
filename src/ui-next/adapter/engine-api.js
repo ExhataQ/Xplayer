@@ -6,6 +6,11 @@
 //   engineView()                 -> the engine's current view name ('lyrics', 'online-lyrics', ...)
 //   engineAction(name, ...args)  -> calls an engine function by name; false when it does not exist
 //   engineEvent(name, callback)  -> unsubscribe(); only the allow-listed events, callback gets the payload
+//   engineCall(name, ...args)    -> what an engine function answers (null when it does not exist); engineAction only says whether it ran
+//   librarySong(id)              -> { id } of a library song, or null
+//   pauseWhenPlaying()           -> pauses the song as soon as it starts (a tool window starts its song silent)
+//   openToolWindow(tool, songId) -> opens the Metadata or Sync tool in its own window (Electron)
+//   onToolWindowSong(callback)   -> a tool window is asked to show another song
 //   metadataEditor()             -> { rendered, dirty }: is the engine's tag form drawn, and does it hold unsaved changes
 //   engineConfirm(message)       -> the engine's own confirm box (it uses one for the same question)
 //   lyricsEditors()              -> { write, sync }: which of the engine's two lyrics editors is open
@@ -13,7 +18,7 @@
 //   watchLyricsEditors(callback) -> unsubscribe(); callback({ write, sync }) when an editor opens or closes
 
 const engine = () => window;
-const EVENTS = new Set(['view:changed', 'lyrics:changed', 'queue:indexChanged', 'rightPanel:tabChanged', 'playback:stateChanged', 'history:added', 'playlist:listChanged', 'smartLyrics:progress']);
+const EVENTS = new Set(['view:changed', 'lyrics:changed', 'queue:indexChanged', 'rightPanel:tabChanged', 'playback:stateChanged', 'history:added', 'playlist:listChanged', 'smartLyrics:progress', 'smartLyrics:changed']);
 
 export function nowPlaying() {
     const { currentQueueIndex: index, playbackQueue: queue } = engine();
@@ -89,4 +94,28 @@ export function engineEvent(name, callback) {
         stopped = true;
         off();
     };
+}
+
+export function engineCall(name, ...args) {
+    return typeof engine()[name] === 'function' ? engine()[name](...args) : null;
+}
+
+export function librarySong(id) {
+    const song = (engine().SONGS_DATA || []).find((s) => String(s.id) === String(id));
+    return song ? { id: song.id } : null;
+}
+
+export function pauseWhenPlaying() {
+    const audio = engine().audioElement;
+    if (audio) audio.addEventListener('playing', () => audio.pause(), { once: true });
+}
+
+export function openToolWindow(tool, songId) {
+    const open = engine().electronAPI && engine().electronAPI.openToolWindow;
+    return typeof open === 'function' ? open(tool, songId) : Promise.resolve({ ok: false, error: 'Tool windows are not available here' });
+}
+
+export function onToolWindowSong(callback) {
+    const on = engine().electronAPI && engine().electronAPI.onToolWindowSong;
+    if (typeof on === 'function') on(callback);
 }

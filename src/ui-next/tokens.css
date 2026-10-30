@@ -337,6 +337,11 @@
     --player-height: 88px;
     --window-min-width: 800px;
     --window-min-height: 600px;
+    /* PA-19 breakpoints. CSS media queries cannot read custom properties, so the rules that use these numbers (shell.css,
+       views/library/song-list.css, views/playback/player-bar.css) repeat the values, and the JS limits in shell/panel-resizer.js
+       and shell/right-panel.js read the same window sizes. Change them together. */
+    --bp-short-height: 720px;
+    --bp-narrow-width: 900px;
 }
 
 /* ---------- 3. component layer (starting set; each component task adds its own) ---------- */

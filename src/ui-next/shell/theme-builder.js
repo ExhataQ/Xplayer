@@ -188,13 +188,37 @@ export function buildThemeBuilder() {
     const regions = new Map();
     const picture = el('div', { class: 'designer__preview', role: 'group', 'aria-label': 'The window: choose a part to restyle' });
     const line = (extra = '') => el('span', { class: `dv-line ${extra}`.trim() });
+    const span = (cls, ...kids) => el('span', { class: cls }, ...kids);
+    const text = (cls, glyph) => el('span', { class: cls }, glyph);
+    const row = (on) => span(`dv-row${on ? ' dv-row--on' : ''}`, span('dv-box dv-box--small'), line(on ? 'dv-line--accent' : ''), line('dv-line--short'));
+    // The real window, part by part (index.html and the shell): title bar (X mark, back, forward, left panel, tools, right panel, bell,
+    // minimize, maximize, close), rail, library panel, main view (hero, sub hero, list), right panel (cover and lyrics), player bar
+    // (song, controls with the progress bar, volume).
     const decor = {
-        titlebar: () => [el('span', { class: 'dv-dot dv-dot--accent' }), line('dv-line--short'), el('span', { class: 'dv-grow' }), el('span', { class: 'dv-box dv-box--tiny' }), el('span', { class: 'dv-box dv-box--tiny' }), el('span', { class: 'dv-box dv-box--tiny' })],
-        rail: () => [el('span', { class: 'dv-box dv-box--accent' }), el('span', { class: 'dv-box' }), el('span', { class: 'dv-box' }), el('span', { class: 'dv-box' })],
-        left: () => [line('dv-line--title'), ...[0, 1, 2].map(() => el('span', { class: 'dv-item' }, el('span', { class: 'dv-box dv-box--small' }), el('span', { class: 'dv-lines' }, line(), line('dv-line--short'))))],
-        main: () => [line('dv-line--title'), ...[0, 1, 2, 3].map((i) => el('span', { class: `dv-row${i === 1 ? ' dv-row--on' : ''}` }, el('span', { class: 'dv-box dv-box--small' }), line(i === 1 ? 'dv-line--accent' : ''), line('dv-line--short')))],
-        right: () => [el('span', { class: 'dv-cover' }), line('dv-line--title'), line(), line('dv-line--accent'), line('dv-line--short')],
-        player: () => [el('span', { class: 'dv-box dv-box--small' }), el('span', { class: 'dv-lines' }, line(), line('dv-line--short')), el('span', { class: 'dv-grow' }), el('span', { class: 'dv-dot dv-dot--accent' }), el('span', { class: 'dv-track' }, el('span', { class: 'dv-track-fill' })), el('span', { class: 'dv-grow' })]
+        titlebar: () => [
+            span('dv-logo'),
+            span('dv-btn dv-btn--panel'),
+            text('dv-btn', '\u2039'),
+            text('dv-btn', '\u203a'),
+            span('dv-grow'),
+            span('dv-btn', span('dv-box dv-box--tiny')),
+            span('dv-btn dv-btn--panel dv-btn--panel-right'),
+            span('dv-btn', span('dv-dot')),
+            span('dv-win', text('dv-win__min', ''), span('dv-win__max'), span('dv-win__close'))
+        ],
+        rail: () => [span('dv-box dv-box--rail dv-box--accent'), span('dv-box dv-box--rail'), span('dv-box dv-box--rail'), span('dv-box dv-box--rail'), span('dv-grow'), span('dv-box dv-box--rail')],
+        left: () => [line('dv-line--title'), ...[0, 1, 2, 3, 4].map((i) => span('dv-item', span('dv-box dv-box--cover'), span('dv-lines', line(i === 1 ? 'dv-line--accent' : ''), line('dv-line--short'))))],
+        main: () => [
+            span('dv-hero', span('dv-box dv-box--cover dv-box--accent'), span('dv-lines', line('dv-line--title'), line('dv-line--short')), span('dv-dot dv-dot--accent dv-dot--play')),
+            span('dv-subhero', line(), line('dv-line--short')),
+            span('dv-list', row(false), row(true), row(false), row(false))
+        ],
+        right: () => [span('dv-cover-pad', span('dv-cover')), line('dv-line--title'), line(), line('dv-line--accent'), line('dv-line--short'), line()],
+        player: () => [
+            span('dv-item', span('dv-box dv-box--cover'), span('dv-lines', line(), line('dv-line--short'))),
+            span('dv-lines', span('dv-item', span('dv-grow'), span('dv-dot'), span('dv-dot'), span('dv-dot dv-dot--accent dv-dot--play'), span('dv-dot'), span('dv-dot'), span('dv-grow')), span('dv-track', span('dv-track-fill'))),
+            span('dv-item', span('dv-grow'), span('dv-dot'), span('dv-track dv-track--volume', span('dv-track-fill')))
+        ]
     };
     for (const p of PANELS) {
         const node = el('button', { type: 'button', class: `designer__region designer__region--${p.id}`, 'data-panel': p.id, 'data-side': p.side || '', 'aria-label': p.label, 'aria-pressed': 'false' }, ...decor[p.id]());

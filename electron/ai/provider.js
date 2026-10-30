@@ -1,7 +1,7 @@
 // The AI provider interface and its OpenRouter implementation (plan PE-02).
 //
 // A provider is any object with:
-//   chat({ model, messages, schema?, schemaName?, maxTokens?, temperature?, signal? })
+//   chat({ model, messages, schema?, schemaName?, maxTokens?, temperature?, reasoning?, signal? })   reasoning: 'low' | 'medium' | 'high' | null
 //        -> { content, model, usage }       (model = the one that actually answered)
 //   listModels()  -> [{ id, name, contextLength, free, structured }]
 //   keyInfo()     -> raw key/quota info or null
@@ -92,8 +92,10 @@ function createOpenRouterProvider({
         throw lastError;
     }
 
-    async function chat({ model, messages, schema, schemaName = 'xplayer_reply', maxTokens = 2000, temperature = 0.2, signal }) {
+    async function chat({ model, messages, schema, schemaName = 'xplayer_reply', maxTokens = 2000, temperature = 0.2, reasoning = null, signal }) {
         const body = { model, messages, max_tokens: maxTokens, temperature };
+        const effort = reasoning === 'low' || reasoning === 'high' || reasoning === 'medium' ? reasoning : null;
+        if (effort) body.reasoning = { effort };
         if (schema) {
             // strict is off: the action arguments are free-form objects, and the app checks the reply itself.
             body.response_format = { type: 'json_schema', json_schema: { name: schemaName, strict: false, schema } };
@@ -103,12 +105,21 @@ function createOpenRouterProvider({
         try {
             json = await request('POST', '/chat/completions', body, signal);
         } catch (error) {
-            // Some endpoints cannot do json_schema. Retry once asking only for "some JSON".
-            if (schema && error.code === 'bad-request') {
+            if (error.code !== 'bad-request') throw error;
+            // The request was refused. A model that has no reasoning setting is the first suspect (require_parameters rules out every
+            // endpoint that lacks one): drop it. Then, some endpoints cannot do json_schema: ask only for "some JSON".
+            if (body.reasoning) {
+                delete body.reasoning;
+                try {
+                    json = await request('POST', '/chat/completions', body, signal);
+                } catch (second) {
+                    if (second.code !== 'bad-request' || !schema) throw second;
+                }
+            }
+            if (!json) {
+                if (!schema) throw error;
                 body.response_format = { type: 'json_object' };
                 json = await request('POST', '/chat/completions', body, signal, true);
-            } else {
-                throw error;
             }
         }
         const choice = json && json.choices && json.choices[0];

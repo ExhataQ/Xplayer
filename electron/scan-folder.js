@@ -5,7 +5,7 @@ const { createIncrementalScanner } = require('./incremental-scan');
 const { createFullScanner } = require('./full-scan');
 const { createFastScanner } = require('./fast-scan');
 const { scanSingleFile, scanMultipleFiles } = require('./single-file-rescan');
-const { writeSongs, storePath } = require('./songs-store');
+const { writeSongs, readSongs, storePath } = require('./songs-store');
 const { configPath: settingsFile } = require('./storage-paths');
 const { readConfig: readFoldersConfig, writeConfig: writeFoldersConfig } = require('./music-folders');
 
@@ -228,7 +228,17 @@ async function main(folderPath, outputDir, mode, specificFile) {
             writeSongs(outputDir, songsToWrite);
         }
 
-        const allSongs = await scanAllFoldersStreamed(streamedCoversFolder, mm, Jimp, writePlayerJsRebuild);
+        // Songs whose file did not change since the last scan are reused, not parsed again (PS-02).
+        // XPLAYER_RESCAN_ALL=1 (set by rebuildFromFolders({ forceAll: true })) reads every file, as before.
+        let savedSongs = null;
+        if (process.env.XPLAYER_RESCAN_ALL !== '1') {
+            try {
+                savedSongs = readSongs(outputDir);
+            } catch (e) {
+                savedSongs = null; // an unreadable library is simply scanned in full
+            }
+        }
+        const allSongs = await scanAllFoldersStreamed(streamedCoversFolder, mm, Jimp, writePlayerJsRebuild, { savedSongs });
 
         if (allSongs.length === 0) {
             debugLog('  ℹ️  No supported audio files found');

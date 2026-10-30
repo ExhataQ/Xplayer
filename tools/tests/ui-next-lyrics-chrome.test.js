@@ -16,10 +16,10 @@ test('the player lyrics button is hidden and has no tooltip entry; the queue but
 
 test('the right panel lyrics has a header with the two buttons, fill the app first, and no floating box', () => {
     const js = read('views', 'playback', 'right-panel-content.js');
-    assert.match(js, /rp-now__header[\s\S]*?rp-now__tools' \}, fill, lyricsOnly\)/);
+    assert.match(js, /rp-now__header[\s\S]*?rp-now__tools' \}, aiTools, fill, lyricsOnly\)/);
     assert.ok(!js.includes('rp-now__box'));
-    // standard icons: four corners for fill the app, two vertical arrows for lyrics only
-    assert.match(js, /ICON_FILL = \{ out: 'maximize', in: 'minimize' \}/);
+    // standard icons: two diagonal arrows for fill the app, two vertical arrows for lyrics only
+    assert.match(js, /ICON_FILL = \{ out: 'maximize-2', in: 'minimize-2' \}/);
     assert.match(js, /ICON_ONLY = \{ out: 'unfold-vertical', in: 'fold-vertical' \}/);
     assert.match(js, /icon: ICON_FILL\.out[\s\S]*?icon: ICON_ONLY\.out/);
     const css = read('shell', 'shell.css');
@@ -44,10 +44,10 @@ test('the right panel button shows the filled icon while open and keeps the text
     assert.match(read('shell', 'shell.css'), /\.icon-btn\.right-panel-btn\[aria-pressed='true'\] \{\s*color: var\(--text-primary\)/);
 });
 
-test('the Lyrics tool has Find, Many songs, Write and Sync, and no View', () => {
+test('the Lyrics tool has Find, Batch, Write and Sync, and no View', () => {
     const js = read('views', 'tools', 'lyrics.js');
     const items = js.match(/items: \[(\{ id: 'find'[^\]]*)\]/);
     assert.ok(items, 'the tab list');
-    assert.deepEqual([...items[1].matchAll(/label: '([^']+)'/g)].map((m) => m[1]), ['Find', 'Many songs', 'Write', 'Sync']);
+    assert.deepEqual([...items[1].matchAll(/label: '([^']+)'/g)].map((m) => m[1]), ['Find', 'Batch', 'Write', 'Sync']);
     assert.ok(!js.includes("id: 'view'") && !js.includes('view: () =>'));
 });
