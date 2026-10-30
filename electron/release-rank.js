@@ -114,4 +114,24 @@ function pickRelease(candidates, options = {}) {
     return { decision, confidence, best, ranked, reasons: best.reasons };
 }
 
-module.exports = { fileKinds, rankReleases, pickRelease, AUTO_THRESHOLD, REVIEW_THRESHOLD };
+/** Adds the ranked pick to an answer of searchOnlineMetadata, for the single-song editor (it used to call the earliest date "original").
+ *  scope 'release': `recommended` = { id, confidence, decision, reasons } for the best release in `results`.
+ *  scope 'recording': each recording gets `recommendedReleaseId` and `recommendedConfidence` for its own releases.
+ *  Returns a new object; the answer that was passed in (which may be cached) is not changed. */
+function annotateSearch(answer, { title = '', album = '', scope = 'recording' } = {}) {
+    if (!answer || !answer.success || !Array.isArray(answer.results)) return answer;
+    const file = { title, album };
+    if (scope === 'release') {
+        const pick = pickRelease(answer.results, { file });
+        return pick.best ? { ...answer, recommended: { id: pick.best.id, confidence: pick.confidence, decision: pick.decision, reasons: pick.reasons } } : answer;
+    }
+    return {
+        ...answer,
+        results: answer.results.map((recording) => {
+            const pick = pickRelease(recording.releases || [], { file: { title: recording.title || title, album } });
+            return pick.best ? { ...recording, recommendedReleaseId: pick.best.id, recommendedConfidence: pick.confidence } : recording;
+        })
+    };
+}
+
+module.exports = { fileKinds, rankReleases, pickRelease, annotateSearch, AUTO_THRESHOLD, REVIEW_THRESHOLD };

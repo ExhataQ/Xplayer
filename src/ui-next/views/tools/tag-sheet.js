@@ -84,16 +84,23 @@ function toolbar(root) {
 const showValue = (value) => (Array.isArray(value) ? value.join('; ') : value) || '(empty)';
 
 /** Find tags online (PD-05): looks the checked songs up, stages the sure matches like any edit, and lists the unsure ones here to accept or skip. */
+const RULES = { original: 'Original album', popular: 'Most popular album' };
+let finderRule = 'original';
+
 function finderBar(root) {
     const found = ui.finder.findings();
     const running = ui.finder.running();
     const find = el('button', { type: 'button', class: 'tag-sheet__button', disabled: running || checked.size === 0, title: 'Looks the checked songs up on MusicBrainz and stages the original album, year, genre and label. Nothing is written until you review and apply.', onclick: async () => {
-        const result = await ui.finder.run();
+        const result = await ui.finder.run({ rule: finderRule });
         if (!result.ok) {
             note = result.error;
             paint(root, { skipRead: true });
         }
     } }, 'Find tags online');
+    const rule = el('select', { 'aria-label': 'Which album to pick', 'data-focus-key': 'finder-rule', disabled: running, title: 'Original album: the earliest official album. Most popular album: the one most people have listened to (ListenBrainz); if it has no data, the original album is used.', onchange: (event) => {
+        finderRule = event.target.value;
+        paint(root, { skipRead: true });
+    } }, Object.entries(RULES).map(([key, label]) => el('option', { value: key, selected: key === finderRule }, label)));
     const cancel = running ? el('button', { type: 'button', class: 'tag-sheet__button', onclick: () => ui.finder.cancel() }, 'Cancel search') : null;
     const last = found.last ? `Last search: ${found.last.staged} staged, ${found.last.review} to review, ${found.last.none + found.last.unchanged} nothing to change${found.last.error ? `, ${found.last.error} failed` : ''}.` : '';
     const state = running ? 'Looking songs up, about 3 to 4 seconds each. Progress is in the notifications.' : last;
@@ -109,7 +116,7 @@ function finderBar(root) {
             el('button', { type: 'button', class: 'tag-sheet__button', onclick: () => ui.finder.accept([item.id]) }, 'Accept'),
             el('button', { type: 'button', class: 'tag-sheet__button', onclick: () => ui.finder.skip([item.id]) }, 'Skip')))),
         found.items.length > shown.length ? el('p', { class: 'tag-sheet__hint' }, `Showing the first ${shown.length}. Accept or skip these to see the rest.`) : null);
-    return el('div', { class: 'tag-sheet__finder' }, el('div', { class: 'tag-sheet__finder-row' }, find, cancel, state ? el('span', { class: 'tag-sheet__hint', role: 'status' }, state) : null), queue);
+    return el('div', { class: 'tag-sheet__finder' }, el('div', { class: 'tag-sheet__finder-row' }, find, rule, cancel, state ? el('span', { class: 'tag-sheet__hint', role: 'status' }, state) : null), queue);
 }
 
 function applyBar(root) {

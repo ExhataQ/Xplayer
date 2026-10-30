@@ -45,8 +45,8 @@ let smartLyricsFinderState = {
     lrclibCache: new Map()
 };
 
-export function openSmartLyricsFinder() {
-    smartLyricsFinderState = {
+function createSmartLyricsFinderState() {
+    return {
         mode: 'lrc',
         query: '',
         selectedIds: new Set(),
@@ -58,6 +58,17 @@ export function openSmartLyricsFinder() {
         skipExisting: true,
         lrclibCache: new Map()
     };
+}
+
+// The finder keeps what the person did (search text, picked songs, results, a run in progress) when they leave the page and come back:
+// opening it again only starts fresh when nothing was done in it.
+function smartLyricsFinderHasState() {
+    const state = smartLyricsFinderState;
+    return Boolean(state.processing || state.query || state.selectedIds.size || state.results.size);
+}
+
+export function openSmartLyricsFinder() {
+    if (!smartLyricsFinderHasState()) smartLyricsFinderState = createSmartLyricsFinderState();
     switchView(VIEWS.SMART_LYRICS);
 }
 
@@ -268,6 +279,7 @@ export async function runSmartLyricsFinder(allSongs = false) {
 
     smartLyricsFinderState.status = `Finding ${smartLyricsFinderState.mode === 'lrc' ? 'LRC' : 'lyrics'}… (0/${total})`;
     renderSmartLyricsFinder();
+    emit('smartLyrics:progress', { phase: 'start', mode: smartLyricsFinderState.mode, total, completed: 0, found: 0 });
 
     async function worker() {
         while (true) {
@@ -295,6 +307,7 @@ export async function runSmartLyricsFinder(allSongs = false) {
             }: ${song.title || 'Unknown title'} (${completed}/${total})`;
             updateSmartLyricsFinderProgress();
             updateSmartLyricsFinderList();
+            emit('smartLyrics:progress', { phase: 'progress', mode: smartLyricsFinderState.mode, total, completed, found, title: song.title || '' });
         }
     }
 
@@ -316,6 +329,7 @@ export async function runSmartLyricsFinder(allSongs = false) {
         : `Finished: ${found} of ${total} songs found`;
 
     renderSmartLyricsFinder();
+    emit('smartLyrics:progress', { phase: 'end', mode: smartLyricsFinderState.mode, total, completed, found, stopped: wasStopped });
 }
 
 export function renderSmartLyricsFinder() {
@@ -333,7 +347,7 @@ export function renderSmartLyricsFinder() {
     root.style.display = 'block';
     root.innerHTML = `<div class="online-lyrics-view-container smart-lyrics-finder-container">
         <div class="online-lyrics-header">
-            <div><h2>Find multi song lyrics &amp; LRC</h2><p>Choose songs and automatically find and save synced LRC or plain lyrics.</p></div>
+            <div><h2>Search many songs</h2><p>Choose songs and automatically find and save synced LRC or plain lyrics.</p></div>
             <button class="lyrics-view-edit-btn" ${actionAttrs('switchView', [VIEWS.LYRICS])}><span class="material-symbols-outlined">arrow_back</span>Back to Lyrics</button>
         </div>
         <div class="smart-lyrics-toolbar">
@@ -446,13 +460,24 @@ export function toggleOnlineLyricsSearchView() {
     openOnlineLyricsSearchView();
 }
 
+// Coming back to the page for the same song (or for the manual search again) shows what was there: the fields and the results.
+function onlineLyricsFinderHasState(song) {
+    const state = onlineLyricsState;
+    const sameSearch = song ? Boolean(state.song && state.song.id === song.id) : Boolean(state.fromHeader);
+    return sameSearch && Boolean(state.searched || (state.results && state.results.length));
+}
+
 export function openOnlineLyricsSearchView(song = null, autoSearch = false) {
+    if (onlineLyricsFinderHasState(song)) {
+        switchView(VIEWS.ONLINE_LYRICS);
+        return;
+    }
     const fromHeader = !song;
     onlineLyricsState = {
         song: song || null,
         artist: song?.artist || '',
         title: song?.title || '',
-        album: song?.album || '',
+        album: '', // blank on purpose: an album name from the tags often hides a match that has no album or a different one
         duration: song?.duration || '',
         results: [],
         exact: false,
@@ -468,7 +493,7 @@ export function openOnlineLyricsSearchView(song = null, autoSearch = false) {
             : {
                   artist: song?.artist || '',
                   title: song?.title || '',
-                  album: song?.album || ''
+                  album: ''
               },
         searched: false,
         pickerOpen: false,
@@ -1050,7 +1075,7 @@ export function renderOnlineLyricsView() {
             }
             <button class="lyrics-view-edit-btn" data-action="openSmartLyricsFinder">
                 <span class="material-symbols-outlined">library_music</span>
-                Find multi song lyrics &amp; LRC
+                Search many songs
             </button>
         </div>
     `;
@@ -1059,8 +1084,8 @@ export function renderOnlineLyricsView() {
         <div class="online-lyrics-view-container">
             <div class="online-lyrics-header">
                 <div>
-                    <h2>Find lyrics &amp; LRC</h2>
-                    <p>Search LRCLIB by artist and title, then use or download the result.</p>
+                    <h2>Search lyrics online</h2>
+                    <p>Search LRCLIB by title and artist, then use or download the result.</p>
                 </div>
                 ${headerActionsHTML}
             </div>

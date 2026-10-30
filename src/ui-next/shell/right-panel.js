@@ -1,17 +1,22 @@
 // The right panel slot (task PA-16, decision DP11): a panel on the right of the main view that PUSHES the list narrower. It shows
 // lyrics mostly, with the big cover (Agent C builds the content, PC-13); this file is the slot and its behavior only.
 //
-//   registerRightPanel({ label?, mount(body) -> { show?(), hide?() } })   one provider; until one registers, the slot and its
+//   registerRightPanel({ label?, mount(body, controls) -> { show?(), hide?() } })   one provider; until one registers, the slot and its
 //       title bar button do not exist. `mount` runs the first time the panel is shown; show and hide run on each change.
 //   mountRightPanelSlot({ host, button }) -> { open(), close(), toggle(), isOpen() }   shell.js calls this once.
 //
+// Two switches, given to the provider as `controls` (the provider draws the buttons, inside its lyrics box):
+//   lyrics only  same width, the provider hides its cover and track info (remembered)
+//   full         the panel covers the whole app below the title bar and above the player, lyrics only (not remembered)
+//   controls = { state() -> { lyricsOnly, full }, setLyricsOnly(on), setFull(on), onChange(callback) -> stop }
 // Behavior: width 280 to 420 (default 320), dragged by its left edge or with the arrow keys, saved. The list always keeps
 // MIN_LIST px. When the window cannot spare that, the panel is not shown (the saved choice is kept and comes back when the window
 // widens); the button then opens it as an overlay on top of the list, until the window changes size class.
-import { iconButton } from '../components/index.js';
+import { iconButton, iconEl } from '../components/index.js';
 
 const KEY_OPEN = 'xplayer.ui-next.right-open';
 const KEY_WIDTH = 'xplayer.ui-next.right-width';
+const KEY_LYRICS_ONLY = 'xplayer.ui-next.right-lyrics-only';
 export const DEFAULT_WIDTH = 320;
 export const MIN_WIDTH = 280;
 export const MAX_WIDTH = 420;
@@ -48,6 +53,9 @@ export function mountRightPanelSlot({ host, button: anchor, leftPanel }) {
     const body = host.querySelector('.right-host__body');
     let savedOpen = read(KEY_OPEN, 'false') === 'true';
     let savedWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Number(read(KEY_WIDTH, DEFAULT_WIDTH)) || DEFAULT_WIDTH));
+    let lyricsOnly = read(KEY_LYRICS_ONLY, 'false') === 'true';
+    let full = false;
+    const changeListeners = new Set();
     let overlayOpen = false; // the person opened it in a window too small to push the list
     let mounted = null;
     let wasFitting = true;
@@ -57,9 +65,9 @@ export function mountRightPanelSlot({ host, button: anchor, leftPanel }) {
     const width = () => Math.round(Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, savedWidth, Math.max(MIN_WIDTH, room()))));
     const fits = () => room() >= MIN_WIDTH;
 
-    const toggle = iconButton({ icon: 'panel-right', label: 'Right panel', size: 'sm', pressed: false, onClick: () => api.toggle() });
+    const toggle = iconButton({ icon: 'panel-right', label: 'Right panel', size: 'sm', pressed: false, className: 'right-panel-btn', onClick: () => api.toggle() });
     toggle.hidden = true;
-    anchor.before(toggle);
+    anchor.after(toggle); // after the bell: the panel button is the last tool, next to the window buttons
 
     const handle = document.createElement('div');
     handle.className = 'right-resizer';
@@ -79,12 +87,17 @@ export function mountRightPanelSlot({ host, button: anchor, leftPanel }) {
         const overlay = show && !fits();
         host.hidden = !show;
         host.toggleAttribute('data-overlay', overlay);
+        if (!show) full = false;
+        host.dataset.mode = full ? 'full' : lyricsOnly ? 'lyrics' : 'normal';
+        handle.hidden = full;
+        document.documentElement.toggleAttribute('data-right-full', full); // the title bar's line follows (shell/shell.css)
         document.documentElement.style.setProperty('--right-width', `${width()}px`);
         toggle.setAttribute('aria-pressed', String(show));
+        toggle.replaceChildren(iconEl(show ? 'panel-right-filled' : 'panel-right', { size: 18 })); // open: the right window is filled, in the normal text color (not the accent)
 
         handle.setAttribute('aria-valuenow', String(width()));
         handle.setAttribute('aria-valuemax', String(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, room()))));
-        if (show && !mounted) mounted = provider.mount(body) || {};
+        if (show && !mounted) mounted = provider.mount(body, controls) || {};
         else if (mounted) (show ? mounted.show : mounted.hide)?.();
     }
 
@@ -110,6 +123,24 @@ export function mountRightPanelSlot({ host, button: anchor, leftPanel }) {
         }
     };
 
+    const controls = {
+        state: () => ({ lyricsOnly, full }),
+        setLyricsOnly(on) {
+            lyricsOnly = Boolean(on);
+            write(KEY_LYRICS_ONLY, lyricsOnly);
+            paint();
+            changeListeners.forEach((fn) => fn());
+        },
+        setFull(on) {
+            full = Boolean(on) && visible();
+            paint();
+            changeListeners.forEach((fn) => fn());
+        },
+        onChange(callback) {
+            changeListeners.add(callback);
+            return () => changeListeners.delete(callback);
+        }
+    };
     const setWidth = (value) => {
         savedWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, Math.round(value)));
         write(KEY_WIDTH, savedWidth);
@@ -142,6 +173,11 @@ export function mountRightPanelSlot({ host, button: anchor, leftPanel }) {
     });
     handle.addEventListener('dblclick', () => setWidth(DEFAULT_WIDTH));
     host.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && full && !event.defaultPrevented) {
+            event.stopPropagation();
+            controls.setFull(false);
+            return;
+        }
         if (event.key === 'Escape' && host.hasAttribute('data-overlay')) {
             event.stopPropagation();
             api.close();

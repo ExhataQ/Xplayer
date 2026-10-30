@@ -3,8 +3,7 @@ import { ICONS, icon } from '../icons/icons.js';
 
 const root = document.documentElement;
 
-const THEMES = ['warm-graphite', 'deep-forest', 'espresso-copper'];
-const ACCENTS = ['theme', 'green', 'pink', 'purple', 'yellow', 'white'];
+const THEMES = ['warm-graphite', 'deep-forest', 'espresso-copper', 'pure-black', 'graphite-gold', 'carbon-honey', 'high-contrast', 'midnight-blue', 'aubergine-rose', 'ocean-teal', 'crimson-noir', 'violet-night'];
 
 const SWATCHES = [
     ['surface-ground', '--surface-ground'],
@@ -40,10 +39,6 @@ function pressedGroup(containerId, values, current, apply) {
 }
 
 pressedGroup('themes', THEMES, 'warm-graphite', (value) => root.setAttribute('data-theme', value));
-pressedGroup('accents', ACCENTS, 'theme', (value) => {
-    if (value === 'theme') root.removeAttribute('data-accent');
-    else root.setAttribute('data-accent', value);
-});
 
 document.getElementById('swatches').innerHTML = SWATCHES.map(
     ([name, variable]) => `<div class="swatch"><i style="background: var(${variable})"></i><span>${name}</span></div>`

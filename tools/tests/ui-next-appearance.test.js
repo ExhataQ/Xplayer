@@ -1,4 +1,4 @@
-// Task A-10: themes, accent colors, density and resizing, with the real, unchanged engine.
+// Task A-10: themes, density and resizing, with the real, unchanged engine.
 //
 // Run:   node --test tools/tests/ui-next-appearance.test.js
 // Needs: npm i -D playwright
@@ -28,20 +28,16 @@ describe('A-10 static rules', () => {
         const ids = (name) => [...source.slice(source.indexOf(`export const ${name}`)).split('];')[0].matchAll(/id: '([a-z-]+)'/g)].map((m) => m[1]);
         const quoted = (text) => [...text.matchAll(/'([a-z-]+)'/g)].map((m) => m[1]);
         assert.deepEqual(quoted(boot.match(/\[('warm-graphite'[^\]]+)\]/)[1]), ids('THEMES'));
-        assert.deepEqual(quoted(boot.match(/\[('green'[^\]]+)\]/)[1]), ids('ACCENTS').filter((a) => a !== 'theme'));
     });
 
-    test('preview tokens equal the real theme and accent values', () => {
+    test('preview tokens equal the real theme values', () => {
         const preview = block(':root');
-        for (const theme of ['warm-graphite', 'deep-forest', 'espresso-copper']) {
+        for (const theme of ['warm-graphite', 'deep-forest', 'espresso-copper', 'pure-black', 'graphite-gold', 'carbon-honey', 'high-contrast', 'midnight-blue', 'aubergine-rose', 'ocean-teal', 'crimson-noir', 'violet-night']) {
             const t = theme === 'warm-graphite' ? block(":root,\n:root[data-theme='warm-graphite']") : block(`:root[data-theme='${theme}']`);
             assert.equal(t['--c-accent-own'], t['--c-accent'], `${theme}: own accent`);
             assert.equal(preview[`--preview-${theme}-ground`], t['--c-ground'], `${theme} ground`);
             assert.equal(preview[`--preview-${theme}-surface`], t['--c-surface'], `${theme} surface`);
             assert.equal(preview[`--preview-${theme}-accent`], t['--c-accent'], `${theme} accent`);
-        }
-        for (const accent of ['green', 'pink', 'purple', 'yellow', 'white']) {
-            assert.equal(preview[`--preview-accent-${accent}`], block(`:root[data-accent='${accent}']`)['--c-accent'], accent);
         }
     });
 
@@ -90,7 +86,7 @@ describe('A-10 appearance and resizing with the real engine', { concurrency: fal
     const token = (page, name) => page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), name);
     const goto = async (page, view) => {
         await page.locator(`.rail-btn[data-view="${view}"]`).click();
-        if (view === 'settings') await page.locator('.settings-card[data-page="general"]').click(); // Settings opens on a hub; Appearance is on General
+        if (view === 'settings') await page.locator('.settings-menu [data-page="general"]').click(); // Settings opens on General, where Appearance is
         await page.waitForTimeout(150);
     };
     const section = (page) => page.locator('.view-host .appearance');
@@ -106,13 +102,13 @@ describe('A-10 appearance and resizing with the real engine', { concurrency: fal
     test('a saved choice is on <html> before any module runs (no flash of the default look)', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const page = await browser.newPage();
-        await page.addInitScript(() => localStorage.setItem('xplayer.ui-next.appearance', JSON.stringify({ theme: 'deep-forest', accent: 'pink', density: 'compact' })));
+        await page.addInitScript(() => localStorage.setItem('xplayer.ui-next.appearance', JSON.stringify({ theme: 'deep-forest', accent: 'pink', density: 'compact' }) /* an accent saved by an older version */));
         await page.addInitScript(() => {
-            document.addEventListener('DOMContentLoaded', () => (window.__early = { ...document.documentElement.dataset }), { once: true });
+            document.addEventListener('DOMContentLoaded', () => { const d = document.documentElement.dataset; window.__early = { theme: d.theme, accent: d.accent ?? null, density: d.density }; }, { once: true });
         });
         await page.goto(url());
         await waitForAppSettled(page, 3000);
-        assert.deepEqual(await page.evaluate(() => window.__early), { theme: 'deep-forest', accent: 'pink', density: 'compact' });
+        assert.deepEqual(await page.evaluate(() => window.__early), { theme: 'deep-forest', accent: null, density: 'compact' }, 'the old accent is ignored');
         await page.close();
     });
 
@@ -131,9 +127,9 @@ describe('A-10 appearance and resizing with the real engine', { concurrency: fal
         assert.equal(await section(page).count(), 1);
         assert.equal(await section(page).isVisible(), true);
         assert.equal(await page.locator('.view-host #settings-theme-selector').isVisible(), false);
-        assert.deepEqual(await section(page).locator('[role="radiogroup"]').evaluateAll((n) => n.map((g) => g.getAttribute('aria-label'))), ['Theme', 'Accent color', 'Density']);
+        assert.deepEqual(await section(page).locator('[role="radiogroup"]').evaluateAll((n) => n.map((g) => g.getAttribute('aria-label'))), ['Theme', 'Density']);
         // each choice is one radio, exactly one on
-        for (const label of ['Theme', 'Accent color', 'Density']) assert.equal(await section(page).locator(`[aria-label="${label}"] [aria-checked="true"]`).count(), 1);
+        for (const label of ['Theme', 'Density']) assert.equal(await section(page).locator(`[aria-label="${label}"] [aria-checked="true"]`).count(), 1);
         await page.close();
     });
 
@@ -154,19 +150,13 @@ describe('A-10 appearance and resizing with the real engine', { concurrency: fal
         await page.close();
     });
 
-    test('accent colors recolor the accent and "Theme color" returns to the theme\'s own', TEST_OPTIONS, async (t) => {
+    test('there is no accent color choice any more; an accent saved before is ignored', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
-        const { page } = await open({ store: { 'xplayer.ui-next.appearance': JSON.stringify({ theme: 'espresso-copper' }) } });
+        const { page } = await open({ store: { 'xplayer.ui-next.appearance': JSON.stringify({ theme: 'espresso-copper', accent: 'pink' }) } });
         await goto(page, 'settings');
-        const accent = (name) => section(page).locator(`[aria-label="Accent color"] [aria-label="${name}"]`);
-        await accent('Pink').click();
-        assert.equal((await attrs(page)).accent, 'pink');
-        assert.equal(await token(page, '--c-accent'), '#ff6b9d');
-        assert.equal(await token(page, '--accent-own'), '#cf8352', 'the theme swatch still shows the theme accent');
-        await accent('Theme color').click();
+        assert.equal(await section(page).locator('[aria-label="Accent color"]').count(), 0);
         assert.equal((await attrs(page)).accent, null);
         assert.equal(await token(page, '--c-accent'), '#cf8352');
-        for (const name of ['Green', 'Pink', 'Purple', 'Yellow', 'White', 'Theme color']) assert.equal(await accent(name).count(), 1, name);
         await page.close();
     });
 

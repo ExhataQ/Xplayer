@@ -77,7 +77,7 @@ export function renderArtistLeftPanelItems() {
 
         const coverContent = artist.cover
             ? `<img class="main-item-cover-img artist-cover-img" src="${artist.cover}" alt="">`
-            : `<svg class="main-item-cover-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
+            : `<svg class="main-item-cover-svg cover-ph cover-ph--artist" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
                     <rect width="400" height="400" rx="200" fill="#2a2a2a"/>
                     <circle cx="200" cy="155" r="70" fill="var(--accent)"/>
                     <ellipse cx="200" cy="320" rx="110" ry="45" fill="var(--accent)"/>

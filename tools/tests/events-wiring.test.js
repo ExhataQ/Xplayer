@@ -37,11 +37,9 @@ const EXPECTED_CALL_SEQUENCES = {
     "pinned: pin then unpin an item": [
         "showNotification",
         "renderLeftPanelMainList",
-        "refreshLeftPanelItems",
         "updateScrollbarById",
         "showNotification",
         "renderLeftPanelMainList",
-        "refreshLeftPanelItems",
         "updateScrollbarById"
     ],
     "pinned: move a played item to the top": [

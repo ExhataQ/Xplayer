@@ -518,11 +518,13 @@ export async function findOnlineMetadata() {
                 const releases = (x.releases || [])
                     .slice()
                     .sort((a, b) => String(a.date || '9999').localeCompare(String(b.date || '9999')));
-                const original = releases[0];
+                const original = releases.find((rel) => rel.id === x.recommendedReleaseId) || releases[0]; // the ranked pick (electron/release-rank.js); the earliest date when the search sent none
                 return `<div class="metadata-online-result-card"><button class="metadata-online-result" ${actionAttrs('useOnlineMetadata', [String(x.releaseGroupId ? '' : x.id), String(x.releaseGroupId ? x.id : original?.id || '')])}><span>${escapeHtml(
                     x.title || 'Untitled'
                 )}</span><small>${escapeHtml(x.artist || 'Unknown Artist')}${
                     x.firstReleaseDate ? ' · ' + escapeHtml(x.firstReleaseDate) : ''
+                }${
+                    r.recommended && r.recommended.id === x.id ? ' · Likely original (' + Math.round(r.recommended.confidence * 100) + '%)' : ''
                 }${original?.title ? ' · Original: ' + escapeHtml(original.title) : ''}</small></button>${
                     releases.length
                         ? `<div class="metadata-online-releases">${releases

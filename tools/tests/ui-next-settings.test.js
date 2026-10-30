@@ -85,11 +85,11 @@ describe('Settings in the new shell', { concurrency: false }, () => {
         await page.evaluate(() => (window.__songList = document.getElementById('song-list')));
         return { page, errors };
     }
-    // Settings opens on a hub of cards (shell/settings-layout.js); `group` opens that card's page.
+    // Settings opens on the General tab of a menu bar (shell/settings-layout.js); `group` opens that tab.
     const toSettings = async (page, group) => {
         await page.click('.rail-btn[data-view="settings"]');
         await page.waitForSelector('.view-host .settings-panel-content');
-        if (group) await page.click(`.settings-card[data-page="${group}"]`);
+        if (group) await page.click(`.settings-menu [data-page="${group}"]`);
     };
 
     test('opens from the rail inside the view host, with the engine node identity intact and no page error', TEST_OPTIONS, async (t) => {
@@ -211,8 +211,7 @@ describe('Settings in the new shell', { concurrency: false }, () => {
         const lib = await styled(['Add Folder', 'Remove Folder', 'Save and Apply Changes']);
         assert.deepEqual(Object.values(lib), [true, true, true], JSON.stringify(lib));
         assert.equal(await page.locator('.view-host button', { hasText: 'Change Music Folder' }).isVisible(), false);
-        await page.click('.settings-back');
-        await page.click('.settings-card[data-page="data"]');
+        await page.click('.settings-menu [data-page="data"]');
         const data = await styled(['Export Data', 'Advanced Settings']);
         assert.deepEqual(Object.values(data), [true, true], JSON.stringify(data));
         await page.close();
@@ -241,12 +240,12 @@ describe('Settings in the new shell', { concurrency: false }, () => {
         await page.click('.settings-advanced-back-btn');
         await page.waitForSelector('.settings-panel-title:not([style])');
         await page.waitForSelector('.settings-panel-content[data-settings-page="data"]'); // back from Advanced returns to the page it was opened from
-        assert.match(await page.locator('.settings-panel-title').first().innerText(), /^Data$/);
+        assert.equal(await page.locator('.settings-menu .tab[aria-selected="true"]').innerText(), 'Data'); // the menu bar shows the tab it returned to
         assert.deepEqual(errors, []);
         await page.close();
     });
 
-    test('800 x 600: on the hub and on every page nothing is wider than the host and there is no horizontal scroll', TEST_OPTIONS, async (t) => {
+    test('800 x 600: on every tab, menu bar included, nothing is wider than the host and there is no horizontal scroll', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open({ width: 800, height: 600 });
         await toSettings(page);
@@ -257,24 +256,22 @@ describe('Settings in the new shell', { concurrency: false }, () => {
                 const wide = [...document.querySelectorAll('.settings-panel-content *')].filter((e) => e.getClientRects().length && e.getBoundingClientRect().right > c.getBoundingClientRect().left + w + 1).length;
                 return { hScroll: c.scrollWidth > c.clientWidth + 1, wide };
             });
-        assert.deepEqual(await measure(), { hScroll: false, wide: 0 }, 'hub');
         for (const id of ['general', 'playback', 'library', 'data']) {
-            await page.click(`.settings-card[data-page="${id}"]`);
+            await page.click(`.settings-menu [data-page="${id}"]`);
             assert.deepEqual(await measure(), { hScroll: false, wide: 0 }, id);
-            await page.click('.settings-back');
         }
         await page.close();
     });
 
-    test('text contrast 4.5:1 on the page and card surfaces: title, section titles, labels, hints, inputs, hub cards; three themes on every page', TEST_OPTIONS, async (t) => {
+    test('text contrast 4.5:1 on the page and card surfaces: title, menu tabs, section titles, labels, hints, inputs; three themes on every tab', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open();
         await toSettings(page);
-        const pages = ['hub', 'general', 'playback', 'library', 'data'];
+        const pages = ['general', 'playback', 'library', 'data'];
         for (const theme of ['warm-graphite', 'deep-forest', 'espresso-copper']) {
             const bad = [];
             for (const id of pages) {
-                if (id !== 'hub') await page.click(`.settings-card[data-page="${id}"]`);
+                await page.click(`.settings-menu [data-page="${id}"]`);
                 bad.push(...(await page.evaluate(([name, where]) => {
                 document.documentElement.setAttribute('data-theme', name);
                 const parse = (c) => c.match(/[\d.]+/g).slice(0, 3).map(Number);
@@ -294,7 +291,7 @@ describe('Settings in the new shell', { concurrency: false }, () => {
                     return 'rgb(0, 0, 0)';
                 };
                 const out = [];
-                const sels = ['.settings-card__title', '.settings-card__summary', '.settings-panel-sub', '.settings-panel-title', '.settings-section-title', '.settings-toggle-row span', '.settings-threshold-row > span', '.settings-threshold-hint', '.settings-threshold-row select', '.settings-action-btn', '.library-locations-rebuild-btn'];
+                const sels = ['.settings-menu .tab[aria-selected="true"]', '.settings-menu .tab[aria-selected="false"]', '.settings-panel-sub', '.settings-panel-title', '.settings-section-title', '.settings-toggle-row span', '.settings-threshold-row > span', '.settings-threshold-hint', '.settings-threshold-row select', '.settings-action-btn', '.library-locations-rebuild-btn'];
                 for (const sel of sels) {
                     const el = document.querySelector(sel);
                     if (!el) continue;
@@ -303,7 +300,6 @@ describe('Settings in the new shell', { concurrency: false }, () => {
                 }
                 return out;
             }, [theme, id])));
-                if (id !== 'hub') await page.click('.settings-back');
             }
             assert.deepEqual(bad, []);
         }

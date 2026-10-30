@@ -10,12 +10,8 @@ on('pinned:changed', (e) => {
     const { itemName, pinned } = e.detail;
     showNotification(pinned ? `"${itemName}" pinned` : `"${itemName}" unpinned`, pinned ? 'success' : 'info', 2000);
 
+    // renderLeftPanelMainList() already refreshes the virtual list (and draws an open folder), so a second refresh would only repeat it.
     renderLeftPanelMainList();
-
-    // Refresh virtual scroll to reflect new pin order
-    if (leftPanelVirtualState.enabled) {
-        refreshLeftPanelItems();
-    }
 
     updateScrollbarById('left-panel-main-content');
 });

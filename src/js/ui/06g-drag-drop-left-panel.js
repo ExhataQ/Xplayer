@@ -377,6 +377,7 @@ export function initLeftPanelDragAndDrop() {
                     el.classList.remove('drag-hover', 'drag-folder-hover');
                 });
             leftPanelElement.classList.remove('drag-panel-hover');
+            document.querySelector('.library-panel')?.classList.remove('drag-panel-hover'); // the new screen's panel (ui/06f)
             document.body.classList.remove('no-select');
             document.body.classList.remove('dragging-song');
             document.body.style.cursor = '';

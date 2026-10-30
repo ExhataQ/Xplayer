@@ -307,7 +307,7 @@ describe('Lyrics editors in the new shell', { concurrency: false }, () => {
         await page.close();
     });
 
-    test('Sync: stamping a line, then leaving, asks with the engine dialog; Keep Editing stays, Discard closes and lands on View', TEST_OPTIONS, async (t) => {
+    test('Sync: stamping a line, then leaving, asks with the engine dialog; Keep Editing stays, Discard closes and carries on to the tab that was picked', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open();
         await toLyrics(page);
@@ -327,7 +327,8 @@ describe('Lyrics editors in the new shell', { concurrency: false }, () => {
         await page.waitForSelector('.playlist-modal');
         await page.click('#confirm-ok-btn');
         await page.waitForFunction(() => !document.getElementById('sync-editor-overlay').classList.contains('active'));
-        await page.waitForFunction(() => document.querySelector('.view-host').dataset.lyricsMode === 'view');
+        // Discard answers the question and the tab the person picked opens by itself (they used to have to pick it again)
+        await page.waitForFunction(() => document.querySelector('.view-host').dataset.lyricsMode === 'find');
         assert.deepEqual(errors, []);
         await page.close();
     });

@@ -5,10 +5,12 @@
 import { el, iconButton, openMenu } from '../../components/index.js';
 import { createListToolbar } from './list-toolbar.js';
 import { trackInputMode } from './input-mode.js';
+import { trackSelectModifier } from './select-modifier.js';
 import { nextSort } from './song-sort.js';
 import { canSortList, listSort, changeListSort } from '../../adapter/songsort-bridge.js';
 import { isSongView, currentSongView, onSongViewChange, setRowHeight, listElement, listTitle, onListTitleChange, listSongCount } from '../../adapter/songlist-bridge.js';
 import { listKind, listCover, onListCoverChange } from '../../adapter/listbar-bridge.js';
+import { defaultCover } from '../../adapter/default-cover.js';
 import { getAppearance, setAppearance, watchAppearance } from '../../shell/appearance.js';
 
 const KIND_LABELS = { album: 'Album', artist: 'Artist', playlist: 'Playlist', favorites: 'Playlist', 'all-songs': 'Playlist', history: 'Playlist', recent: 'Playlist', 'search-items': 'Search results' };
@@ -62,6 +64,16 @@ export function weights(share) {
     return { title: `${title}fr`, album: `${Math.round((9 - title) * 1000) / 1000}fr` };
 }
 
+// Hues that look good as a header tint (copper, amber, rose, violet, blue, teal). Random hues came out muddy (greens and yellows).
+const HERO_HUES = [18, 32, 340, 275, 210, 170];
+
+/** One of HERO_HUES for a text, the same every time (a small string hash). */
+export function hueOf(text) {
+    let h = 0;
+    for (const ch of String(text)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return HERO_HUES[h % HERO_HUES.length];
+}
+
 export function clampShare(share, pairWidth) {
     let min = MIN_SHARE;
     let max = MAX_SHARE;
@@ -82,6 +94,7 @@ export function attachSongList(host, { toolbar = false } = {}) {
     state.density = getAppearance().density; // density is an appearance choice now (task A-10); the saved value here is only a fallback
     const content = () => host.querySelector('.content');
     const stopInputMode = trackInputMode(); // the selection ring shows for keyboard use only (task PB-12)
+    const stopSelectModifier = trackSelectModifier(); // Shift or Ctrl on an artist or album name selects the row, it does not open the name
 
     // ----- title bar: the engine's name for the list, and how many songs it holds -----
     const barCover = el('div', { class: 'songlist-bar__cover', 'aria-hidden': 'true' });
@@ -96,8 +109,11 @@ export function attachSongList(host, { toolbar = false } = {}) {
         const n = listSongCount(view);
         const kind = listKind(view);
         barLabel.textContent = KIND_LABELS[kind] || '';
-        const cover = listCover(host);
+        // A list with no art of its own shows its default cover (the same file the other lists use), not an empty space.
+        const cover = listCover(host) || Object.assign(document.createElement('img'), { alt: '', src: defaultCover(kind) });
         barCover.dataset.kind = kind;
+        bar.dataset.kind = kind; // the hero look (song-list.css) is for the lists that have a cover and a name
+        bar.style.setProperty('--hero-hue', String(hueOf(`${kind}|${listTitle(host)}`))); // each list gets its own tint, the same list always the same one
         barCover.hidden = !cover;
         barCover.replaceChildren(...(cover ? [cover] : []));
         barTitle.textContent = listTitle(host);
@@ -299,8 +315,16 @@ export function attachSongList(host, { toolbar = false } = {}) {
 
     // ----- mount -----
     const wrapper = host.querySelector('.content-wrapper');
-    host.insertBefore(bar, wrapper || host.firstChild);
-    host.insertBefore(header, wrapper || host.firstChild);
+    // The title bar and the column header sit at the top of the scrolling content: the bar scrolls away, and the header
+    // sticks to the top once it reaches it (as in the old screen).
+    const scroller = content();
+    if (scroller) {
+        scroller.prepend(bar);
+        bar.after(header);
+    } else {
+        host.insertBefore(bar, wrapper || host.firstChild);
+        host.insertBefore(header, wrapper || host.firstChild);
+    }
     paint();
     showForView(currentSongView());
     const unsubscribeView = onSongViewChange(showForView);
@@ -332,6 +356,7 @@ export function attachSongList(host, { toolbar = false } = {}) {
         apply,
         detach() {
             stopInputMode();
+            stopSelectModifier();
             unsubscribeAppearance();
             unsubscribeView();
             unsubscribeTitle();

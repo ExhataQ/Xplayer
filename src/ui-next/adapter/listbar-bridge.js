@@ -41,7 +41,8 @@ export function onListStateChange(callback) {
 
 /** A copy of the cover the engine shows for this list (an image or one of its built-in drawings), or null. Ids are removed. */
 export function listCover(host) {
-    const shown = [...host.querySelectorAll('.playlist-hero-cover > *')].find((node) => node.style.display === 'block' && (node.tagName !== 'IMG' || node.getAttribute('src')));
+    // An empty drawing (the engine's built-in drawing for a list with no art has no paths) counts as no cover: the caller shows the default cover.
+    const shown = [...host.querySelectorAll('.playlist-hero-cover > *')].find((node) => node.style.display === 'block' && (node.tagName !== 'IMG' || node.getAttribute('src')) && (node.tagName !== 'svg' && node.tagName !== 'SVG' || node.childElementCount));
     if (!shown) return null;
     const copy = shown.cloneNode(true);
     for (const node of [copy, ...copy.querySelectorAll('[id]')]) node.removeAttribute('id');

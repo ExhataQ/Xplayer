@@ -165,3 +165,37 @@ test('the finder has no way to write: it exports no save or apply function and i
     assert.ok(!/writeFile|writeMany|saveAudioMetadata|\.write\(|fs\./.test(source));
     assert.deepEqual(Object.keys(require('../../electron/tag-finder')).sort(), ['DEFAULT_FIELDS', 'MAX_CONSECUTIVE_ERRORS', 'compareTags', 'createTagFinder']);
 });
+
+// ---- the "popular" rule (PD-04) ----
+const TWO = [rel('a', 'First Album', '1999'), rel('b', 'Big Album', '2003')];
+const album = (query) => ({ success: true, metadata: { ...online, album: query.releaseId === 'b' ? 'Big Album' : 'First Album' } });
+
+test('popular: the album more people listened to wins, and popularity is asked once per song for the release groups found', async () => {
+    const asked = [];
+    const f = fakes({ releases: TWO, onGet: album });
+    const finder = createTagFinder({ ...f.deps, getPopularity: async (ids) => { asked.push(ids); return { 'g-a': 0.05, 'g-b': 1 }; } });
+    const out = await finder.findOne(song('1'), { rule: 'popular', autoThreshold: 0.1 });
+    assert.equal(out.release.id, 'b');
+    assert.deepEqual(asked, [['g-a', 'g-b']]);
+    assert.ok(out.reasons.some((r) => /popularity 100%/.test(r)));
+    assert.equal((await createTagFinder(f.deps).findOne(song('1'), { rule: 'original', autoThreshold: 0.1 })).release.id, 'a');
+});
+
+test('popular: without data it falls back to the original rule and says so; the original rule never asks for popularity', async () => {
+    let asked = 0;
+    const f = fakes({ releases: TWO, onGet: album });
+    const finder = createTagFinder({ ...f.deps, getPopularity: async () => { asked += 1; return null; } });
+    const out = await finder.findOne(song('1'), { rule: 'popular', autoThreshold: 0.1 });
+    assert.equal(out.release.id, 'a');
+    assert.ok(out.reasons.includes('no popularity data, used the original rule'));
+    await finder.findOne(song('1'), { rule: 'original' });
+    assert.equal(asked, 1);
+});
+
+test('popular: popularity given by the caller is used as it is', async () => {
+    let asked = 0;
+    const f = fakes({ releases: TWO, onGet: album });
+    const finder = createTagFinder({ ...f.deps, getPopularity: async () => { asked += 1; return null; } });
+    const out = await finder.findOne(song('1'), { rule: 'popular', popularity: { 'g-a': 0, 'g-b': 1 }, autoThreshold: 0.1 });
+    assert.equal(out.release.id, 'b'); assert.equal(asked, 0);
+});

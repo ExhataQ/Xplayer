@@ -32,6 +32,7 @@ const { getAudioMetadata, saveAudioMetadata, saveAudioCover } = require('./metad
 const { createTagService } = require('./tag-service');
 const { createTagFinder } = require('./tag-finder');
 const { searchOnlineMetadata, getOnlineMetadata } = require('./online-metadata');
+const { annotateSearch } = require('./release-rank');
 const songsStore = require('./songs-store');
 const { configPath: settingsFile, getOutputDir } = require('./storage-paths');
 const checks = require('./ipc-checks');
@@ -74,7 +75,7 @@ ipcMain.on('songs-store:load', (event) => {
 });
 
 ipcMain.handle('search-online-metadata', async (event, params) => {
-    try { return await searchOnlineMetadata(params || {}); }
+    try { return annotateSearch(await searchOnlineMetadata(params || {}), params || {}); }
     catch (error) { return { success: false, error: error.message || 'Failed to search MusicBrainz' }; }
 });
 
@@ -147,7 +148,7 @@ ipcMain.handle('find-tags-many', async (event, request) => {
     if (!Array.isArray(songs) || songs.length > MAX_FIND_MANY) return { success: false, error: `Send a list of at most ${MAX_FIND_MANY} songs` };
     const wellFormed = (song) => song && (typeof song.id === 'string' || typeof song.id === 'number') && typeof song.fileUrl === 'string' && song.tags && typeof song.tags === 'object' && !Array.isArray(song.tags);
     if (!songs.every(wellFormed)) return { success: false, error: 'Every song needs an id, a fileUrl and a tags object' };
-    if (options.rule !== undefined && options.rule !== 'original') return { success: false, error: 'Only the "original" rule is available' };
+    if (options.rule !== undefined && !['original', 'popular'].includes(options.rule)) return { success: false, error: 'The rule must be "original" or "popular"' };
     const threshold = options.autoThreshold === undefined ? undefined : Number(options.autoThreshold);
     if (threshold !== undefined && !(threshold >= 0 && threshold <= 1)) return { success: false, error: 'autoThreshold must be between 0 and 1' };
     if (options.fields !== undefined && !(Array.isArray(options.fields) && options.fields.every((field) => FIND_FIELDS.has(field)))) return { success: false, error: 'Unknown tag in fields' };
@@ -155,7 +156,7 @@ ipcMain.handle('find-tags-many', async (event, request) => {
     findRun = run;
     try {
         const outcome = await createTagFinder().findMany(songs, {
-            rule: 'original',
+            rule: options.rule === 'popular' ? 'popular' : 'original',
             autoThreshold: threshold,
             fields: options.fields,
             shouldCancel: () => run.cancelled,

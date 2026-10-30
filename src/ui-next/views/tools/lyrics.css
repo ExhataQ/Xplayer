@@ -70,7 +70,6 @@
 /* ---------- lyrics page ---------- */
 
 .view-host[data-engine='lyrics'] .content {
-    scrollbar-color: var(--border-strong) transparent;
 }
 .view-host[data-engine='lyrics'] .lyrics-view-container {
     display: flex;
@@ -385,4 +384,11 @@
 .view-host[data-engine='lyrics'] .online-lyrics-status {
     color: var(--text-secondary);
     font-size: var(--text-md);
+}
+
+/* No text selection on the lyrics page's controls and its clickable lines (PC-05, the old screen's `* { user-select: none }`).
+ * Plain lyrics are not clickable, so they stay selectable for copying. */
+.view-host[data-engine='lyrics'] :is(.lyrics-bar, .lyrics-view-synced .lyrics-line) {
+    -webkit-user-select: none;
+    user-select: none;
 }

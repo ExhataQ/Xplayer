@@ -127,7 +127,7 @@ describe('AI slots', { concurrency: false }, () => {
         const { page } = await open();
         await register(page, { enabled: false });
         await page.locator('.rail-btn[data-view="settings"]').click();
-        await page.locator('.settings-card[data-page="ai"]').click(); // Settings opens on the hub; the AI card opens the AI page
+        await page.locator('.settings-menu [data-page="ai"]').click(); // Settings opens on General; the AI tab opens the AI page
         const section = page.locator('.ai-settings');
         await section.waitFor({ timeout: 4000 });
         assert.equal(await section.locator('.settings-section-title').innerText(), 'AI');

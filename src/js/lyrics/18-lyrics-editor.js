@@ -261,6 +261,35 @@ export function clearSyncedLyricsForSong(songId) {
 // ==============================================================================
 // LYRICS EDITOR (PLAIN TEXT)
 // ==============================================================================
+// A pasted LRC (timed lines) is lyrics with timings: it goes to the synced lyrics, the way "Paste LRC" does, not into the plain text.
+const LRC_PASTE_PLACEHOLDER = 'Paste or type lyrics here. Line breaks are preserved. Timed lines like [00:12.30] are saved as synced lyrics (LRC).';
+const LRC_PASTE_HINT = 'This looks like LRC (timed lines). Save will store it as synced lyrics.';
+
+function lyricsEditorHintHTML() {
+    return `<div class="lyrics-editor-hint" id="lyrics-editor-hint" role="status" hidden>${LRC_PASTE_HINT}</div>`;
+}
+
+function watchLyricsEditorPaste() {
+    const textarea = document.getElementById('lyrics-editor-textarea');
+    const hint = document.getElementById('lyrics-editor-hint');
+    if (!textarea || !hint) return;
+    const update = () => {
+        hint.hidden = !(typeof looksLikeLrc === 'function' && looksLikeLrc(textarea.value));
+    };
+    textarea.addEventListener('input', update);
+    update();
+}
+
+// Saves the editor's text for a song. Returns the number of synced lines when the text was LRC, otherwise 0 after saving it as plain lyrics.
+function saveLyricsEditorText(songId, text) {
+    if (typeof looksLikeLrc === 'function' && looksLikeLrc(text)) {
+        setSyncedLyricsForSong(songId, text);
+        return parseLRC(text).length;
+    }
+    setLyricsForSong(songId, text);
+    return 0;
+}
+
 export function openLyricsEditor() {
     if (currentQueueIndex < 0 || !playbackQueue[currentQueueIndex]) {
         showNotification('No song playing', 'warning', 2000);
@@ -288,9 +317,10 @@ export function openLyricsEditor() {
         song.artist || 'Unknown Artist'
     )}</div>
             </div>
-            <textarea class="lyrics-editor-textarea" id="lyrics-editor-textarea" placeholder="Paste or type lyrics here. Line breaks are preserved.">${escapeHtml(
+            <textarea class="lyrics-editor-textarea" id="lyrics-editor-textarea" placeholder="${LRC_PASTE_PLACEHOLDER}">${escapeHtml(
                 existing
             )}</textarea>
+            ${lyricsEditorHintHTML()}
             <div class="lyrics-editor-actions">
                 <button class="lyrics-editor-btn lyrics-editor-btn-danger" data-action="clearLyricsForCurrentSong">Clear</button>
                 <div class="lyrics-editor-actions-right">
@@ -301,6 +331,7 @@ export function openLyricsEditor() {
         </div>
     `;
 
+    watchLyricsEditorPaste();
     requestAnimationFrame(() => {
         overlay.classList.add('active');
         const textarea = document.getElementById('lyrics-editor-textarea');
@@ -333,7 +364,8 @@ export function openLyricsEditorForSong(songId) {
         song.artist || 'Unknown Artist'
     )}</div>
             </div>
-            <textarea class="lyrics-editor-textarea" id="lyrics-editor-textarea" placeholder="Paste or type lyrics here. Line breaks are preserved."></textarea>
+            <textarea class="lyrics-editor-textarea" id="lyrics-editor-textarea" placeholder="${LRC_PASTE_PLACEHOLDER}"></textarea>
+            ${lyricsEditorHintHTML()}
             <div class="lyrics-editor-actions">
                 <button class="lyrics-editor-btn lyrics-editor-btn-danger" ${actionAttrs('clearLyricsForSong', [String(songId)])}>Clear</button>
                 <div class="lyrics-editor-actions-right">
@@ -346,6 +378,7 @@ export function openLyricsEditorForSong(songId) {
 
     const textarea = document.getElementById('lyrics-editor-textarea');
     if (textarea) textarea.value = existing;
+    watchLyricsEditorPaste();
 
     requestAnimationFrame(() => {
         overlay.classList.add('active');
@@ -359,10 +392,10 @@ export function saveLyricsForSong(songId) {
     const textarea = document.getElementById('lyrics-editor-textarea');
     if (!textarea) return;
     const normalized = textarea.value.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    setLyricsForSong(songId, normalized);
+    const syncedLines = saveLyricsEditorText(songId, normalized);
     closeLyricsEditor();
 
-    if (currentView === VIEWS.LYRICS) {
+    if (currentView === VIEWS.LYRICS || syncedLines) {
         emit('lyrics:changed', { songId });
     }
 
@@ -378,7 +411,7 @@ export function saveLyricsForSong(songId) {
         }
     }
 
-    showNotification('Lyrics saved', 'success', 2000);
+    showNotification(syncedLines ? `Saved ${syncedLines} synced lines` : 'Lyrics saved', 'success', 2000);
 }
 
 export function clearLyricsForSong(songId) {
@@ -426,10 +459,10 @@ export function saveLyricsFromEditor() {
     const queueItem = playbackQueue[currentQueueIndex];
     const song = queueItem.song || queueItem;
     const normalized = textarea.value.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    setLyricsForSong(song.id, normalized);
+    const syncedLines = saveLyricsEditorText(song.id, normalized);
     closeLyricsEditor();
     emit('lyrics:changed', { songId: song.id });
-    showNotification('Lyrics saved', 'success', 2000);
+    showNotification(syncedLines ? `Saved ${syncedLines} synced lines` : 'Lyrics saved', 'success', 2000);
 }
 
 export function clearLyricsForCurrentSong() {

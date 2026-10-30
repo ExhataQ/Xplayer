@@ -129,7 +129,7 @@ describe('phase 1 gate: the new shell', { concurrency: false }, () => {
     test('L-10 / D14: the shuffle dialog is drawn inside the window, covers it, and closes from its overlay', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, problems } = await open({ play: true });
-        await page.click('#shuffle-btn');
+        await page.evaluate(() => openShuffleModeDialog()); // the button opens a menu now (PB-07)
         await page.locator('.shuffle-mode-modal').waitFor({ state: 'visible', timeout: 3000 });
         const box = await inWindow(page, '.shuffle-mode-modal');
         assert.equal(box.drawn, true, 'the dialog has a box');
@@ -153,7 +153,7 @@ describe('phase 1 gate: the new shell', { concurrency: false }, () => {
         const results = [];
         for (const theme of themes) {
             await page.evaluate((name) => document.documentElement.setAttribute('data-theme', name), theme);
-            await page.click('#shuffle-btn');
+            await page.evaluate(() => openShuffleModeDialog()); // the button opens a menu now (PB-07)
             await page.locator('.shuffle-mode-modal').waitFor({ state: 'visible' });
             results.push(
                 await page.evaluate((name) => {
@@ -256,7 +256,7 @@ describe('phase 1 gate: the new shell', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page } = await open({ play: true });
         await page.setViewportSize({ width: 800, height: 600 });
-        await page.click('#shuffle-btn');
+        await page.evaluate(() => openShuffleModeDialog()); // the button opens a menu now (PB-07)
         await page.locator('.shuffle-mode-modal').waitFor({ state: 'visible' });
         const box = await inWindow(page, '.shuffle-mode-modal');
         assert.equal(box.inside, true, `inside the window: ${box.box}`);

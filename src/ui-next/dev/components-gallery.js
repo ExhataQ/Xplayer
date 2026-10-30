@@ -3,8 +3,7 @@
 import { button, iconButton, chipGroup, chip, textField, tabs, segmented, attachTooltip, createToaster, statusIndicator, progress, openDialog, confirmDialog, openMenu, emptyState, el } from '../components/index.js';
 
 const root = document.documentElement;
-const THEMES = ['warm-graphite', 'deep-forest', 'espresso-copper'];
-const ACCENTS = ['theme', 'green', 'pink', 'purple', 'yellow', 'white'];
+const THEMES = ['warm-graphite', 'deep-forest', 'espresso-copper', 'pure-black', 'graphite-gold', 'carbon-honey', 'high-contrast', 'midnight-blue', 'aubergine-rose', 'ocean-teal', 'crimson-noir', 'violet-night'];
 
 function switcher(containerId, values, current, apply) {
     const container = document.getElementById(containerId);
@@ -12,7 +11,6 @@ function switcher(containerId, values, current, apply) {
     container.append(group.el);
 }
 switcher('themes', THEMES, 'warm-graphite', (v) => root.setAttribute('data-theme', v));
-switcher('accents', ACCENTS, 'theme', (v) => (v === 'theme' ? root.removeAttribute('data-accent') : root.setAttribute('data-accent', v)));
 switcher('directions', ['ltr', 'rtl'], 'ltr', (v) => root.setAttribute('dir', v));
 
 const gallery = document.getElementById('gallery');

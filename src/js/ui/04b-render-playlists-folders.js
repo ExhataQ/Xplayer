@@ -45,7 +45,7 @@ export function renderPlaylistsView() {
 
         const coverHTML = playlist.cover
             ? `<img class="main-item-cover-img album-cover-img" src="${playlist.cover}" alt="" style="width: 45px; height: 45px; border-radius: 8px; object-fit: cover;">`
-            : `<svg class="main-item-cover-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
+            : `<svg class="main-item-cover-svg cover-ph cover-ph--playlist" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
                     <rect width="400" height="400" rx="8" fill="#2a2a2a"/>
                     <rect x="140" y="140" width="120" height="30" rx="6" fill="var(--accent)"/>
                     <rect x="140" y="185" width="120" height="30" rx="6" fill="var(--accent)" opacity="0.7"/>
@@ -113,7 +113,7 @@ export function renderFoldersView() {
         folderItem.innerHTML = `
                 <div class="subfolder-row">
                         <div class="main-item-cover-wrapper">
-                                <svg class="main-item-cover-svg folder-cover-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
+                                <svg class="main-item-cover-svg folder-cover-svg cover-ph cover-ph--folder" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
                                         <rect class="folder-cover-bg" width="400" height="400" rx="8"/>
                                         <path d="M108 173 L108 148 Q108 130 126 130 L172 130 Q180 130 186 136 L200 150 Q206 155 214 155 L274 155 Q292 155 292 173 L292 272 Q292 290 274 290 L126 290 Q108 290 108 272 Z" fill="#212121" stroke="none"/>
                                         <path d="M108 173 L108 148 Q108 130 126 130 L172 130 Q180 130 186 136 L200 150 Q206 155 214 155 L274 155 Q292 155 292 173 L292 272 Q292 290 274 290 L126 290 Q108 290 108 272 Z" fill="none" stroke="#c0c0c0" stroke-width="18" stroke-linejoin="round" stroke-linecap="round"/>
@@ -200,7 +200,7 @@ export function renderFolderContents(folderId) {
         let typeLabel = '';
 
         if (item.type === 'folder') {
-            coverHTML = `<svg class="main-item-cover-svg folder-cover-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
+            coverHTML = `<svg class="main-item-cover-svg folder-cover-svg cover-ph cover-ph--folder" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
                                     <rect class="folder-cover-bg" width="400" height="400" rx="8"/>
                                     <path d="M108 173 L108 148 Q108 130 126 130 L172 130 Q180 130 186 136 L200 150 Q206 155 214 155 L274 155 Q292 155 292 173 L292 272 Q292 290 274 290 L126 290 Q108 290 108 272 Z" fill="#212121" stroke="none"/>
                                     <path d="M108 173 L108 148 Q108 130 126 130 L172 130 Q180 130 186 136 L200 150 Q206 155 214 155 L274 155 Q292 155 292 173 L292 272 Q292 290 274 290 L126 290 Q108 290 108 272 Z" fill="none" stroke="#c0c0c0" stroke-width="18" stroke-linejoin="round" stroke-linecap="round"/>
@@ -215,7 +215,7 @@ export function renderFolderContents(folderId) {
         } else if (item.type === 'playlist') {
             coverHTML = item.cover
                 ? `<img class="main-item-cover-img album-cover-img" src="${item.cover}" alt="" style="width: 45px; height: 45px; border-radius: 8px; object-fit: cover;">`
-                : `<svg class="main-item-cover-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
+                : `<svg class="main-item-cover-svg cover-ph cover-ph--playlist" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
                         <rect width="400" height="400" rx="8" fill="#2a2a2a"/>
                         <rect x="140" y="140" width="120" height="30" rx="6" fill="var(--accent)"/>
                         <rect x="140" y="185" width="120" height="30" rx="6" fill="var(--accent)" opacity="0.7"/>
@@ -231,7 +231,7 @@ export function renderFolderContents(folderId) {
         } else if (item.type === 'album') {
             coverHTML = item.cover
                 ? `<img class="main-item-cover-img album-cover-img" src="${item.cover}" alt="">`
-                : `<svg class="main-item-cover-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
+                : `<svg class="main-item-cover-svg cover-ph cover-ph--album" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
                         <rect width="400" height="400" rx="8" fill="#1a1a1a"/>
                         <circle cx="200" cy="200" r="115" fill="none" stroke="#fff" stroke-width="8"/>
                         <circle cx="200" cy="200" r="30" fill="#fff"/>
@@ -247,7 +247,7 @@ export function renderFolderContents(folderId) {
         } else if (item.type === 'artist') {
             coverHTML = item.cover
                 ? `<img class="main-item-cover-img artist-cover-img" src="${item.cover}" alt="">`
-                : `<svg class="main-item-cover-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
+                : `<svg class="main-item-cover-svg cover-ph cover-ph--artist" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
                         <rect width="400" height="400" rx="200" fill="#2a2a2a"/>
                         <circle cx="200" cy="155" r="70" fill="var(--accent)"/>
                         <ellipse cx="200" cy="320" rx="110" ry="45" fill="var(--accent)"/>
@@ -263,14 +263,14 @@ export function renderFolderContents(folderId) {
             const isAllSongs = item.id === VIEWS.ALL_SONGS;
             const isFavorites = item.id === VIEWS.FAVORITES;
             if (isAllSongs) {
-                coverHTML = `<svg class="main-item-cover-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
+                coverHTML = `<svg class="main-item-cover-svg cover-ph cover-ph--all-songs" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
                         <rect width="400" height="400" rx="8" fill="var(--accent)"/>
                         <circle cx="200" cy="200" r="70" fill="none" stroke="#000000" stroke-width="12"/>
                         <polygon points="180,160 180,240 240,200" fill="#000000"/>
                 </svg>`;
                 typeLabel = 'Playlist';
             } else if (isFavorites) {
-                coverHTML = `<svg class="main-item-cover-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
+                coverHTML = `<svg class="main-item-cover-svg cover-ph cover-ph--liked" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
                         <defs><linearGradient id="likedGradientFldr" x1="0%" y1="0%" x2="100%" y2="100%">
                                 <stop offset="0%" style="stop-color:#450af5"/><stop offset="100%" style="stop-color:#c4efd9"/>
                         </linearGradient></defs>

@@ -196,6 +196,8 @@ shuffleButton.onclick = openShuffleModeDialog;
 
 if (typeof registerLegacyGlobals === 'function') {
     registerLegacyGlobals({
-        toggleNormalShuffle
+        toggleNormalShuffle,
+        selectShuffleMode, // the new interface's shuffle menu picks a mode through it (PB-07)
+        openShuffleModeDialog // the engine's old dialog: the new interface has a menu now, and tests open the dialog to check dialog styling
     });
 }

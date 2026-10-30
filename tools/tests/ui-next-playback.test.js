@@ -426,7 +426,7 @@ describe('playback surfaces in the new shell with the real engine', { concurrenc
 
     const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR4nGP8z8DAwMDAAAUAAh4BBSb7bDYAAAAASUVORK5CYII=';
 
-    test('the cover button appears only for a real cover and opens a dialog with the picture, title and artist; Escape returns focus', TEST_OPTIONS, async (t) => {
+    test('the cover button appears only for a real cover and opens the big picture with the title and artist; Escape fades it out and returns focus', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open({ play: true });
         assert.equal(await page.isVisible('.cover-expand'), false, 'the engine\'s placeholder is not a cover');
@@ -435,36 +435,44 @@ describe('playback surfaces in the new shell with the real engine', { concurrenc
         await page.hover('.player-song-info');
         assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.cover-expand')).opacity), '1');
         await page.focus('.cover-expand');
-        await page.keyboard.press('Space');
-        await page.waitForSelector('dialog.dialog--cover[open]');
-        const view = await page.evaluate(() => { const d = document.querySelector('dialog.dialog--cover'); const img = d.querySelector('.cover-viewer__image'); return { title: d.querySelector('.dialog__title').textContent, src: img.src === document.getElementById('player-cover').src, alt: img.alt, caption: d.querySelector('.cover-viewer__caption').textContent, paused: audioElement.paused }; });
-        assert.deepEqual(view, { title: 'Song title number 1', src: true, alt: 'Cover of Song title number 1', caption: 'Artist 0', paused: false });
+        await page.keyboard.press('Enter');
+        await page.waitForSelector('dialog.cover-overlay[open]');
+        await page.waitForSelector('dialog.cover-overlay.cover-overlay--shown');
+        const view = await page.evaluate(() => { const d = document.querySelector('dialog.cover-overlay'); const img = d.querySelector('.cover-overlay__image'); const r = d.getBoundingClientRect(); return { label: d.getAttribute('aria-label'), src: img.src === document.getElementById('player-cover').src, alt: img.alt, covers: r.width === innerWidth && r.height === innerHeight, paused: audioElement.paused }; });
+        assert.deepEqual(view, { label: 'Song title number 1, Artist 0', src: true, alt: 'Cover of Song title number 1', covers: true, paused: false });
         await page.keyboard.press('Escape');
-        await page.waitForSelector('dialog.dialog--cover', { state: 'detached' });
+        await page.waitForSelector('dialog.cover-overlay', { state: 'detached' });
         assert.equal(await page.evaluate(() => document.activeElement.classList.contains('cover-expand')), true, 'focus returns to the cover button');
         assert.deepEqual(errors, []);
         await page.close();
     });
 
-    test('in the viewer the picture switches between fit and actual size, and the close button and backdrop close it', TEST_OPTIONS, async (t) => {
+    test('in the big picture a click on the picture turns the magnifier on and off, and the close button and backdrop close it', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open({ play: true });
         await page.evaluate((src) => (document.getElementById('player-cover').src = src), PNG);
         await page.waitForFunction(() => !document.querySelector('.cover-expand').hidden);
         await page.hover('.player-song-info');
         await page.click('.cover-expand');
-        await page.waitForSelector('dialog.dialog--cover[open]');
-        const fit = await page.evaluate(() => document.querySelector('.cover-viewer__frame').classList.contains('cover-viewer__frame--actual'));
-        await page.click('.cover-viewer__image');
-        const actual = await page.evaluate(() => document.querySelector('.cover-viewer__frame').classList.contains('cover-viewer__frame--actual'));
-        assert.deepEqual([fit, actual], [false, true]);
-        await page.click('.dialog__header button[aria-label="Close"]');
-        await page.waitForSelector('dialog.dialog--cover', { state: 'detached' });
+        await page.waitForSelector('dialog.cover-overlay.cover-overlay--shown');
+        const lens = () => page.evaluate(() => { const l = document.querySelector('.cover-lens'); return { hidden: l.hidden, on: document.querySelector('.cover-overlay__image').classList.contains('cover-overlay__image--lens') }; });
+        assert.deepEqual(await lens(), { hidden: true, on: false });
+        await page.click('.cover-overlay__image');
+        assert.deepEqual(await lens(), { hidden: false, on: true }, 'a click turns the magnifier on, under the pointer');
+        const box = await page.evaluate(() => { const r = document.querySelector('.cover-lens').getBoundingClientRect(); return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, size: r.width }; });
+        const img = await page.locator('.cover-overlay__image').boundingBox();
+        assert.ok(Math.abs(box.cx - (img.x + img.width / 2)) < 3 && Math.abs(box.cy - (img.y + img.height / 2)) < 3 && box.size === 180, 'the lens is centered on the pointer');
+        await page.mouse.move(2, 2);
+        assert.equal((await lens()).hidden, true, 'the lens hides outside the picture');
+        await page.click('.cover-overlay__image');
+        assert.equal((await lens()).on, false, 'a second click turns it off');
+        await page.click('.cover-overlay__close');
+        await page.waitForSelector('dialog.cover-overlay', { state: 'detached' });
         await page.hover('.player-song-info');
         await page.click('.cover-expand');
-        await page.waitForSelector('dialog.dialog--cover[open]');
+        await page.waitForSelector('dialog.cover-overlay.cover-overlay--shown');
         await page.mouse.click(8, 400); // the backdrop
-        await page.waitForSelector('dialog.dialog--cover', { state: 'detached' });
+        await page.waitForSelector('dialog.cover-overlay', { state: 'detached' });
         await page.close();
     });
 });

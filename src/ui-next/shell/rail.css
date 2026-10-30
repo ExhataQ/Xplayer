@@ -34,10 +34,18 @@
     transition: transform 260ms var(--motion-ease), opacity 160ms var(--motion-ease);
     pointer-events: none;
 }
-.rail-btn[aria-current='page']::before,
+/* Only the items that fill the panel (Library, Search, Recents: data-dynamic) carry the bar. Home, Lyrics, Metadata and Settings take
+   the main view and show the filled background and the accent icon instead. A panel item shows it while its panel is open, or while
+   it is the main view itself. */
+.rail-btn[data-dynamic][aria-current='page']::before,
 .rail-btn[data-panel-current]::before {
     opacity: 1;
     transform: scaleY(1);
+}
+/* The same filled background as the selected main-view items, for whichever panel item is showing (Search and Recents had none). */
+.rail-btn[data-panel-current] {
+    background: var(--surface-selected);
+    color: var(--text-primary);
 }
 
 /* ---------- icon states ---------- */

@@ -15,18 +15,14 @@
 .plist-panel[hidden] {
     display: none;
 }
-.plist-panel__bar {
+.plist-panel__controls {
     display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-4) var(--space-3);
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--panel-pad-top) var(--space-4) var(--panel-pad-bottom);
 }
-.plist-panel__bar .field {
-    flex: 1;
-    min-width: 0;
-}
-.plist-panel__chips {
-    padding: 0 var(--space-4) var(--space-3);
+.plist-panel__controls .chip-group {
+    flex-wrap: wrap;
 }
 .plist-panel .field__label {
     position: absolute;
@@ -39,10 +35,11 @@
 .plist-results {
     flex: 1;
     min-height: 0;
-    padding: 0 var(--space-2) var(--space-3);
+    padding: 0 var(--space-2) var(--panel-list-end);
     overflow-y: auto;
-    scrollbar-width: auto;
-    scrollbar-color: var(--border-strong) transparent;
+}
+.plist-panel:not(:has(.plist-panel__controls)) .plist-results {
+    padding-top: var(--panel-pad-bottom); /* Recents has no controls: the list starts where the Library's list does */
 }
 .plist-section__title {
     margin: var(--space-3) var(--space-2) var(--space-1);
@@ -112,7 +109,7 @@
     gap: var(--space-3);
     min-width: 0;
     height: 100%;
-    padding: 0 var(--space-3) 0 0;
+    padding: 0 var(--space-3) 0 var(--panel-row-pad-x);
     border: 0;
     border-radius: var(--radius-md);
     background: none;

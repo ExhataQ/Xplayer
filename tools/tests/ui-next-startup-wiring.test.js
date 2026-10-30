@@ -265,7 +265,7 @@ describe('startup wiring in a real page', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page, errors } = await open();
         await page.click('.rail-btn[data-view="settings"]');
-        await page.click('.settings-card[data-page="general"]'); // Settings opens on a hub of cards
+        await page.click('.settings-menu [data-page="general"]'); // Settings opens on General
         const select = 'select[aria-label="Startup screen background"]';
         await page.waitForSelector(select);
         const options = await page.$$eval(`${select} option`, (os) => os.map((o) => o.value));

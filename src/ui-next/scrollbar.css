@@ -1,0 +1,64 @@
+/*
+ * Scrollbars (the custom scrollbar, one place for the whole window).
+ *
+ * Every scroller uses the same bar: 6px wide, no track and NO arrow buttons at the ends. The thumb is a square bar that sits flush
+ * against the wall (the edge of the window or panel), with no gap. It is the theme's accent, soft at rest and solid on hover and while
+ * dragged. Settings > Appearance > Scrollbar color switches it to Neutral (data-scrollbar='neutral' on <html>): the same bar in grey,
+ * ignoring the theme. Settings > Appearance > Scrollbar shape picks between two shapes (data-scrollbar-shape on <html>): the flush bar
+ * (the default: square, 6px) and the wall tab (8px, rounded on the side away from the wall). --scrollbar-size is the one number that
+ * makes the whole bar wider or thinner.
+ *
+ * Why ::-webkit-scrollbar and not scrollbar-color: the standard scrollbar-width / scrollbar-color properties cannot hide the arrow
+ * buttons, and in Chromium 121 and later they switch ::-webkit-scrollbar off for the element. So no rule in the app may set them
+ * (tools/tests/ui-next-scrollbar.test.js checks this). The shelf rows on Home that hide their bar use scrollbar-width: none on purpose.
+ */
+:root {
+    --scrollbar-size: 6px;
+    --scrollbar-thumb: color-mix(in srgb, var(--accent) 45%, transparent);
+    --scrollbar-thumb-hover: var(--accent);
+    --scrollbar-thumb-active: var(--accent-hover);
+}
+:root[data-scrollbar-shape='tab'] {
+    --scrollbar-size: 8px;
+}
+:root[data-scrollbar='neutral'] {
+    --scrollbar-thumb: color-mix(in srgb, var(--text-tertiary) 50%, transparent);
+    --scrollbar-thumb-hover: var(--text-secondary);
+    --scrollbar-thumb-active: var(--text-primary);
+}
+
+*::-webkit-scrollbar {
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-size);
+    background: transparent;
+}
+/* The arrows at both ends. */
+*::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+}
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+    background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+    min-height: 32px; /* a very long list keeps a thumb that can be grabbed */
+    min-width: 32px;
+    border-radius: 0; /* square and flush: no gutter around it, so it touches the wall */
+    background-color: var(--scrollbar-thumb);
+}
+*::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+}
+*::-webkit-scrollbar-thumb:active {
+    background-color: var(--scrollbar-thumb-active);
+}
+
+/* The wall tab: the same bar, rounded on the side that faces the content. A vertical bar sits on the right wall, a horizontal one on the bottom. */
+:root[data-scrollbar-shape='tab'] *::-webkit-scrollbar-thumb:vertical {
+    border-radius: 4px 0 0 4px;
+}
+:root[data-scrollbar-shape='tab'] *::-webkit-scrollbar-thumb:horizontal {
+    border-radius: 4px 4px 0 0;
+}

@@ -43,7 +43,7 @@ export function mountNotifications(bell) {
     let shellList = [];
     let isOpen = false;
     let autoOpened = false; // the center opens by itself once per session, for the first important entry
-    let shape = '';
+    let shape = null; // null until the first draw: an empty list has the shape '', and must still get its "Nothing new" message at launch
     const known = new Set(); // finished entries already shown as a toast (or present at start)
     const seen = new Set(); // finished entries the person has had the chance to read
     const bars = new Map(); // id -> { bar, percent, status } for running rows, updated in place

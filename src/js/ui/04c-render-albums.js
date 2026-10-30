@@ -141,7 +141,7 @@ export function renderAlbumLeftPanelItems() {
 
         const coverContent = album.cover
             ? `<img class="main-item-cover-img album-cover-img" src="${album.cover}" alt="">`
-            : `<svg class="main-item-cover-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
+            : `<svg class="main-item-cover-svg cover-ph cover-ph--album" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
                     <rect width="400" height="400" rx="8" fill="#1a1a1a"/>
                     <circle cx="200" cy="200" r="115" fill="none" stroke="#fff" stroke-width="8"/>
                     <circle cx="200" cy="200" r="30" fill="#fff"/>

@@ -53,12 +53,16 @@ describe('right panel slot', { concurrency: false }, () => {
             m.registerRightPanel({ mount(body) { window.__rp.mounts++; body.textContent = 'provider body'; return {}; } });
         });
 
-    test('with no provider there is no button and no panel', TEST_OPTIONS, async (t) => {
+    test('the player registers the panel content (PC-13): the button shows, the panel stays closed until it is opened', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open();
         assert.equal(await button(page).count(), 1);
-        assert.equal(await button(page).isHidden(), true);
-        assert.equal(await host(page).isHidden(), true);
+        assert.equal(await button(page).isVisible(), true, 'the content registered, so the title bar button exists');
+        assert.equal(await host(page).isHidden(), true, 'closed by default');
+        await button(page).click();
+        await page.waitForSelector('.right-host .rp-now');
+        assert.equal(await host(page).isVisible(), true);
+        assert.equal(await page.locator('.rp-now__note').textContent(), 'Nothing is playing');
         assert.deepEqual(errors, []);
         await page.close();
     });

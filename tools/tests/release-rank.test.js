@@ -73,3 +73,36 @@ test('"popular" uses the popularity signal when there is one and falls back to "
     assert.equal(pickRelease(list, { rule: 'popular', popularity: { 'g-b': 0.95, 'g-a': 0.1 } }).best.id, 'b');
     assert.equal(pickRelease(list, { rule: 'original', popularity: { 'g-b': 0.95 } }).best.id, 'a', 'the original rule ignores popularity');
 });
+
+// ---- annotateSearch: the single-song editor's "original" marker (PD-04) ----
+const { annotateSearch } = require('../../electron/release-rank');
+
+test('annotateSearch (recording scope): each recording gets the ranked release, not just the earliest date', () => {
+    const releases = [
+        { id: 'comp', title: 'Greatest Hits', date: '1985', releaseGroupId: 'g1', status: 'Official', primaryType: 'Album', secondaryTypes: ['Compilation'] },
+        { id: 'orig', title: 'The Album', date: '1990', releaseGroupId: 'g2', status: 'Official', primaryType: 'Album', secondaryTypes: [] }
+    ];
+    const answer = { success: true, results: [{ id: 'r1', title: 'Song', score: 100, releases }, { id: 'r2', title: 'Empty', releases: [] }] };
+    const out = annotateSearch(answer, { title: 'Song', album: '', scope: 'recording' });
+    assert.equal(out.results[0].recommendedReleaseId, 'orig');
+    assert.ok(out.results[0].recommendedConfidence > 0);
+    assert.equal('recommendedReleaseId' in out.results[1], false);
+    assert.equal('recommendedReleaseId' in answer.results[0], false, 'the answer passed in (possibly cached) is not changed');
+});
+
+test('annotateSearch (release scope): the answer says which release is the likely original', () => {
+    const results = [
+        { id: 'live', title: 'Live', date: '1980', releaseGroupId: 'g1', status: 'Official', primaryType: 'Album', secondaryTypes: ['Live'] },
+        { id: 'orig', title: 'The Album', date: '1982', releaseGroupId: 'g2', status: 'Official', primaryType: 'Album', secondaryTypes: [] }
+    ];
+    const out = annotateSearch({ success: true, results }, { title: 'Song', album: '', scope: 'release' });
+    assert.equal(out.recommended.id, 'orig');
+    assert.ok(out.recommended.confidence > 0 && Array.isArray(out.recommended.reasons));
+});
+
+test('annotateSearch leaves failures and empty answers alone', () => {
+    const failed = { success: false, error: 'x' };
+    assert.equal(annotateSearch(failed, {}), failed);
+    assert.deepEqual(annotateSearch({ success: true, results: [] }, { scope: 'release' }), { success: true, results: [] });
+    assert.equal(annotateSearch(undefined, {}), undefined);
+});

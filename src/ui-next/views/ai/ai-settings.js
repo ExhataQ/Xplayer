@@ -169,6 +169,7 @@ export function buildAiSettings(container, ctx) {
     }
 
     function paint(status) {
+        if (!status) return; // no answer from the main process (a plain browser, a test stub): leave the section as it is
         const on = Boolean(status.enabled);
         toggle.setAttribute('aria-pressed', String(on));
         setLabel(toggle, on ? 'Turn off AI' : 'Turn on AI');
@@ -198,6 +199,7 @@ export function buildAiSettings(container, ctx) {
         paintHistory();
     });
     getStatus().then((status) => {
+        if (!status) return state.replaceChildren('AI is not available here.');
         paint(status);
         paintHistory();
     }, () => state.replaceChildren('AI is not available here.'));

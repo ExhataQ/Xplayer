@@ -198,7 +198,16 @@ def generate_html_template(songs_data, placeholder_image):
 
     electron_dir = os.path.join(source_root, "electron")
     if os.path.exists(electron_dir):
-        for config_file in ["main.js", "preload.js", "package.json", "scan-folder.js", "tag-builder.js", "full-scan.js", "incremental-scan.js", "fast-scan.js", "single-file-rescan.js", "window-manager.js", "loading-window.js", "loading-page.js", "scanner.js", "music-folders.js", "downloads.js", "file-operations.js", "online-lyrics.js", "online-metadata.js", "metadata-editor.js", "metadata-editor.py", "songs-data.js", "storage-paths.js", "ipc-checks.js", "songs-store.js", "ui-entry.js"]:
+        # Deploy every main-process file instead of a hand-kept list: main.js pulls in tag-service, tag-finder, release-rank,
+        # audio-bytes, waveform-peaks and more, and a list that falls behind makes App\electron.exe fail at start.
+        # Folders (ai/ is copied below, __pycache__ is not shipped) and package-lock.json are skipped.
+        deploy_files = sorted(
+            name
+            for name in os.listdir(electron_dir)
+            if os.path.isfile(os.path.join(electron_dir, name))
+            and (name.endswith(".js") or name in ("package.json", "metadata-editor.py"))
+        )
+        for config_file in deploy_files:
             src = os.path.join(electron_dir, config_file)
             dst = os.path.join(app_dir, config_file)
             if os.path.exists(src):
@@ -261,6 +270,15 @@ def generate_html_template(songs_data, placeholder_image):
             fdst = os.path.join(icons_dir_dst, name)
             if os.path.exists(fsrc):
                 shutil.copy2(fsrc, fdst)
+
+    # The default covers (default-cover.svg for songs, default-cover-<kind>.svg for the rest). The new interface reaches them as
+    # ../assets/ from ui-next/index.html and ../../assets/ from ui-next/adapter/*.css, so they must sit in <output>/assets/.
+    covers_src = os.path.join(source_root, "src", "assets")
+    covers_dst = os.path.join(output_dir, "assets")
+    os.makedirs(covers_dst, exist_ok=True)
+    for name in sorted(os.listdir(covers_src)):
+        if name.startswith("default-cover") and name.endswith(".svg"):
+            shutil.copy2(os.path.join(covers_src, name), os.path.join(covers_dst, name))
 
     fonts_dir = os.path.join(output_dir, "fonts")
     os.makedirs(fonts_dir, exist_ok=True)

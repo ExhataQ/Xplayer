@@ -14,7 +14,7 @@ const Module = require('node:module');
 
 const SRC = path.join(__dirname, '..', '..', 'electron');
 let root, handlers, realLoad;
-const hooks = { search: null, get: null, saves: 0 };
+const hooks = { search: null, get: null, popularity: null, saves: 0 };
 globalThis.__findHooks = hooks;
 
 const rel = (id, title, date) => ({ id, title, date, releaseGroupId: `g-${id}`, status: 'Official', primaryType: 'Album', secondaryTypes: [], recordingScore: 100 });
@@ -34,6 +34,7 @@ before(() => {
     // main.js also requires files in subfolders (./ai/...), so copy the whole folder; only source files are needed
     fs.cpSync(SRC, copy, { recursive: true, filter: (from) => !/node_modules|\.py$|\.json$/.test(from) });
     fs.writeFileSync(path.join(copy, 'metadata-editor.js'), "module.exports = { getAudioMetadata: async () => ({ success: true, metadata: {} }), saveAudioCover: async () => ({}), saveAudioMetadata: async () => { globalThis.__findHooks.saves += 1; return { success: true, metadata: {} }; } };");
+    fs.writeFileSync(path.join(copy, 'popularity.js'), 'module.exports = { fetchPopularity: async (ids) => (globalThis.__findHooks.popularity ? globalThis.__findHooks.popularity(ids) : null) };');
     fs.writeFileSync(path.join(copy, 'online-metadata.js'), 'module.exports = { searchOnlineMetadata: (q) => globalThis.__findHooks.search(q), getOnlineMetadata: (q) => globalThis.__findHooks.get(q) };');
     handlers = {};
     const fake = {
@@ -69,7 +70,7 @@ test('bad requests are refused before any lookup is made', async () => {
         { songs: [{ id: {}, fileUrl: 'f', tags: {} }] },
         { songs: [{ id: 1, fileUrl: 'f', tags: [] }] },
         { songs: [null] },
-        { songs: [song(1)], options: { rule: 'popular' } },
+        { songs: [song(1)], options: { rule: 'cheapest' } },
         { songs: [song(1)], options: { autoThreshold: 2 } },
         { songs: [song(1)], options: { autoThreshold: 'high' } },
         { songs: [song(1)], options: { fields: ['title'] } },
@@ -83,6 +84,21 @@ test('bad requests are refused before any lookup is made', async () => {
     // and the failed requests did not leave a run marked as running
     happy();
     assert.equal((await find({ songs: [song(1)] })).success, true);
+});
+
+test('the "popular" rule is accepted, asks for the popularity of the release groups, and picks the album more people listened to', async () => {
+    happy();
+    const asked = [];
+    hooks.search = async () => ({ success: true, results: [rel('a', 'First Album', '1999'), rel('b', 'Big Album', '2003')] });
+    hooks.get = async ({ releaseId }) => ({ success: true, metadata: { album: releaseId === 'b' ? 'Big Album' : 'First Album' } });
+    hooks.popularity = async (ids) => { asked.push(ids); return { 'g-a': 0.1, 'g-b': 1 }; };
+    const result = await find({ songs: [song(1)], options: { rule: 'popular', autoThreshold: 0.1 } });
+    hooks.popularity = null;
+    assert.equal(result.success, true);
+    assert.deepEqual(asked, [['g-a', 'g-b']]);
+    assert.equal(result.results[0].release.id, 'b');
+    const original = await find({ songs: [song(1)], options: { rule: 'original', autoThreshold: 0.1 } });
+    assert.equal(original.results[0].release.id, 'a');
 });
 
 test('a run returns every song\'s answer and sends one progress event per song', async () => {

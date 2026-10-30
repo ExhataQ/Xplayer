@@ -9,11 +9,14 @@
     position: relative;
     height: 100%;
 }
+/* position: relative is the old .content rule (css/song-list.css). The engine appends its hover, selection and playing highlight layers
+ * to .content as position: absolute and places them from row rectangles plus scrollTop (ui/04a getItemPosition), so .content must be
+ * their containing block or they stay behind when the list scrolls (task PB-01). */
 .view-host[data-engine] .content {
+    position: relative;
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
-    scrollbar-color: var(--border-strong) transparent;
 }
 .view-host[data-engine] #external-scrollbar {
     display: none;

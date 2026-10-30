@@ -14,6 +14,7 @@
     --sl-title: var(--sl-title-w, 5fr);
     --sl-album: var(--sl-album-w, 4fr);
     --sl-gap: var(--space-4);
+    --sl-more-inset: var(--space-2); /* the more button and the columns button keep this far from the highlight's right edge */
 }
 .view-host[data-songlist] > .content-wrapper {
     height: auto;
@@ -105,9 +106,72 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* ---------- hero: the title bar of an album, playlist, artist or the favorites, as a large header ----------
+   The cover is big, the name is large, and the bar takes the accent's tint at its top, so each list reads as a page of its own. Colors
+   are theme tokens only (the Settings designer can change them); the other lists keep the plain bar above. */
+.songlist-bar[data-kind='album'],
+.songlist-bar[data-kind='playlist'],
+.songlist-bar[data-kind='artist'],
+.songlist-bar[data-kind='favorites'],
+.songlist-bar[data-kind='all-songs'] {
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--space-4) var(--space-6);
+    padding-top: var(--space-6);
+    padding-bottom: var(--space-4);
+    background: var(--surface-ground);
+}
+.songlist-bar[data-kind='album'] .songlist-bar__cover,
+.songlist-bar[data-kind='playlist'] .songlist-bar__cover,
+.songlist-bar[data-kind='artist'] .songlist-bar__cover,
+.songlist-bar[data-kind='favorites'] .songlist-bar__cover,
+.songlist-bar[data-kind='all-songs'] .songlist-bar__cover {
+    width: clamp(120px, 18vw, 184px);
+    height: clamp(120px, 18vw, 184px);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-raised);
+}
+.songlist-bar[data-kind='artist'] .songlist-bar__cover {
+    border-radius: 50%;
+}
+.songlist-bar[data-kind] .songlist-bar__text {
+    flex: 1 1 260px;
+}
+.songlist-bar[data-kind] .songlist-bar__title {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: clamp(var(--text-2xl), 4vw, var(--text-4xl));
+    line-height: 1.1;
+    margin-top: var(--space-1);
+}
+.songlist-bar[data-kind] .songlist-bar__count {
+    display: block;
+    margin-top: var(--space-2);
+}
+.songlist-bar[data-kind] .songlist-bar__line {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+}
+.songlist-bar[data-kind] .songlist-bar__label {
+    color: var(--text-secondary);
+}
+/* the buttons (Play, Shuffle, Find, More) sit on their own row under the name, on the left, as in the design */
+.songlist-bar[data-kind] .list-toolbar {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    margin-top: var(--space-2);
+}
+.songlist-bar[data-kind] .list-toolbar .icon-btn--solid {
+    width: 48px;
+    height: 48px;
+}
+
 /* ---------- header row ---------- */
 .songlist-head {
-    position: relative;
+    position: sticky;
+    top: 0;
+    z-index: 2;
     display: grid;
     grid-template-columns: var(--sl-number) minmax(0, var(--sl-title)) minmax(0, var(--sl-album)) var(--sl-right);
     column-gap: var(--sl-gap);
@@ -209,6 +273,7 @@
     justify-content: flex-end;
     gap: var(--space-2);
     min-width: 0;
+    padding-right: var(--sl-more-inset); /* as the rows' right cell, so the columns button stays above the more buttons */
 }
 .songlist-head__time {
     min-width: 44px;

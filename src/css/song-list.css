@@ -886,6 +886,16 @@ body.in-lyrics-view #active-hover-styles-set {
     z-index: 0;
 }
 
+/* Hero shrinks and fades as the list scrolls under it (--hero-progress is set by initTracklistScrollEffect in js/ui/layout.js). */
+.playlist-hero-cover {
+    transform: scale(calc(1 - 0.12 * var(--hero-progress, 0)));
+    transform-origin: left bottom;
+}
+
+.playlist-hero-info {
+    opacity: calc(1 - var(--hero-progress, 0));
+}
+
 .subhero-section {
     display: flex;
     align-items: center;
@@ -895,9 +905,15 @@ body.in-lyrics-view #active-hover-styles-set {
     box-sizing: border-box;
 }
 
+/* Play, shuffle and more sit on the right; the search stays on the left. */
 .subhero-left-actions {
     display: flex;
     align-items: center;
+    order: 2;
+}
+
+.subhero-search-container {
+    order: 1;
 }
 
 .subhero-play-btn {

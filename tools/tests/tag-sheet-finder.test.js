@@ -101,6 +101,17 @@ test('the request carries the file tags the sheet read, only the tags the sheet 
     assert.ok(!request.options.fields.some((field) => /^musicBrainz/.test(field)), 'the id tags are not sheet columns');
 });
 
+test('the rule choice reaches the request; an unknown rule is refused before anything is sent', async () => {
+    const { api, bridge } = await setup();
+    api.checkRows([2]);
+    bridge.reply = reply([match(2, 'none')]);
+    await api.findTags({ rule: 'popular' });
+    assert.equal(bridge.requests[0].options.rule, 'popular');
+    const bad = await api.findTags({ rule: 'cheapest' });
+    assert.equal(bad.ok, false);
+    assert.equal(bridge.requests.length, 1);
+});
+
 test('tags are read once: a second search does not read the files again', async () => {
     const { api, bridge } = await setup();
     api.checkAll();

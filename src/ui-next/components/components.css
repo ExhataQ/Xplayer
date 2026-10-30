@@ -462,6 +462,41 @@ textarea.field__input {
 .tooltip[hidden] {
     display: none;
 }
+/* The arrow: a small square turned 45 degrees, centered on the edge that faces the target. It has the box's fill and covers the box's own
+   line where it sits; only its two outer edges are drawn, and they take the box's border color (inherit), so the opening flash reaches the
+   arrow too. --tooltip-arrow is the distance along that edge, set by components/tooltip.js. */
+.tooltip::before {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+    background: var(--tooltip-bg);
+    rotate: 45deg;
+    pointer-events: none;
+}
+.tooltip:not([data-placement])::before {
+    display: none;
+}
+.tooltip[data-placement='bottom']::before {
+    top: -5px; /* measured from inside the 1px border: the square's middle sits on the box's outer edge */
+    left: calc(var(--tooltip-arrow, 50%) - 5px);
+    border-top-color: inherit;
+    border-left-color: inherit;
+}
+.tooltip[data-placement='top']::before {
+    bottom: -5px;
+    left: calc(var(--tooltip-arrow, 50%) - 5px);
+    border-bottom-color: inherit;
+    border-right-color: inherit;
+}
+.tooltip[data-placement='right']::before {
+    left: -5px;
+    top: calc(var(--tooltip-arrow, 50%) - 5px);
+    border-bottom-color: inherit;
+    border-left-color: inherit;
+}
 .tooltip__head {
     display: flex;
     align-items: center;

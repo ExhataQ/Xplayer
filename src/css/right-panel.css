@@ -330,24 +330,6 @@ body:has(.right-panel.collapsed) .container {
     margin-bottom: 15px;
 }
 
-.queue-load-more-btn {
-    width: calc(100% - 28px);
-    margin: 0 14px 15px;
-    padding: 9px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
-    font-size: 12px;
-    font-weight: var(--font-weight-semibold);
-    cursor: pointer;
-}
-
-.queue-load-more-btn:hover {
-    color: var(--text-primary);
-    background: var(--bg-hover);
-}
-
 .empty-queue {
     text-align: center;
     padding: 40px 20px;

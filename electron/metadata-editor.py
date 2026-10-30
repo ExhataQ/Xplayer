@@ -393,8 +393,20 @@ def restore_on_failure(path):
         try: os.unlink(backup)
         except OSError: pass
 
+# The request and the reply are JSON over pipes. Python picks the pipes' encoding from the locale (cp1252 on Windows), but Node sends and
+# expects UTF-8: reading with the locale decoded "Ü" as two wrong characters (the tag was then written wrong) and printing raised
+# "'charmap' codec can't encode characters" for text such as a check mark. So the request is decoded as UTF-8 from the bytes, and the
+# reply is plain ASCII (non-ASCII text is \\u escaped, which JSON.parse reads back), so no encoding can change it.
+def read_request():
+    stream=getattr(sys.stdin,'buffer',None)  # a text stream without .buffer is what the logic tests substitute
+    raw=stream.read().decode('utf-8') if stream else sys.stdin.read()
+    return json.loads(raw)
+
+def write_reply(out):
+    sys.stdout.write(json.dumps(out,ensure_ascii=True)+'\n'); sys.stdout.flush()
+
 def main():
-    q=json.loads(sys.stdin.read()); p=q.get('path')
+    q=read_request(); p=q.get('path')
     if not p or not os.path.isfile(p): raise RuntimeError('Audio file not found')
     action=q.get('action')
     if action=='save':
@@ -409,7 +421,7 @@ def main():
         # NB: this used to be wrapped a second time ({'metadata': {'success':..,'metadata':..}}),
         # so the editor never received the real tags on read.
         out={'success':True,'metadata':read_metadata(p)}
-    print(json.dumps(out,ensure_ascii=False))
+    write_reply(out)
 if __name__=='__main__':
     try: main()
-    except Exception as e: print(json.dumps({'success':False,'error':str(e)})); sys.exit(1)
+    except Exception as e: write_reply({'success':False,'error':str(e)}); sys.exit(1)

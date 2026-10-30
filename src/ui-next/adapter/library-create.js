@@ -5,7 +5,7 @@
 //                                                  that one is returned and nothing is made. The new playlist is never put into
 //                                                  the folder that happens to be open; place it with the folder actions.
 //   createFolderNamed(name)   -> { id, created }   same rule for folders
-//   showCreateDialog()                             the engine's "Create New" choice (Playlist or Folder), false when the engine is not ready
+//   showCreateDialog()                             the engine's own "Create New" choice (Playlist or Folder); the panel's plus uses a menu instead
 //
 // The engine emits playlist:listChanged and folder:listChanged itself, so the lists redraw without anything here.
 

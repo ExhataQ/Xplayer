@@ -23,8 +23,9 @@ const EDITORS = ['lyrics-editor-overlay', 'sync-editor-overlay']; // the engine 
 
 const find = () => wrapper || document.querySelector(`${HOST_SELECTOR} ${WRAPPER_SELECTOR}`);
 
-/** Moves the engine's main content into `host` and asks the engine to draw `view`. Returns false when it cannot. */
-export function showEngineView(host, view) {
+/** Moves the engine's main content into `host` and asks the engine to draw `view`. Returns false when it cannot.
+ *  `page`: the engine page to draw when it is not the view's own (the engine went to Favorites by itself: Library follows it there). */
+export function showEngineView(host, view, page = view) {
     const node = find();
     const engine = window.switchView;
     if (!node || typeof engine !== 'function') return false;
@@ -37,7 +38,7 @@ export function showEngineView(host, view) {
         host.replaceChildren(node);
     }
     host.dataset.engine = view;
-    switchView(view);
+    switchView(page || view);
     return true;
 }
 

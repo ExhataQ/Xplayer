@@ -119,11 +119,11 @@ export function closeAiChatView() {
 export function openAiSettings() {
     if (!navigator) return;
     navigator('settings');
-    // Settings opens on its hub: go on to the AI page once the hub is drawn.
+    // Settings opens on its first tab: go on to the AI tab once the menu bar is drawn.
     let tries = 0;
     const open = () => {
-        const card = document.querySelector('.settings-card[data-page="ai"]');
-        if (card) card.click();
+        const tab = document.querySelector('.settings-menu [data-page="ai"]');
+        if (tab) tab.click();
         else if (tries++ < 20) requestAnimationFrame(open);
     };
     requestAnimationFrame(open);

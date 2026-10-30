@@ -1,4 +1,4 @@
-// Task PA-11: the Settings layout (shell/settings-layout.js): a hub of cards and one page per group, in the real shell and engine.
+// Task PA-11: the Settings layout (shell/settings-layout.js): a menu bar of tabs, one group of sections per tab, in the real shell and engine.
 //
 // Run:   node --test tools/tests/ui-next-settings-layout.test.js
 // Needs: playwright and a browser (skips itself when missing).
@@ -46,34 +46,35 @@ describe('settings layout', { concurrency: false }, () => {
 
     async function openSettings(page) {
         await page.locator('.rail-btn[data-view="settings"]').click();
-        await page.waitForSelector('.settings-hub, .settings-panel-content[data-settings-page]');
+        await page.waitForSelector('.settings-menu');
     }
     const openGroup = async (page, id) => {
         await openSettings(page);
-        if ((await page.locator('.settings-panel-content').getAttribute('data-settings-page')) !== 'hub') await page.locator('.settings-back').click();
-        await page.locator(`.settings-card[data-page="${id}"]`).click();
+        await page.locator(`.settings-menu [data-page="${id}"]`).click();
     };
+    const tabNames = (page) => page.locator('.settings-menu .tab').allInnerTexts();
     const pageId = (page) => page.locator('.settings-panel-content').getAttribute('data-settings-page');
     // The visible section titles on the open page ("Music Library Folders" is the engine's folder list, drawn as its own block).
     const titles = (page) => page.locator('.settings-section-title:visible, .library-locations-title:visible').allInnerTexts();
 
-    test('Settings opens on a hub of cards, in order, with no section showing and no back button', TEST_OPTIONS, async (t) => {
+    test('Settings opens on General with a menu bar of tabs, in order, and no hub, cards or back button', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open();
         await openSettings(page);
-        assert.equal(await pageId(page), 'hub');
-        assert.deepEqual(await page.locator('.settings-card__title').allInnerTexts(), ['General', 'Playback', 'Library', 'Data']);
-        assert.equal(await page.locator('.settings-hub').getAttribute('aria-label'), 'Settings sections');
+        assert.equal(await pageId(page), 'general');
+        assert.deepEqual(await tabNames(page), ['General', 'Playback', 'Library', 'AI', 'Data']); // Agent E registers its AI section at start-up
+        assert.equal(await page.locator('.settings-menu [role="tablist"]').getAttribute('aria-label'), 'Settings sections');
+        assert.equal(await page.locator('.settings-menu .tab[aria-selected="true"]').innerText(), 'General');
         assert.equal(await page.locator('.settings-panel-title').innerText(), 'Settings');
-        assert.equal(await page.locator('.settings-back').isVisible(), false);
-        assert.equal(await page.locator('.settings-panel-actions').isVisible(), false);
-        assert.equal(await page.locator('.settings-section:visible, .library-locations-section:visible').count(), 0);
+        assert.match(await page.locator('.settings-panel-sub').innerText(), /Appearance/);
+        assert.deepEqual(await titles(page), ['Appearance', 'Window', 'Startup screen']);
+        assert.equal(await page.locator('.settings-hub, .settings-card, .settings-back').count(), 0, 'the hub of cards and the back button are gone');
         assert.equal(await page.locator('.settings-nav').count(), 0, 'the old scroll bar is gone');
         assert.deepEqual(errors, []);
         await page.close();
     });
 
-    test('an AI section registered by Agent E gets its own card and page', TEST_OPTIONS, async (t) => {
+    test('an AI section registered by Agent E gets its own tab and page', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open();
         await page.evaluate(async () => {
@@ -81,37 +82,37 @@ describe('settings layout', { concurrency: false }, () => {
             slots.registerAiSettings({ mount(c) { c.textContent = 'ai body'; } });
         });
         await openSettings(page);
-        assert.deepEqual(await page.locator('.settings-card__title').allInnerTexts(), ['General', 'Playback', 'Library', 'AI', 'Data']);
-        await page.locator('.settings-card[data-page="ai"]').click();
+        assert.deepEqual(await tabNames(page), ['General', 'Playback', 'Library', 'AI', 'Data']);
+        await page.locator('.settings-menu [data-page="ai"]').click();
         assert.deepEqual(await titles(page), ['AI']);
         assert.equal(await page.locator('.ai-settings__body').innerText(), 'ai body');
         await page.close();
     });
 
-    test('a card opens its own page with only its sections, and Back or Escape returns to the hub', TEST_OPTIONS, async (t) => {
+    test('a tab shows only its own sections; the panel is labelled by the tab; the arrow keys move between tabs', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open();
         const expected = {
-            general: ['Appearance', 'Right Panel', 'Window', 'Startup screen'],
-            playback: ['Playback & Audio', 'Player bar', 'Smart Shuffle'],
+            general: ['Appearance', 'Window', 'Startup screen'],
+            playback: ['Player bar', 'Playback & Audio', 'Smart Shuffle'], // the engine's order
             library: ['Music Library Folders', 'Play from URL — Save Location'],
             data: ['Backup & Restore', 'Advanced']
         };
         await openSettings(page);
         for (const [id, list] of Object.entries(expected)) {
-            await page.locator(`.settings-card[data-page="${id}"]`).click();
+            await page.locator(`.settings-menu [data-page="${id}"]`).click();
             assert.equal(await pageId(page), id);
             assert.deepEqual(await titles(page), list, id);
-            assert.equal(await page.locator('.settings-panel-title').innerText(), id[0].toUpperCase() + id.slice(1));
-            assert.equal(await page.locator('.settings-hub').isVisible(), false);
-            assert.equal(await page.evaluate(() => document.activeElement.className), 'settings-panel-title', 'focus moves to the page title');
-            await page.locator('.settings-back').click();
-            assert.equal(await pageId(page), 'hub');
-            assert.equal(await page.evaluate(() => document.activeElement.dataset.page), id, 'focus returns to the card that was opened');
+            assert.equal(await page.locator(`.settings-menu [data-page="${id}"]`).getAttribute('aria-selected'), 'true');
+            assert.equal(await page.locator('.settings-panel-actions').getAttribute('role'), 'tabpanel');
+            assert.equal(await page.locator('.settings-panel-actions').getAttribute('aria-labelledby'), await page.locator(`.settings-menu [data-page="${id}"]`).getAttribute('id'));
         }
-        await page.locator('.settings-card[data-page="general"]').click();
-        await page.keyboard.press('Escape');
-        assert.equal(await pageId(page), 'hub');
+        await page.locator('.settings-menu [data-page="general"]').click();
+        await page.locator('.settings-menu [data-page="general"]').focus();
+        await page.keyboard.press('ArrowRight');
+        assert.equal(await pageId(page), 'playback', 'the arrow key selects the next tab and shows its page');
+        await page.keyboard.press('End');
+        assert.equal(await pageId(page), 'data');
         await page.close();
     });
 
@@ -120,11 +121,10 @@ describe('settings layout', { concurrency: false }, () => {
         const { page } = await open();
         const old = /Change Music Folder|Legacy|View Play History|Search History|Theme Color|Switch to the new interface|Current interface|Smart Shuffle v1|new interface/;
         await openSettings(page);
-        const seen = [await page.locator('.settings-panel-content').innerText()];
+        const seen = [];
         for (const id of ['general', 'playback', 'library', 'data']) {
-            await page.locator(`.settings-card[data-page="${id}"]`).click();
+            await page.locator(`.settings-menu [data-page="${id}"]`).click();
             seen.push(await page.locator('.settings-panel-content').innerText());
-            await page.locator('.settings-back').click();
         }
         for (const text of seen) assert.doesNotMatch(text, old);
         // the new interface keeps its own switch row, and the renamed labels read without the old wording
@@ -147,7 +147,7 @@ describe('settings layout', { concurrency: false }, () => {
         await page.close();
     });
 
-    test('Advanced Settings and Back return to the Data page; leaving Settings and coming back starts on the hub', TEST_OPTIONS, async (t) => {
+    test('Advanced Settings and Back return to the Data tab; leaving Settings and coming back starts on General', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open();
         await openGroup(page, 'data');
@@ -159,8 +159,8 @@ describe('settings layout', { concurrency: false }, () => {
         assert.deepEqual(await titles(page), ['Backup & Restore', 'Advanced']);
         await page.locator('.rail-btn[data-view="library"]').click();
         await openSettings(page);
-        assert.equal(await pageId(page), 'hub');
-        assert.equal(await page.locator('.settings-hub').count(), 1);
+        assert.equal(await pageId(page), 'general');
+        assert.equal(await page.locator('.settings-menu').count(), 1);
         assert.deepEqual(errors, []);
         await page.close();
     });

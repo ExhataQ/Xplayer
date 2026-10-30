@@ -2,8 +2,8 @@
  * it through the engine's own class names, scoped to the view host so nothing leaks. Tokens only
  * (tools/tests/ui-next-settings.test.js). Behavior and persistence stay in the engine.
  *
- * Layout: one centered column. Settings opens on a hub of cards (shell/settings-layout.js); each card opens a page whose sections are
- * cards too, a label on the left and its control on the right.
+ * Layout: one centered column. A menu bar of category tabs sits under the title (shell/settings-layout.js); each tab shows sections
+ * that are cards, a label on the left and its control on the right.
  * Engine inline styles (the red Remove Folder button, hint margins) are left alone; see the report for the one that is overridden.
  */
 
@@ -44,13 +44,10 @@
     display: none;
 }
 
-/* ---------- header and hub (PA-11, shell/settings-layout.js) ---------- */
+/* ---------- header and menu bar (PA-11, shell/settings-layout.js) ---------- */
 
 .settings-head {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    margin-bottom: var(--space-6);
+    margin-bottom: var(--space-4);
 }
 .settings-head__text {
     min-width: 0;
@@ -58,94 +55,27 @@
 .settings-head .settings-panel-title {
     margin: 0;
 }
-.settings-head .settings-panel-title:focus {
-    outline: none; /* it only takes focus when a page opens, so a screen reader says where you are */
-}
 .settings-panel-sub {
     margin-top: var(--space-1);
     color: var(--text-secondary);
     font-size: var(--text-md);
 }
-.settings-back {
-    flex: none;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-pill);
-    background: var(--surface-panel);
-}
-.settings-back:hover {
-    background: var(--surface-selected);
-}
 
-.settings-hub {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: var(--space-3);
+/* The category tabs. Sticky, so the menu stays in reach on a long page; scrolls sideways inside itself when the window is narrow. */
+.settings-menu {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    margin: 0 calc(-1 * var(--space-6)) var(--space-4);
+    padding: 0 var(--space-6);
+    overflow-x: auto;
+    background: var(--surface-ground);
 }
-.settings-card {
-    display: flex;
-    align-items: center;
-    gap: var(--space-4);
-    box-sizing: border-box;
-    padding: var(--space-4);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-lg);
-    background: var(--surface-panel);
-    color: var(--text-primary);
-    font: inherit;
-    text-align: start;
-    cursor: pointer;
-    transition: background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
-}
-.settings-card:hover {
-    border-color: var(--border-strong);
-    background: var(--surface-selected);
-}
-.settings-card:active {
-    background: var(--control-active-bg);
-}
-.settings-card:focus-visible,
-.settings-back:focus-visible {
-    outline: 2px solid var(--focus-ring);
-    outline-offset: 2px;
-}
-.settings-card__icon {
-    display: grid;
-    flex: none;
-    place-items: center;
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius-md);
-    background: var(--accent-soft);
-    color: var(--accent);
-}
-.settings-card__text {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-}
-.settings-card__title {
-    font-size: var(--text-lg);
-    font-weight: var(--weight-semibold);
-}
-.settings-card__summary {
-    color: var(--text-secondary);
-    font-size: var(--text-sm);
-    line-height: 1.4;
-}
-.settings-card__chevron {
-    flex: none;
-    color: var(--text-tertiary);
-    transition: color var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
-}
-.settings-card:hover .settings-card__chevron {
-    color: var(--text-primary);
-    transform: translateX(2px);
+.settings-menu .tabs {
+    min-width: max-content;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    .settings-hub.is-entering,
     .settings-panel-actions.is-entering {
         animation: settings-enter 200ms var(--motion-ease) both;
     }

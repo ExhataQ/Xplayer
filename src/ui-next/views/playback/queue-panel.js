@@ -9,6 +9,7 @@
 import { iconButton, el } from '../../components/index.js';
 import { playerPart } from '../../adapter/player-parts.js';
 import { mountQueueList, refreshQueue } from '../../adapter/playback-bridge.js';
+import { isNearRect } from './queue-drag-open.js';
 
 const ROW = '.queue-item';
 
@@ -49,7 +50,9 @@ export function mountQueuePanel() {
     toggle.addEventListener('keyup', (event) => event.key === ' ' && (event.preventDefault(), event.stopPropagation()));
 
     let mounted = false;
+    let openedByDrag = false;
     function setOpen(open) {
+        if (!open) openedByDrag = false;
         panel.hidden = !open;
         toggle.setAttribute('aria-expanded', String(open));
         toggle.setAttribute('aria-pressed', String(open));
@@ -99,6 +102,24 @@ export function mountQueuePanel() {
         }
     });
 
+    // PC-11: while a song is dragged (the engine puts `dragging-song` on the body) the drawer opens when the pointer comes near
+    // the queue button, so the song can be dropped into it (the engine's drop code looks for #queue-list under the pointer).
+    // A drawer opened this way closes again when the drag ends; one the person opened themselves stays open.
+    const onDragMove = (event) => {
+        if (!panel.hidden || !isNearRect(event, toggle.getBoundingClientRect())) return;
+        setOpen(true);
+        openedByDrag = true;
+    };
+    const dragWatcher = new MutationObserver(() => {
+        if (document.body.classList.contains('dragging-song')) {
+            document.addEventListener('mousemove', onDragMove);
+            return;
+        }
+        document.removeEventListener('mousemove', onDragMove);
+        if (openedByDrag) setOpen(false);
+    });
+    dragWatcher.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
     // Escape closes it and gives focus back to the button; a press outside closes it too.
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && !panel.hidden && !document.querySelector('dialog[open]')) {
@@ -110,10 +131,28 @@ export function mountQueuePanel() {
         if (panel.hidden || panel.contains(event.target) || toggle.contains(event.target)) return;
         // A press in the engine's context menu (opened from a row) must not close the queue under it.
         if (event.target.closest('.context-menu, .menu, [role="menu"]')) return;
+        // A press on a song row may be the start of a drag into the queue: decide when the button is released (below).
+        if (event.target.closest('.song-item')) {
+            pressOnRow = true;
+            return;
+        }
         setOpen(false);
     });
+    let pressOnRow = false;
+    document.addEventListener(
+        'pointerup',
+        () => {
+            if (!pressOnRow) return;
+            pressOnRow = false;
+            // The engine clears `dragging-song` in its own mouseup, which comes after this pointerup: still set means a drag.
+            if (!document.body.classList.contains('dragging-song')) setOpen(false);
+        },
+        true
+    );
 
     return () => {
+        dragWatcher.disconnect();
+        document.removeEventListener('mousemove', onDragMove);
         panel.remove();
         toggle.remove();
     };

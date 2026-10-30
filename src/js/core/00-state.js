@@ -14,7 +14,6 @@ export const STORAGE_KEYS = {
     LEFT_PANEL_COLLAPSED: 'leftPanelCollapsed',
     VIRTUAL_SCROLL_THRESHOLD: 'virtualScrollThreshold',
     MINIMIZE_ON_CLOSE: 'minimizeOnClose',
-    HIDE_RIGHT_PANEL_LYRICS: 'hideRightPanelLyrics',
     FOLDER_PINNED_ITEMS: 'folderPinnedItems',
     EXTENDED_METADATA_ENABLED: 'extendedMetadataEnabled',
     CUSTOM_SYNCED_LYRICS: 'customSyncedLyrics',

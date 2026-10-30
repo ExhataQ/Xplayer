@@ -261,6 +261,10 @@ body[data-starting] .titlebar {
     border-bottom-color: transparent;
     background: transparent;
 }
+/* The title bar's line is its ::after (shell/shell.css), not a border: hide it too, or it cuts across the startup view. */
+body[data-starting] .titlebar::after {
+    background: transparent;
+}
 body[data-starting] .titlebar :is(.nav-btn, .icon-btn) {
     visibility: hidden;
 }

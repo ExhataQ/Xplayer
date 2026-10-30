@@ -1,0 +1,392 @@
+/*
+ * The cat scrollbar (shell/cat-scrollbar.js; Settings > Appearance > Cat scrollbar).
+ *
+ * One fixed layer on <body> holds a cat per long scroller. The layer and the cat's box ignore the pointer; only the cat's painted
+ * shapes take it, so a list under the empty part of the box still gets its clicks. At rest the cat peeks out from behind the wall
+ * (the SVG is pushed right and the box clips it); it slides out while the list scrolls, while it is hovered and while it is dragged.
+ * Only transform and opacity animate. prefers-reduced-motion keeps the cat but stops every movement.
+ *
+ * The cat's colors are its own (yellow and orange), not the theme's. The scroller's native bar is hidden through [data-cat-scroll],
+ * which the script sets only on scrollers that have a cat, so short lists, text fields and horizontal bars keep the normal bar.
+ * Nothing here sets scrollbar-width or scrollbar-color (see scrollbar.css for why).
+ */
+[data-cat-scroll]::-webkit-scrollbar:vertical {
+    width: 0;
+}
+
+.xp-cat-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 100200; /* above the engine's dialogs (so their lists get a cat too), below the tooltip (100300) */
+    pointer-events: none;
+}
+.xp-cat {
+    --cat-yellow: #ffc83d;
+    --cat-cream: #ffe8a6;
+    --cat-orange: #f08a24;
+    --cat-line: #8f4c10;
+    --cat-ink: #3a2210;
+    --cat-pink: #ff93a8;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 40px;
+    height: 49px;
+    overflow: hidden; /* the wall: whatever is pushed past the scroller's edge is cut off */
+    pointer-events: none;
+    will-change: transform;
+}
+.xp-cat[hidden] {
+    display: none;
+}
+.xp-cat__svg {
+    display: block;
+    overflow: hidden;
+    pointer-events: none;
+    touch-action: none;
+    user-select: none;
+    opacity: 0.92;
+    transform: translateX(52%); /* peeking: half a face and a tail over the edge */
+    transition: transform 0.32s cubic-bezier(0.3, 1.5, 0.5, 1), opacity 0.2s;
+}
+.xp-cat[data-awake] .xp-cat__svg,
+.xp-cat[data-hover] .xp-cat__svg,
+.xp-cat[data-drag] .xp-cat__svg {
+    transform: translateX(0);
+    opacity: 1;
+}
+.xp-cat[data-hover] .xp-cat__svg {
+    cursor: grab;
+}
+.xp-cat[data-drag] .xp-cat__svg {
+    cursor: grabbing;
+}
+.xp-cat__svg * {
+    pointer-events: visiblePainted;
+}
+.cat-all {
+    transform-origin: 40px 34px;
+    transition: transform 0.2s ease-out;
+}
+.xp-cat[data-hover] .cat-all {
+    transform: scale(1.07);
+}
+
+/* Shapes. */
+.cat-body,
+.cat-head,
+.cat-foot {
+    fill: var(--cat-yellow);
+    stroke: var(--cat-line);
+    stroke-width: 1.1;
+}
+.cat-belly {
+    fill: var(--cat-cream);
+}
+.cat-stripe {
+    fill: none;
+    stroke: var(--cat-orange);
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+.cat-ear {
+    fill: var(--cat-orange);
+    stroke: var(--cat-line);
+    stroke-width: 1.1;
+    stroke-linejoin: round;
+}
+.cat-ear-in {
+    fill: var(--cat-pink);
+}
+.cat-limb-out,
+.cat-limb,
+.cat-tail-fill,
+.cat-tail-tip {
+    fill: none;
+    stroke-linecap: round;
+}
+.cat-limb-out {
+    stroke: var(--cat-line);
+    stroke-width: 6.6;
+}
+.cat-limb {
+    stroke: var(--cat-yellow);
+    stroke-width: 4.4;
+}
+.cat-tail-fill {
+    stroke: var(--cat-orange);
+    stroke-width: 4.4;
+}
+.cat-tail-tip {
+    stroke: var(--cat-cream);
+    stroke-width: 4.4;
+}
+.cat-paw {
+    fill: var(--cat-cream);
+    stroke: var(--cat-line);
+    stroke-width: 1.1;
+}
+.cat-whiskers path {
+    fill: none;
+    stroke: var(--cat-line);
+    stroke-width: 0.8;
+    stroke-linecap: round;
+    opacity: 0.6;
+}
+.cat-blush {
+    fill: var(--cat-pink);
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.xp-cat[data-hover] .cat-blush,
+.xp-cat[data-drag] .cat-blush,
+.xp-cat[data-poke] .cat-blush {
+    opacity: 0.75;
+}
+.cat-pupil {
+    fill: var(--cat-ink);
+    transform-box: fill-box;
+    transform-origin: center;
+    transition: transform 0.15s;
+}
+.cat-shine {
+    fill: #fff;
+}
+.xp-cat[data-hover] .cat-pupil {
+    transform: scale(1.2);
+}
+.cat-eyes {
+    transition: transform 0.15s;
+}
+.cat-happy {
+    display: none;
+    fill: none;
+    stroke: var(--cat-ink);
+    stroke-width: 1.7;
+    stroke-linecap: round;
+}
+.xp-cat[data-drag] .cat-happy,
+.xp-cat[data-poke] .cat-happy {
+    display: block;
+}
+.xp-cat[data-drag] .cat-eyes,
+.xp-cat[data-poke] .cat-eyes {
+    display: none;
+}
+.cat-nose {
+    fill: var(--cat-pink);
+    stroke: var(--cat-line);
+    stroke-width: 0.5;
+    stroke-linejoin: round;
+}
+.cat-mouth {
+    fill: none;
+    stroke: var(--cat-ink);
+    stroke-width: 0.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* While the list scrolls: eyes follow the direction, the head leans, and the paws climb. */
+.cat-headset {
+    transform-origin: 24px 31px;
+    transition: transform 0.2s ease-out;
+}
+.xp-cat[data-dir='down'] .cat-eyes {
+    transform: translateY(1.6px);
+}
+.xp-cat[data-dir='up'] .cat-eyes {
+    transform: translateY(-1.6px);
+}
+.xp-cat[data-dir='down'] .cat-headset {
+    transform: translateY(1px) rotate(2deg);
+}
+.xp-cat[data-dir='up'] .cat-headset {
+    transform: translateY(-1px) rotate(-2deg);
+}
+.xp-cat[data-hover]:not([data-dir]) .cat-headset {
+    transform: rotate(-6deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    /* Resting: the tail sways and the eyes blink now and then. */
+    .cat-tail {
+        transform-origin: 15px 45px;
+        animation: cat-sway 2.6s ease-in-out infinite alternate;
+    }
+    .cat-eye {
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: cat-blink 5.5s infinite;
+    }
+    /* Hovered: the ears twitch and the tail wags. */
+    .xp-cat[data-hover] .cat-ear--l {
+        transform-origin: 11.5px 13px;
+        animation: cat-ear-l 0.5s ease-in-out infinite alternate;
+    }
+    .xp-cat[data-hover] .cat-ear--r {
+        transform-origin: 36.5px 13px;
+        animation: cat-ear-r 0.5s ease-in-out 0.12s infinite alternate;
+    }
+    .xp-cat[data-hover] .cat-tail,
+    .xp-cat[data-drag] .cat-tail {
+        animation: cat-wag 0.34s ease-in-out infinite alternate;
+    }
+    /* Scrolling: the paws take turns reaching, the feet scrabble, the body bobs. */
+    .xp-cat[data-dir] .cat-tail {
+        animation: cat-wag 0.5s ease-in-out infinite alternate;
+    }
+    .xp-cat[data-dir] .cat-bodyset {
+        animation: cat-bob 0.36s ease-in-out infinite alternate;
+    }
+    .xp-cat[data-dir='down'] .cat-arm--a {
+        animation: cat-reach-down 0.42s linear infinite;
+    }
+    .xp-cat[data-dir='down'] .cat-arm--b {
+        animation: cat-reach-down 0.42s linear -0.21s infinite;
+    }
+    .xp-cat[data-dir='up'] .cat-arm--a {
+        animation: cat-reach-up 0.42s linear infinite;
+    }
+    .xp-cat[data-dir='up'] .cat-arm--b {
+        animation: cat-reach-up 0.42s linear -0.21s infinite;
+    }
+    .xp-cat[data-dir='down'] .cat-foot--a {
+        animation: cat-foot-down 0.42s linear -0.1s infinite;
+    }
+    .xp-cat[data-dir='down'] .cat-foot--b {
+        animation: cat-foot-down 0.42s linear -0.31s infinite;
+    }
+    .xp-cat[data-dir='up'] .cat-foot--a {
+        animation: cat-foot-up 0.42s linear -0.1s infinite;
+    }
+    .xp-cat[data-dir='up'] .cat-foot--b {
+        animation: cat-foot-up 0.42s linear -0.31s infinite;
+    }
+    /* Dragged: it hangs on and kicks its legs. */
+    .xp-cat[data-drag] .cat-feet {
+        transform-origin: 25px 44px;
+        animation: cat-dangle 0.3s ease-in-out infinite alternate;
+    }
+    /* Poked (a click without a drag): a little hop. */
+    .xp-cat[data-poke] .cat-all {
+        transform-origin: 26px 52px;
+        animation: cat-poke 0.5s ease-out;
+    }
+}
+
+@keyframes cat-sway {
+    from {
+        transform: rotate(-7deg);
+    }
+    to {
+        transform: rotate(9deg);
+    }
+}
+@keyframes cat-wag {
+    from {
+        transform: rotate(-16deg);
+    }
+    to {
+        transform: rotate(18deg);
+    }
+}
+@keyframes cat-blink {
+    0%,
+    92%,
+    100% {
+        transform: scaleY(1);
+    }
+    95% {
+        transform: scaleY(0.1);
+    }
+}
+@keyframes cat-ear-l {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(-9deg);
+    }
+}
+@keyframes cat-ear-r {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(9deg);
+    }
+}
+@keyframes cat-bob {
+    from {
+        transform: translateY(-0.7px);
+    }
+    to {
+        transform: translateY(0.7px);
+    }
+}
+@keyframes cat-reach-down {
+    from {
+        transform: translateY(-2.5px);
+    }
+    to {
+        transform: translateY(3px);
+    }
+}
+@keyframes cat-reach-up {
+    from {
+        transform: translateY(2.5px);
+    }
+    to {
+        transform: translateY(-3px);
+    }
+}
+@keyframes cat-foot-down {
+    from {
+        transform: translateY(-1.2px);
+    }
+    to {
+        transform: translateY(1.4px);
+    }
+}
+@keyframes cat-foot-up {
+    from {
+        transform: translateY(1.2px);
+    }
+    to {
+        transform: translateY(-1.4px);
+    }
+}
+@keyframes cat-dangle {
+    from {
+        transform: rotate(-9deg);
+    }
+    to {
+        transform: rotate(9deg);
+    }
+}
+@keyframes cat-poke {
+    0% {
+        transform: translateY(0) scale(1, 1);
+    }
+    30% {
+        transform: translateY(-5px) scale(0.96, 1.06);
+    }
+    60% {
+        transform: translateY(1px) scale(1.04, 0.94);
+    }
+    100% {
+        transform: translateY(0) scale(1, 1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .xp-cat__svg,
+    .cat-all,
+    .cat-headset,
+    .cat-eyes,
+    .cat-pupil,
+    .cat-blush {
+        transition: none;
+    }
+}

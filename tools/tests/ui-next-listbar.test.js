@@ -87,17 +87,17 @@ describe('list toolbar in the new shell', { concurrency: false }, () => {
         await page.close();
     });
 
-    test('Shuffle opens the engine shuffle-mode dialog (as the old list header did), and the button shows the result', TEST_OPTIONS, async (t) => {
+    test('Shuffle opens the shuffle-mode menu (PB-07), and the button shows the result', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open();
         const button = page.locator('.list-toolbar > .icon-btn').nth(1);
         await button.click();
-        await page.getByRole('button', { name: 'Normal Shuffle' }).click();
+        await page.getByRole('menuitemradio', { name: 'Normal shuffle' }).click();
         await page.waitForTimeout(300);
         assert.equal(await page.evaluate(() => isShuffled), true);
         assert.equal(await button.getAttribute('aria-pressed'), 'true');
         await button.click();
-        await page.getByRole('button', { name: 'Turn Shuffle Off' }).click();
+        await page.getByRole('menuitem', { name: 'Turn shuffle off' }).click();
         await page.waitForTimeout(300);
         assert.equal(await page.evaluate(() => isShuffled), false);
         assert.equal(await button.getAttribute('aria-pressed'), 'false');

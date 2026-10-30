@@ -71,10 +71,26 @@ export function setSongItemHeight(px) {
     const state = virtualScrollState;
     if (!state.enabled || !state.container) return;
     const content = state.container;
-    const topIndex = content.scrollTop / previous;
+    const before = content.scrollTop;
+    const offset = listOffset(content);
+    const topIndex = Math.max(0, before - offset) / previous;
     renderVirtualScrollImmediate(content);
-    content.scrollTop = topIndex * px;
+    if (before > offset) content.scrollTop = offset + topIndex * px;
     renderVirtualScrollImmediate(content);
+}
+
+// The song list can sit below other things inside the scrolling .content (the title bar, the hero). listOffset is where the
+// list's top is in the scrolled content; listViewportTop is how far the window has moved down the list itself. The virtual
+// window works in list coordinates, so it must not use .content's scrollTop directly.
+export function listOffset(content) {
+    const list = document.getElementById('song-list');
+    if (!content || !list) return 0;
+    return list.getBoundingClientRect().top - content.getBoundingClientRect().top + content.scrollTop;
+}
+
+export function listViewportTop(content) {
+    if (!content) return 0;
+    return Math.max(0, content.scrollTop - listOffset(content));
 }
 
 // The one rule for "does this list use virtual scrolling": strictly more songs than the
@@ -281,7 +297,7 @@ export function renderVisibleItems(content, showPlaceholders) {
 
     const state = virtualScrollState;
     const { start: startIndex, end: endIndex } = computeVirtualWindow(
-        content.scrollTop,
+        listViewportTop(content),
         content.clientHeight,
         ITEM_HEIGHT,
         OVERSCAN_COUNT,
@@ -407,7 +423,8 @@ export function syncPlaceholdersForJump(content, topOverride) {
         if (currentView === VIEWS.SETTINGS) return;
 
         const state = virtualScrollState;
-        const top = typeof topOverride === 'number' ? topOverride : content.scrollTop;
+        // topOverride is a .content scroll position (the wheel passes one); convert it to list coordinates.
+        const top = typeof topOverride === 'number' ? Math.max(0, topOverride - listOffset(content)) : listViewportTop(content);
         const win = computeVirtualWindow(top, content.clientHeight, ITEM_HEIGHT, OVERSCAN_COUNT, state.currentSongs.length);
 
         if (win.start > state.lastRenderedEnd || win.end < state.lastRenderedStart) {
@@ -520,7 +537,7 @@ export function initLazyLoading(songs, listId) {
 
     function doRender() {
         if (currentView === VIEWS.SETTINGS) return;
-        const viewportTop = content.scrollTop;
+        const viewportTop = listViewportTop(content);
         const viewportHeight = content.clientHeight;
         const { start: startIndex, end: endIndex } = computeVirtualWindow(
             viewportTop,

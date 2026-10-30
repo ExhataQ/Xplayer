@@ -67,7 +67,7 @@ describe('playback controls converted to data-action', { concurrency: false }, (
         }
     });
 
-    test('queue: "Load more" shows more songs and disappears at the end of the queue', TEST_OPTIONS, async (t) => {
+    test('queue: scrolling to the end loads more songs, with no button, until the queue is out', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await openApp();
         await page.evaluate(() => {
@@ -75,19 +75,27 @@ describe('playback controls converted to data-action', { concurrency: false }, (
             setCurrentQueueIndex(0);
             setQueueDisplayLimit(5);
             switchRightPanelTab('queue');
+            // With no song loaded the right panel shows placeholders and does not scroll; a song is playing in real use.
+            document.querySelector('.right-panel-content-wrapper')?.classList.remove('showing-placeholders');
             updateQueueDisplay();
         });
         const items = () => page.locator('#queue-list .queue-item').count();
-        const button = page.locator('#queue-list .queue-load-more-btn');
-        assert.equal(await items(), 6);
-        assert.equal(await button.count(), 1);
-        await button.click();
-        assert.equal(await items(), 31, 'one click adds one page of songs');
-        assert.equal(await page.evaluate(() => queueDisplayLimit), 30);
-        assert.equal(await button.count(), 1, 'more songs are left, so the button stays');
-        await button.click();
-        assert.equal(await items(), 40);
-        assert.equal(await button.count(), 0, 'nothing left to load, so the button is gone');
+        // The scroller is the nearest ancestor that scrolls. Scrolling it to the end asks for the next page.
+        const scrollToEnd = () =>
+            page.evaluate(() => {
+                let n = document.getElementById('queue-list').parentElement;
+                while (n && n !== document.body && !['auto', 'scroll'].includes(getComputedStyle(n).overflowY)) n = n.parentElement;
+                if (n && n !== document.body) n.scrollTop = n.scrollHeight;
+            });
+        const total = await page.evaluate(() => playbackQueue.length);
+        assert.equal(await page.locator('#queue-list .queue-load-more-btn').count(), 0, 'there is no Load more button');
+        for (let i = 0; i < 20 && (await items()) < total; i++) {
+            await scrollToEnd();
+            await page.waitForTimeout(150);
+        }
+        assert.equal(await items(), total, 'scrolling to the end loads the rest of the queue');
+        assert.ok((await page.evaluate(() => queueDisplayLimit)) >= total);
+        assert.equal(await page.locator('#queue-list .queue-load-more-btn').count(), 0);
         assert.deepEqual(errors, []);
         await page.close();
     });

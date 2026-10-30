@@ -1,0 +1,94 @@
+/*
+ * Drag feedback for the Library panel, the song rows and the queue (PB-14).
+ *
+ * The old screen drew all of this in css/left-panel.css, which the new screen does not load, so while a playlist, a folder or a song was
+ * dragged there was no line showing where a pinned item would land, no ring on the row it would drop onto, no tint on a folder that
+ * would take it, and invalid targets were not dimmed. The engine still adds the classes (ui/06f, ui/06g); this file styles them with
+ * the new tokens. Nothing here changes what a drop does.
+ */
+
+/* Where a pinned item will land (the engine inserts this line between two rows). */
+.pinned-drop-indicator {
+    height: 2px;
+    width: 100%;
+    margin: -1px 0;
+    border-radius: 1px;
+    background: var(--accent);
+    position: relative;
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* The row under the dragged item: a ring in the accent color. */
+.left-panel-main-item.drag-hover {
+    box-shadow: inset 0 0 0 2px var(--accent);
+    border-radius: var(--radius-md);
+}
+body.dragging-song .left-panel-main-item.drag-hover {
+    cursor: copy;
+}
+
+/* A folder that would take the dragged item. */
+.left-panel-main-item.drag-folder-hover,
+body.dragging-song .left-panel-main-item.drag-folder-hover:hover {
+    background: color-mix(in srgb, var(--accent) 15%, transparent) !important;
+    border-radius: var(--radius-md);
+}
+
+/* Targets that cannot take it. */
+.left-panel-main-item.drag-invalid,
+.queue-item.drag-invalid,
+.song-item.drag-invalid {
+    opacity: 0.25;
+    filter: grayscale(100%);
+    pointer-events: none;
+}
+
+/* While something is dragged the rows do not react to the pointer, so only the ring and the tint above show where it will go. */
+body.dragging-song .left-panel-main-item:hover,
+body.dragging-song .left-panel-main-item.active:hover,
+body.dragging-song .left-panel-main-item.playing:hover,
+body.dragging-song .left-panel-main-item.drag-invalid:hover {
+    background: transparent !important;
+}
+body.dragging-song .left-panel-main-item .left-panel-cover-play-btn {
+    display: none !important;
+}
+body.dragging-song .left-panel-main-item .main-item-cover-wrapper::after {
+    opacity: 0 !important;
+}
+body.dragging-song #queue-list .queue-item:hover {
+    background: transparent !important;
+}
+body.dragging-song #queue-list .queue-item {
+    cursor: copy;
+}
+
+/* Songs dragged over the panel's empty space are added to Liked Songs (ui/06f): the whole panel gets the ring. */
+.library-panel.drag-panel-hover {
+    box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+/* The label that follows the pointer while a song, playlist or folder is dragged (the engine builds it in ui/06f and ui/06g). */
+.drag-song-tooltip {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: 250px;
+    padding: var(--space-2);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--surface-raised);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-raised, 0 2px 8px rgb(0 0 0 / 0.35));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.drag-song-title {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.drag-song-artist {
+    color: var(--text-secondary);
+}

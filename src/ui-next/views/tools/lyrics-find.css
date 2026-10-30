@@ -31,6 +31,23 @@
     gap: var(--space-2);
     padding: var(--space-6) 0;
 }
+.view-host[data-engine='lyrics'] .online-lyrics-spinner {
+    animation: onlineLyricsSpin 1s linear infinite; /* the engine draws the search spinner with this class; the old stylesheet turned it */
+}
+@keyframes onlineLyricsSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .view-host[data-engine='lyrics'] .online-lyrics-spinner {
+        animation: none;
+    }
+}
+.view-host[data-engine='lyrics'] .online-lyrics-expand {
+    color: var(--text-secondary);
+    font-size: 18px;
+}
 .view-host[data-engine='lyrics'] .online-lyrics-status.error {
     color: var(--danger);
 }

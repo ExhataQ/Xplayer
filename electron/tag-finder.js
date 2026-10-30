@@ -69,6 +69,7 @@ function createTagFinder(deps = {}) {
     const lazy = () => require('./online-metadata');
     const search = deps.search || ((query) => lazy().searchOnlineMetadata(query));
     const getMetadata = deps.getMetadata || ((query) => lazy().getOnlineMetadata(query));
+    const getPopularity = deps.getPopularity || ((ids) => require('./popularity').fetchPopularity(ids));
 
     async function findOne(input, { rule = 'original', autoThreshold = AUTO_THRESHOLD, popularity = null, fields = DEFAULT_FIELDS } = {}) {
         const song = asSong(input);
@@ -76,7 +77,11 @@ function createTagFinder(deps = {}) {
         if (!song.title) return { ...base, decision: 'none', confidence: 0, reasons: ['the song has no title'], release: null, patch: {}, changes: {} };
 
         const found = await search({ fileUrl: song.fileUrl, title: song.title, artist: song.artist, album: song.album, duration: song.duration, scope: 'release' });
-        const pick = pickRelease((found && found.results) || [], { file: { title: song.title, album: song.album }, rule, popularity, autoThreshold });
+        const candidates = (found && found.results) || [];
+        // "Most popular" needs listener counts; without them (offline, nothing known) the answer is the original release, and says so.
+        const scores = rule === 'popular' && !popularity ? await getPopularity(candidates.map((candidate) => candidate.releaseGroupId)) : popularity;
+        const pick = pickRelease(candidates, { file: { title: song.title, album: song.album }, rule, popularity: scores, autoThreshold });
+        if (rule === 'popular' && !(scores && Object.keys(scores).length) && pick.best) pick.reasons = [...pick.reasons, 'no popularity data, used the original rule'];
         if (pick.decision === 'none' || !pick.best) return { ...base, decision: 'none', confidence: pick.confidence, reasons: pick.reasons, release: null, patch: {}, changes: {} };
 
         const release = { id: pick.best.id, title: pick.best.title, date: pick.best.date, releaseGroupId: pick.best.releaseGroupId };

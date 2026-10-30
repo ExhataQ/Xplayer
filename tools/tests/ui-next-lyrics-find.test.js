@@ -131,7 +131,7 @@ describe('Find, Many songs and the picker in the new shell', { concurrency: fals
         await page.waitForSelector('.online-lyrics-result');
         assert.deepEqual(await mode(page), { view: 'online-lyrics', selected: 'Find' });
         const first = await page.evaluate(() => window.__queries[0]);
-        assert.deepEqual(first, { artist: 'Artist 0', title: 'Song title number 1', album: 'Album 0', duration: 180 });
+        assert.deepEqual(first, { artist: 'Artist 0', title: 'Song title number 1', album: '', duration: 180 });
         const cards = await page.evaluate(() => {
             const rows = [...document.querySelectorAll('.online-lyrics-result')];
             const css = (e) => getComputedStyle(e);
@@ -324,7 +324,7 @@ describe('Find, Many songs and the picker in the new shell', { concurrency: fals
         await play(page);
         await tab(page, 'Find');
         await page.waitForSelector('.online-lyrics-result');
-        await page.click('.online-lyrics-header-actions button:has-text("Find multi song")');
+        await page.click('.online-lyrics-header-actions button:has-text("Search many songs")');
         await page.waitForSelector('.smart-lyrics-song-row');
         assert.deepEqual(await mode(page), { view: 'smart-lyrics', selected: 'Many songs' });
         await tab(page, 'Find');

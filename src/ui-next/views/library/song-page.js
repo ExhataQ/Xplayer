@@ -2,9 +2,11 @@
 // with the cover, then a list), with one row. A song that is in an album opens that album instead (adapter/song-open.js).
 
 import { el, iconButton } from '../../components/index.js';
-import { playSongFromList, openArtist } from '../../adapter/actions.js';
+import { playSongFromList } from '../../adapter/actions.js';
+import { openArtistPage } from '../../adapter/song-open.js';
+import { defaultCover } from '../../adapter/default-cover.js';
 
-const DEFAULT_COVER = '../assets/default-cover.svg';
+const DEFAULT_COVER = defaultCover('song');
 const engine = () => window;
 
 function minutes(seconds) {
@@ -29,7 +31,7 @@ export function mountSongPage(host, options = {}) {
     const artist = el('button', { type: 'button', class: 'song-page__artist', dir: 'auto' }, String(song.artist || 'Unknown artist'));
     artist.addEventListener('click', () => {
         const match = typeof engine().getArtists === 'function' ? engine().getArtists().find((a) => (a.songs || []).includes(song.id)) : null;
-        if (match) openArtist(match.id);
+        if (match) openArtistPage(match.id); // the song page hides the engine's pages: go to the Library first
     });
     const play = iconButton({ icon: 'play', label: `Play ${song.title || 'song'}`, onClick: () => playSongFromList(song.id, 'all-songs') });
     const header = el('header', { class: 'song-page__header' }, image, el('div', { class: 'song-page__meta' }, el('span', { class: 'song-page__kind' }, 'Song'), el('h1', { class: 'song-page__title', dir: 'auto' }, String(song.title || 'Untitled')), el('div', { class: 'song-page__line' }, artist, song.year ? el('span', { class: 'song-page__year' }, String(song.year)) : '')), play);

@@ -2,13 +2,18 @@
 // to scroll to (the fade is a CSS mask driven by data-fade-start and data-fade-end), and the two arrows page the row for
 // people without a horizontal wheel. Cards are plain data ({ kind, title, subtitle, cover }), so any list can be a shelf.
 import { el, iconButton } from '../../components/index.js';
+import { defaultCover } from '../../adapter/default-cover.js';
 
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function card(item, onOpen) {
     const cover = el('span', { class: 'shelf-card__cover', 'aria-hidden': 'true' });
-    if (item.cover) cover.append(el('img', { src: item.cover, alt: '', loading: 'lazy', draggable: 'false' }));
-    else cover.append(el('span', { class: 'shelf-card__letter' }, [...String(item.title)][0] || ''));
+    const fallback = defaultCover(item.kind); // no cover, or one that cannot load: the default cover for this kind of item
+    const image = el('img', { src: item.cover || fallback, alt: '', loading: 'lazy', draggable: 'false' });
+    image.addEventListener('error', () => {
+        if (image.getAttribute('src') !== fallback) image.setAttribute('src', fallback);
+    });
+    cover.append(image);
     return el(
         'div',
         { class: 'shelf__item', role: 'listitem' },

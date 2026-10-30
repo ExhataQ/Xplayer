@@ -11,6 +11,11 @@
 :root {
     --left-item-height: var(--panel-row-height);
     --panel-cover-size: 44px;
+    /* One layout for the Library, Search and Recents panels (panel-lists.css uses the same values): little space above the controls and under the list. */
+    --panel-pad-top: var(--space-1);
+    --panel-pad-bottom: var(--space-2);
+    --panel-list-end: var(--space-1);
+    --panel-row-pad-x: var(--space-2); /* inside a row: between the highlight's edge and the cover, so a hovered row has room on its left */
 }
 /* Density (D60, D61): compact panel rows. Set on <html> before the first paint, so the engine's first read is already right; a change
    later goes through setLeftItemHeight (library-panel.js). */
@@ -38,7 +43,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
-    padding: var(--space-2) var(--space-4) var(--space-3);
+    padding: var(--panel-pad-top) var(--space-4) var(--panel-pad-bottom);
 }
 .library-panel__controls .chip-group {
     flex-wrap: wrap;
@@ -102,15 +107,13 @@
 }
 .library-panel .left-panel-main-list-container {
     position: absolute;
-    inset: 0;
+    inset: 0 0 var(--panel-list-end);
 }
 .library-panel .left-panel-main-list-content {
     height: 100%;
 }
 .library-panel .left-panel-main-list-content {
     overflow-y: auto;
-    scrollbar-width: auto; /* the system's full-width bar, not the thin one: easier to grab, and it sits on the panel's right wall (PB-05) */
-    scrollbar-color: var(--border-strong) transparent;
 }
 .library-panel .left-panel-main-list {
     margin: 0;
@@ -141,7 +144,7 @@
     align-items: center;
     gap: var(--space-3);
     height: 100%;
-    padding-right: var(--space-3);
+    padding: 0 var(--space-3) 0 var(--panel-row-pad-x);
 }
 .library-panel .main-item-cover-wrapper {
     position: relative;
@@ -154,6 +157,10 @@
     overflow: hidden;
     border-radius: var(--radius-sm);
     background: var(--surface-raised);
+}
+.library-panel .left-panel-main-list .main-item-cover-wrapper,
+.library-panel .left-panel-main-item.lazy-skeleton .main-item-cover-wrapper {
+    border-radius: var(--radius-sm); /* the engine's own css makes these square; Search and Recents covers are rounded */
 }
 .library-panel .main-item-cover-wrapper > svg,
 .library-panel .main-item-cover-wrapper > img {
@@ -299,42 +306,26 @@
     height: 8px;
 }
 
+/* A new order or filter: the rows fade in from slightly below (library-panel.js sets data-swap on the list). */
+@keyframes library-rows-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+@media (prefers-reduced-motion: no-preference) {
+    .library-panel__list[data-swap] .left-panel-main-list {
+        animation: library-rows-in 180ms var(--motion-ease) backwards;
+    }
+}
+
 @media (prefers-reduced-motion: no-preference) {
     .library-panel .left-panel-main-item,
     .library-panel .left-panel-cover-play-btn {
         transition: background-color var(--motion-fast) ease, opacity var(--motion-fast) ease;
     }
-}
-
-/* ---------- compact panel (72 px): covers only ---------- */
-/* shell.css hides the panel body when compact; the library panel keeps a cover-only list. The names stay in the page, clipped
-   instead of removed, so screen readers still read them. */
-.panel-host[data-panel='compact'] .panel-host__body.panel-host__body--library {
-    display: flex;
-    flex-direction: column;
-    padding: var(--space-2) 0 0;
-}
-.panel-host[data-panel='compact'] .library-panel__controls,
-.panel-host[data-panel='compact'] .library-panel__folder-bar,
-.panel-host[data-panel='compact'] .library-panel__empty {
-    display: none;
-}
-.panel-host[data-panel='compact'] .library-panel .left-panel-main-list {
-    padding: 0 var(--space-2);
-}
-.panel-host[data-panel='compact'] .library-panel .subfolder-row {
-    justify-content: center;
-    padding: 0 !important; /* the engine writes the folder indent inline */
-}
-.panel-host[data-panel='compact'] .library-panel .main-item-info {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-}
-.panel-host[data-panel='compact'] .library-panel .folder-chevron,
-.panel-host[data-panel='compact'] .library-panel .left-panel-playing-icon {
-    display: none;
 }

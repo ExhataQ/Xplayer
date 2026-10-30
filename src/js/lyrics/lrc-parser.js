@@ -61,6 +61,12 @@ export function parseLRC(lrcText) {
     return entries;
 }
 
+/** True when pasted text is LRC: at least two timed lines ("[00:12.30] words"). One stray timestamp stays plain text. */
+export function looksLikeLrc(text) {
+    const entries = parseLRC(text);
+    return Boolean(entries && entries.length >= 2);
+}
+
 if (typeof registerLegacyGlobals === 'function') {
-    registerLegacyGlobals({ parseLrcLine, parseLRC });
+    registerLegacyGlobals({ parseLrcLine, parseLRC, looksLikeLrc });
 }

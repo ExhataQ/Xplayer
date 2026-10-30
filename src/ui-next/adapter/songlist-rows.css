@@ -22,23 +22,28 @@
 
 /* ---------- the list ---------- */
 /* The engine's own heading block is replaced by the title bar (song-list.css). It would also push the rows down, and the
- * engine's scroll math assumes the list starts at the top of the scroller. The engine sets its display inline. */
+ * engine's scroll math assumes the list starts at the top of the scroller. The engine sets its display inline.
+ * The list itself keeps a little air above the first row and below the last (--sl-list-pad), as the old screen did with 15px. */
 .view-host[data-songlist] .playlist-hero-section {
     display: none !important;
 }
 .view-host[data-songlist] .song-list {
     display: flex;
     flex-direction: column;
-    padding: 0;
+    --sl-list-pad: var(--space-3);
+    padding: var(--sl-list-pad) 0;
     position: relative;
     z-index: 1; /* above the two highlight layers, which are siblings in the scroller */
 }
+/* The virtual list's height is set inline by the engine to rows x row height, so the padding goes outside it (content-box), and the
+ * absolutely placed rows start below the top padding. */
 .view-host[data-songlist] .song-list.song-list--virtual {
     display: block;
+    box-sizing: content-box;
 }
 .view-host[data-songlist] .song-list.song-list--virtual > .song-item {
     position: absolute;
-    top: 0;
+    top: var(--sl-list-pad);
     left: 0;
     right: 0;
 }
@@ -159,9 +164,9 @@ html[data-input='keyboard'] .view-host[data-songlist] .song-item:focus-visible {
 }
 .view-host[data-songlist] .song-cover {
     flex: none;
-    width: calc(var(--song-item-height) - var(--space-3) * 2);
-    height: calc(var(--song-item-height) - var(--space-3) * 2);
-    border-radius: var(--radius-sm);
+    width: calc(var(--song-item-height) - var(--space-2) * 2);
+    height: calc(var(--song-item-height) - var(--space-2) * 2);
+    border-radius: var(--radius-md);
     object-fit: cover;
     background: var(--surface-selected);
 }
@@ -199,6 +204,14 @@ html[data-input='keyboard'] .view-host[data-songlist] .song-item:focus-visible {
 .view-host[data-songlist] .song-album-name:hover {
     color: var(--text-primary);
     text-decoration: underline;
+}
+/* While Shift, Ctrl or Cmd is held the names are not links (views/library/select-modifier.js): no underline, no pointer. */
+html[data-select='on'] .view-host[data-songlist] :is(.song-artist-name, .song-album-name) {
+    cursor: default;
+}
+html[data-select='on'] .view-host[data-songlist] :is(.song-artist-name, .song-album-name):hover {
+    color: inherit;
+    text-decoration: none;
 }
 .view-host[data-songlist] .song-artist-sep {
     color: var(--text-tertiary);
@@ -263,6 +276,7 @@ html[data-input='keyboard'] .view-host[data-songlist] .song-item:focus-visible {
     justify-content: flex-end;
     gap: var(--space-2);
     min-width: 0;
+    padding-right: var(--sl-more-inset); /* the highlight ends at the row's edge; the more button used to touch it */
 }
 .view-host[data-songlist] .song-action-buttons {
     display: flex;
@@ -352,6 +366,9 @@ html[data-input='keyboard'] .view-host[data-songlist] .song-item:focus-visible {
 }
 .view-host[data-songlist] #selection-styles-set > div {
     background: var(--surface-selected) !important;
+    /* The engine rounds the ends of a run of selected rows with var(--radius-xs) (inline, ui/04a updateSelectionHighlight). Here the
+     * selection is one square block, first and last row included, so the token is 0 for this layer only. */
+    --radius-xs: 0px;
 }
 
 /* ---------- placeholder rows (shown for about 150 ms during a fast scroll) ---------- */

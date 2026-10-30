@@ -2,8 +2,7 @@
 // EXTENDED METADATA SETTINGS
 // ==============================================================================
 registerActions({
-    toggleExtendedMetadataField,
-    toggleHideRightPanelLyrics
+    toggleExtendedMetadataField
 });
 
 export function getExtendedMetadataSettings() {
@@ -41,26 +40,9 @@ export function toggleExtendedMetadataField(fieldKey, enabled) {
     updateInfoButtonVisibility();
 }
 
-export function getHideRightPanelLyrics() {
-    return storageReadBool(STORAGE_KEYS.HIDE_RIGHT_PANEL_LYRICS, false);
-}
-
-export function setHideRightPanelLyrics(value) {
-    storageWriteBool(STORAGE_KEYS.HIDE_RIGHT_PANEL_LYRICS, !!value);
-    if (typeof renderTrackLyricsBox === 'function') {
-        renderTrackLyricsBox();
-    }
-}
-
-export function toggleHideRightPanelLyrics(checked) {
-    setHideRightPanelLyrics(!!checked);
-}
-
 if (typeof registerLegacyGlobals === 'function') {
     registerLegacyGlobals({
         getExtendedMetadataSettings,
-        toggleExtendedMetadataField,
-        getHideRightPanelLyrics,
-        toggleHideRightPanelLyrics
+        toggleExtendedMetadataField
     });
 }

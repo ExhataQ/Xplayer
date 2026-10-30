@@ -3,8 +3,7 @@
 
 import { chipGroup, segmented, textField, iconButton, openMenu, el } from '../../components/index.js';
 import { setPanelRowHeight } from '../../adapter/songlist-bridge.js';
-import { watchAppearance } from '../../shell/appearance.js';
-import { showCreateDialog } from '../../adapter/library-create.js';
+import { getAppearance, watchAppearance } from '../../shell/appearance.js';
 import { showNewPlaylist, showNewFolder } from '../../adapter/menu-bridge.js';
 import { mountLibraryList, setLibraryView, libraryItemCount, openLibraryFolder, closeLibraryFolder, onLibraryChange, whenLibraryReady } from '../../adapter/library-bridge.js';
 
@@ -22,8 +21,15 @@ const SORTS = [
     { value: 'name', label: 'A to Z' }
 ];
 
-// The plus in the panel header (PB-06): the shell puts it before the collapse arrow, for the Library only.
-export const LIBRARY_HEADER_ACTION = { icon: 'plus', label: 'New playlist or folder', onClick: showCreateDialog };
+// What the plus makes. Each choice opens the engine's naming dialog (a name has to be typed), so the choice itself is a floating menu,
+// like the shuffle menu, and not another dialog.
+const createItems = () => [
+    { label: 'New playlist', icon: 'list-music', onSelect: showNewPlaylist },
+    { label: 'New folder', icon: 'folder', onSelect: showNewFolder }
+];
+
+// The plus in the panel header (PB-06): the shell puts it in the header, for the Library only. It opens the menu under itself.
+export const LIBRARY_HEADER_ACTION = { icon: 'plus', label: 'New playlist or folder', onClick: (anchor) => openMenu({ anchor, items: createItems() }) };
 
 const STORE_KEY = 'xplayer.ui-next.library';
 
@@ -55,10 +61,19 @@ export function mountLibraryPanel(body) {
     const saved = readSaved();
     const state = { chip: saved.chip, sort: saved.sort, query: '' };
 
-    const apply = () => {
+    let list = null; // the panel's list element, built below
+    // A new order or a new filter fades the rows in (PB-10, brief 3.8). Typing in the find field does not: it would flicker on every key.
+    const swapRows = () => {
+        if (!list) return;
+        list.removeAttribute('data-swap');
+        void list.offsetWidth; // restarts the animation when it is chosen twice in a row
+        list.setAttribute('data-swap', '');
+    };
+    const apply = (animate = false) => {
         const types = CHIPS.find((c) => c.value === state.chip).types;
         setLibraryView({ types, query: state.query, sort: state.sort });
         save({ chip: state.chip, sort: state.sort });
+        if (animate) swapRows();
     };
 
     const chips = chipGroup({
@@ -67,7 +82,7 @@ export function mountLibraryPanel(body) {
         value: state.chip,
         onChange: (value) => {
             state.chip = value;
-            apply();
+            apply(true);
         }
     });
     const find = textField({
@@ -85,7 +100,7 @@ export function mountLibraryPanel(body) {
         value: state.sort,
         onChange: (value) => {
             state.sort = value;
-            apply();
+            apply(true);
         }
     });
 
@@ -95,7 +110,7 @@ export function mountLibraryPanel(body) {
 
     const controls = el('div', { class: 'library-panel__controls' }, chips.el, el('div', { class: 'library-panel__row' }, find.el), sort.el);
     const empty = el('div', { class: 'library-panel__empty', role: 'status', hidden: true });
-    const list = el('div', { class: 'library-panel__list' });
+    list = el('div', { class: 'library-panel__list' });
     const root = el('div', { class: 'library-panel', 'data-folder': 'closed' }, controls, folderBar, empty, list);
 
     body.classList.add('panel-host__body--library');
@@ -106,13 +121,7 @@ export function mountLibraryPanel(body) {
     root.addEventListener('contextmenu', (event) => {
         if (event.target.closest('.left-panel-main-item, input, button')) return;
         event.preventDefault();
-        openMenu({
-            point: { x: event.clientX, y: event.clientY },
-            items: [
-                { label: 'New playlist', icon: 'list-music', onSelect: showNewPlaylist },
-                { label: 'New folder', icon: 'folder', onSelect: showNewFolder }
-            ]
-        });
+        openMenu({ point: { x: event.clientX, y: event.clientY }, items: createItems() });
     });
 
     // Keeps the folder bar and the "nothing here" message in step with whatever the engine just drew.
@@ -132,7 +141,13 @@ export function mountLibraryPanel(body) {
         const height = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--left-item-height'));
         if (height > 0) setPanelRowHeight(height);
     };
-    watchAppearance(() => ready && syncRowHeight());
+    let rowDensity = getAppearance().density;
+    watchAppearance(({ density }) => {
+        // only the row height matters here: a color change must not make the browser measure the whole page again
+        if (density === rowDensity) return;
+        rowDensity = density;
+        if (ready) syncRowHeight();
+    });
     // The shell runs before the engine loads, so the saved chip and sort are applied once the engine is there.
     whenLibraryReady(() => {
         ready = true;

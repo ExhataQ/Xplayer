@@ -2,7 +2,8 @@
 // These are the engine's old sub-header actions; each button calls the engine's own function through adapter/listbar-bridge.js.
 
 import { el, iconEl, iconButton, textField } from '../../components/index.js';
-import { isListPlaying, isShuffleOn, togglePlayAll, toggleShuffle, showListMenu, findInList, onListStateChange } from '../../adapter/listbar-bridge.js';
+import { openShuffleMenu } from '../../adapter/shuffle-menu.js';
+import { isListPlaying, isShuffleOn, togglePlayAll, showListMenu, findInList, onListStateChange } from '../../adapter/listbar-bridge.js';
 
 const FIND_DELAY = 150;
 
@@ -11,7 +12,7 @@ export function createListToolbar() {
     // Tooltips are functions: the label and state change with playback, and the tooltip reads them each time it opens (A-08).
     const play = iconButton({ icon: 'play', label: 'Play', variant: 'solid', tooltip: () => ({ description: isListPlaying() ? '' : 'Play all songs in this list' }), onClick: () => togglePlayAll() });
     // The engine's list shuffle is the player's shuffle button, so it has the same key.
-    const shuffle = iconButton({ icon: 'shuffle', label: 'Shuffle', pressed: false, tooltip: () => ({ state: isShuffleOn() ? 'On' : 'Off', shortcut: 'S' }), onClick: () => toggleShuffle() });
+    const shuffle = iconButton({ icon: 'shuffle', label: 'Shuffle', pressed: false, tooltip: () => ({ state: isShuffleOn() ? 'On' : 'Off', shortcut: 'S' }), onClick: () => openShuffleMenu(shuffle) });
     const findButton = iconButton({ icon: 'search', label: 'Find in this list', pressed: false, tooltip: { description: 'Filter the songs in this list' }, onClick: () => setFind(findBox.hidden) });
     const more = iconButton({ icon: 'ellipsis', label: 'More options for this list', onClick: (event) => showListMenu(event) });
 

@@ -23,10 +23,11 @@
 //   api.undoLast()                         -> Promise<{ ok }>   puts back what the last apply changed. Every apply is also written to the durable undo journal
 //        (PD-06, kind 'tag-sheet', the same entry shape as the AI's set_tags), so Undo still works after a restart and from the notification.
 //        Without a journal it falls back to an in-memory Undo that lasts until the app closes.
-//   api.findTags({ ids?, threshold?, mode? })  -> Promise<{ ok, staged, review, none, unchanged, failed, cancelled, stopped }>   (PD-05)
+//   api.findTags({ ids?, threshold?, mode?, rule? })  -> Promise<{ ok, staged, review, none, unchanged, failed, cancelled, stopped }>   (PD-05)
 //        looks the checked rows (or ids) up on MusicBrainz and finds the original album. Confident matches (threshold, default 0.85) are
 //        STAGED like any other edit; unsure ones wait in a review queue. Nothing is written: the person reviews and applies as usual.
-//        Slow on purpose (about 3 to 4 seconds a song). One search at a time, at most 2000 songs. mode 'add' (default) | 'replace'.
+//        Slow on purpose (about 3 to 4 seconds a song). One search at a time, at most 2000 songs. mode 'add' (default) | 'replace'. rule 'original' (default: the earliest official album) | 'popular' (the album most listeners have
+//        heard, from ListenBrainz; without data it falls back to 'original' and the finding says so).
 //   api.getFindings()                      -> { ok, running, items: [{ id, title, release, confidence, reasons, changes }], last }   the review queue
 //   api.acceptFindings(ids?) / skipFindings(ids?)  -> { ok }   stage (or drop) queued matches; ids default to all of them
 //   api.cancelFind()                       -> { ok }   stop a running search after the song being worked on
@@ -298,9 +299,10 @@ export function createTagSheetActions(bridge = realBridge) {
         return { ok: true };
     }
 
-    async function findTags({ ids, threshold, mode = 'add' } = {}) {
+    async function findTags({ ids, threshold, mode = 'add', rule = 'original' } = {}) {
         if (finder.running) return fail('A tag search is already running.');
         if (!['add', 'replace'].includes(mode)) return fail('mode must be add or replace.');
+        if (!['original', 'popular'].includes(rule)) return fail('rule must be original or popular.');
         if (threshold !== undefined && !(Number(threshold) >= 0 && Number(threshold) <= 1)) return fail('threshold must be between 0 and 1.');
         const target = (ids || [...checked]).filter(known);
         if (target.length === 0) return fail('No rows to look up. Check some rows or pass ids.');
@@ -322,7 +324,7 @@ export function createTagSheetActions(bridge = realBridge) {
             });
             notice = bridge.progressNotice?.({ title: `Finding tags for ${songs.length} song${songs.length === 1 ? '' : 's'}`, kind: 'job', onCancel: () => cancelFind(), target: { view: 'metadata' } }) || null;
             const startedAt = Date.now();
-            const reply = await bridge.findTags({ songs, options: { rule: 'original', autoThreshold: threshold === undefined ? undefined : Number(threshold), fields: FINDER_FIELDS } }, ({ done, total }) => {
+            const reply = await bridge.findTags({ songs, options: { rule, autoThreshold: threshold === undefined ? undefined : Number(threshold), fields: FINDER_FIELDS } }, ({ done, total }) => {
                 const left = done >= 3 ? ((Date.now() - startedAt) / done) * (total - done) / 1000 : 0;
                 notice?.update({ percent: Math.round((done / total) * 100), status: `${done} of ${total}${left >= 5 ? `, about ${eta(left)} left` : ''}` });
             });

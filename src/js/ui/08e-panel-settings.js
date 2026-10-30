@@ -116,17 +116,6 @@ export function openSettingsPanel() {
                         </div>
                     </div>
                     <div class="settings-section">
-                        <div class="settings-section-title">Right Panel</div>
-                        <label class="settings-toggle-row">
-                            <input
-                                type="checkbox"
-                                id="settings-hide-right-panel-lyrics"
-                                data-action-change="toggleHideRightPanelLyrics" data-args-change='["$checked"]'
-                            >
-                            <span>Remove right panel lyrics</span>
-                        </label>
-                    </div>
-                    <div class="settings-section">
                         <div class="settings-section-title">Window</div>
                         <label class="settings-toggle-row">
                         <input
@@ -316,11 +305,6 @@ Save and Apply Changes
             </button>`
             )
             .join('');
-    }
-
-    const hideLyricsCheckbox = document.getElementById('settings-hide-right-panel-lyrics');
-    if (hideLyricsCheckbox) {
-        hideLyricsCheckbox.checked = getHideRightPanelLyrics();
     }
 
     initThemeButtons();

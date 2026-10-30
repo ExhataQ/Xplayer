@@ -92,6 +92,7 @@ Agent C events (lyrics, panels):
 | `search:summaryChanged` | `{ query, count, sessionId }` | `08h` (main search box) | `04u` |
 | `leftPanelSearch:cleared` | none | `08h` (left panel search box) | `04u` |
 | `rightPanel:tabChanged` | `{ tab }` | `08d` `switchRightPanelTab` | `04v` |
+| `smartLyrics:progress` | `{ phase: 'start' \| 'progress' \| 'end', mode, total, completed, found, title?, stopped? }` | `19` `runSmartLyricsFinder` | `ui-next/views/tools/lyrics.js` (notification, PC-09) |
 
 `lyrics:changed` means "this song's lyrics, synced variants or display mode changed and the Lyrics view must show it". 14 emitters send it only while the Lyrics view is open (the condition stayed at the call site); the two editor buttons in `18` (`saveLyricsFromEditor`, `clearLyricsForCurrentSong`) send it unconditionally, exactly as they called `renderLyricsView()` before.
 

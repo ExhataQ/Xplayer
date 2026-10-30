@@ -7,10 +7,10 @@ import { el, iconEl, overlayHost, clampToViewport } from './dom.js';
 const SUBMENU_DELAY = 150;
 
 /**
- * openMenu({ anchor, items, point?, onClose? }) opens below `anchor` (or at `point` {x, y} for a context menu).
+ * openMenu({ anchor, items, point?, above?, onClose? }) opens below `anchor` (above it when `above` is true, for buttons at the bottom of the window), or at `point` {x, y} for a context menu.
  * Returns { close(restoreFocus = true), el }, or null when the press that opened it was the one that just closed it. Choosing a normal item closes the whole menu; `keepOpen: true` on an item keeps it open.
  */
-export function openMenu({ anchor, items, point, onClose } = {}) {
+export function openMenu({ anchor, items, point, above = false, onClose } = {}) {
     if (anchor && anchor._menuSuppressUntil > performance.now()) return null; // this press just closed the menu
     const host = overlayHost(anchor);
     const opener = document.activeElement;
@@ -203,7 +203,8 @@ export function openMenu({ anchor, items, point, onClose } = {}) {
     }
 
     const rect = anchor ? anchor.getBoundingClientRect() : { left: point.x, bottom: point.y - 4 };
-    openLayer(items, rect.left, rect.bottom + 4);
+    const first = openLayer(items, rect.left, rect.bottom + 4);
+    if (above && anchor) position(first, rect.left, anchor.getBoundingClientRect().top - first.offsetHeight - 4);
     document.addEventListener('pointerdown', onOutside, true);
     document.addEventListener('keydown', onKey, true);
     host.addEventListener('pointerover', onPointerOver);

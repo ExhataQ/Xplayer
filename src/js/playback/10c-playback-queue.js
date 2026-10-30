@@ -1,8 +1,13 @@
 // ==============================================================================
 // PLAYBACK - QUEUE MANAGEMENT
 // ==============================================================================
+// True while the queue has songs past the ones drawn; set by updateQueueDisplay, read when the queue is scrolled to its end.
+let queueHasMoreItems = false;
+const QUEUE_LOAD_MARGIN_PX = 160;
+
 export function updateQueueDisplay() {
     const queueList = document.getElementById('queue-list');
+    queueHasMoreItems = false;
 
     if (typeof updateTrackNextBox === 'function') {
         updateTrackNextBox();
@@ -128,19 +133,14 @@ export function updateQueueDisplay() {
                                 </div>`;
     }
 
-    const hasMoreQueueItems =
+    // No button: the queue grows as its scroller reaches the end (see watchQueueEnd).
+    queueHasMoreItems =
         (isShuffled && shuffleIndex < shuffleOrder.length) ||
         (!isShuffled && manualQueueSongs.length + autoQueueSongs.length > maxDisplay);
 
-    if (hasMoreQueueItems) {
-        queueHTML += `
-                                <button class="queue-load-more-btn" type="button" ${actionAttrs('loadMoreQueueItems')}>
-                                        Load more
-                                </button>`;
-    }
-
     queueList.innerHTML = queueHTML;
     updateScrollbarById('right-panel-content');
+    watchQueueEnd(queueList);
 }
 
 function loadMoreQueueItems() {
@@ -168,6 +168,34 @@ function loadMoreQueueItems() {
     updateQueueDisplay();
 }
 
+// The scroller is the nearest ancestor that scrolls: the drawer body in the new screen, the right panel's content in the old one.
+const queueWatched = new WeakSet();
+
+function scrollerOf(node) {
+    for (let n = node.parentElement; n && n !== document.body; n = n.parentElement) {
+        const overflow = getComputedStyle(n).overflowY;
+        if (overflow === 'auto' || overflow === 'scroll') return n;
+    }
+    return null;
+}
+
+// Loads the next page when the scroller is near its end. It also runs after each draw, so a queue too short to scroll fills
+// the panel and can be scrolled at all.
+function loadQueueIfNearEnd(scroller) {
+    if (!queueHasMoreItems) return;
+    if (scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - QUEUE_LOAD_MARGIN_PX) loadMoreQueueItems();
+}
+
+function watchQueueEnd(queueList) {
+    const scroller = scrollerOf(queueList);
+    if (!scroller) return;
+    if (!queueWatched.has(scroller)) {
+        queueWatched.add(scroller);
+        scroller.addEventListener('scroll', () => loadQueueIfNearEnd(scroller), { passive: true });
+    }
+    requestAnimationFrame(() => loadQueueIfNearEnd(scroller));
+}
+
 registerActions({ loadMoreQueueItems });
 
 export function playFromQueue(queueIndex) {
@@ -178,7 +206,9 @@ export function playFromQueue(queueIndex) {
 
 export function removeFromQueue(queueIndex) {
     if (queueIndex >= 0 && queueIndex < playbackQueue.length) {
-        if (queueIndex === currentQueueIndex) {
+        // The rows only depend on the queue through the song that is playing, so removing another one needs no redraw of the lists.
+        const removedPlaying = queueIndex === currentQueueIndex;
+        if (removedPlaying) {
             saveCurrentPlaybackState();
 
             const nextIndex = queueIndex < playbackQueue.length - 1 ? queueIndex : queueIndex - 1;
@@ -204,7 +234,7 @@ export function removeFromQueue(queueIndex) {
         }
 
         updateQueueDisplay();
-        emit('queue:songsChanged');
+        if (removedPlaying) emit('queue:songsChanged');
     }
 }
 

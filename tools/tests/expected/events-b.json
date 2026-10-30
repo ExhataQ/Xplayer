@@ -56,15 +56,9 @@
     "next button, repeat one: All Songs view": [
         "renderPortableRecentlyPlayed"
     ],
-    "queue: remove an upcoming song, Recent view": [
-        "renderRecentlyPlayed"
-    ],
-    "queue: remove an upcoming song, All Songs view": [
-        "renderSongsList"
-    ],
-    "queue: remove an upcoming song, Search view": [
-        "renderSongsList"
-    ],
+    "queue: remove an upcoming song, Recent view": [],
+    "queue: remove an upcoming song, All Songs view": [],
+    "queue: remove an upcoming song, Search view": [],
     "queue: remove an upcoming song, Favorites view": [],
     "queue: remove the playing song, All Songs view": [
         "updateSubheroPlayButton",

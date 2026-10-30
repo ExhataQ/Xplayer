@@ -42,15 +42,17 @@ export function enhanceTransport() {
     const parts = Object.fromEntries(['shuffle', 'prev', 'play', 'next', 'repeat', 'volume-icon', 'lyrics', 'seek', 'seek-fill', 'volume', 'volume-fill', 'time-current', 'time-total', 'song-info'].map((name) => [name, playerPart(name)]));
     if (!parts.play || !parts.seek || !parts.volume) return () => {};
 
+    // With no song loaded, previous, next and the seek bar do nothing: they get no tooltip and no hover (player-bar.css) and are announced as unavailable.
+    const idle = () => !(parts['song-info'] && parts['song-info'].classList.contains('has-song'));
+
     // ---- buttons: name, state, shortcut ----
     const buttons = [
         ['shuffle', () => ({ name: 'Shuffle', state: isOn(parts.shuffle) ? 'On' : 'Off', shortcut: 'S' }), true],
-        ['prev', () => ({ name: 'Previous song' }), false],
+        ['prev', () => (idle() ? null : { name: 'Previous song' }), false],
         ['play', () => ({ name: state.playing ? 'Pause' : 'Play', shortcut: 'Space' }), true],
-        ['next', () => ({ name: 'Next song' }), false],
+        ['next', () => (idle() ? null : { name: 'Next song' }), false],
         ['repeat', () => ({ name: 'Repeat', state: repeatState(parts.repeat), shortcut: 'R' }), true],
-        ['volume-icon', () => ({ name: parts['volume-icon'].getAttribute('aria-label') || 'Mute', shortcut: 'M' }), true],
-        ['lyrics', () => ({ name: 'Lyrics', shortcut: 'L' }), false]
+        ['volume-icon', () => ({ name: parts['volume-icon'].getAttribute('aria-label') || 'Mute', shortcut: 'M' }), true]
     ];
     const tips = {};
     for (const [name, content, toggle] of buttons) {
@@ -70,9 +72,14 @@ export function enhanceTransport() {
         parts.play.setAttribute('aria-label', state.playing ? 'Pause' : 'Play');
         parts.shuffle.setAttribute('aria-pressed', String(isOn(parts.shuffle)));
         parts.repeat.setAttribute('aria-label', `Repeat: ${repeatState(parts.repeat).toLowerCase()}`);
-        const hasSong = parts['song-info'] ? parts['song-info'].classList.contains('has-song') : false;
+        const hasSong = !idle();
         const host = parts.play.closest('.player-host');
         if (host) host.toggleAttribute('data-empty', !hasSong);
+        for (const name of ['prev', 'next']) if (parts[name]) parts[name].setAttribute('aria-disabled', String(!hasSong));
+        if (parts.seek) {
+            parts.seek.setAttribute('aria-disabled', String(!hasSong));
+            parts.seek.tabIndex = hasSong ? 0 : -1;
+        }
         for (const tip of Object.values(tips)) tip.refresh();
     };
     watch(parts.shuffle, syncLabels);

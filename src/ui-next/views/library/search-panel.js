@@ -46,7 +46,7 @@ export function mountSearchPanel(body, ctx) {
         }
     });
     const results = el('div', { class: 'plist-results', 'aria-live': 'polite' });
-    const root = el('div', { class: 'plist-panel', 'data-panel-kind': 'search' }, el('div', { class: 'plist-panel__bar' }, field.el), el('div', { class: 'plist-panel__chips' }, chips.el), results);
+    const root = el('div', { class: 'plist-panel', 'data-panel-kind': 'search' }, el('div', { class: 'plist-panel__controls' }, chips.el, field.el), results);
     body.classList.add('panel-host__body--lists');
     body.append(root);
 

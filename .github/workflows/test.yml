@@ -46,3 +46,31 @@ jobs:
         run: npx playwright install chromium
       - name: Browser tests, part ${{ matrix.shard }} of 3
         run: node tools/tests/run.js browser --shard=${{ matrix.shard }}/3
+
+  # The real tag writer (node-taglib-sharp) on real audio files, compared with the Python backend (mutagen). XPLAYER_REQUIRE_REAL_TAGS=1
+  # makes a missing package a failure instead of a skip, so these tests cannot be skipped unnoticed. Needs node-taglib-sharp in
+  # package.json and package-lock.json (npm install node-taglib-sharp).
+  real-tags:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    env:
+      XPLAYER_REQUIRE_REAL_TAGS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install mutagen (the Python backend the Node backend must match)
+        run: python -m pip install mutagen
+      - name: Install dependencies
+        run: npm ci
+      - name: Real tag writer tests
+        run: node --test tools/tests/tag-parity.test.js tools/tests/tag-node-backend.test.js tools/tests/tag-rules.test.js

@@ -65,3 +65,15 @@ test('parseLRC accepts a non-string value and keeps equal times in file order', 
     const same = parseLRC('[00:01.00]first\n[00:01.00]second');
     assert.deepEqual(same.map((e) => e.text), ['first', 'second']);
 });
+
+test('looksLikeLrc: two or more timed lines are LRC; plain text, tags and one stray timestamp are not', async () => {
+    const { looksLikeLrc } = await parserModule;
+    assert.equal(looksLikeLrc('[00:01.00]a\n[00:02.50]b'), true);
+    assert.equal(looksLikeLrc('[ar:A]\n[ti:T]\n[00:01.00]a\n[00:02.00]b\n'), true);
+    assert.equal(looksLikeLrc('[00:05.00][00:09.00]chorus'), true, 'one line with two timestamps is two timed entries');
+    assert.equal(looksLikeLrc('[00:01.00]only one'), false);
+    assert.equal(looksLikeLrc('just words\nand more words'), false);
+    assert.equal(looksLikeLrc('[ar:A]\n[ti:T]'), false);
+    assert.equal(looksLikeLrc(''), false);
+    assert.equal(looksLikeLrc(null), false);
+});

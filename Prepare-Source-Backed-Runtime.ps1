@@ -58,3 +58,4 @@ if (-not (Test-Path -LiteralPath $OutputDir -PathType Container)) {
 
 Ensure-SourceJunction 'ui-next'
 Ensure-SourceJunction 'js'
+Ensure-SourceJunction 'assets' # ui-next reaches the default covers as ../assets/, which is <output>/assets/ in this runtime

@@ -2,8 +2,7 @@
 import { createStartup, resolveStartupVariant, STARTUP_OPTIONS, DEFAULT_STARTUP_VARIANT } from '../startup/startup.js';
 
 const root = document.documentElement;
-const THEMES = ['warm-graphite', 'deep-forest', 'espresso-copper'];
-const ACCENTS = ['theme', 'green', 'pink', 'purple', 'yellow', 'white'];
+const THEMES = ['warm-graphite', 'deep-forest', 'espresso-copper', 'pure-black', 'graphite-gold', 'carbon-honey', 'high-contrast', 'midnight-blue', 'aubergine-rose', 'ocean-teal', 'crimson-noir', 'violet-night'];
 const CHOICES = [...STARTUP_OPTIONS, { id: 'random', label: 'Random each start' }];
 const STEPS = [
     [0, 'Starting'],
@@ -58,7 +57,6 @@ function play({ indeterminate = false } = {}) {
 
 group('variants', CHOICES.map((c) => ({ value: c.id, label: c.label })), state.choice, (v) => { state.choice = v; play(); });
 group('themes', THEMES.map((t) => ({ value: t, label: t.replace(/-/g, ' ') })), 'warm-graphite', (v) => root.setAttribute('data-theme', v));
-group('accents', ACCENTS.map((a) => ({ value: a, label: a })), 'theme', (v) => (v === 'theme' ? root.removeAttribute('data-accent') : root.setAttribute('data-accent', v)));
 document.getElementById('fullscreen').addEventListener('click', () => document.getElementById('frame').requestFullscreen());
 document.getElementById('replay').addEventListener('click', () => play());
 document.getElementById('indeterminate').addEventListener('click', () => play({ indeterminate: true }));

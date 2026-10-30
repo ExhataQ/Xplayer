@@ -258,11 +258,11 @@ describe('ui-next shell with the real engine', { concurrency: false }, () => {
         await page.close();
     });
 
-    test('gate 9: the shuffle dialog turns shuffle on and marks the button', TEST_OPTIONS, async (t) => {
+    test('gate 9: the shuffle menu turns shuffle on and marks the button', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, problems } = await open({ play: true });
         await page.click('#shuffle-btn');
-        await page.locator('.shuffle-mode-modal button', { hasText: 'Normal Shuffle' }).click();
+        await page.getByRole('menuitemradio', { name: 'Normal shuffle' }).click();
         await page.waitForFunction(() => isShuffled === true);
         assert.equal(await page.locator('#shuffle-btn').evaluate((b) => b.classList.contains('active')), true);
         assert.deepEqual(problems.errors, []);

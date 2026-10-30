@@ -55,8 +55,10 @@
 .player-host[data-empty] :is(#prev-btn, #next-btn, .progress-section) {
     opacity: var(--control-disabled-opacity);
 }
+/* They are inert too: no hover highlight, no tooltip, no seek knob, no click. (The engine ignores a press on them anyway.) */
 .player-host[data-empty] :is(.progress-container, #prev-btn, #next-btn) {
     cursor: default;
+    pointer-events: none;
 }
 
 /* ---------- waveform seek bar (C-02) ----------
@@ -258,55 +260,249 @@
 .queue-panel .empty-queue small {
     font-size: var(--text-xs);
 }
-.queue-panel .queue-load-more-btn {
-    display: block;
-    width: 100%;
-    margin-top: var(--space-2);
-    padding: var(--space-2) var(--space-3);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-md);
+
+/* ---------- big picture mode (C-04, PC-06): the old screen's design, new tokens ---------- */
+.cover-overlay {
+    /* sizes of the old viewer: the picture is at most a third of the window width or 74% of its height; the close button is 8% of that */
+    --cover-size: min(33.6vw, 74vh);
+    --cover-close-size: calc(var(--cover-size) * 0.08);
+    --cover-scrim-strong: rgb(0 0 0 / 0.85);
+    --cover-lens-size: 180px;
+    --cover-lens-edge: rgb(255 255 255 / 0.6);
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
     background: transparent;
     color: var(--text-primary);
+    overflow: hidden;
+}
+.cover-overlay[open] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.cover-overlay::backdrop {
+    background: var(--cover-scrim-strong);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.cover-overlay--shown::backdrop {
+    opacity: 1;
+}
+.cover-overlay__content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-8);
+    opacity: 0;
+    filter: blur(10px);
+    transition: opacity 0.3s ease, filter 0.3s ease; /* closing */
+}
+.cover-overlay--shown .cover-overlay__content {
+    opacity: 1;
+    filter: blur(0);
+    transition: opacity 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); /* opening: the old spring */
+}
+.cover-overlay__image {
+    display: block;
+    max-width: var(--cover-size);
+    max-height: var(--cover-size);
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+    cursor: zoom-in;
+}
+.cover-overlay__image--lens {
+    cursor: none;
+}
+.cover-overlay__close {
+    position: absolute;
+    left: 50%;
+    bottom: var(--space-6);
+    transform: translateX(-50%);
+    width: var(--cover-close-size);
+    height: var(--cover-close-size);
+    min-width: 32px;
+    min-height: 32px;
+    border-radius: var(--radius-pill);
+    background: var(--control-hover-bg);
+    color: var(--text-secondary);
+    backdrop-filter: blur(4px);
+    transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
+}
+.cover-overlay__close:hover {
+    color: var(--text-primary);
+    transform: translateX(-50%) scale(1.1);
+}
+.cover-lens {
+    position: fixed;
+    width: var(--cover-lens-size);
+    height: var(--cover-lens-size);
+    box-sizing: border-box;
+    border: 3px solid var(--cover-lens-edge);
+    border-radius: 50%;
+    box-shadow: var(--shadow-raised);
+    background: var(--surface-ground);
+    overflow: hidden;
+    pointer-events: none;
+}
+.cover-lens[hidden] {
+    display: none;
+}
+.cover-lens__inner {
+    position: absolute;
+    inset: 0;
+    background-repeat: no-repeat;
+}
+@media (prefers-reduced-motion: reduce) {
+    .cover-overlay::backdrop,
+    .cover-overlay__content {
+        transition: none;
+    }
+}
+
+/* ---------- right panel content (PC-13): the cover, the track info and the lyrics ---------- */
+.rp-now {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    height: 100%;
+    min-height: 0;
+    padding: var(--space-2) 0 var(--space-4); /* no side padding here: the lyrics scrollbar sits at the panel's right edge */
+    box-sizing: border-box;
+}
+.rp-now > :is(.rp-now__cover-frame, .rp-now__info) {
+    margin-inline: var(--space-4);
+}
+.rp-now [hidden] {
+    display: none;
+}
+.rp-now__cover-frame {
+    flex: none;
+}
+.rp-now__cover-button {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: var(--surface-ground);
+    overflow: hidden;
+    cursor: zoom-in;
+}
+.rp-now__cover-frame[data-default] .rp-now__cover-button {
+    cursor: default; /* the default cover has no larger picture to open */
+    /* The default cover is a rounded square itself (assets/default-cover.svg), the same shape as the small covers: the button must not
+       round it a second time, which showed a lighter wedge in each corner. */
+    border-radius: 0;
+    background: transparent;
+    overflow: visible;
+}
+.rp-now__cover {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1; /* covers are squares: the picture fills the width and grows in height */
+    object-fit: cover;
+}
+.rp-now__info {
+    flex: none;
+    min-width: 0;
+}
+.rp-now__title {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+}
+.rp-now__artist {
+    font-size: var(--text-md);
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+}
+.rp-now__note {
+    margin: var(--space-1) 0 0;
+    font-size: var(--text-sm);
+    color: var(--text-tertiary);
+}
+.rp-now__note:empty {
+    display: none;
+}
+.rp-now__lyrics {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--space-2) var(--space-4);
+}
+.rp-line {
+    padding: var(--space-1) 0;
+    font-size: var(--text-lg);
+    line-height: 1.5;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    overflow-wrap: anywhere;
+    transition: color var(--motion-fast) var(--motion-ease);
+}
+.rp-line:hover {
+    color: var(--text-primary);
+}
+.rp-line--past {
+    color: var(--text-secondary);
+}
+.rp-line--active {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+.rp-line--empty {
+    min-height: 1em;
+    cursor: default;
+}
+.rp-plain {
+    white-space: pre-wrap;
+    font-size: var(--text-md);
+    line-height: 1.6;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+}
+.rp-now__follow {
+    flex: none;
+    align-self: center;
+    padding: var(--space-1) var(--space-4);
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    color: var(--text-on-accent);
     font-size: var(--text-sm);
     cursor: pointer;
 }
-.queue-panel .queue-load-more-btn:hover {
-    background: var(--control-hover-bg);
+.rp-now__follow:hover {
+    background: var(--accent-hover);
 }
 
-/* ---------- cover viewer (C-04) ---------- */
-.dialog--cover {
-    width: min(92vw, 880px);
+/* ---------- no text selection on the player and its surfaces (PC-05) ----------
+ * The old screen made everything non-selectable except fields (`* { user-select: none }`, css/base.css); the new base.css has no
+ * such rule, so a drag on the seek bar, the volume bar or the queue, a double click on a title, or a click on a lyric line
+ * highlighted text. The same rule, scoped to the surfaces Agent C owns. Fields keep their text selection. */
+.player-host,
+.queue-panel,
+.cover-overlay,
+.rp-now :is(.rp-now__cover-frame, .rp-now__follow, .rp-line) {
+    -webkit-user-select: none;
+    user-select: none;
 }
-.cover-viewer {
-    margin: 0;
+.player-host :is(input[type='text'], input[type='search'], textarea, [contenteditable='true']),
+.queue-panel :is(input[type='text'], input[type='search'], textarea, [contenteditable='true']) {
+    -webkit-user-select: text;
+    user-select: text;
 }
-.cover-viewer__frame {
-    display: flex;
-    justify-content: center;
-    max-height: calc(100vh - 220px);
-    overflow: auto;
-    border-radius: var(--radius-md);
-    background: var(--surface-ground);
-}
-.cover-viewer__image {
-    display: block;
-    max-width: 100%;
-    max-height: calc(100vh - 220px);
-    object-fit: contain;
-    cursor: zoom-in;
-}
-.cover-viewer__frame--actual {
-    display: block;
-}
-.cover-viewer__frame--actual .cover-viewer__image {
-    max-width: none;
-    max-height: none;
-    cursor: zoom-out;
-}
-.cover-viewer__caption {
-    margin-top: var(--space-3);
-    text-align: center;
-    font-size: var(--text-sm);
+
+/* The comma between artists in the playing song's artist line (the engine writes it as a span; the old stylesheet dimmed it). */
+#player-artist .player-artist-sep,
+#tag-artist .player-artist-sep {
     color: var(--text-secondary);
 }

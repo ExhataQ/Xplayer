@@ -1,6 +1,6 @@
 // Drag handle on the library panel's right edge (task A-10). The width is the user's choice, saved, and kept inside what the window
 // can spare: the view always keeps at least MIN_VIEW px. Keyboard: Left and Right move it by 16 px, Home and End jump to the limits,
-// Enter or a double click resets it. It is hidden while the panel is collapsed.
+// Enter or a double click resets it.
 
 const KEY = 'xplayer.ui-next.panel-width';
 export const DEFAULT_WIDTH = 340;
@@ -47,7 +47,6 @@ export function buildPanelResizer(panel) {
         document.documentElement.style.setProperty('--panel-width', `${shown}px`);
         handle.setAttribute('aria-valuenow', String(shown));
         handle.setAttribute('aria-valuemax', String(limit()));
-        handle.hidden = panel.dataset.panel === 'compact';
     }
     const set = (value) => {
         saved = clamp(value);
@@ -82,7 +81,6 @@ export function buildPanelResizer(panel) {
     });
     handle.addEventListener('dblclick', () => set(DEFAULT_WIDTH));
     window.addEventListener('resize', paint);
-    new MutationObserver(paint).observe(panel, { attributes: true, attributeFilter: ['data-panel'] });
     paint();
     return handle;
 }

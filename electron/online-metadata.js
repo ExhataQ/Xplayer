@@ -9,7 +9,7 @@ const CAA_BASE = 'https://coverartarchive.org';
 // (an email or a URL) in the User-Agent so they can reach out before blocking an app that's
 // misbehaving. "local music player" isn't contact info -- replace the email below with a
 // real one (or a project URL) before shipping this to other users.
-const USER_AGENT = 'ExhataQ-MusicPlayer/1.0 ( contact: replace-with-your-email@example.com )';
+const { USER_AGENT } = require('./user-agent');
 
 // Keep one persistent HTTPS connection instead of opening a new connection for
 // every metadata request. This also makes the MusicBrainz request pacing more
@@ -377,7 +377,12 @@ async function searchOnlineMetadata({ fileUrl, title, artist, album, duration, s
         score: r.score || 0,
         firstReleaseDate: r['first-release-date'] || '',
         disambiguation: r.disambiguation || '',
-        releases: (r.releases || []).slice(0, 25).map(x => ({ id: x.id, title: x.title, date: x.date || '', country: x.country || '' }))
+        releases: (r.releases || []).slice(0, 25).map(x => ({
+            id: x.id, title: x.title, date: x.date || '', country: x.country || '',
+            // used by electron/release-rank.js; empty when the search answer does not carry them
+            releaseGroupId: x['release-group']?.id || '', status: x.status || '',
+            primaryType: x['release-group']?.['primary-type'] || '', secondaryTypes: x['release-group']?.['secondary-types'] || []
+        }))
     }));
     const payload = { source: 'musicbrainz', query: { title, artist, album, duration, scope }, results: recordings, fetchedAt: new Date().toISOString() };
     const cachePath = saveJson(fileUrl, payload);

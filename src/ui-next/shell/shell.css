@@ -46,6 +46,9 @@
     background: var(--surface-selected);
     color: var(--text-primary);
 }
+.player-host .lyrics-toggle-btn {
+    display: none; /* the lyrics are in the right panel and the full-size view; the engine still expects the button, so it stays in the page, hidden */
+}
 .nav-btn:disabled,
 .player-host .lyrics-toggle-btn:disabled {
     color: var(--text-tertiary);
@@ -84,6 +87,10 @@
     height: 1px;
     background: var(--border-subtle);
     pointer-events: none;
+}
+/* The full-size lyrics view covers the rail (shell/right-panel.js), so the line runs the whole width there instead of starting at the rail's edge. */
+:root[data-right-full] .titlebar::after {
+    left: 0;
 }
 .titlebar .nav-btn,
 .titlebar .icon-btn {
@@ -171,7 +178,7 @@
     margin-top: auto;
 }
 
-/* ---------- panel host (contextual, compact or expanded) ---------- */
+/* ---------- panel host (contextual) ---------- */
 
 .panel-host {
     grid-area: panel;
@@ -201,6 +208,64 @@
     flex: 1;
     min-height: 0;
     overflow: auto;
+}
+/* Lyrics only: the same width, no cover and no track info. Full: the panel covers the whole app between the title bar and the player,
+   lyrics only, in a centered column (shell/right-panel.js). */
+.right-host:is([data-mode='lyrics'], [data-mode='full']) :is(.rp-now__cover-frame, .rp-now__info) {
+    display: none;
+}
+.right-host[data-mode='full'] {
+    position: fixed;
+    top: var(--titlebar-height);
+    left: 0;
+    right: 0;
+    bottom: var(--player-height);
+    width: auto;
+    z-index: var(--layer-menu);
+    border-left: 0;
+}
+.right-host[data-mode='full'] .rp-now__lyrics {
+    padding-inline: max(var(--space-6), calc((100% - 820px) / 2));
+}
+.right-host[data-mode='full'] .rp-line,
+.right-host[data-mode='full'] .rp-plain {
+    font-size: var(--text-2xl);
+}
+.right-host[data-mode='full'] .rp-now__follow {
+    position: absolute;
+    right: var(--space-8);
+    bottom: var(--space-8);
+}
+/* The lyrics header: the title on the left, the two size buttons on the right. It stays in every mode (the buttons are how the person gets back). */
+.rp-now__header {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    min-height: 40px;
+    margin-top: calc(-1 * var(--space-2));
+    padding: 0 var(--space-3) 0 var(--space-4);
+    border-bottom: 1px solid var(--border-subtle);
+}
+.rp-now__header-title {
+    color: var(--text-primary);
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+}
+.rp-now__tools {
+    display: flex;
+    gap: var(--space-1);
+}
+.right-host[data-mode='full'] .rp-now__header {
+    padding-inline: max(var(--space-6), calc((100% - 820px) / 2));
+}
+/* The right panel button keeps the normal text color when the panel is open: the filled right window says it, not the accent. */
+.icon-btn.right-panel-btn[aria-pressed='true'] {
+    color: var(--text-primary);
+}
+.icon-btn.right-panel-btn[aria-pressed='true']:is(:hover, .is-hover):not(:disabled) {
+    color: var(--text-primary);
 }
 /* A window too small to push the list: the panel floats over it, from under the title bar to above the player. */
 .right-host[data-overlay] {
@@ -233,9 +298,6 @@
 .panel-host[data-closed] {
     display: none; /* the person clicked the active rail item: the panel is closed until a panel item is chosen again */
 }
-.panel-host[data-panel='compact'] {
-    width: 72px;
-}
 .panel-host__header {
     display: flex;
     align-items: center;
@@ -244,18 +306,13 @@
     height: 48px;
     padding: 0 var(--space-3) 0 var(--space-4);
 }
-.panel-host[data-panel='compact'] .panel-host__header {
-    justify-content: center;
-    padding: 0;
-}
 .panel-host__actions {
     display: flex;
     align-items: center;
     gap: var(--space-1);
 }
-.panel-host__action[hidden],
-.panel-host[data-panel='compact'] .panel-host__action {
-    display: none; /* the plus is for the open panel only: the compact strip has no room for it (PB-06) */
+.panel-host__action[hidden] {
+    display: none; /* only the open panel's own action shows (PB-06) */
 }
 .panel-host__title {
     font-size: var(--text-md);
@@ -268,10 +325,6 @@
     overflow: auto;
     color: var(--text-secondary);
     font-size: var(--text-sm);
-}
-.panel-host[data-panel='compact'] .panel-host__title,
-.panel-host[data-panel='compact'] .panel-host__body {
-    display: none;
 }
 
 /* ---------- view host ---------- */
@@ -311,6 +364,10 @@
 .player-host .player-left {
     min-width: 0;
 }
+/* Nothing loaded: no cover, no title, no artist. Hidden, not removed, so the transport stays centered and the engine can still measure its text. */
+.player-host .player-song-info:not(.has-song) {
+    visibility: hidden;
+}
 .player-host .player-song-info {
     display: flex;
     align-items: center;
@@ -339,6 +396,11 @@
     text-overflow: clip;
     padding: 0 3px;
     margin: 0 -3px;
+    /* As wide as the text (up to the column), so the click area and the hover underline stop where the text stops (the engine puts the
+       click handlers on these two boxes). The box still spans the column's width plus its 3px gutters when the text is longer. */
+    display: block;
+    width: fit-content;
+    max-width: calc(100% + 6px);
 }
 .player-host #player-title {
     font-size: var(--text-md);

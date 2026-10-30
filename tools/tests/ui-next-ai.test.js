@@ -88,7 +88,7 @@ describe('AI screens', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page, errors } = await open();
         await page.locator('.rail-btn[data-view="settings"]').click();
-        await page.locator('.settings-card[data-page="ai"]').click(); // Settings opens on the hub; the AI card opens the AI page
+        await page.locator('.settings-menu [data-page="ai"]').click(); // Settings opens on General; the AI tab opens the AI page
         const section = page.locator('.ai-settings');
         await section.waitFor({ timeout: 4000 });
         const toggle = section.getByRole('button', { name: 'Turn on AI' });
@@ -112,7 +112,7 @@ describe('AI screens', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page, errors } = await open();
         await page.locator('.rail-btn[data-view="settings"]').click();
-        await page.locator('.settings-card[data-page="ai"]').click(); // Settings opens on the hub; the AI card opens the AI page
+        await page.locator('.settings-menu [data-page="ai"]').click(); // Settings opens on General; the AI tab opens the AI page
         const section = page.locator('.ai-settings');
         await section.waitFor({ timeout: 4000 });
         const input = section.getByLabel('OpenRouter key');
@@ -137,7 +137,7 @@ describe('AI screens', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page, errors } = await open();
         await page.locator('.rail-btn[data-view="settings"]').click();
-        await page.locator('.settings-card[data-page="ai"]').click(); // Settings opens on the hub; the AI card opens the AI page
+        await page.locator('.settings-menu [data-page="ai"]').click(); // Settings opens on General; the AI tab opens the AI page
         const section = page.locator('.ai-settings');
         await section.waitFor({ timeout: 4000 });
         await section.getByRole('button', { name: 'Load model list' }).click();
@@ -467,7 +467,7 @@ describe('AI screens', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page, errors } = await open(ON);
         await page.locator('.rail-btn[data-view="settings"]').click();
-        await page.locator('.settings-card[data-page="ai"]').click();
+        await page.locator('.settings-menu [data-page="ai"]').click();
         const section = page.locator('.ai-settings');
         await section.waitFor({ timeout: 4000 });
         await section.getByRole('button', { name: 'Translate lyrics automatically' }).click();

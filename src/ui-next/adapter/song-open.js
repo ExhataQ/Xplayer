@@ -8,7 +8,7 @@
 //
 // The engine groups albums by album name only, so two artists with an album of the same name are one album here too.
 
-import { playSongFromList } from './actions.js';
+import { playSongFromList, openArtist } from './actions.js';
 
 let openers = null;
 
@@ -24,16 +24,30 @@ export function albumOfSong(songId) {
     return albums.find((album) => (album.songs || []).includes(songId)) || null;
 }
 
+// The shell's openers return the router's outcome: a string, or a Promise of one while the view on screen asks the person first (the Sync
+// editor's "Discard Sync?"). The engine must not be driven before the Library is on screen, so the work waits for the answer, and is dropped
+// when the person chose to stay.
+function afterShown(outcome, work) {
+    if (outcome && typeof outcome.then === 'function') return void outcome.then((result) => result === 'shown' && work());
+    work();
+}
+
 export function openSong(songId) {
     if (!openers) throw new Error('openSong() was called before the shell registered its openers');
     const album = albumOfSong(songId);
     if (album && typeof engine().switchToViewAndScroll === 'function') {
-        openers.library();
-        engine().switchToViewAndScroll(album.id, 0, songId, album.id); // opens the album and scrolls to the song
-        playSongFromList(songId, album.id);
+        afterShown(openers.library(), () => {
+            engine().switchToViewAndScroll(album.id, 0, songId, album.id); // opens the album and scrolls to the song
+            playSongFromList(songId, album.id);
+        });
         return { kind: 'album', albumId: album.id };
     }
-    openers.page(songId);
-    playSongFromList(songId, 'all-songs');
+    afterShown(openers.page(songId), () => playSongFromList(songId, 'all-songs'));
     return { kind: 'song-page' };
+}
+
+/** The artist's page from somewhere that hides the engine's pages (the song page): the Library first, then the artist. */
+export function openArtistPage(artistId) {
+    if (!openers) throw new Error('openArtistPage() was called before the shell registered its openers');
+    afterShown(openers.library(), () => openArtist(artistId));
 }

@@ -22,11 +22,6 @@ export function renderTrackLyricsBox() {
     const text = document.getElementById('track-lyrics-text');
     if (!box || !text) return;
 
-    if (getHideRightPanelLyrics()) {
-        box.style.display = 'none';
-        return;
-    }
-
     const song = getTrackLyricsForCurrentSong();
     if (!song) {
         box.style.display = 'none';

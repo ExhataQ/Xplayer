@@ -6,8 +6,7 @@
  *   3. component  --button-*, --row-*, ...   values one component owns, built from the semantic layer.
  *
  * Components never use a raw hex or a --c-* name. A theme swaps the primitives and nothing else:
- *   <html data-theme="warm-graphite | deep-forest | espresso-copper">
- *   <html data-accent="green | pink | purple | yellow | white">   (optional, overrides the theme accent)
+ *   <html data-theme="warm-graphite | deep-forest | espresso-copper | pure-black | graphite-gold | carbon-honey | high-contrast | midnight-blue | aubergine-rose | ocean-teal | crimson-noir | violet-night">
  * tools/tests/ui-next-tokens.test.js checks that every theme defines the same names and meets the contrast floor.
  */
 
@@ -68,40 +67,170 @@
     --c-danger: #f08a80;
 }
 
-/* Accent choices carried over from the current app's color themes. They replace only the accent. */
-:root[data-accent='green'] {
-    --c-accent: #1db954;
-    --c-accent-hover: #1ed760;
-    --c-accent-rgb: 29 185 84;
-    --c-on-accent: #0e1013;
-}
-:root[data-accent='pink'] {
-    --c-accent: #ff6b9d;
-    --c-accent-hover: #ff8ab4;
-    --c-accent-rgb: 255 107 157;
-    --c-on-accent: #0e1013;
-}
-:root[data-accent='purple'] {
-    --c-accent: #b57eed;
-    --c-accent-hover: #c496f1;
-    --c-accent-rgb: 181 126 237;
-    --c-on-accent: #0e1013;
-}
-:root[data-accent='yellow'] {
-    --c-accent: #ffd43b;
-    --c-accent-hover: #ffe066;
-    --c-accent-rgb: 255 212 59;
-    --c-on-accent: #0e1013;
-}
-:root[data-accent='white'] {
-    --c-accent: #f8f9fa;
-    --c-accent-hover: #ffffff;
-    --c-accent-rgb: 248 249 250;
-    --c-on-accent: #0e1013;
+:root[data-theme='pure-black'] {
+    --c-ground: #000000;
+    --c-surface: #0a0a0a;
+    --c-raised: #141414;
+    --c-selected: #1e1e1e;
+    --c-line: #1d1d1d;
+    --c-line-strong: #2c2c2c;
+    --c-ink: #f2f2f2;
+    --c-ink-dim: #a3a3a3;
+    --c-ink-faint: #939393;
+    --c-accent: #ffd60a;
+    --c-accent-hover: #ffe04d;
+    --c-accent-own: #ffd60a;
+    --c-accent-rgb: 255 214 10;
+    --c-on-accent: #000000;
+    --c-danger: #ff8a80;
 }
 
-/* Previews for the Appearance settings (task A-10): what each theme and accent looks like while another one is on.
-   tools/tests/ui-next-appearance.test.js checks they equal the real theme and accent values above. */
+:root[data-theme='graphite-gold'] {
+    --c-ground: #141516;
+    --c-surface: #1b1c1e;
+    --c-raised: #232527;
+    --c-selected: #2c2e31;
+    --c-line: #2a2c2f;
+    --c-line-strong: #393c40;
+    --c-ink: #eeeeee;
+    --c-ink-dim: #a4a7ab;
+    --c-ink-faint: #989b9f;
+    --c-accent: #f5c518;
+    --c-accent-hover: #f8d24a;
+    --c-accent-own: #f5c518;
+    --c-accent-rgb: 245 197 24;
+    --c-on-accent: #141516;
+    --c-danger: #f08a80;
+}
+
+:root[data-theme='carbon-honey'] {
+    --c-ground: #0d0e10;
+    --c-surface: #131518;
+    --c-raised: #1b1e22;
+    --c-selected: #24282d;
+    --c-line: #22262b;
+    --c-line-strong: #313740;
+    --c-ink: #eaecef;
+    --c-ink-dim: #9ca3ad;
+    --c-ink-faint: #8f97a2;
+    --c-accent: #ffc94d;
+    --c-accent-hover: #ffd677;
+    --c-accent-own: #ffc94d;
+    --c-accent-rgb: 255 201 77;
+    --c-on-accent: #0d0e10;
+    --c-danger: #f08a80;
+}
+
+:root[data-theme='high-contrast'] {
+    --c-ground: #000000;
+    --c-surface: #080808;
+    --c-raised: #111111;
+    --c-selected: #1c1c1c;
+    --c-line: #4a4a4a;
+    --c-line-strong: #7a7a7a;
+    --c-ink: #ffffff;
+    --c-ink-dim: #d0d0d0;
+    --c-ink-faint: #bdbdbd;
+    --c-accent: #ffe600;
+    --c-accent-hover: #fff04d;
+    --c-accent-own: #ffe600;
+    --c-accent-rgb: 255 230 0;
+    --c-on-accent: #000000;
+    --c-danger: #ff9d94;
+}
+
+:root[data-theme='midnight-blue'] {
+    --c-ground: #0a0e1a;
+    --c-surface: #0f1524;
+    --c-raised: #161d31;
+    --c-selected: #1e2740;
+    --c-line: #1c2540;
+    --c-line-strong: #28345a;
+    --c-ink: #e8ecf6;
+    --c-ink-dim: #97a2bd;
+    --c-ink-faint: #8993b0;
+    --c-accent: #6fa8ff;
+    --c-accent-hover: #8bbaff;
+    --c-accent-own: #6fa8ff;
+    --c-accent-rgb: 111 168 255;
+    --c-on-accent: #0a0e1a;
+    --c-danger: #f08a80;
+}
+
+:root[data-theme='aubergine-rose'] {
+    --c-ground: #130c14;
+    --c-surface: #1a111c;
+    --c-raised: #231925;
+    --c-selected: #2d2132;
+    --c-line: #2b1f30;
+    --c-line-strong: #3a2b41;
+    --c-ink: #f1e7ef;
+    --c-ink-dim: #ab97aa;
+    --c-ink-faint: #9e8b9e;
+    --c-accent: #f08cb6;
+    --c-accent-hover: #f4a3c6;
+    --c-accent-own: #f08cb6;
+    --c-accent-rgb: 240 140 182;
+    --c-on-accent: #130c14;
+    --c-danger: #f08a80;
+}
+
+:root[data-theme='ocean-teal'] {
+    --c-ground: #091214;
+    --c-surface: #0e1a1d;
+    --c-raised: #142327;
+    --c-selected: #1b2f34;
+    --c-line: #1a2b30;
+    --c-line-strong: #253b41;
+    --c-ink: #e2eeee;
+    --c-ink-dim: #8fa8aa;
+    --c-ink-faint: #829b9d;
+    --c-accent: #4fd1c5;
+    --c-accent-hover: #6ddbd1;
+    --c-accent-own: #4fd1c5;
+    --c-accent-rgb: 79 209 197;
+    --c-on-accent: #091214;
+    --c-danger: #f08a80;
+}
+
+:root[data-theme='crimson-noir'] {
+    --c-ground: #0f0b0c;
+    --c-surface: #171112;
+    --c-raised: #1f1719;
+    --c-selected: #291f22;
+    --c-line: #291d20;
+    --c-line-strong: #382a2d;
+    --c-ink: #f0e7e7;
+    --c-ink-dim: #a79496;
+    --c-ink-faint: #9a8789;
+    --c-accent: #ee6770;
+    --c-accent-hover: #f2838a;
+    --c-accent-own: #ee6770;
+    --c-accent-rgb: 238 103 112;
+    --c-on-accent: #0f0b0c;
+    --c-danger: #f4a29a;
+}
+
+:root[data-theme='violet-night'] {
+    --c-ground: #0e0c17;
+    --c-surface: #141120;
+    --c-raised: #1c182b;
+    --c-selected: #251f38;
+    --c-line: #231e36;
+    --c-line-strong: #322a4a;
+    --c-ink: #ece9f6;
+    --c-ink-dim: #9d97b8;
+    --c-ink-faint: #9089ab;
+    --c-accent: #a58bff;
+    --c-accent-hover: #b8a2ff;
+    --c-accent-own: #a58bff;
+    --c-accent-rgb: 165 139 255;
+    --c-on-accent: #0e0c17;
+    --c-danger: #f08a80;
+}
+
+/* Previews for the Appearance settings (task A-10): what each theme looks like while another one is on.
+   tools/tests/ui-next-appearance.test.js checks they equal the real theme values above. */
 :root {
     --preview-warm-graphite-ground: #0e1013;
     --preview-warm-graphite-surface: #13161b;
@@ -112,11 +241,33 @@
     --preview-espresso-copper-ground: #120e0b;
     --preview-espresso-copper-surface: #1a1410;
     --preview-espresso-copper-accent: #cf8352;
-    --preview-accent-green: #1db954;
-    --preview-accent-pink: #ff6b9d;
-    --preview-accent-purple: #b57eed;
-    --preview-accent-yellow: #ffd43b;
-    --preview-accent-white: #f8f9fa;
+    --preview-pure-black-ground: #000000;
+    --preview-pure-black-surface: #0a0a0a;
+    --preview-pure-black-accent: #ffd60a;
+    --preview-graphite-gold-ground: #141516;
+    --preview-graphite-gold-surface: #1b1c1e;
+    --preview-graphite-gold-accent: #f5c518;
+    --preview-carbon-honey-ground: #0d0e10;
+    --preview-carbon-honey-surface: #131518;
+    --preview-carbon-honey-accent: #ffc94d;
+    --preview-high-contrast-ground: #000000;
+    --preview-high-contrast-surface: #080808;
+    --preview-high-contrast-accent: #ffe600;
+    --preview-midnight-blue-ground: #0a0e1a;
+    --preview-midnight-blue-surface: #0f1524;
+    --preview-midnight-blue-accent: #6fa8ff;
+    --preview-aubergine-rose-ground: #130c14;
+    --preview-aubergine-rose-surface: #1a111c;
+    --preview-aubergine-rose-accent: #f08cb6;
+    --preview-ocean-teal-ground: #091214;
+    --preview-ocean-teal-surface: #0e1a1d;
+    --preview-ocean-teal-accent: #4fd1c5;
+    --preview-crimson-noir-ground: #0f0b0c;
+    --preview-crimson-noir-surface: #171112;
+    --preview-crimson-noir-accent: #ee6770;
+    --preview-violet-night-ground: #0e0c17;
+    --preview-violet-night-surface: #141120;
+    --preview-violet-night-accent: #a58bff;
 }
 
 /* ---------- 2. semantic layer ---------- */
@@ -169,6 +320,7 @@
     --space-8: 32px;
 
     --radius-sm: 4px; /* thumbnails */
+    --radius-xs: 4px; /* the engine's own name: its selection and highlight layers round their corners with it (ui/04a) */
     --radius-md: 6px; /* controls */
     --radius-lg: 10px; /* standalone views: menus, toasts, dialogs */
     --radius-pill: 999px;
@@ -201,7 +353,7 @@
     --chip-active-bg: var(--text-primary);
     --chip-active-fg: var(--surface-ground);
 
-    --row-height: 56px;
+    --row-height: 56px; /* with 8px above and below, the cover in a row is 40px, as on the old screen */
     --row-height-compact: 36px;
     --panel-row-height: 72px; /* library panel rows (the engine reads the live value, ui/05b setLeftItemHeight) */
     --panel-row-height-compact: 48px;

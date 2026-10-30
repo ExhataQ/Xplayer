@@ -16,7 +16,15 @@ export const BINS = 1000;
 export const MAX_SECONDS = 10 * 60; // longer tracks are skipped: decoding holds the whole track as 32-bit PCM (about 210 MB at 10 minutes, stereo, 44.1 kHz)
 const MEMORY_LIMIT = 200; // 1 KB each
 
+// Decoding speed (task PC-03, delay). decodeAudioData converts the track to the context's sample rate, and peaks need no more than
+// the loudness over time, so the offline context runs at 8 kHz (the rate wavesurfer.js decodes at too): the decoded track is
+// about 5.5 times smaller than at 44.1 kHz, which is less memory to fill, to hand back and to scan.
+export const ANALYSIS_RATE = 8000;
+const PREFETCH_LIMIT = 8;
+const DURATION_TOLERANCE = 3; // seconds: the library's duration tag against the audio element's, for the same file
+
 const memory = new Map(); // key -> Uint8Array, insertion order doubles as least-recently-used order
+const prefetched = new Map(); // url -> { duration, peaks }: next songs decoded ahead of time (see prefetchPeaks)
 const pending = new Map(); // key -> Promise, so one track is never decoded twice at once
 let reader = readWithXhr;
 let decodeQueue = Promise.resolve(); // decodes run one at a time, so skipping quickly never stacks large decodes
@@ -45,12 +53,13 @@ export function setPeaksStore(store) {
 
 export function clearPeaksCache() {
     memory.clear();
+    prefetched.clear();
     pending.clear();
     decodeQueue = Promise.resolve();
 }
 
 // Bump when the meaning of the stored bytes changes, so peaks saved by an older scaling are never reused.
-export const PEAKS_VERSION = 2;
+export const PEAKS_VERSION = 3; // 3: decoded at 8 kHz (a little less treble in the level than at 44.1 kHz)
 const keyOf = (song) => `v${PEAKS_VERSION}:${song.id}:${Math.round(Number(song.duration) || 0)}:${song.url || song.path || ''}`;
 
 // Contrast scaling (task PC-03). The first version took the loudest single sample in each slice and divided by the loudest
@@ -104,7 +113,7 @@ export function computePeaks(channels, bins = BINS) {
 async function decode(song) {
     const bytes = await reader(song);
     // An offline context decodes without an output device and without the autoplay restriction.
-    const context = new OfflineAudioContext(1, 1, 44100);
+    const context = new OfflineAudioContext(1, 1, ANALYSIS_RATE);
     const buffer = await context.decodeAudioData(bytes);
     const channels = Array.from({ length: buffer.numberOfChannels }, (_, i) => buffer.getChannelData(i));
     return computePeaks(channels, BINS);
@@ -123,6 +132,17 @@ async function readStored(key) {
     }
 }
 
+// A song decoded ahead of time (prefetchPeaks), found by its url and matched by duration within a few seconds, because the key of
+// a later lookup uses the audio element's own duration. It is moved into the normal cache and saved under the key that was asked for.
+function takePrefetched(song, key) {
+    const hit = prefetched.get(song.url);
+    if (!hit || Math.abs(hit.duration - (Number(song.duration) || 0)) > DURATION_TOLERANCE) return null;
+    prefetched.delete(song.url);
+    remember(key, hit.peaks);
+    if (persistent) Promise.resolve(persistent.set(key, hit.peaks)).catch(() => {});
+    return hit.peaks;
+}
+
 function remember(key, peaks) {
     memory.delete(key);
     memory.set(key, peaks);
@@ -134,7 +154,7 @@ function remember(key, peaks) {
  * memory or saved on disk, or null. The seek bar asks that way first, so a track heard before shows its waveform at once
  * and only a new track waits for the (slow) decode.
  */
-export function getPeaks(song, { cachedOnly = false } = {}) {
+export function getPeaks(song, { cachedOnly = false, shouldRun = null } = {}) {
     if (!song || !song.url) return Promise.resolve(null);
     if (Number(song.duration) > MAX_SECONDS) return Promise.resolve(null);
     const key = keyOf(song);
@@ -143,12 +163,17 @@ export function getPeaks(song, { cachedOnly = false } = {}) {
         remember(key, hit);
         return Promise.resolve(hit);
     }
+    const ahead = takePrefetched(song, key);
+    if (ahead) return Promise.resolve(ahead);
     if (cachedOnly) return readStored(key);
     if (pending.has(key)) return pending.get(key);
     const job = (async () => {
         await decodeQueue.catch(() => {});
         try {
             if (memory.has(key)) return memory.get(key); // finished while this one waited
+            const early = takePrefetched(song, key); // or was decoded ahead while this one waited
+            if (early) return early;
+            if (shouldRun && !shouldRun()) return null; // the person moved on while this waited its turn: no decode, nothing cached
             const stored = await readStored(key);
             if (stored) return stored;
             const peaks = await decode(song);
@@ -169,6 +194,35 @@ export function getPeaks(song, { cachedOnly = false } = {}) {
     })();
     decodeQueue = job;
     pending.set(key, job);
+    return job;
+}
+
+/**
+ * Decodes `song` ahead of time (the next song in the queue) so its waveform is there the moment it starts: the cheap, most
+ * effective fix for the delay, since a song that plays on from the one before never waits. It runs in the same single-file queue
+ * as every decode, skips a song that already has saved peaks (the keys for the tag duration and one second either side are
+ * tried), keeps the result in memory only (it is saved to disk when the song is really played, under its real key), and does
+ * nothing if `shouldRun()` says the person has moved on. Resolves true when the song is ready or already was.
+ */
+export function prefetchPeaks(song, { shouldRun = null } = {}) {
+    const duration = Number(song && song.duration);
+    if (!song || !song.url || !(duration > 0) || duration > MAX_SECONDS) return Promise.resolve(false);
+    if (prefetched.has(song.url) || memory.has(keyOf(song))) return Promise.resolve(true);
+    const job = (async () => {
+        await decodeQueue.catch(() => {});
+        if (prefetched.has(song.url)) return true;
+        if (shouldRun && !shouldRun()) return false;
+        for (const shift of [0, -1, 1]) {
+            if (await readStored(keyOf({ ...song, duration: duration + shift }))) return true;
+        }
+        if (shouldRun && !shouldRun()) return false;
+        const peaks = await decode(song);
+        prefetched.delete(song.url);
+        prefetched.set(song.url, { duration, peaks });
+        while (prefetched.size > PREFETCH_LIMIT) prefetched.delete(prefetched.keys().next().value);
+        return true;
+    })().catch(() => false);
+    decodeQueue = job;
     return job;
 }
 

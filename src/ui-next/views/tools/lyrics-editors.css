@@ -197,7 +197,6 @@ body > :is(.lyrics-editor-overlay, .sync-editor-overlay) {
     min-height: 0;
     padding: var(--space-2) var(--space-4) var(--space-6);
     overflow-y: auto;
-    scrollbar-color: var(--border-strong) transparent;
 }
 .view-host[data-engine='lyrics'] .sync-editor-right {
     display: flex;
@@ -647,4 +646,26 @@ body > :is(.lyrics-editor-overlay, .sync-editor-overlay) {
     .view-host[data-engine='lyrics'] .sync-editor-footer {
         padding: var(--space-2) var(--space-4);
     }
+}
+
+/* No text selection in the two lyrics editors except in their fields (PC-05): dragging a line, a handle or the timeline in the
+ * Sync tool no longer highlights text. */
+:is(.lyrics-editor-overlay, .sync-editor-overlay) {
+    -webkit-user-select: none;
+    user-select: none;
+}
+:is(.lyrics-editor-overlay, .sync-editor-overlay) :is(input, textarea, select, [contenteditable='true']) {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* Under the Write editor's text: it says when the pasted text is LRC and will be saved as synced lyrics. */
+.lyrics-editor-hint {
+    margin: 0;
+    padding: var(--space-1) var(--space-4);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.lyrics-editor-hint[hidden] {
+    display: none;
 }

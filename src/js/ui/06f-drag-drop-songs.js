@@ -1,6 +1,13 @@
 // ==============================================================================
 // DRAG & DROP - SONGS TO LEFT PANEL / QUEUE
 // ==============================================================================
+// The panel a song can be dropped on (Liked Songs). The old screen has #left-panel. The new screen keeps that element hidden and shows the
+// Library panel in its own shell, so while that panel is on screen it is the drop zone; otherwise the old element stays the one.
+function getLeftPanelDropZone() {
+    const shown = document.querySelector('.library-panel');
+    return shown && shown.offsetParent !== null ? shown : leftPanelElement;
+}
+
 export function initSongDragToLeftPanel() {
     const songList = document.getElementById('song-list');
     if (!songList) return;
@@ -87,9 +94,9 @@ export function initSongDragToLeftPanel() {
                     dropTargetIndicator = null;
                 }
 
-                const leftPanel = leftPanelElement;
-                const isOverLeftPanel =
-                    leftPanel && document.elementFromPoint(e.clientX, e.clientY)?.closest('#left-panel');
+                const leftPanel = getLeftPanelDropZone();
+                const elOver = document.elementFromPoint(e.clientX, e.clientY);
+                const isOverLeftPanel = leftPanel && elOver && leftPanel.contains(elOver);
 
                 if (isOverLeftPanel) {
                     leftPanel.classList.add('drag-panel-hover');
@@ -138,7 +145,7 @@ export function initSongDragToLeftPanel() {
                 dragGhost.remove();
                 dragGhost = null;
 
-                const leftPanel = leftPanelElement;
+                const leftPanel = getLeftPanelDropZone();
                 const elUnder = document.elementFromPoint(e.clientX, e.clientY);
                 const rawTargetItem = elUnder?.closest('.left-panel-main-item');
                 const targetItem =
@@ -317,6 +324,7 @@ export function initSongDragToLeftPanel() {
                 el.classList.remove('drag-invalid');
             });
             leftPanelElement.classList.remove('drag-panel-hover');
+            getLeftPanelDropZone()?.classList.remove('drag-panel-hover');
             document.body.classList.remove('no-select');
             document.body.classList.remove('dragging-song');
             document.body.style.cursor = '';

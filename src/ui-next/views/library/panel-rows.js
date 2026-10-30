@@ -6,14 +6,14 @@
 // Both return an <li>. `song` and `item` are { kind, id, title, subtitle, cover } as the bridges return them.
 
 import { el, iconEl } from '../../components/index.js';
-
-const DEFAULT_COVER = '../assets/default-cover.svg';
+import { defaultCover } from '../../adapter/default-cover.js';
 
 function cover(src, kind) {
+    const fallback = defaultCover(kind);
     const wrapper = el('span', { class: `plist-row__cover plist-row__cover--${kind}` });
-    const image = el('img', { src: src || DEFAULT_COVER, alt: '', loading: 'lazy', draggable: 'false' });
+    const image = el('img', { src: src || fallback, alt: '', loading: 'lazy', draggable: 'false' });
     image.addEventListener('error', () => {
-        if (image.getAttribute('src') !== DEFAULT_COVER) image.setAttribute('src', DEFAULT_COVER);
+        if (image.getAttribute('src') !== fallback) image.setAttribute('src', fallback);
     });
     wrapper.append(image);
     return wrapper;

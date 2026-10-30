@@ -45,7 +45,9 @@ describe('lyrics.css, lyrics.js and engine-api.js', () => {
     test('engine-api only forwards allow-listed events and never builds markup', () => {
         const js = read('adapter', 'engine-api.js');
         assert.doesNotMatch(js, /innerHTML|cloneNode/);
-        assert.match(js, /EVENTS = new Set\(\['view:changed', 'lyrics:changed', 'queue:indexChanged', 'rightPanel:tabChanged', 'playback:stateChanged'\]\)/);
+        // The list grows with the app (history:added, playlist:listChanged, smartLyrics:progress, ...): check that the events Lyrics needs are on it.
+        const listed = [...js.match(/EVENTS = new Set\(\[([^\]]*)\]\)/)[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+        for (const name of ['view:changed', 'lyrics:changed', 'queue:indexChanged', 'rightPanel:tabChanged', 'playback:stateChanged']) assert.ok(listed.includes(name), name);
     });
 
     test('every lyrics class the engine writes has a rule or is a known layout-only class', () => {

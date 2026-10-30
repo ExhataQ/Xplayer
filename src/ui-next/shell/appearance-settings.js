@@ -1,14 +1,16 @@
-// The Appearance section of Settings (task A-10): theme, accent color and density.
+// The Appearance section of Settings (task A-10): theme, density and scrollbar.
 //
 // The engine draws the Settings page itself, with a "Theme Color" block of five swatches that only set an old body class and are
 // never saved. This puts a real Appearance section in front of that block and hides it. The page is drawn again every time it
 // is opened (and when you come back from Advanced), so a small observer, alive only while Settings is shown, puts it back.
 
-import { el, segmented, attachTooltip } from '../components/index.js';
+import { el, segmented } from '../components/index.js';
 import { buildAiSettingsSection } from './ai-slots.js';
 import { buildWaveformSection } from '../views/playback/waveform-setting.js';
 import { layoutSettings, resetSettingsPage } from './settings-layout.js';
-import { THEMES, ACCENTS, DENSITIES, getAppearance, setAppearance, watchAppearance } from './appearance.js';
+import { DENSITIES, SCROLLBARS, SCROLLBAR_SHAPES, SCROLLBAR_CATS, CUSTOM_ID, getAppearance, setAppearance, watchAppearance } from './appearance.js';
+import { themePicker } from './theme-picker.js';
+import { buildThemeBuilder, currentColors } from './theme-builder.js';
 
 let observer = null;
 
@@ -16,8 +18,6 @@ function stop() {
     if (observer) observer.disconnect();
     observer = null;
 }
-
-const dot = (name, kind) => el('span', { class: 'swatch', 'data-swatch': kind, 'data-name': name, 'aria-hidden': 'true' });
 
 function row(title, hint, control) {
     return el('div', { class: 'appearance__row' }, el('div', { class: 'appearance__label' }, el('div', { class: 'appearance__title' }, title), hint ? el('div', { class: 'appearance__hint' }, hint) : ''), control);
@@ -39,40 +39,39 @@ function switchButton() {
 
 function build() {
     const now = getAppearance();
-    const theme = segmented({
-        label: 'Theme',
+    const theme = themePicker({
         value: now.theme,
-        items: THEMES.map((t) => ({ value: t.id, label: el('span', { class: 'appearance__theme', 'data-theme-id': t.id }, dot(t.id, 'ground'), dot(t.id, 'surface'), dot(t.id, 'accent'), t.label) })),
-        onChange: (value) => setAppearance({ theme: value })
+        onChange: (id) => setAppearance(id === CUSTOM_ID ? { theme: id, custom: getAppearance().custom || { colors: currentColors() } } : { theme: id })
     });
-    const accent = segmented({
-        label: 'Accent color',
-        value: now.accent,
-        items: ACCENTS.map((a) => ({ value: a.id, label: dot(a.id, 'accent-choice') })),
-        onChange: (value) => setAppearance({ accent: value })
-    });
-    for (const a of ACCENTS) {
-        const node = accent.el.querySelector(`[data-value="${a.id}"]`);
-        node.setAttribute('aria-label', a.label);
-        attachTooltip(node, { name: a.label });
-    }
+    theme.setCustom(now.custom && now.custom.colors);
+    const builder = buildThemeBuilder();
     const density = segmented({ label: 'Density', value: now.density, items: DENSITIES.map((d) => ({ value: d.id, label: d.label })), onChange: (value) => setAppearance({ density: value }) });
+
+    const scrollbar = segmented({ label: 'Scrollbar color', value: now.scrollbar, items: SCROLLBARS.map((o) => ({ value: o.id, label: o.label })), onChange: (value) => setAppearance({ scrollbar: value }) });
+    const scrollbarShape = segmented({ label: 'Scrollbar shape', value: now.scrollbarShape, items: SCROLLBAR_SHAPES.map((o) => ({ value: o.id, label: o.label })), onChange: (value) => setAppearance({ scrollbarShape: value }) });
+    const scrollbarCat = segmented({ label: 'Cat scrollbar', value: now.scrollbarCat, items: SCROLLBAR_CATS.map((o) => ({ value: o.id, label: o.label })), onChange: (value) => setAppearance({ scrollbarCat: value }) });
 
     const section = el(
         'div',
         { class: 'settings-section appearance', 'data-appearance': '' },
         el('div', { class: 'settings-section-title' }, 'Appearance'),
-        row('Theme', 'The surfaces and the default accent.', theme.el),
-        row('Accent color', 'Theme color uses the accent that belongs to the theme.', accent.el),
+        el('div', { class: 'appearance__block' }, el('div', { class: 'appearance__title' }, 'Theme'), el('div', { class: 'appearance__hint' }, 'Each theme has its own surfaces and accent. Pick one, or build your own below.'), theme.el),
+        el('div', { class: 'appearance__block' }, el('div', { class: 'appearance__title' }, 'Build your own theme'), el('div', { class: 'appearance__hint' }, 'Choose four colors, then restyle any panel on its own: its background or gradient, text, accent and edge line. Text stays readable. Save the looks you like.'), builder.el),
         row('Density', 'Row height in song lists.', density.el),
+        row('Scrollbar color', 'Theme color follows the accent of the theme; Neutral stays grey.', scrollbar.el),
+        row('Scrollbar shape', 'Flush bar is a square bar against the edge; Wall tab is a little wider and rounded on its inner side.', scrollbarShape.el),
+        row('Cat scrollbar', 'A small yellow and orange cat clings to the edge of a long list and rides along as its scroll thumb. It climbs as you scroll and reacts when you hover or drag it.', scrollbarCat.el),
         row('Interface', 'The previous interface is kept. Switching reloads the window and is remembered.', switchButton())
     );
     // Another place can change the choice (the song list's column menu has a Row height group): keep the controls in step.
     const off = watchAppearance((next) => {
         if (!section.isConnected) return off();
         theme.setValue(next.theme);
-        accent.setValue(next.accent);
+        theme.setCustom(next.custom && next.custom.colors);
         density.setValue(next.density);
+        scrollbar.setValue(next.scrollbar);
+        scrollbarShape.setValue(next.scrollbarShape);
+        scrollbarCat.setValue(next.scrollbarCat);
     });
     return section;
 }

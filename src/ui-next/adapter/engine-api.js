@@ -13,7 +13,7 @@
 //   watchLyricsEditors(callback) -> unsubscribe(); callback({ write, sync }) when an editor opens or closes
 
 const engine = () => window;
-const EVENTS = new Set(['view:changed', 'lyrics:changed', 'queue:indexChanged', 'rightPanel:tabChanged', 'playback:stateChanged', 'history:added', 'playlist:listChanged']);
+const EVENTS = new Set(['view:changed', 'lyrics:changed', 'queue:indexChanged', 'rightPanel:tabChanged', 'playback:stateChanged', 'history:added', 'playlist:listChanged', 'smartLyrics:progress']);
 
 export function nowPlaying() {
     const { currentQueueIndex: index, playbackQueue: queue } = engine();
@@ -32,6 +32,8 @@ export function metadataEditor() {
 }
 
 export const engineConfirm = (message) => engine().confirm(message);
+// The engine's own confirm dialog ("Discard Sync?") answers later, when the person clicks; this is true while it is on screen.
+export const confirmDialogOpen = () => document.getElementById('confirm-ok-btn') !== null;
 
 // The engine builds each editor once, appends it to <body> and shows it by adding the class `active`. It sends no event.
 const open = (id) => document.getElementById(id)?.classList.contains('active') === true;

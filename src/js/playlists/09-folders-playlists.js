@@ -266,7 +266,7 @@ export function closeFolder() {
                 <li class="left-panel-main-item active" onclick="switchView(VIEWS.ALL_SONGS)" oncontextmenu="showSpecialItemContextMenu(event, VIEWS.ALL_SONGS, 'All Songs'); return false;" data-view="all-songs" data-pin-id="all-songs" tabindex="0">
             <div class="subfolder-row">
                 <div class="main-item-cover-wrapper">
-                    <svg class="main-item-cover-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
+                    <svg class="main-item-cover-svg cover-ph cover-ph--all-songs" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
                         <rect width="400" height="400" rx="8" fill="var(--accent)"/>
                         <circle cx="200" cy="200" r="70" fill="none" stroke="#000000" stroke-width="12"/>
                         <polygon points="180,160 180,240 240,200" fill="#000000"/>
@@ -287,7 +287,7 @@ export function closeFolder() {
         <li class="left-panel-main-item" onclick="switchView(VIEWS.FAVORITES)" oncontextmenu="showSpecialItemContextMenu(event, VIEWS.FAVORITES, 'Liked Songs'); return false;" data-view="favorites" data-pin-id="favorites" tabindex="0">
             <div class="subfolder-row">
                 <div class="main-item-cover-wrapper">
-                    <svg class="main-item-cover-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
+                    <svg class="main-item-cover-svg cover-ph cover-ph--liked" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
                         <defs>
                             <linearGradient id="likedGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                                 <stop offset="0%" style="stop-color:#450af5"/>

@@ -17,6 +17,11 @@ if not exist "%SOURCE%\src\ui-next\index.html" (
     pause
     exit /b 1
 )
+if not exist "%SOURCE%\Prepare-Source-Backed-Runtime.ps1" (
+    echo ERROR: Prepare-Source-Backed-Runtime.ps1 is missing from the Source folder.
+    pause
+    exit /b 1
+)
 if not exist "%OUTPUT%\player.js" (
     echo ERROR: Runtime player data is missing.
     pause
@@ -25,7 +30,9 @@ if not exist "%OUTPUT%\player.js" (
 if not exist "%CONFIG%" mkdir "%CONFIG%"
 if not defined XPLAYER_TEST_CONFIG_DIR set "XPLAYER_TEST_CONFIG_DIR=%CONFIG%"
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%RUNTIME%\Prepare-Source-Backed-Runtime.ps1" -SourceRoot "%SOURCE%" -OutputDir "%OUTPUT%"
+rem The script is run from Source, so it is always the current one. (It used to be run from a copy in %RUNTIME%, which went stale: the
+rem new interface's default covers then 404ed because the assets link had never been made.)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SOURCE%\Prepare-Source-Backed-Runtime.ps1" -SourceRoot "%SOURCE%" -OutputDir "%OUTPUT%"
 if errorlevel 1 (
     echo ERROR: Could not prepare source-backed runtime links.
     pause

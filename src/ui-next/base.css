@@ -119,9 +119,24 @@ button:disabled,
     background: rgb(var(--c-accent-rgb) / 0.3);
 }
 
+/* As in the old screen (css/base.css): dragging never selects text, so a drag on a bar, a resizer, a slider or a row does not paint a
+ * selection band over the app (PC-05). Fields stay selectable, and so does text a person may want to copy: the AI chat's messages. */
 * {
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-strong) transparent;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+input,
+textarea,
+[contenteditable]:not([contenteditable='false']),
+[contenteditable]:not([contenteditable='false']) *,
+.ai-msg__bubble,
+.ai-msg__bubble * {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+* {
 }
 
 .sr-only {

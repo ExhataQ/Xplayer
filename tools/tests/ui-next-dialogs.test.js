@@ -146,7 +146,7 @@ describe('engine dialogs in the new shell', { concurrency: false }, () => {
         if (!guard(t)) return;
         const { page } = await open();
         await page.evaluate(() => SONGS_DATA.length > 0 && createQueueFromSongList(SONGS_DATA.slice(0, 4), 0, VIEWS.ALL_SONGS));
-        await page.click('#shuffle-btn');
+        await page.evaluate(() => openShuffleModeDialog()); // the button opens a menu now (PB-07); this is the engine's dialog
         const v = await visible(page);
         assert.ok(v && v.covers && v.inside && v.surface, JSON.stringify(v));
         const smart = await page.evaluate(() => {

@@ -6,7 +6,6 @@
 
 .view-host[data-engine-panel='metadata'] {
     overflow-y: auto;
-    scrollbar-color: var(--border-strong) transparent;
 }
 .view-host[data-engine-panel='metadata'] .material-symbols-outlined {
     display: none !important; /* the engine also sets display inline on the cover placeholder */

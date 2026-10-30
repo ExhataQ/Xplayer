@@ -185,6 +185,17 @@ export function initTracklistScrollEffect() {
 
     if (!content || !tracklistHeader || !heroSection) return;
 
+    // The hero scrolls away with the list; as it goes, it shrinks and fades (0 at the top, 1 once it has moved HERO_FADE_PX).
+    const HERO_FADE_PX = 320;
+
+    function updateHeroProgress() {
+        const heroRect = heroSection.getBoundingClientRect();
+        const contentRect = content.getBoundingClientRect();
+        const moved = contentRect.top - heroRect.top;
+        const progress = Math.min(1, Math.max(0, moved / HERO_FADE_PX));
+        heroSection.style.setProperty('--hero-progress', progress.toFixed(3));
+    }
+
     function updateHeaderBackground() {
         const tracklistRect = tracklistHeader.getBoundingClientRect();
         const contentRect = content.getBoundingClientRect();
@@ -197,9 +208,14 @@ export function initTracklistScrollEffect() {
         }
     }
 
-    content.addEventListener('scroll', updateHeaderBackground);
-    window.addEventListener('resize', updateHeaderBackground);
-    updateHeaderBackground();
+    function onScroll() {
+        updateHeaderBackground();
+        updateHeroProgress();
+    }
+
+    content.addEventListener('scroll', onScroll);
+    window.addEventListener('resize', onScroll);
+    onScroll();
 }
 
 // Other files and inline handlers call these by name, so they are registered on window.

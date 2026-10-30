@@ -33,8 +33,7 @@ function declarations(body) {
 }
 
 const allBlocks = blocks(tokens);
-const THEMES = ['warm-graphite', 'deep-forest', 'espresso-copper'];
-const ACCENTS = ['green', 'pink', 'purple', 'yellow', 'white'];
+const THEMES = ['warm-graphite', 'deep-forest', 'espresso-copper', 'pure-black', 'graphite-gold', 'carbon-honey', 'high-contrast', 'midnight-blue', 'aubergine-rose', 'ocean-teal', 'crimson-noir', 'violet-night'];
 
 function themeVars(name) {
     // The default theme is also the :root block; its [data-theme] selector is in the same selector list.
@@ -94,24 +93,6 @@ describe('themes', () => {
     }
 });
 
-describe('accent choices', () => {
-    for (const name of ACCENTS) {
-        test(`${name}: keeps 4.5:1 on the dark surfaces of every theme`, () => {
-            const block = allBlocks.find((b) => b.selector === `:root[data-accent='${name}']`);
-            assert.ok(block, `no block for accent ${name}`);
-            const v = declarations(block.body);
-            assert.deepEqual(Object.keys(v).sort(), ['--c-accent', '--c-accent-hover', '--c-accent-rgb', '--c-on-accent']);
-            for (const theme of THEMES) {
-                const t = themeVars(theme);
-                for (const s of ['--c-surface', '--c-selected']) {
-                    const ratio = contrast(v['--c-accent'], t[s]);
-                    assert.ok(ratio >= 4.5, `${name} on ${theme} ${s} is ${ratio.toFixed(2)}:1`);
-                }
-                assert.ok(contrast(v['--c-on-accent'], v['--c-accent']) >= 4.5, `${name}: text on accent`);
-            }
-        });
-    }
-});
 
 describe('layers', () => {
     const defined = new Set([...tokens.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]));

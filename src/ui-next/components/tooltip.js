@@ -1,12 +1,13 @@
 // Tooltip: name, current state (dim), short description, shortcut (dimmer, right). One shared element.
 // Behavior: appears after a hover delay (instantly while moving between neighbours), hides the moment the pointer
 // leaves, the target is pressed, focus leaves or Escape is pressed. Keyboard focus shows it too. It appears with a short
-// accent flash (CSS, components.css); reduced motion turns that off.
+// accent flash (CSS, components.css); reduced motion turns that off. A small arrow on the edge facing the target shows where it came from.
 // Two ways in: attachTooltip() for a control you build, delegateTooltips() for a whole subtree (the engine's controls,
 // which are created and recycled by code this folder does not own).
 import { el, overlayHost, clampToViewport } from './dom.js';
 
 export const TOOLTIP_DELAY = 250;
+const ARROW_EDGE = 12; // the arrow stays this far from a corner of the box (it is 8px wide, the corner radius is 6px)
 const WARM_WINDOW = 300; // after one tooltip hides, the next one opens without the delay for this long
 
 let tip = null; // the shared element, { node, name, state, shortcut, description }
@@ -29,6 +30,9 @@ function ensure() {
     return tip;
 }
 
+// A tooltip with nothing to say is not shown: a control that is unavailable right now returns null from its content function.
+const hasText = (content) => Boolean(content && (content.name || content.description));
+
 function fill(content) {
     const t = ensure();
     t.name.textContent = content.name || '';
@@ -49,11 +53,14 @@ function place(target, side) {
     t.node.hidden = false;
     const anchor = target.getBoundingClientRect();
     const box = t.node.getBoundingClientRect();
-    const gap = 8;
+    const gap = 10; // the arrow takes about 6px of it
+    // The arrow points at the middle of the target, wherever the box had to move to stay inside the window; it stays clear of the corners.
+    const arrowAt = (center, start, length) => `${Math.round(Math.min(length - ARROW_EDGE, Math.max(ARROW_EDGE, center - start)))}px`;
     if (side === 'right') {
         const pos = clampToViewport(anchor.right + gap, anchor.top + anchor.height / 2 - box.height / 2, box.width, box.height);
         t.node.style.left = `${pos.x}px`;
         t.node.style.top = `${pos.y}px`;
+        t.node.style.setProperty('--tooltip-arrow', arrowAt(anchor.top + anchor.height / 2, pos.y, box.height));
         t.node.dataset.placement = 'right';
         return;
     }
@@ -66,6 +73,7 @@ function place(target, side) {
     const pos = clampToViewport(anchor.left + anchor.width / 2 - box.width / 2, y, box.width, box.height);
     t.node.style.left = `${pos.x}px`;
     t.node.style.top = `${pos.y}px`;
+    t.node.style.setProperty('--tooltip-arrow', arrowAt(anchor.left + anchor.width / 2, pos.x, box.width));
     t.node.dataset.placement = placement;
 }
 
@@ -82,7 +90,9 @@ export function hideTooltip() {
 }
 
 function show(target, read, side) {
-    fill(read());
+    const content = read();
+    if (!hasText(content)) return;
+    fill(content);
     place(target, side);
     target.setAttribute('aria-describedby', ensure().node.id);
     activeTarget = target;
@@ -119,10 +129,11 @@ export function attachTooltip(target, content, { delay = TOOLTIP_DELAY, stayOnPr
     };
 
     const refresh = () => {
-        if (activeTarget === target) {
-            fill(read());
-            place(target, placement);
-        }
+        if (activeTarget !== target) return;
+        const now = read();
+        if (!hasText(now)) return hideTooltip(); // it became unavailable while open
+        fill(now);
+        place(target, placement);
     };
 
     const handlers = [
@@ -178,7 +189,9 @@ export function delegateTooltips(root, resolve, { delay = TOOLTIP_DELAY } = {}) 
         if (!current) return;
         if (!current.target.isConnected) return end();
         if (activeTarget === current.target) {
-            fill(current.read());
+            const now = current.read();
+            if (!hasText(now)) return end();
+            fill(now);
             place(current.target, current.placement);
         }
     };
