@@ -40,13 +40,13 @@ describe('rail.css and the custom icons (static)', () => {
             assert.match(css, new RegExp(`@keyframes ${name}\\b`), name);
         }
         assert.doesNotMatch(css, /infinite/, 'icons move when you hover or click, never on their own');
-        assert.match(css, /@media \(prefers-reduced-motion: no-preference\)/);
-        assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+        assert.match(css, /:where\(:root:not\(\[data-motion='reduced'\]\)\)/);
+        assert.match(css, /:where\(:root\[data-motion='reduced'\]\)/);
     });
 
     test('the custom icons are read by icon(), the generator writes the same lookup, and Library is no longer a Lucide set of bars', async () => {
         const icons = fs.readFileSync(path.join(NEXT_SRC, 'icons', 'icons.js'), 'utf8');
-        const generator = fs.readFileSync(path.join(ROOT, 'tools', 'build-ui-next-icons.js'), 'utf8');
+        const generator = fs.readFileSync(path.join(ROOT, 'tools', 'icons', 'build-ui-next-icons.js'), 'utf8');
         for (const src of [icons, generator]) {
             assert.match(src, /import \{ CUSTOM_ICONS \} from '\.\/custom-icons\.js'/);
             assert.match(src, /CUSTOM_ICONS\[name\] \?\? ICONS\[name\]/);

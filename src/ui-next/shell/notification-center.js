@@ -45,6 +45,7 @@ export function mountNotifications(bell) {
     let autoOpened = false; // the center opens by itself once per session, for the first important entry
     let shape = null; // null until the first draw: an empty list has the shape '', and must still get its "Nothing new" message at launch
     const known = new Set(); // finished entries already shown as a toast (or present at start)
+    const revs = new Map(); // id -> how many times that entry had changed when its toast was last shown: a change in place shows it again
     const seen = new Set(); // finished entries the person has had the chance to read
     const bars = new Map(); // id -> { bar, percent, status } for running rows, updated in place
 
@@ -169,14 +170,23 @@ export function mountNotifications(bell) {
     function update() {
         const all = [...shellList, ...engineList].sort((a, b) => b.time - a.time);
         list = all.filter((n) => !n.toastOnly);
-        const ids = new Set(list.map((n) => n.id));
+        const ids = new Set(all.map((n) => n.id)); // popup-only entries are tracked too, or each redraw would show them again
         for (const set of [known, seen]) for (const id of set) if (!ids.has(id)) set.delete(id);
+        for (const id of revs.keys()) if (!ids.has(id)) revs.delete(id);
         // Several can arrive in one redraw; the list is newest first, so walk it backwards: the newest toast stays on screen.
         for (const n of [...all].reverse()) {
-            if (n.progress || known.has(n.id)) continue;
+            const rev = n.rev || 0;
+            if (n.progress || (known.has(n.id) && revs.get(n.id) === rev)) continue;
             known.add(n.id);
+            revs.set(n.id, rev);
+            if (n.toastOnly) {
+                // A popup and nothing else: no row, no bell swing, no dot. It shows even while the center is open, which has no row to show it in.
+                toaster.show({ id: `n-${n.id}`, kind: kindOf(n) === 'warning' ? 'info' : kindOf(n), title: n.title, message: n.detail });
+                continue;
+            }
             if (isOpen) seen.add(n.id);
             else if (!initial) {
+                seen.delete(n.id); // an entry that changed in place is unread again
                 const kind = kindOf(n);
                 if (!n.toastOnly) ring();
                 if ((n.important || kind === 'error') && !autoOpened) {

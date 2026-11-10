@@ -312,7 +312,7 @@ describe('phase 1 gate: the old interface is intact without the flag', { concurr
 
 describe('phase 1 gate: static checks', () => {
     test('the old page template does not mention ui-next, and the default entry is still the old page', () => {
-        const template = fs.readFileSync(path.join(ROOT, 'build', 'music_player.html'), 'utf8');
+        const template = fs.readFileSync(path.join(ROOT, 'src', 'old-ui', 'music_player.template.html'), 'utf8');
         assert.doesNotMatch(template, /ui-next/);
         const entry = require(path.join(ROOT, 'electron', 'ui-entry.js'));
         const text = JSON.stringify(Object.keys(entry));

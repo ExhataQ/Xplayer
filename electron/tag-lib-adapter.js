@@ -1,16 +1,16 @@
 'use strict';
 
 // The ONLY file that talks to node-taglib-sharp (task PD-01, decision DP7). It turns one open file into the small model that
-// tag-rules.js works on. Written from the library's documented API; it has not been run against the real package in the
-// environment that built it (no network there), so tools/tests/tag-parity.test.js must pass on a machine that has the package.
+// tag-rules.js works on. tools/tests/tag-parity.test.js runs it against the real package on real files.
 // Anything about the library that does not look as expected throws AdapterError, which the backend reports as 'unsupported'
-// (and the caller falls back to Python) instead of writing a file through a guess.
+// instead of writing a file through a guess.
 
 const path = require('path');
 
 const RETRY_MS = 30000;
 const ID3_EXT = new Set(['.mp3', '.mp2', '.mp1', '.wav', '.wave', '.aif', '.aiff']);
 const VORBIS_EXT = new Set(['.flac', '.ogg', '.oga', '.opus']);
+const MP4_EXT = new Set(['.m4a', '.mp4', '.m4b']);
 const MAX_COVER = 6 * 1024 * 1024;
 
 class AdapterError extends Error {}
@@ -82,6 +82,73 @@ function id3Model(lib, tag) {
     };
 }
 
+// MP4 / M4A. Atoms are addressed by name (see tag-rules.js); the library has no way to list them, so entries() reads its item box.
+function mp4Model(lib, tag) {
+    const { ByteVector, StringType } = lib;
+    need(ByteVector, 'ByteVector'); need(StringType, 'StringType');
+    const MEAN = 'com.apple.iTunes';
+    const atom = (key) => ByteVector.fromString(key, StringType.Latin1);
+    const freeform = (key) => (key.startsWith('----:') ? key.slice(5) : null);
+    const whole = (text, what) => {
+        const m = /^\s*(\d*)\s*(?:\/\s*(\d*))?\s*$/.exec(String(text));
+        if (!m) throw new Error(`${what} must be a number or "n/total", got "${text}"`);
+        const a = Number(m[1] || 0), b = Number(m[2] || 0);
+        if (a > 65535 || b > 65535) throw new Error(`${what} is too large for an MP4 file`);
+        return [a, b];
+    };
+    const pair = (a, b) => (a > 0 || b > 0 ? [`${a > 0 ? a : ''}${b > 0 ? '/' + b : ''}`] : []);
+    const asText = (n) => (n > 0 ? [String(Math.round(n))] : []);
+    return {
+        get(key) {
+            const name = freeform(key);
+            if (name !== null) return strings(tag.getItunesStrings(MEAN, name));
+            if (key === 'trkn') return pair(tag.track, tag.trackCount);
+            if (key === 'disk') return pair(tag.disc, tag.discCount);
+            if (key === 'tmpo') return asText(tag.beatsPerMinute);
+            if (key === 'cpil') return tag.isCompilation ? ['1'] : [];
+            if (key === '\u00a9gen') return strings(tag.genres); // also reads the numeric genre atom
+            return strings(tag.getQuickTimeStrings(atom(key)));
+        },
+        set(key, values) {
+            const name = freeform(key);
+            if (name !== null) return tag.setItunesStrings(MEAN, name, ...values);
+            if (key === 'trkn') { const [a, b] = whole(values[0] ?? '', 'The track number'); tag.track = a; tag.trackCount = b; return undefined; }
+            if (key === 'disk') { const [a, b] = whole(values[0] ?? '', 'The disc number'); tag.disc = a; tag.discCount = b; return undefined; }
+            if (key === 'tmpo') {
+                const n = values.length ? Number(values[0]) : 0;
+                if (!Number.isFinite(n) || n < 0 || n > 65535) throw new Error(`The BPM must be a number from 0 to 65535, got "${values[0]}"`);
+                tag.beatsPerMinute = Math.round(n);
+                return undefined;
+            }
+            if (key === 'cpil') { tag.isCompilation = values.length > 0; return undefined; }
+            return tag.setQuickTimeStrings(atom(key), values.length ? values : undefined);
+        },
+        del(key) { this.set(key, []); },
+        entries() {
+            const out = [];
+            const items = need(tag._ilstBox, 'the MP4 item box').children || [];
+            const latin = (v) => v.toString(StringType.Latin1);
+            for (const item of items) {
+                const kind = latin(item.boxType);
+                if (kind === 'covr') continue;
+                const kids = item.children || [];
+                const texts = kids.filter((c) => typeof c.text === 'string' && c.text !== '' && !(c.constructor && /AdditionalInfo/.test(c.constructor.name))).map((c) => c.text);
+                let key = kind;
+                if (kind === '----') {
+                    const info = kids.filter((c) => c.constructor && /AdditionalInfo/.test(c.constructor.name));
+                    const mean = info.find((c) => latin(c.boxType) === 'mean');
+                    const label = info.find((c) => latin(c.boxType) === 'name');
+                    if (!label || !label.text) continue;
+                    key = `----:${label.text}`;
+                    if (mean && mean.text && mean.text !== MEAN) key = `----:${mean.text}:${label.text}`;
+                }
+                if (texts.length) out.push({ key, values: texts });
+            }
+            return out;
+        }
+    };
+}
+
 function xiphModel(tag) {
     const upper = (k) => String(k).toUpperCase();
     return {
@@ -92,7 +159,7 @@ function xiphModel(tag) {
     };
 }
 
-// ID3 is saved as v2.4, like the Python script does.
+// ID3 is saved as v2.4.
 async function openFile(filePath, { library = loadLibrary } = {}) {
     const lib = await library();
     const { File, TagTypes } = lib;
@@ -100,6 +167,9 @@ async function openFile(filePath, { library = loadLibrary } = {}) {
     if (lib.Id3v2Settings) { lib.Id3v2Settings.defaultVersion = 4; lib.Id3v2Settings.forceDefaultVersion = true; }
     const ext = path.extname(filePath).toLowerCase();
     const file = File.createFromPath(filePath);
+    // The library adds an ID3v1 tag to an MP3 on save, filled from the tags as they were before the edit, and it never updates it: a stale
+    // copy that readers like music-metadata then mix in (the old track number next to the new total). So one that was not in the file is removed again.
+    const hadId3v1 = (file.tagTypesOnDisk & (TagTypes.Id3v1 ?? 2)) !== 0;
     const close = () => { try { file.dispose(); } catch (e) { /* already closed */ } };
     try {
         let kind = 'unsupported';
@@ -107,6 +177,7 @@ async function openFile(filePath, { library = loadLibrary } = {}) {
         // getTag(types, create) answers undefined when the tag is not there and cannot be created (File docs), so that is not a crash.
         // The docs' own example spells the enum member ID3v2; both spellings are accepted.
         if (ID3_EXT.has(ext)) { kind = 'id3'; model = id3Model(lib, need(file.getTag(need(TagTypes.Id3v2 ?? TagTypes.ID3v2, 'TagTypes.Id3v2'), true), 'an ID3v2 tag')); }
+        else if (MP4_EXT.has(ext)) { kind = 'mp4'; model = mp4Model(lib, need(file.getTag(need(TagTypes.Apple, 'TagTypes.Apple'), true), 'an Apple (MP4) tag')); }
         else if (VORBIS_EXT.has(ext)) { kind = 'vorbis'; model = xiphModel(need(file.getTag(need(TagTypes.Xiph, 'TagTypes.Xiph'), true), 'a Xiph comment')); }
         const pictures = () => Array.from(need(file.tag, 'File.tag').pictures || []);
         return {
@@ -115,7 +186,7 @@ async function openFile(filePath, { library = loadLibrary } = {}) {
                 const list = pictures();
                 if (!list.length) return null;
                 const pic = list.find((p) => p.type === (lib.PictureType ? lib.PictureType.FrontCover : 3)) || list[0];
-                const bytes = pic.data && pic.data.data;
+                const bytes = pic.data && typeof pic.data.toByteArray === 'function' ? pic.data.toByteArray() : null; // a ByteVector has no .data property
                 if (!bytes || bytes.length > MAX_COVER) return null;
                 return { data: Buffer.from(bytes).toString('base64'), mime: pic.mimeType || 'image/jpeg' };
             },
@@ -131,6 +202,7 @@ async function openFile(filePath, { library = loadLibrary } = {}) {
             // "Files with unknown corruptions should not be written" (File docs): refuse before a byte is written.
             save() {
                 if (file.isPossiblyCorrupt) throw new AdapterError(`The file looks damaged and is not written: ${(file.corruptionReasons || []).join('; ') || 'unknown reason'}`);
+                if (kind === 'id3' && !hadId3v1 && /^\.mp[123]$/.test(ext) && typeof file.removeTags === 'function') file.removeTags(TagTypes.Id3v1 ?? 2);
                 file.save();
             },
             close
@@ -138,4 +210,4 @@ async function openFile(filePath, { library = loadLibrary } = {}) {
     } catch (e) { close(); throw e; }
 }
 
-module.exports = { openFile, loadLibrary, AdapterError, ID3_EXT, VORBIS_EXT };
+module.exports = { openFile, loadLibrary, AdapterError, ID3_EXT, VORBIS_EXT, MP4_EXT };

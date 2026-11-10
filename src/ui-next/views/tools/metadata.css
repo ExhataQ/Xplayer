@@ -227,7 +227,7 @@
 }
 .view-host[data-engine-panel='metadata'] .metadata-editor-section {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
     gap: var(--space-3) var(--space-4);
     margin-top: var(--space-6);
 }
@@ -247,7 +247,8 @@
     gap: var(--space-1);
     min-width: 0;
 }
-.view-host[data-engine-panel='metadata'] .metadata-editor-field:has(textarea) {
+/* Long values get the whole row; short ones (year, track, disc ...) share it. */
+.view-host[data-engine-panel='metadata'] .metadata-editor-field:has(:is(textarea, [data-metadata-key='title'], [data-metadata-key='album'], [data-metadata-key='copyright'], [data-metadata-key^='musicBrainz'], [data-metadata-key^='sort'])) {
     grid-column: 1 / -1;
 }
 .view-host[data-engine-panel='metadata'] .metadata-editor-field > span {
@@ -281,19 +282,48 @@
     color: var(--text-secondary);
 }
 
-/* Several values in one field (artists, genres ...): the chips, then a box to add one. */
-.view-host[data-engine-panel='metadata'] .metadata-multi {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
+/* Several values in one field (artists, genres ...): one text box holding every value as a tag, then the spot that adds one. The tag's
+ * text is an input, so it is edited in place; its x removes it. The values' wrapper takes no box of its own, so tags and the add input
+ * are items of the one box and wrap together. */
+.view-host[data-engine-panel='metadata'] .metadata-editor-field:has(.metadata-multi) {
+    grid-column: 1 / -1;
 }
-.view-host[data-engine-panel='metadata'] .metadata-multi-values {
+.view-host[data-engine-panel='metadata'] .metadata-multi {
+    box-sizing: border-box;
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: var(--space-1);
+    min-height: var(--input-height);
+    padding: 3px var(--space-2);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    background: var(--input-bg);
+    cursor: text;
 }
-.view-host[data-engine-panel='metadata'] .metadata-multi-values:empty {
-    display: none;
+.view-host[data-engine-panel='metadata'] .metadata-multi:hover {
+    border-color: var(--input-border-hover);
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi:focus-within {
+    border-color: var(--focus-ring);
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi-values {
+    display: contents;
+}
+/* the inputs inside the box have no frame of their own (the box shows hover and focus) */
+.view-host[data-engine-panel='metadata'] .metadata-multi input {
+    width: auto;
+    height: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    outline: none;
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi .metadata-multi-input {
+    flex: 1 1 7rem;
+    width: 7rem;
+    height: 24px;
+    padding: 0 var(--space-1);
 }
 .view-host[data-engine-panel='metadata'] .metadata-multi-chip {
     display: inline-flex;
@@ -322,6 +352,22 @@
 .view-host[data-engine-panel='metadata'] .metadata-multi-chip button:hover:not(:disabled) {
     background: var(--control-active-bg);
     color: var(--text-primary);
+}
+
+/* A tag: the pill, with its text as an input that is as wide as the text (the engine sets size), and its x. */
+.view-host[data-engine-panel='metadata'] .metadata-multi-chip .metadata-multi-value {
+    min-width: 0;
+    max-width: 100%;
+    padding-inline-start: var(--space-3);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi-chip:has(.metadata-multi-value) {
+    padding: 2px var(--space-1) 2px 0;
+    max-width: 100%;
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi-chip:has(.metadata-multi-value):focus-within {
+    background: var(--control-active-bg);
 }
 
 /* Tags the form does not edit, shown for information. */

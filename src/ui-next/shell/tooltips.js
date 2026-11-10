@@ -19,7 +19,7 @@ const text = (value, node) => (typeof value === 'function' ? value(node) : value
 // function of the element. `stayOnPress`: the tooltip stays open on a click and shows the new state (toggles).
 const RULES = [
     { selector: '.favorite-btn', stayOnPress: true },
-    { selector: '.add-to-queue-btn', description: 'Plays right after the current song' },
+    { selector: '.add-to-queue-btn' },
     // The engine rewrites this button's aria-label when it becomes current ("pink theme active"), so the name comes from data-theme.
     { selector: '.settings-theme-btn', name: (node) => (node.dataset.theme ? `${node.dataset.theme[0].toUpperCase()}${node.dataset.theme.slice(1)} theme` : node.getAttribute('aria-label')), state: (node) => (node.classList.contains('active') ? 'Current' : '') },
     { selector: '.left-panel-cover-play-btn', name: (node) => node.getAttribute('aria-label') }

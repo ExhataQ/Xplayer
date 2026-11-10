@@ -17,6 +17,8 @@ import { askPrivacy } from './privacy-dialog.js';
 import { createModelPopover } from './model-popover.js';
 import { createModeButton, createOptionsButton, modeInfo } from './composer-controls.js';
 import { QUICK_PROMPTS } from './quick-prompts.js';
+import { sidewaysScroll } from './sideways-scroll.js';
+import { chipStrip } from '../library/chip-strip.js';
 import { createLimitsMeter } from './limits-meter.js';
 import { playOrderOf, songList, saveAsPlaylist, announceShuffle } from './shuffle-list.js';
 import { askLanguage } from './lyrics-bar.js';
@@ -107,17 +109,20 @@ async function submit(text) {
 }
 
 /**
- * opts.mode 'view' (the big main view, with a Make smaller button) or 'popup' (the small window, with Expand and Minimize).
+ * opts.mode 'view' (the big main view, with a Make smaller button), 'popup' (the small pop-up, with Expand and Minimize) or 'standalone'
+ * (the chat in a window of its own: no window buttons, the operating system's title bar does that).
  * The conversation is shared, so switching between the two keeps it.
  */
 export function mountChat(host, ctx, opts = {}) {
-    const mode = opts.mode === 'popup' ? 'popup' : 'view';
+    const mode = opts.mode === 'popup' || opts.mode === 'standalone' ? opts.mode : 'view';
     host.replaceChildren();
 
     const limits = createLimitsMeter(() => (ctx.getStatus() || {}).model);
     const windowButtons =
-        mode === 'popup'
-            ? [iconButton({ icon: 'maximize-2', label: 'Expand to the big view', size: 'sm', onClick: () => opts.onExpand && opts.onExpand() }), iconButton({ icon: 'minus', label: 'Minimize the chat', size: 'sm', onClick: () => opts.onClose && opts.onClose() })]
+        mode === 'standalone'
+            ? []
+            : mode === 'popup'
+            ? [iconButton({ icon: 'maximize-2', label: 'Pop out the chat', size: 'sm', onClick: () => opts.onExpand && opts.onExpand() }), iconButton({ icon: 'minus', label: 'Minimize the chat', size: 'sm', onClick: () => opts.onClose && opts.onClose() })]
             : [iconButton({ icon: 'minimize-2', label: 'Make smaller (pop-up)', size: 'sm', onClick: () => opts.onShrink && opts.onShrink() })];
 
     const log = el('div', { class: 'ai-chat__thread', role: 'log', 'aria-live': 'polite', 'aria-label': 'Conversation' });
@@ -143,29 +148,44 @@ export function mountChat(host, ctx, opts = {}) {
         }
     });
 
-    const prompts = el('div', { class: 'ai-composer__prompts', role: 'group', 'aria-label': 'Ready-made messages' });
+    const prompts = el('div', { class: 'ai-quickrow', role: 'group', 'aria-label': 'Ready-made messages' });
     for (const item of QUICK_PROMPTS) {
         const tap = el('button', { type: 'button', class: 'ai-quick', 'data-prompt': item.id }, item.icon ? iconEl(item.icon, { size: 14 }) : '', el('span', {}, item.label));
         tap.addEventListener('click', () => (item.run === 'translate' ? translateHere() : send(item.text)));
         prompts.append(tap);
     }
+    // The same strip as the filters in the left panel: an arrow on each side that has more, a fade under it, and the wheel. Dragging stays.
+    const strip = chipStrip(prompts, { label: 'ready-made messages' });
+    strip.el.classList.add('ai-quickstrip');
+    sidewaysScroll(strip.row, { wheel: false });
 
     const modelPopover = createModelPopover();
     const modeButton = createModeButton();
-    const optionsNote = el('p', { class: 'ai-composer__note' });
-    const optionsButton = createOptionsButton(options, () => paintNotes());
+    const optionsButton = createOptionsButton(options, (changed) => explainOption(changed));
     const sendButton = iconButton({ icon: 'send', label: 'Send', variant: 'solid', onClick: () => send() });
     sendButton.classList.add('ai-composer__send');
     const stopButton = iconButton({ icon: 'square', label: 'Cancel', onClick: () => cancel() });
     stopButton.classList.add('ai-composer__stop');
     stopButton.hidden = true;
 
-    function paintNotes() {
-        const parts = [];
-        if (options.readLyrics) parts.push('The first 700 characters of the lyrics of up to 40 songs are sent');
-        if (options.useWeb) parts.push('The first 10 songs are looked up online');
-        optionsNote.textContent = parts.join(' · ');
-        optionsNote.hidden = parts.length === 0;
+    // Switching an option on says, in a notification, exactly what it sends and where. Switching it off says it stops.
+    function explainOption(which) {
+        const on = options[which];
+        const notes = {
+            readLyrics: {
+                title: on ? 'The AI may now read lyrics' : 'The AI no longer reads lyrics',
+                detail: on
+                    ? 'Each request also sends the lyrics of the song playing and of up to 40 songs (the playing song, the queue and the selected songs come first). Only the first 700 characters of each song are sent, without timestamps, together with your request. They go to OpenRouter and the model you picked, nothing else. Translating a song always sends that song\'s lyrics, whatever this says. Turn it off here at any time.'
+                    : 'Requests go out without any lyrics again. (Translating a song still sends that song\'s lyrics, because that is the point of it.)'
+            },
+            useWeb: {
+                title: on ? 'Tags will be looked up online' : 'Online tag lookup is off',
+                detail: on
+                    ? 'For each request, the title, artist, album and length of the first 10 songs (the playing song, the queue and the selected songs come first) are searched on MusicBrainz, a free public music database. Only those four things leave your computer for MusicBrainz. The matches it finds are then handed to the AI as candidates, so it can fill in tags it would otherwise have to guess. Turn it off here at any time.'
+                    : 'Nothing is searched online. The AI works only from what is already in your library.'
+            }
+        };
+        notify({ ...notes[which], kind: 'info', where: 'toast' });
     }
 
     async function send(text) {
@@ -197,7 +217,7 @@ export function mountChat(host, ctx, opts = {}) {
     // Translate the playing song into the default language (or the one asked for). The answer goes into the conversation.
     async function translateHere() {
         if (pending) return;
-        const song = currentLyrics();
+        const song = await currentLyrics();
         if (!song || !song.lyrics) return say({ role: 'assistant', kind: 'error', text: song ? 'This song has no lyrics to translate.' : 'Play a song with lyrics first.' });
         const current = await getStatus();
         if (!ready(current)) return paintSetup(current);
@@ -254,7 +274,9 @@ export function mountChat(host, ctx, opts = {}) {
     }
 
     function draw() {
+        log.dataset.empty = thread.length === 0 && !pending ? 'true' : 'false';
         log.replaceChildren(
+            ...(thread.length === 0 && !pending ? [el('p', { class: 'ai-chat__hint' }, 'Ask me to translate a song, tidy your playlists, shuffle your queue or fix tags. I can see your library, the queue and your playlists.')] : []),
             ...thread.map((item) => el('div', { class: `ai-msg ai-msg--${item.role}`, 'data-kind': item.kind || null }, item.plan || item.translation ? card(item) : bubble(item))),
             pending ? el('div', { class: 'ai-msg ai-msg--assistant' }, el('div', { class: 'ai-msg__bubble', role: 'status' }, el('span', { class: 'spinner', 'aria-hidden': 'true' }), pending.text === 'translate' ? ' Translating…' : ' Thinking…')) : ''
         );
@@ -305,18 +327,16 @@ export function mountChat(host, ctx, opts = {}) {
             limits.el,
             banner,
             log,
+            strip.el,
             el(
                 'div',
                 { class: 'ai-composer' },
-                prompts,
                 input,
-                optionsNote,
                 el('div', { class: 'ai-composer__bar' }, el('div', { class: 'ai-composer__tools' }, modelPopover.button, modeButton.el, optionsButton.el), el('div', { class: 'ai-composer__go' }, stopButton, sendButton)),
                 modelPopover.panel
             )
         )
     );
-    paintNotes();
     draw();
     screen.fill();
     paintSetup(ctx.getStatus());

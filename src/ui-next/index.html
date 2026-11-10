@@ -1,7 +1,8 @@
 <!doctype html>
-<html lang="en" data-theme="warm-graphite">
+<html lang="en" data-theme="warm-graphite" data-ui="next">
 <head>
     <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file:; media-src 'self' blob: file: https: xplayer-media:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-src 'none'; form-action 'none'">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="shell/appearance-boot.js"></script>
     <title>Xplayer</title>
@@ -23,9 +24,11 @@
     <link rel="stylesheet" href="shell/url-button.css">
     <link rel="stylesheet" href="shell/notifications.css">
     <link rel="stylesheet" href="shell/appearance.css">
+    <link rel="stylesheet" href="shell/motion.css">
     <link rel="stylesheet" href="shell/cat-scrollbar.css">
     <link rel="stylesheet" href="adapter/engine-view.css">
     <link rel="stylesheet" href="views/tools/dialogs.css">
+    <link rel="stylesheet" href="views/tools/metadata-popup.css">
     <link rel="stylesheet" href="views/tools/settings.css">
     <link rel="stylesheet" href="views/tools/lyrics.css">
     <link rel="stylesheet" href="views/tools/lyrics-editors.css">
@@ -95,10 +98,7 @@
     <div data-legacy-slot="host"></div>
 
     <!-- The adapter must build the engine's elements before js/main.js runs. Module scripts run in document order after parsing. -->
-    <script type="module">
-        import { mountLegacyDom } from './ui-next/adapter/legacy-dom-adapter.js';
-        mountLegacyDom();
-    </script>
+    <script type="module" src="ui-next/startup/mount-legacy-dom.js"></script>
     <script type="module" src="ui-next/shell/shell.js"></script>
     <script type="module" src="js/main.js"></script>
 </body>

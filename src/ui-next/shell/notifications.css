@@ -156,17 +156,16 @@
 .icon-btn[aria-controls='notification-center'][aria-expanded='true']:hover {
     color: var(--accent-hover);
 }
-@media (prefers-reduced-motion: no-preference) {
-    [aria-controls='notification-center'][data-ring] svg {
-        animation: bell-ring 600ms var(--motion-ease);
-    }
-    [aria-controls='notification-center']:hover svg {
-        animation: bell-hover 360ms var(--motion-ease);
-    }
-    /* the AI sparkles pop and settle, pivoting on their middle */
-    .ai-btn:hover svg {
-        animation: ai-pop 520ms var(--motion-ease);
-    }
+
+:where(:root:not([data-motion='reduced'])) [aria-controls='notification-center'][data-ring] svg {
+    animation: bell-ring 600ms var(--motion-ease);
+}
+:where(:root:not([data-motion='reduced'])) [aria-controls='notification-center']:hover svg {
+    animation: bell-hover 360ms var(--motion-ease);
+}
+/* the AI sparkles pop and settle, pivoting on their middle */
+:where(:root:not([data-motion='reduced'])) .ai-btn:hover svg {
+    animation: ai-pop 520ms var(--motion-ease);
 }
 @keyframes ai-pop {
     0% {

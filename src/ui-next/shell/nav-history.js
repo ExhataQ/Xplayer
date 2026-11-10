@@ -2,7 +2,8 @@
 // playlists, albums, artists and settings, so Home, Lyrics, Metadata and the AI chat were skipped or went to the wrong place.
 // The shell keeps its own: one entry per place the person was, { view: rail view id, engine: the engine's view name or null }.
 //
-//   createNavHistory({ read, restore })   read() -> { view, engine } now; restore(entry) shows that place again.
+//   createNavHistory({ read, restore, onChange })   read() -> { view, engine } now; restore(entry) shows that place again;
+//                                                   onChange() runs after every change of the position or the list (the title-bar buttons repaint).
 //   record(provisional)  call after the shell shows a view (provisional: an engine switch may follow at once, it replaces the entry)
 //   change()             call when the engine's view changed
 //   refresh()            call when the engine became ready (the first entry had no engine view yet)
@@ -14,7 +15,7 @@
 
 const LIMIT = 100;
 
-export function createNavHistory({ read, restore }) {
+export function createNavHistory({ read, restore, onChange = null }) {
     let entries = [];
     let at = -1;
     let navigating = false;
@@ -23,12 +24,18 @@ export function createNavHistory({ read, restore }) {
 
     const same = (a, b) => a && b && a.view === b.view && a.engine === b.engine && a.song === b.song; // song: the song page's id (PB-17)
 
+    const changed = () => {
+        if (typeof onChange !== 'function') return;
+        try { onChange(); } catch (error) { console.error('[nav-history] onChange failed', error); }
+    };
+
     function push(entry) {
         if (same(entries[at], entry)) return;
         entries = entries.slice(0, at + 1);
         entries.push(entry);
         if (entries.length > LIMIT) entries.shift();
         at = entries.length - 1;
+        changed();
     }
 
     function record(isProvisional = false) {
@@ -45,6 +52,7 @@ export function createNavHistory({ read, restore }) {
             if (at > 0 && same(entries[at - 1], now)) at -= 1; // the engine went back to the place before: that is the same step
             else entries[at] = now;
             provisional = false;
+            changed();
             return;
         }
         push(now);
@@ -53,6 +61,7 @@ export function createNavHistory({ read, restore }) {
     // The engine was not ready when the first place was recorded: write what it is now into the same entry.
     function refresh() {
         if (entries[at]) entries[at] = read();
+        changed();
     }
 
     function go(step) {
@@ -66,6 +75,7 @@ export function createNavHistory({ read, restore }) {
             busy = false;
             const moved = result !== false; // a restore() that returns nothing moved, as before
             if (moved) at += step;
+            changed();
             return moved;
         };
         let result;
@@ -109,4 +119,37 @@ export function installMouseNavigation(history) {
         else history.forward();
     };
     for (const type of ['mousedown', 'mouseup', 'auxclick']) window.addEventListener(type, handle, true);
+}
+
+// The title-bar Back and Forward buttons. The engine made them (adapter/legacy-dom-adapter.js) and paints them from its own list
+// history, which knows only the lists, so here the click goes to this history and the buttons show what this history can do.
+// The engine repaints them after each of its own view changes: the observer paints them again with the right state.
+// Their tooltip text is not touched here (the shell's tooltips own the title attribute).
+export function installNavButtons(history, root = document) {
+    const buttons = [
+        { node: root.querySelector('#back-btn'), can: () => history.canBack(), go: () => history.back() },
+        { node: root.querySelector('#forward-btn'), can: () => history.canForward(), go: () => history.forward() }
+    ].filter((b) => b.node);
+    let painting = false;
+    const paint = () => {
+        painting = true;
+        for (const { node, can } of buttons) {
+            const on = can();
+            if (node.disabled === on) node.disabled = !on;
+            const opacity = on ? '1' : '0.5';
+            if (node.style.opacity !== opacity) node.style.opacity = opacity;
+        }
+        painting = false;
+    };
+    const observer = new MutationObserver(() => { if (!painting) paint(); });
+    for (const { node, go } of buttons) {
+        node.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopImmediatePropagation(); // the engine's goBack/goForward (data-action) must not run too
+            go();
+        }, true);
+        observer.observe(node, { attributes: true, attributeFilter: ['disabled', 'style'] });
+    }
+    paint();
+    return paint;
 }

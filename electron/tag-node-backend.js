@@ -1,7 +1,7 @@
 'use strict';
 
-// The Node tag backend (task PD-01, decision DP7): the same three calls and the same answers as the Python backend in
-// metadata-editor.js, so the tag service and the screens do not know which one ran.
+// The tag backend (task PD-01, decision DP7): three calls, getAudioMetadata, saveAudioMetadata and saveAudioCover, behind
+// electron/metadata-editor.js. It is the only one: the Python/mutagen backend it replaced was removed in phase 6.1.
 //
 // Safety, because a wrong writer damages people's music files: every write first copies the file, writes, reads the file back from
 // disk, and checks that (a) the patched tags now hold the new values, (b) every tag that was NOT in the patch still holds what it
@@ -10,7 +10,6 @@
 //   'unsupported'   this kind of file is not handled here (nothing was touched)
 //   'verify-failed' the file did not come back as expected (the original was restored)
 //   'failed'        anything else (the original was restored)
-// tag-backend.js sends the first three to the Python backend.
 
 const fs = require('fs');
 const os = require('os');
@@ -54,7 +53,7 @@ function failure(error) {
     if (error && error.reason) return { success: false, reason: error.reason, error: message };
     return { success: false, reason: 'failed', error: message };
 }
-const unsupported = (ext) => Object.assign(new Error(`Tags in ${ext || 'this file type'} files are not handled by the Node backend`), { reason: 'unsupported' });
+const unsupported = (ext) => Object.assign(new Error(`Tags in ${ext || 'this kind of'} files cannot be edited in this version (MP3, FLAC, OGG, Opus, WAV, AIFF, M4A and MP4 can)`), { reason: 'unsupported' });
 
 function createNodeBackend({ toPath, open = openFile, tmpdir = os.tmpdir } = {}) {
     async function snapshot(filePath) {

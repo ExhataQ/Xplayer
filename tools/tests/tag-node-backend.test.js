@@ -1,7 +1,7 @@
 'use strict';
 
-// electron/tag-node-backend.js and electron/tag-backend.js with a fake library over real temp files: the write is checked by
-// reading the file back, a bad write is rolled back byte for byte, and the Python backend takes over when Node cannot do the job.
+// electron/tag-node-backend.js with a fake library over real temp files: the write is checked by reading the file back and a bad
+// write is rolled back byte for byte.
 // Run: node --test tools/tests/tag-node-backend.test.js
 
 const { test, beforeEach, afterEach } = require('node:test');
@@ -10,7 +10,6 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { createNodeBackend } = require('../../electron/tag-node-backend');
-const { createTagBackend } = require('../../electron/tag-backend');
 const { AdapterError } = require('../../electron/tag-lib-adapter');
 const { id3Model, sampleId3 } = require('./helpers/fake-tag-models');
 
@@ -47,7 +46,7 @@ const leftovers = () => fs.readdirSync(tmpRoot);
 beforeEach(() => { dir = fs.mkdtempSync(path.join(os.tmpdir(), 'xp-tags-')); tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'xp-tmp-')); disk = {}; });
 afterEach(() => { fs.rmSync(dir, { recursive: true, force: true }); fs.rmSync(tmpRoot, { recursive: true, force: true }); });
 
-test('read answers with the same shape as the Python backend', async () => {
+test('read answers with { success, metadata } and every field', async () => {
     const r = await backend().getAudioMetadata(add('a.mp3'));
     assert.equal(r.success, true);
     assert.equal(r.metadata.title, 'Old title'); assert.deepEqual(r.metadata.artist, ['Earth, Wind & Fire']);
@@ -136,47 +135,10 @@ test('a missing audio file is reported plainly', async () => {
     assert.deepEqual([r.success, r.error], [false, 'Audio file not found']);
 });
 
-// ---- the choice between the two backends ----
-const stub = (answer) => ({ calls: 0, async getAudioMetadata() { this.calls++; return answer; }, async saveAudioMetadata() { this.calls++; return answer; }, async saveAudioCover() { this.calls++; return answer; } });
-const OK = { success: true, metadata: { title: 'x' } };
-
-test('auto: Node answers, Python is not started', async () => {
-    const node = stub(OK), python = stub({ success: false });
-    assert.equal((await createTagBackend({ node, python }).getAudioMetadata('f')).success, true);
-    assert.equal(python.calls, 0);
-});
-
-test('auto: every Node failure that left the file intact falls back to Python', async () => {
-    for (const reason of ['no-library', 'unsupported', 'verify-failed', 'failed']) {
-        const python = stub(OK);
-        const r = await createTagBackend({ node: stub({ success: false, reason, error: 'x' }), python }).saveAudioMetadata('f', {});
-        assert.equal(r.success, true, reason); assert.equal(python.calls, 1, reason);
-    }
-});
-
-test('auto: a missing file is not retried with Python', async () => {
-    const python = stub(OK);
-    await createTagBackend({ node: stub({ success: false, error: 'Audio file not found' }), python }).getAudioMetadata('f');
-    assert.equal(python.calls, 0);
-});
-
-test('auto: when both fail, the answer that tells the person what to do wins', async () => {
-    const noPython = { success: false, reason: 'no-python', error: 'Install Python' };
-    const nodeFailed = { success: false, reason: 'verify-failed', error: 'did not match' };
-    const noLib = { success: false, reason: 'no-library', error: 'npm install' };
-    assert.equal((await createTagBackend({ node: stub(nodeFailed), python: stub(noPython) }).getAudioMetadata('f')).error, 'did not match');
-    assert.equal((await createTagBackend({ node: stub(noLib), python: stub(noPython) }).getAudioMetadata('f')).error, 'Install Python');
-    assert.equal((await createTagBackend({ node: stub(nodeFailed), python: stub({ success: false, reason: 'failed', error: 'py crash' }) }).getAudioMetadata('f')).error, 'py crash');
-});
-
-test('modes: python and node use one backend only', async () => {
-    let node = stub(OK), python = stub(OK);
-    await createTagBackend({ node, python, mode: 'python' }).getAudioMetadata('f');
-    assert.deepEqual([node.calls, python.calls], [0, 1]);
-    node = stub({ success: false, reason: 'no-library', error: 'n' }); python = stub(OK);
-    assert.equal((await createTagBackend({ node, python, mode: 'node' }).getAudioMetadata('f')).success, false);
-    assert.equal(python.calls, 0);
-    python = stub(OK); node = stub(OK);
-    await createTagBackend({ node, python, mode: 'nonsense' }).getAudioMetadata('f');
-    assert.deepEqual([node.calls, python.calls], [1, 0]);
+test('an unhandled file type says what can be edited, as a message the person can read', async () => {
+    const p = add('a.wma');
+    const r = await backend({ kind: 'unsupported' }).saveAudioMetadata(p, { title: 'x' });
+    assert.equal(r.success, false);
+    assert.match(r.error, /Tags in \.wma files cannot be edited in this version/);
+    assert.match(r.error, /MP3, FLAC, OGG, Opus, WAV, AIFF, M4A and MP4/);
 });

@@ -1,10 +1,10 @@
-// Task PA-09: the adapter line budgets, measured in one place (tools/adapter-budget.js). Static, no browser.
+// Task PA-09: the adapter line budgets, measured in one place (tools/checks/adapter-budget.js). Static, no browser.
 //
 // Run:   node --test tools/tests/ui-next-adapter-budget.test.js
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { measure, LIMITS, PLAN_FROZEN_AT, CORE, ENGINE, LEGACY, PHASE_1 } = require('../adapter-budget');
+const { measure, LIMITS, PLAN_FROZEN_AT, CORE, ENGINE, LEGACY, PHASE_1 } = require('../checks/adapter-budget');
 
 const { files, totals } = measure();
 const names = files.map((f) => f.name);
@@ -20,12 +20,12 @@ test('legacy-dom-adapter stays within the 250 lines of D13', () => {
     assert.ok(totals.legacy <= LIMITS.legacy, `legacy uses ${totals.legacy} of ${LIMITS.legacy}`);
 });
 
-test('the bridges added by this plan share the 300 lines of DP9 (open decision DP14: over by 90, frozen until the owner decides), and a new one is counted without being registered', () => {
+test('the bridges added by this plan share the 700 lines of DP9 and DP14 (raised by the owner from 300), and a new one is counted without being registered', () => {
     const plan = files.filter((f) => f.group === 'plan').map((f) => f.name);
     for (const name of [...CORE, ...ENGINE, ...LEGACY, ...PHASE_1]) assert.ok(!plan.includes(name), `${name} is counted twice`);
     assert.ok(plan.length > 0, 'the plan bridges are found (home-bridge, menu-bridge, tag-sheet-bridge, ...)');
     const allowed = Math.max(LIMITS.plan, PLAN_FROZEN_AT);
-    assert.ok((totals.plan || 0) <= allowed, `plan bridges use ${totals.plan}; the limit is ${LIMITS.plan} (DP9) and the total is frozen at ${PLAN_FROZEN_AT} until DP14 is decided: ${table()}`);
+    assert.ok((totals.plan || 0) <= allowed, `plan bridges use ${totals.plan}; the limit is ${LIMITS.plan} (DP9, DP14): ${table()}`);
 });
 
 test('every adapter file is in exactly one group', () => {

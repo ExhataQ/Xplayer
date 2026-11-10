@@ -5,7 +5,7 @@
 //
 // If one of these fails you almost certainly added, renamed, moved or deleted a file in
 // src/js or src/css without updating main.js or src/manifest.json (or hand-edited script/link tags
-// back into build/music_player.html). Fix the manifest or main.js, not the test.
+// back into src/old-ui/music_player.template.html). Fix the manifest or main.js, not the test.
 //
 // Run: node --test tools/tests/manifest.test.js
 
@@ -114,8 +114,8 @@ describe('99-player.js (the player.js build-data template)', () => {
     });
 });
 
-describe('build/music_player.html template', () => {
-    const html = fs.readFileSync(path.join(ROOT, 'build', 'music_player.html'), 'utf8');
+describe('src/old-ui/music_player.template.html', () => {
+    const html = fs.readFileSync(path.join(ROOT, 'src', 'old-ui', 'music_player.template.html'), 'utf8');
 
     test('has each manifest placeholder exactly once', () => {
         for (const placeholder of ['{{CSS_LINKS}}', '{{JS_SCRIPTS}}']) {

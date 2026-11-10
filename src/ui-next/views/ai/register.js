@@ -10,6 +10,7 @@ import { mountChat, queuePrompt } from './ai-chat.js';
 import { registerPopup, shrink } from './popup.js';
 import { undoLast } from './apply-plan.js';
 import { refreshStatus } from './ai-state.js';
+import { setUpChatWindow, inChatWindow } from './chat-host.js';
 
 /** Playback > AI shuffle: opens the chat with the request started for the person to finish. */
 export function aiShuffle() {
@@ -25,11 +26,12 @@ export function aiAsk(text, { send = false, songs = null } = {}) {
 
 export function registerAi() {
     registerAiSettings({ mount: buildAiSettings });
-    registerAiChat({ mount: (host, ctx) => mountChat(host, ctx, { mode: 'view', onShrink: shrink }) });
+    registerAiChat({ mount: (host, ctx) => mountChat(host, ctx, inChatWindow() ? { mode: 'standalone' } : { mode: 'view', onShrink: shrink }) });
     registerPopup();
     registerAiLyricsBar({ mount: buildLyricsControls });
     registerHandler('open_panel', ({ panel }) => (panel === 'queue' ? openAiQueue() : openAiPanel(panel)) || {});
-    startAutoTranslate();
+    if (!inChatWindow()) startAutoTranslate(); // the chat window plays nothing
+    setUpChatWindow();
     registerAiCommands({ undo: undoLast, shuffle: aiShuffle, ask: aiAsk });
     refreshStatus();
 }

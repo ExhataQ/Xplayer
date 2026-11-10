@@ -1,8 +1,9 @@
 // The notification API for the other agents (task PA-06). Shell-owned entries that sit next to the engine's own in the center.
 //
-//   notify({ title, detail?, kind?: 'info'|'success'|'warning'|'error', where?: 'both'|'center'|'toast', important?,
+//   notify({ title, detail?, kind?: 'info'|'success'|'warning'|'error', where?: 'both'|'center'|'toast', important?, key?,
 //            target?: { label?, view? | go? }, action?: { label, onClick } }) -> { id, update(partial), dismiss() }
 //       where: 'both' (default) = toast and center, 'center' = quiet (bell dot only), 'toast' = a toast that leaves no entry.
+//       key: one action, one entry. A later notify with the same key changes the entry (or the toast) in place instead of adding another.
 //       important: the first important entry of a session opens the center by itself (errors count as important).
 //       target: makes the entry clickable. `view` is a rail view id the shell opens (see setNotificationNavigator); `go` is any function.
 //       action: a button on the entry and its toast, such as Undo. The caller clears it again with update({ action: null }).
@@ -31,7 +32,13 @@ function finish(entry, { title, detail = '', kind = 'info', where = 'both', impo
 
 export function notify(options) {
     if (!options || !options.title) throw new Error('notify needs a title');
-    const id = `s${(seq += 1)}`;
+    const id = options.key ? `s-${options.key}` : `s${(seq += 1)}`; // a key gives the same id each time, so the toast is the same toast
+    const existing = options.key ? entries.find((e) => e.id === id) : null;
+    if (existing && (options.where || 'both') !== 'toast') {
+        finish(existing, options);
+        emit();
+        return handle(existing);
+    }
     if ((options.where || 'both') === 'toast') {
         // A toast-only message never enters the list: the center sees it through `toastOnly` and shows it once.
         const entry = { id, rev: 0, source: 'shell', toastOnly: true };
@@ -45,15 +52,19 @@ export function notify(options) {
     finish(entry, options);
     entries.unshift(entry);
     emit();
+    return handle(entry);
+}
+
+function handle(entry) {
     return {
-        id,
+        id: entry.id,
         update(partial) {
             if (!entries.includes(entry)) return;
             for (const key of ['title', 'detail', 'target', 'action']) if (key in partial) entry[key] = partial[key];
             entry.rev += 1;
             emit();
         },
-        dismiss: () => dismissShellNotification(id)
+        dismiss: () => dismissShellNotification(entry.id)
     };
 }
 

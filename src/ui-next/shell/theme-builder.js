@@ -10,6 +10,7 @@ import { isHex, isDark, mix, readouts, deriveTheme, lineColors, LINE_DEFAULT } f
 import { PANELS, FILLS, LINE_WIDTHS, DEFAULT_ANGLE, normalizeCustom, normalizePanels, normalizeStyle, designOf, sameDesign, panelScope, startingFill } from './theme-design.js';
 import { listSavedThemes, saveTheme, renameTheme, deleteSavedTheme, watchSavedThemes, sameColors } from './saved-themes.js';
 import { savedThemeCard } from './theme-picker.js';
+import { themeFileText, themeFileName, parseThemeFile, uniqueName, MAX_THEME_FILE_BYTES } from './theme-file.js';
 
 const FIELDS = [
     { key: 'ground', label: 'Background', hint: 'The window and the lists.' },
@@ -190,34 +191,66 @@ export function buildThemeBuilder() {
     const line = (extra = '') => el('span', { class: `dv-line ${extra}`.trim() });
     const span = (cls, ...kids) => el('span', { class: cls }, ...kids);
     const text = (cls, glyph) => el('span', { class: cls }, glyph);
-    const row = (on) => span(`dv-row${on ? ' dv-row--on' : ''}`, span('dv-box dv-box--small'), line(on ? 'dv-line--accent' : ''), line('dv-line--short'));
-    // The real window, part by part (index.html and the shell): title bar (X mark, back, forward, left panel, tools, right panel, bell,
-    // minimize, maximize, close), rail, library panel, main view (hero, sub hero, list), right panel (cover and lyrics), player bar
-    // (song, controls with the progress bar, volume).
+    const dots = (count, kind = '') => Array.from({ length: count }, () => span(`dv-dot ${kind}`.trim()));
+    const tile = (on) => span(`dv-tile${on ? ' dv-tile--on' : ''}`, span(`dv-box dv-box--icon${on ? ' dv-box--accent' : ''}`));
+    const playlist = (on) => span(`dv-item${on ? ' dv-item--on' : ''}`, span(`dv-box dv-box--cover${on ? ' dv-box--tint' : ''}`), span('dv-lines', line(on ? 'dv-line--accent' : ''), line('dv-line--short')), ...(on ? [span('dv-dot dv-dot--accent dv-dot--small')] : []));
+    const songRow = (on, heart) =>
+        span(`dv-trow${on ? ' dv-trow--on' : ''}`, line('dv-line--index'), span('dv-box dv-box--song'), span('dv-lines', line(on ? 'dv-line--accent dv-line--w60' : 'dv-line--title2'), line('dv-line--short')), span('dv-album'), span(`dv-dot dv-dot--heart${heart ? ' dv-dot--accent' : ' dv-dot--none'}`), line('dv-line--time'));
+    // The real window, part by part (index.html and the shell), drawn at its own proportions: title bar (X mark, back, forward, left panel,
+    // then link, AI, bell, right panel and the window buttons); rail (home, library, search, recent; lyrics, tags, settings); library panel
+    // (title, filter chips, find box, Recent / A to Z, the list with the playing one marked); main view (cover, title, play and tools, column
+    // heads, song rows with a heart each); right panel (cover, the Lyrics head, lyric lines, Follow lyrics); player bar (song, controls with
+    // the progress bar, queue and volume).
     const decor = {
         titlebar: () => [
             span('dv-logo'),
-            span('dv-btn dv-btn--panel'),
             text('dv-btn', '\u2039'),
             text('dv-btn', '\u203a'),
+            span('dv-btn dv-btn--panel'),
             span('dv-grow'),
             span('dv-btn', span('dv-box dv-box--tiny')),
-            span('dv-btn dv-btn--panel dv-btn--panel-right'),
+            span('dv-btn', span('dv-box dv-box--tiny dv-box--round')),
             span('dv-btn', span('dv-dot')),
+            span('dv-btn dv-btn--panel dv-btn--panel-right'),
+            span('dv-sep'),
             span('dv-win', text('dv-win__min', ''), span('dv-win__max'), span('dv-win__close'))
         ],
-        rail: () => [span('dv-box dv-box--rail dv-box--accent'), span('dv-box dv-box--rail'), span('dv-box dv-box--rail'), span('dv-box dv-box--rail'), span('dv-grow'), span('dv-box dv-box--rail')],
-        left: () => [line('dv-line--title'), ...[0, 1, 2, 3, 4].map((i) => span('dv-item', span('dv-box dv-box--cover'), span('dv-lines', line(i === 1 ? 'dv-line--accent' : ''), line('dv-line--short'))))],
-        main: () => [
-            span('dv-hero', span('dv-box dv-box--cover dv-box--accent'), span('dv-lines', line('dv-line--title'), line('dv-line--short')), span('dv-dot dv-dot--accent dv-dot--play')),
-            span('dv-subhero', line(), line('dv-line--short')),
-            span('dv-list', row(false), row(true), row(false), row(false))
+        rail: () => [tile(false), tile(true), tile(false), tile(false), span('dv-grow'), tile(false), tile(false), tile(false)],
+        left: () => [
+            span('dv-lib-head', line('dv-line--title dv-line--w30'), span('dv-grow'), span('dv-box dv-box--tiny')),
+            span('dv-chips', span('dv-chip dv-chip--on'), span('dv-chip dv-chip--l'), span('dv-chip dv-chip--m'), span('dv-chip dv-chip--m'), span('dv-chip dv-chip--l')),
+            span('dv-input', span('dv-box dv-box--tiny'), line('dv-line--w20')),
+            span('dv-seg', span('dv-seg__on'), span('dv-seg__off')),
+            playlist(true),
+            playlist(false),
+            playlist(false),
+            playlist(false),
+            playlist(false)
         ],
-        right: () => [span('dv-cover-pad', span('dv-cover')), line('dv-line--title'), line(), line('dv-line--accent'), line('dv-line--short'), line()],
+        main: () => [
+            span('dv-hero', span('dv-cover-lg'), span('dv-hero__text', line('dv-line--tiny dv-line--w25'), line('dv-line--big'), line('dv-line--short dv-line--w20'))),
+            span('dv-toolbar', span('dv-dot dv-dot--ink dv-dot--play'), ...dots(3)),
+            span('dv-thead', line('dv-line--index'), line('dv-line--w10'), span('dv-grow'), line('dv-line--w10'), line('dv-line--time')),
+            songRow(false, true),
+            songRow(true, true),
+            songRow(false, false),
+            songRow(false, true),
+            songRow(false, true)
+        ],
+        right: () => [
+            span('dv-cover-pad', span('dv-cover dv-cover--art')),
+            span('dv-rhead', line('dv-line--title dv-line--w25'), span('dv-grow'), ...dots(3)),
+            span('dv-lyrics', line('dv-line--w90'), line('dv-line--w70'), line('dv-line--w80'), line('dv-line--accent dv-line--w60'), line('dv-line--w80'), line('dv-line--w70'), line('dv-line--w90')),
+            span('dv-pill')
+        ],
         player: () => [
             span('dv-item', span('dv-box dv-box--cover'), span('dv-lines', line(), line('dv-line--short'))),
-            span('dv-lines', span('dv-item', span('dv-grow'), span('dv-dot'), span('dv-dot'), span('dv-dot dv-dot--accent dv-dot--play'), span('dv-dot'), span('dv-dot'), span('dv-grow')), span('dv-track', span('dv-track-fill'))),
-            span('dv-item', span('dv-grow'), span('dv-dot'), span('dv-track dv-track--volume', span('dv-track-fill')))
+            span(
+                'dv-lines',
+                span('dv-item', span('dv-grow'), ...dots(2), span('dv-dot dv-dot--ink dv-dot--play'), ...dots(2), span('dv-grow')),
+                span('dv-item', line('dv-line--time'), span('dv-track', span('dv-track-fill')), line('dv-line--time'))
+            ),
+            span('dv-item', span('dv-grow'), span('dv-dot'), span('dv-dot'), span('dv-track dv-track--volume', span('dv-track-fill dv-track-fill--low')))
         ]
     };
     for (const p of PANELS) {
@@ -251,7 +284,9 @@ export function buildThemeBuilder() {
     // ---------- actions and saved themes ----------
     const notice = el('div', { class: 'designer__notice', hidden: true });
     const saveButton = button({ label: 'Save this theme', size: 'sm', onClick: () => saveCurrent() });
-    const actions = el('div', { class: 'theme-builder__actions' }, startSelect, exactLabel, saveButton);
+    const fileButton = button({ label: 'Save as file', size: 'sm', onClick: () => saveToFile() });
+    const loadButton = button({ label: 'Load from file', size: 'sm', onClick: () => loadFromFile() });
+    const actions = el('div', { class: 'theme-builder__actions' }, startSelect, exactLabel, saveButton, fileButton, loadButton);
     const savedTitle = el('div', { class: 'theme-builder__saved-title' }, 'Your saved themes');
     const savedGrid = el('div', { class: 'theme-grid theme-builder__saved' });
     const savedBox = el('div', { class: 'theme-builder__saved-box' }, savedTitle, savedGrid);
@@ -464,6 +499,57 @@ export function buildThemeBuilder() {
             notice.hidden = false;
             notice.textContent = 'The list of saved themes is full. Delete one first.';
         }
+    }
+
+    const say = (text) => {
+        notice.hidden = !text;
+        notice.textContent = text || '';
+    };
+
+    /** Writes the theme being built to a file the person chooses where to keep (Electron asks where; a browser downloads it). */
+    async function saveToFile() {
+        const known = listSavedThemes().find((t) => sameColors(t.colors, colors) && t.exact === exact && sameDesign(t, { panels, style }));
+        const field = textField({ label: 'Theme name', value: known ? known.name : '', placeholder: 'For example: Midnight rose', hint: 'The name is stored in the file; whoever loads it sees it.' });
+        const chosen = await openDialog({
+            title: 'Save this theme as a file',
+            body: el('div', {}, field.el),
+            actions: [{ label: 'Cancel', value: null }, { label: 'Save file', variant: 'primary', value: true, onClick: () => { if (!field.input.value.trim()) throw new Error('Write a name first.'); } }]
+        });
+        if (chosen !== true) return;
+        const name = field.input.value;
+        const link = el('a', { href: URL.createObjectURL(new Blob([themeFileText({ name, colors, exact, panels, style })], { type: 'application/json' })), download: themeFileName(name) });
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(link.href), 10000);
+        say(`Saved “${name.trim().slice(0, 40)}” as a file.`);
+    }
+
+    /** Reads a theme file. A file that is not a theme, is too big or is damaged changes nothing and says why. */
+    function loadFromFile() {
+        const input = el('input', { type: 'file', accept: '.json,application/json', hidden: true });
+        input.addEventListener('change', async () => {
+            const file = input.files && input.files[0];
+            input.remove();
+            if (!file) return;
+            if (file.size > MAX_THEME_FILE_BYTES) return say('That file is too big to be a theme. Nothing was changed.');
+            let text;
+            try {
+                text = await file.text();
+            } catch (_) {
+                return say('That file could not be read. Nothing was changed.');
+            }
+            const result = parseThemeFile(text);
+            if (!result.ok) return say(`${result.message} Nothing was changed.`);
+            const { theme } = result;
+            const name = uniqueName(theme.name, listSavedThemes().map((t) => t.name));
+            const saved = saveTheme(name, theme.colors, theme.exact, { panels: theme.panels, style: theme.style });
+            if (!saved) return say('The list of saved themes is full. Delete one first. Nothing was changed.');
+            commit({ colors: saved.colors, exact: saved.exact, panels: saved.panels, style: saved.style });
+            say(`Loaded “${saved.name}”. It is saved with your themes.`);
+        });
+        document.body.append(input);
+        input.click();
     }
 
     const stage = el('div', { class: 'designer__stage', 'data-page': 'colors' }, el('div', { class: 'designer__picture' }, picture, pictureCaption), el('div', { class: 'designer__controls' }, pageTabs.el, colorsPage, panelsPage));

@@ -5,6 +5,9 @@ import { el, emptyState } from '../../components/index.js';
 import { homeData, openHomeItem } from '../../adapter/home-bridge.js';
 import { engineEvent } from '../../adapter/engine-api.js';
 import { shelf } from './shelf.js';
+import { mountHero } from './hero.js';
+import { quickPicks } from './quick-picks.js';
+import { pickQuickItems } from './hero-math.js';
 
 const LIMIT = 20;
 
@@ -42,21 +45,25 @@ function emptyHome(data, actions) {
     );
 }
 
-export function mountHome(host, { shelves = SHELVES, read = homeData, open = openHomeItem, actions = {} } = {}) {
+export function mountHome(host, { shelves = SHELVES, read = homeData, open = openHomeItem, actions = {}, hero = mountHero } = {}) {
     const root = el('div', { class: 'home' });
     host.append(root);
+    const top = hero ? hero(root) : null; // the hero card sits first and keeps itself up to date; the shelves below are drawn by refresh()
+    const rows = el('div', { class: 'home__shelves' });
+    root.append(rows);
     let shown = '';
 
     function refresh() {
         const data = read();
         const lists = shelves.map((s) => ({ s, items: s.items(data).slice(0, LIMIT) })).filter(({ items }) => items.length);
+        const picks = pickQuickItems(data);
         const counts = [data.albums.length, data.artists.length, data.playlists.length, data.songs.length]; // the empty Home shows them
-        const signature = JSON.stringify([lists.map(({ s, items }) => [s.id, items.map((i) => [i.kind, i.id, i.title, i.subtitle])]), counts]);
+        const signature = JSON.stringify([picks.map((i) => [i.kind, i.id, i.title]), lists.map(({ s, items }) => [s.id, items.map((i) => [i.kind, i.id, i.title, i.subtitle])]), counts]);
         if (signature === shown) return; // nothing changed: keep the rows where the person scrolled them
         shown = signature;
-        root.replaceChildren(
+        rows.replaceChildren(
             ...(lists.length
-                ? lists.map(({ s, items }) => shelf({ id: s.id, title: s.title, items, onOpen: open }))
+                ? [...(picks.length ? [quickPicks({ items: picks, onOpen: open })] : []), ...lists.map(({ s, items }) => shelf({ id: s.id, title: s.title, items, onOpen: open }))]
                 : [emptyHome(data, actions)])
         );
     }
@@ -67,6 +74,7 @@ export function mountHome(host, { shelves = SHELVES, read = homeData, open = ope
         refresh,
         destroy() {
             stop();
+            if (top) top.destroy();
             root.remove();
         }
     };

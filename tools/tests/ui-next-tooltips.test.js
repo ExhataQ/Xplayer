@@ -106,7 +106,7 @@ describe('tooltip rollout and shared Space rule in the new shell with the real e
     test('the engine\'s row buttons get the shared tooltip, and neither the old tooltip nor a title attribute is left', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open();
-        assert.deepEqual(await hoverTip(page, '.add-to-queue-btn'), { name: 'Add to queue', state: '', description: 'Plays right after the current song', shortcut: '' });
+        assert.deepEqual(await hoverTip(page, '.add-to-queue-btn'), { name: 'Add to queue', state: '', description: '', shortcut: '' });
         await page.waitForTimeout(500);
         assert.deepEqual(await oldTooltipShown(page), [], 'no old tooltip over the queue button');
         assert.deepEqual(await hoverTip(page, '.favorite-btn'), { name: 'Add to favorites', state: '', description: '', shortcut: '' });

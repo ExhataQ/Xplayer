@@ -7,13 +7,16 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
-const { createJournal } = require('../../electron/ai/journal');
+const { createJournal, recordSafely } = require('../../electron/ai/journal');
 
 const NEXT = path.resolve(__dirname, '..', '..', 'src', 'ui-next');
 const url = (p) => pathToFileURL(path.join(NEXT, p)).href;
 
-async function setup({ failTags = false } = {}) {
-    const journal = createJournal({ file: path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'xplayer-apply-')), 'j.json') });
+async function setup({ failTags = false, failJournal = false } = {}) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'xplayer-apply-'));
+    // A journal whose file can never be written: it sits inside a regular file.
+    if (failJournal) fs.writeFileSync(path.join(dir, 'blocked'), 'x');
+    const journal = createJournal({ file: failJournal ? path.join(dir, 'blocked', 'j.json') : path.join(dir, 'j.json') });
     let seq = 0;
     const w = {
         SONGS_DATA: [{ id: 1, title: 'One', url: 'u1', genre: 'Rock' }],
@@ -25,13 +28,13 @@ async function setup({ failTags = false } = {}) {
         removeSongFromPlaylist: () => {},
         desktopApi: {
             ai: {
-                aiJournalRecord: async (e) => ({ ok: true, entry: journal.record(e) }),
+                aiJournalRecord: async (e) => recordSafely(journal, e), // what the main process's IPC handler answers
                 aiJournalGet: async (id) => journal.get(id),
                 aiJournalList: async () => journal.list(),
                 aiJournalMarkUndone: async (id) => ({ ok: journal.markUndone(id) })
             },
             metadata: {
-                saveAudioMetadataMany: async (items) => ({ success: true, results: items.map((i) => (failTags ? { fileUrl: i.fileUrl, success: false, error: 'no python' } : { fileUrl: i.fileUrl, success: true, metadata: i.metadata, previous: { genre: 'Rock' } })) })
+                saveAudioMetadataMany: async (items) => ({ success: true, results: items.map((i) => (failTags ? { fileUrl: i.fileUrl, success: false, error: 'the tag library is not installed' } : { fileUrl: i.fileUrl, success: true, metadata: i.metadata, previous: { genre: 'Rock' } })) })
             }
         }
     };
@@ -66,6 +69,23 @@ test('apply: a finished plan posts one success entry with an Undo button, and Un
     assert.ok(!now.some((e) => e.action), 'the Undo entry is gone');
 });
 
+test('apply: when the undo history cannot be saved, the change stands, Undo still works and the notification says it only lasts until the app closes', async () => {
+    const { w, apply, notify } = await setup({ failJournal: true });
+    const entries = listen(notify);
+    const r = await apply.applyPlan({ summary: 'Sort', actions: [{ type: 'create_playlist', args: { name: 'Calm' } }] }, 'Sorted your library');
+    assert.equal(r.ok, true);
+    assert.equal(r.journalSaved, false);
+    assert.equal(typeof r.entryId, 'string', 'the id of the entry the main process holds in memory');
+    assert.equal(w.playlists.length, 1);
+    const entry = entries()[0];
+    assert.equal(entry.action.label, 'Undo');
+    assert.match(entry.detail, /1 change made\./);
+    assert.match(entry.detail, /Undo works only until the app is closed/);
+    await entry.action.onClick();
+    assert.equal(w.playlists.length, 0, 'Undo really put it back');
+    assert.equal(entries()[0].title, 'Undone');
+});
+
 test('apply: a plan that stops halfway says how far it got, keeps Undo for what ran, and names the cause', async () => {
     const { w, apply, notify } = await setup();
     const entries = listen(notify);
@@ -94,7 +114,7 @@ test('apply: tags that cannot be written are reported honestly, with no Undo whe
     const r = await apply.applyPlan({ summary: 'Fix tags', actions: [{ type: 'set_tags', args: { songs: [1], tags: { genre: 'Pop' } } }] });
     assert.equal(r.ok, false);
     assert.equal(entries()[0].type, 'error');
-    assert.match(entries()[0].detail, /no python/);
+    assert.match(entries()[0].detail, /tag library is not installed/);
 });
 
 test('apply: undoLast reverses the newest entry that is still done, and says so when there is none', async () => {

@@ -25,6 +25,7 @@ function currentPage() {
         <html>
         <head>
             <meta charset="utf-8">
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:">
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
                 body {
@@ -93,6 +94,7 @@ function nextPage() {
         <html>
         <head>
             <meta charset="utf-8">
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:">
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
                 body {

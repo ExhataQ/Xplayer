@@ -2,24 +2,42 @@
   "devDependencies": {
     "acorn": "^8.18.0",
     "acorn-walk": "^8.3.5",
+    "electron": "^44.10.0",
+    "electron-builder": "^26.18.0",
     "eslint": "^9.0.0",
     "globals": "^15.0.0",
     "playwright": "^1.63.0"
   },
-  "name": "source",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "xplayer",
+  "productName": "Xplayer",
+  "version": "1.0.0-beta.1",
+  "description": "Xplayer: a local music player",
+  "main": "electron/main.js",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
+    "start": "node tools/dev/start.js",
+    "dev": "node tools/dev/start.js --dev",
+    "start:old": "node tools/dev/start.js --ui=current",
+    "sample": "node tools/dev/make-sample-library.js",
+    "gen:web": "node tools/dev/gen-web.js",
+    "dist": "node tools/dev/gen-web.js && electron-builder --win dir --x64 && node tools/dev/make-portable.js",
+    "dist:installer": "node tools/dev/gen-web.js && electron-builder --win nsis --x64 --publish never",
+    "notices": "node tools/dev/make-notices.js",
+    "release:check": "node tools/dev/release-tools.js check",
+    "smoke": "node tools/dev/smoke-electron.js",
+    "bench:gpu": "node tools/dev/bench-gpu.js",
+    "fonts:check": "node tools/fonts/fetch-fonts.js --check",
     "test": "node tools/tests/run.js",
     "test:unit": "node tools/tests/run.js unit",
     "test:browser": "node tools/tests/run.js browser",
     "test:list": "node tools/tests/run.js --list",
     "test:timing": "node tools/tests/run.js --timing",
-    "test:quick": "node tools/tests/run.js unit && node tools/lint.js",
+    "test:quick": "node tools/tests/run.js unit && node tools/checks/lint.js",
     "test:fast": "node tools/tests/run.js browser --concurrency=4",
-    "lint": "node tools/lint.js",
-    "lint:strict": "node tools/lint.js --strict"
+    "lint": "node tools/checks/lint.js",
+    "lint:strict": "node tools/checks/lint.js --strict"
   },
   "repository": {
     "type": "git",
@@ -38,5 +56,48 @@
     "music-metadata": "^11.16.1",
     "node-taglib-sharp": "6.0.3",
     "sharp": "^0.35.5"
+  },
+  "build": {
+    "appId": "com.exhataq.xplayer",
+    "productName": "Xplayer",
+    "directories": {
+      "output": "dist",
+      "buildResources": "src/assets/app-icon"
+    },
+    "asar": false,
+    "files": [
+      "package.json",
+      "electron/**/*",
+      "src/**/*",
+      "!src/ui-next/dev",
+      "!src/old-ui",
+      "!**/*.md",
+      "!**/*.map"
+    ],
+    "extraFiles": [
+      { "from": "LICENSE", "to": "Xplayer-LICENSE.txt" },
+      { "from": "THIRD-PARTY-NOTICES.txt", "to": "THIRD-PARTY-NOTICES.txt" }
+    ],
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Xplayer",
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "Xplayer-Setup-${version}-${arch}.${ext}"
+    },
+    "electronFuses": {
+      "runAsNode": true,
+      "enableCookieEncryption": true,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "grantFileProtocolExtraPrivileges": true
+    },
+    "win": {
+      "target": "dir",
+      "icon": "src/assets/app-icon/xplayer.ico"
+    }
   }
 }

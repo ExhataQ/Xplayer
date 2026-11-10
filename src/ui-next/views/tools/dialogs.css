@@ -90,6 +90,17 @@
     opacity: var(--control-disabled-opacity);
 }
 
+/* What a pasted link would fetch (name, size, type): one quiet line under the field, empty when the server told nothing. */
+.link-preview {
+    min-height: 1.25em;
+    margin: calc(var(--space-2) * -1) 0 var(--space-3);
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* ---------- actions ---------- */
 
 .playlist-modal-buttons {

@@ -83,6 +83,91 @@
 .shelf-card__title { font-size: var(--text-sm); font-weight: var(--weight-medium); }
 .shelf-card__sub { font-size: var(--text-xs); color: var(--text-secondary); }
 
-@media (prefers-reduced-motion: reduce) {
-    .shelf__row { transition: none; }
+:where(:root[data-motion='reduced']) .shelf__row { transition: none; }
+
+/* ---------- hero (hero.js): the song that plays, or the one to pick up. The glow is the cover's colour (--hero-glow), else the accent. ---------- */
+.home__shelves { position: relative; z-index: 1; display: flex; flex-direction: column; gap: var(--space-8); }
+.hero {
+    --hero-tint: var(--hero-glow, var(--accent));
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-6);
+    margin: calc(-1 * var(--space-6)) 0 0;
+    padding: var(--space-6) var(--space-6) 0;
+    z-index: 0;
 }
+.hero::before { /* the glow reaches past the card, under the shelves */
+    content: '';
+    position: absolute;
+    inset: calc(-1 * var(--space-6)) 0 auto 0;
+    height: 330px;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(ellipse at 28% 0%, color-mix(in srgb, var(--hero-tint) 34%, transparent), transparent 70%);
+}
+.hero[hidden] { display: none; }
+.hero__cover {
+    flex: none;
+    width: 148px;
+    height: 148px;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--surface-selected);
+    box-shadow: 0 18px 40px color-mix(in srgb, var(--hero-tint) 35%, transparent);
+}
+.hero__cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.hero__body { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-1); }
+.hero__label { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); font-weight: var(--weight-semibold); letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+.hero__title { font-size: var(--text-2xl); font-weight: var(--weight-semibold); line-height: 1.1; color: var(--text-primary); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.hero__sub { font-size: var(--text-sm); color: var(--text-secondary); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.hero__progress { display: flex; align-items: center; gap: var(--space-3); max-width: 520px; font-size: var(--text-xs); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.hero__time { width: 34px; }
+.hero__time--end { text-align: right; }
+.hero__track { position: relative; flex: 1; height: 4px; border-radius: var(--radius-pill); background: var(--surface-selected); overflow: hidden; }
+.hero__fill { position: absolute; inset: 0 auto 0 0; background: var(--text-primary); border-radius: var(--radius-pill); }
+.hero__actions { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-2); }
+.hero__bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
+.hero__bars i { width: 3px; height: 40%; background: currentColor; }
+.hero__bars i:nth-child(2) { height: 100%; }
+.hero__bars i:nth-child(3) { height: 70%; }
+:root:not([data-motion='reduced']) .hero__bars i { animation: hero-bars 900ms ease-in-out infinite alternate; }
+:root:not([data-motion='reduced']) .hero__bars i:nth-child(2) { animation-delay: -300ms; }
+:root:not([data-motion='reduced']) .hero__bars i:nth-child(3) { animation-delay: -600ms; }
+@keyframes hero-bars { from { transform: scaleY(0.35); transform-origin: bottom; } to { transform: scaleY(1); transform-origin: bottom; } }
+
+/* Shelf shapes: playlists are wide cards, albums and songs stay square, artists are round and centred. */
+.shelf-card__text { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.shelf-card--playlist { width: 264px; flex-direction: row; align-items: center; gap: var(--space-3); padding: var(--space-2); background: var(--surface-panel); }
+.shelf-card--playlist:hover { background: var(--control-hover-bg); }
+.shelf-card--playlist .shelf-card__cover { width: 72px; flex: none; margin-bottom: 0; }
+.shelf-card--artist { width: 128px; align-items: center; }
+.shelf-card--artist .shelf-card__text { width: 100%; align-items: center; }
+.shelf-card--artist .shelf-card__title,
+.shelf-card--artist .shelf-card__sub { max-width: 100%; text-align: center; }
+
+/* Quick picks (quick-picks.js): small tiles in a grid, above the shelves. */
+.quick-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-2) var(--space-3); padding: 0 var(--space-6); }
+.quick-tile {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+    height: 52px;
+    padding: 0 var(--space-3) 0 0;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: var(--surface-panel);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+}
+.quick-tile:hover { background: var(--control-hover-bg); }
+.quick-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+.quick-tile__cover { flex: none; width: 52px; height: 52px; background: var(--surface-selected); }
+.quick-tile__cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.quick-tile__title { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; unicode-bidi: plaintext; }

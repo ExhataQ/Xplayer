@@ -1,0 +1,45 @@
+/*
+ * The chosen motions (task C8): small, simple moves. Only transform and opacity change, nothing loops, and every rule sits under
+ * :where(:root:not([data-motion='reduced'])), so Reduce animations (C7) turns all of it off. Times and easing follow the tokens.
+ *   1. Panels slide in from their own edge when they open (shell/panel-motion.js sets data-enter). Closing has no animation.
+ *   2. The view beside an opening panel shifts a few pixels instead of jumping (data-shift on the view host).
+ *   3. The play button swaps its icon with a short scale and fade (views/playback/transport.js sets data-swap).
+ *   4. A song added to a playlist: that playlist's row gives one short pulse (shell/small-motions.js sets data-pulse).
+ *   5. A drop settles into its target row (data-settle); a target that cannot take the drop eases to its dimmed look.
+ *   6. Dialogs and menus rise a few pixels while they fade in.
+ */
+
+/* ---------- 1. panels (opening only) ---------- */
+@keyframes panel-in-left { from { transform: translateX(-24px); opacity: 0; } }
+@keyframes panel-in-right { from { transform: translateX(24px); opacity: 0; } }
+@keyframes panel-in-up { from { transform: translateY(16px); opacity: 0; } }
+
+:where(:root:not([data-motion='reduced'])) :is(.panel-host, .right-host, .queue-panel)[data-enter='left'] { animation: panel-in-left 200ms var(--motion-ease); }
+:where(:root:not([data-motion='reduced'])) :is(.panel-host, .right-host, .queue-panel)[data-enter='right'] { animation: panel-in-right 200ms var(--motion-ease); }
+:where(:root:not([data-motion='reduced'])) :is(.panel-host, .right-host, .queue-panel)[data-enter='up'] { animation: panel-in-up 200ms var(--motion-ease); }
+
+/* ---------- 2. the view shifts ---------- */
+@keyframes view-shift-right { from { transform: translateX(-14px); } }
+@keyframes view-shift-left { from { transform: translateX(14px); } }
+:where(:root:not([data-motion='reduced'])) .view-host[data-shift='right'] { animation: view-shift-right 220ms var(--motion-ease); }
+:where(:root:not([data-motion='reduced'])) .view-host[data-shift='left'] { animation: view-shift-left 220ms var(--motion-ease); }
+
+/* While the view is shifted by a few pixels, whatever sticks out of the window is clipped, so no scroll bar flashes. */
+:where(:root:not([data-motion='reduced'])) .app:has(.view-host[data-shift]) { overflow: clip; }
+
+/* ---------- 3. play button ---------- */
+@keyframes play-icon-swap { from { transform: scale(0.6); opacity: 0; } }
+:where(:root:not([data-motion='reduced'])) .player-host #play-btn[data-swap] > * { animation: play-icon-swap 160ms var(--motion-ease); }
+
+/* ---------- 4. a song was added to a playlist ---------- */
+@keyframes playlist-pulse { 40% { transform: scale(1.03); } }
+:where(:root:not([data-motion='reduced'])) .left-panel-main-item[data-pulse] { animation: playlist-pulse 420ms var(--motion-ease); }
+
+/* ---------- 5. drops ---------- */
+@keyframes drop-settle { from { transform: scale(1.04); } }
+:where(:root:not([data-motion='reduced'])) :is(.left-panel-main-item, .queue-item)[data-settle] { animation: drop-settle 220ms var(--motion-ease); }
+:where(:root:not([data-motion='reduced'])) :is(.left-panel-main-item, .queue-item, .song-item).drag-invalid { transition: opacity 150ms var(--motion-ease); }
+
+/* ---------- 6. dialogs and menus ---------- */
+@keyframes rise-in { from { transform: translateY(6px); opacity: 0; } }
+:where(:root:not([data-motion='reduced'])) :is(.dialog[open], .menu, .context-menu, .playlist-modal) { animation: rise-in var(--motion-fast) var(--motion-ease); }

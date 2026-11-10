@@ -11,21 +11,22 @@ Xplayer is a free, local-first Electron music player for Windows. Its primary go
 
 The repository contains:
 
-- `Source/` — development source, tests, documentation, and build system.
-- `App/` — deployed and generated application files.
+- `Source/` — everything: source, tests, documentation, tools and the build. The app runs from here (`npm start`) and is built from here (`npm run dist`).
 
 The project should remain free. Do not introduce paid services or premium-only functionality.
 
 ## 2. Architecture and File Ownership
 
-Read `Source/.agent/AGENTS.md` before making changes. Also consult the current `Source/.agent/PLAN.md`, `BOARD.md`, and relevant task reports when the requested work relates to an active development plan.
+Read `Source/.agent/AGENTS.md` before making changes. Polish 1's plan and board are archived in `Source/.agent/archive/polish-1/`; the open work of agents D and E is in `Source/.agent/E-D-REMAINING.md`. Also consult any current plan, board, and relevant task reports when the requested work relates to an active development plan.
 
 ### Build and runtime
 
-- `Source/build/music_player.py` — Python build system. It assembles the application and preserves existing song data when appropriate.
-- `Source/build/music_player.html` — build template.
-- `App/MusicPlayerOutput/` — generated application output.
-- `App/electron.exe` — deployed Electron executable.
+- `Source/electron/app-paths.js` — where pages, library and settings live in each mode (dev `npm start`, portable, installed). Start with its header comment.
+- `Source/tools/dev/start.js` — the launcher behind `npm start` / `npm run dev` (profiles `empty`, `sample`, `real`); `Source/tools/dev/make-sample-library.js` — the made-up library; `Source/electron/dev-tools.js` — DevTools, reload on change, seed (dev only).
+- `Source/tools/dev/gen-web.js` — writes the generated page files (`src/player.js`, the old interface's page, fonts and icons; all git-ignored). `npm start` and `npm run dist` run it first.
+- `npm run dist` — builds the portable folder `dist/Xplayer` (electron-builder, then `tools/dev/make-portable.js`).
+- Data: `Source/.dev-data/` in development (`library/` and `settings/`), `Xplayer-Data/` beside the exe in the portable build. Never in the source tree otherwise.
+- `Source/src/old-ui/music_player.template.html` — the old interface's page template (`gen-web.js` renders it into `src/music_player.html`).
 - `Source/electron/scan-folder.js` — runtime audio scanner. It uses `music-metadata` and handles importing files, changing folders, downloads, rebuilds, and metadata scanning.
 
 Do not confuse build-time processing with runtime scanning. Changes to source files do not automatically update the deployed application.
@@ -50,7 +51,7 @@ JavaScript filenames retain their numeric prefixes. Follow the existing naming a
 
 `Source/src/js/99-player.js` is a build-time data template containing placeholders such as `{{SONGS_DATA}}` and `{{PLACEHOLDER_IMAGE}}`. `core/build-data.js` reads it. Do not treat it as the primary runtime library store.
 
-The runtime library is stored in `MusicPlayerOutput/songs.json`, managed by `Source/electron/songs-store.js`. The template's placeholder song data is used as a fallback for plain-browser operation and tests.
+The runtime library is stored in `<data folder>/library/songs.json` (covers beside it), managed by `Source/electron/songs-store.js`. The template's placeholder song data is used as a fallback for plain-browser operation and tests.
 
 Startup logic is in `Source/src/js/core/startup.js`.
 
@@ -59,7 +60,7 @@ Startup logic is in `Source/src/js/core/startup.js`.
 Inspect the existing implementation before deciding where a change belongs.
 
 - Audio scanning, tag extraction, supported formats, and cover extraction: `Source/electron/scan-folder.js`
-- Metadata reading and writing: `Source/electron/metadata-editor.py` and its Node wrapper
+- Metadata reading and writing: `Source/electron/metadata-editor.js` (the Node writer: `tag-node-backend.js`, `tag-lib-adapter.js`, `tag-rules.js`)
 - MusicBrainz and Cover Art Archive: `Source/electron/online-metadata.js`
 - LRCLIB backend: `Source/electron/online-lyrics.js`
 - Online lyrics UI: `Source/src/js/lyrics/19-online-lyrics.js`
@@ -121,14 +122,14 @@ Update architectural documentation when a responsibility, interface, or dependen
 - `Source/.agent/BOARD.md` — current task status.
 - `Source/.agent/reports/` — detailed evidence for individual tasks.
 - `Source/.agent/reports/TEMPLATE.md` — report format.
-- `Source/tools/CHANGELOG.md` — concise integrated-development history, using the dated file-and-bullets format below.
+- `Source/CHANGELOG.md` — concise integrated-development history, using the dated file-and-bullets format below.
 - `Source/CHANGELOG.md` — project/release changelog, organized by release headings such as `Unreleased`. Keep the two changelogs' purposes distinct; do not copy entries between them automatically.
 
 Plan 3's completed work and historical agent material belong in the appropriate archive. Do not reactivate archived tasks or overwrite historical reports unless explicitly requested.
 
 For new agent tasks, use a unique report filename and record the actual changes, commands, results, environment, skipped checks, and unresolved issues. Do not claim an unrun test passed.
 
-Task agents should not edit the shared integrated-development changelog. The designated integration owner updates `Source/tools/CHANGELOG.md` after integration and verification, preserving historical entries and using the existing format:
+Task agents should not edit the shared integrated-development changelog. The designated integration owner updates `Source/CHANGELOG.md` after integration and verification, preserving historical entries and using the existing format:
 
 - Date on its own line.
 - File name on its own line.
@@ -159,11 +160,11 @@ Never change a test merely to conceal a legitimate implementation failure.
 
 ### Build verification
 
-Run `Source/build/music_player.py` when the change affects build assembly, generated output, packaging, source-to-output copying, or build-time data injection.
+Run `npm run dist` when the change affects packaging, `package.json`'s `build` section, or anything the portable build includes. Run `npm run smoke` (real Electron, needs a display) when the change affects start-up, the data folder, the main process or the preload. `node tools/dev/gen-web.js --check` tells whether the generated page files are current.
 
-For ordinary source, documentation, test, or renderer changes that do not depend on generated output, do not rebuild automatically.
+For ordinary source, documentation, test, or renderer changes, do not build automatically: `npm start` runs from `src/` directly.
 
-When a build is required, verify the relevant generated files under `App/MusicPlayerOutput/`. Do not edit generated output as a substitute for changing the source.
+Do not edit generated files (`src/player.js`, `src/music_player.html`, `src/fonts/`, `src/icons/`, `dist/`) as a substitute for changing the source.
 
 ### Manual verification
 
@@ -175,7 +176,7 @@ Do not claim full verification when a required manual check has not been perform
 
 The goal is to improve the existing Xplayer interface, not create a separate application or replace working functionality with a mockup.
 
-Read `.agent/ui-redesign/USER_PREFERENCES.md` when available. Follow `.claude/skills/xplayer-ui-redesign/SKILL.md` when using that Claude skill. Consult more specific design notes when they exist.
+Read `.agent/archive/ui-redesign/` (design notes, `design/`) when available. Follow `.claude/skills/xplayer-ui-redesign/SKILL.md` when using that Claude skill. Consult more specific design notes when they exist.
 
 These documents serve different purposes:
 

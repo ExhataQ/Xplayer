@@ -59,6 +59,6 @@ describe('waveform-setting.js', () => {
 
     test('Settings gets the section in the Playback group', () => {
         assert.match(read('shell', 'appearance-settings.js'), /buildWaveformSection\(\{ el, segmented \}\)/);
-        assert.match(read('shell', 'settings-layout.js'), /titles: \['Playback', 'Player bar', 'Smart Shuffle'\]/);
+        assert.match(read('shell', 'settings-layout.js'), /titles: \['Playback', 'Equalizer', 'Player bar', 'Smart Shuffle'\]/);
     });
 });

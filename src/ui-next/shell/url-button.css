@@ -2,16 +2,14 @@
  * The two halves of the chain pull apart and click back together: once on hover or keyboard focus, and again, quicker, when pressed.
  * It returns to where it started. Off with reduced motion. */
 
-@media (prefers-reduced-motion: no-preference) {
-    .url-btn:is(:hover, :focus-visible) .link-a {
-        animation: url-link-a 620ms var(--motion-ease);
-    }
-    .url-btn:is(:hover, :focus-visible) .link-b {
-        animation: url-link-b 620ms var(--motion-ease);
-    }
-    .url-btn:active svg {
-        scale: 0.88;
-    }
+:where(:root:not([data-motion='reduced'])) .url-btn:is(:hover, :focus-visible) .link-a {
+    animation: url-link-a 620ms var(--motion-ease);
+}
+:where(:root:not([data-motion='reduced'])) .url-btn:is(:hover, :focus-visible) .link-b {
+    animation: url-link-b 620ms var(--motion-ease);
+}
+:where(:root:not([data-motion='reduced'])) .url-btn:active svg {
+    scale: 0.88;
 }
 
 @keyframes url-link-a {

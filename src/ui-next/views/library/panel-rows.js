@@ -21,7 +21,13 @@ function cover(src, kind) {
 
 function row(item, { onActivate, time = '', trailing = null } = {}) {
     const text = el('span', { class: 'plist-row__text' }, el('span', { class: 'plist-row__title', dir: 'auto' }, item.title), el('span', { class: 'plist-row__sub', dir: 'auto' }, item.subtitle || ''));
-    const button = el('button', { type: 'button', class: 'plist-row', 'data-kind': item.kind }, cover(item.cover, item.kind), text, time ? el('time', { class: 'plist-row__time' }, time) : '');
+    const attrs = { type: 'button', class: 'plist-row', 'data-kind': item.kind };
+    // What the row stands for, so panel-active.js can light it while the main view shows that page: a playlist (its view id), an album or an artist
+    // (its id), or a song (its id; lit while the song's own page is shown).
+    if (item.kind === 'playlist') attrs['data-page'] = item.viewId || `playlist-${item.id}`;
+    else if (item.kind === 'album' || item.kind === 'artist') attrs['data-page'] = item.id;
+    else if (item.kind === 'song') attrs['data-song'] = item.id;
+    const button = el('button', attrs, cover(item.cover, item.kind), text, time ? el('time', { class: 'plist-row__time' }, time) : '');
     button.addEventListener('click', () => onActivate && onActivate(item));
     return el('li', { class: 'plist-item', 'data-kind': item.kind }, button, trailing || '');
 }

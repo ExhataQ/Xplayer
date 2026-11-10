@@ -66,6 +66,87 @@ describe('right panel content', { concurrency: false }, () => {
         const { page, errors } = await open(null);
         assert.equal(await page.locator('.rp-now__note').textContent(), 'Nothing is playing');
         assert.equal(await page.locator('.rp-now__cover-frame').isHidden(), true);
+        assert.equal(await page.locator('.rp-now__cover-empty').isVisible(), true, 'a blank cover stands in');
+        assert.equal(await page.locator('.rp-skel').isVisible(), true, 'a lyrics preview stands in');
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('the lyrics header has its items centered between the cover and its line, and between the panel edge and its line without a cover', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open({ plain: 'one\ntwo', fields: {} });
+        const measure = () =>
+            page.evaluate(() => {
+                const header = document.querySelector('.rp-now__header').getBoundingClientRect();
+                const tools = document.querySelector('.rp-now__tools').getBoundingClientRect();
+                const frame = document.querySelector('.rp-now__cover-frame');
+                const above = frame && getComputedStyle(frame).display !== 'none' ? frame.getBoundingClientRect().bottom : document.querySelector('.rp-now').getBoundingClientRect().top;
+                return { above: tools.top - above, below: header.bottom - 1 - tools.bottom }; // 1: the line under the header
+            });
+        const withCover = await measure();
+        assert.ok(Math.abs(withCover.above - withCover.below) <= 2, `with a cover: ${JSON.stringify(withCover)}`);
+        await page.evaluate(() => (document.querySelector('.right-host').dataset.mode = 'lyrics'));
+        const without = await measure();
+        assert.ok(Math.abs(without.above - without.below) <= 2, `without a cover: ${JSON.stringify(without)}`);
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('the lyrics get a shadow under the header only while they are scrolled', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open({ plain: Array.from({ length: 120 }, (_, i) => `line ${i}`).join('\n'), fields: {} });
+        assert.equal(await page.getAttribute('.rp-now__lyrics', 'data-scrolled'), 'false');
+        await page.evaluate(() => (document.querySelector('.rp-now__lyrics').scrollTop = 200));
+        await page.waitForFunction(() => document.querySelector('.rp-now__lyrics').dataset.scrolled === 'true');
+        await page.waitForFunction(() => getComputedStyle(document.querySelector('.rp-now__header'), '::after').opacity === '1'); // the header draws it, under its line
+        await page.evaluate(() => (document.querySelector('.rp-now__lyrics').scrollTop = 0));
+        await page.waitForFunction(() => document.querySelector('.rp-now__lyrics').dataset.scrolled === 'false');
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('the cover has a pointing cursor, and a right click on it opens the playing song\'s menu', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open({ plain: 'one\ntwo', fields: {} });
+        assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.rp-now__cover-button')).cursor), 'pointer');
+        await page.click('.rp-now__cover-button', { button: 'right' });
+        await page.waitForSelector('.context-menu .context-menu-item');
+        const labels = await page.$$eval('.context-menu .context-menu-item', (items) => items.map((i) => i.textContent.replace(/\s+/g, ' ').trim()));
+        assert.ok(labels.some((l) => /Show metadata/.test(l)), labels.join(' | '));
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('the lyrics keep their place: the same room on both sides, with a scroll bar and without one', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const measure = async (plain) => {
+            const { page, errors } = await open({ plain, fields: {} });
+            const r = await page.evaluate(() => {
+                const box = document.querySelector('.rp-now__lyrics');
+                const first = box.querySelector('.rp-line').getBoundingClientRect();
+                const edge = box.getBoundingClientRect();
+                return { left: first.left - edge.left, right: edge.right - first.right, bar: box.offsetWidth - box.clientWidth, scrolls: box.scrollHeight > box.clientHeight, gutter: getComputedStyle(box).scrollbarGutter };
+            });
+            assert.deepEqual(errors, []);
+            await page.close();
+            return r;
+        };
+        const short = await measure('one\ntwo');
+        const long = await measure(Array.from({ length: 120 }, (_, i) => `line ${i}`).join('\n'));
+        assert.equal(short.scrolls, false);
+        assert.equal(long.scrolls, true);
+        assert.equal(short.gutter, 'stable both-edges');
+        assert.ok(Math.abs(short.left - short.right) <= 1.5, `centered without a bar ${JSON.stringify(short)}`);
+        assert.ok(Math.abs(long.left - long.right) <= 1.5, `centered with a bar ${JSON.stringify(long)}`);
+        assert.ok(Math.abs(short.left - long.left) <= 1.5, `it does not move when the bar comes ${short.left} ${long.left}`);
+    });
+
+    test('an instrumental song shows a big note instead of the lyric bars', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open({ fields: { instrumental: true } });
+        assert.equal(await page.locator('.rp-now__note').textContent(), 'Instrumental');
+        assert.equal(await page.locator('.rp-instr').isVisible(), true);
+        assert.equal(await page.locator('.rp-skel').count(), 0);
         assert.deepEqual(errors, []);
         await page.close();
     });
@@ -76,7 +157,9 @@ describe('right panel content', { concurrency: false }, () => {
         assert.equal(await page.locator('.rp-now__title').textContent(), 'Test Song');
         assert.equal(await page.locator('.rp-now__artist').textContent(), 'Test Artist');
         assert.equal(await page.locator('.rp-now__cover-frame').isVisible(), true);
-        assert.match(await page.locator('.rp-plain').textContent(), /second line/);
+        assert.match(await page.locator('.rp-line--plain').nth(1).textContent(), /second line/);
+        assert.equal(await page.locator('.rp-line--plain').count(), 2, 'one line each, in the same style as synced lyrics');
+        assert.equal(await page.locator('.rp-plain').count(), 0);
         assert.equal(await page.locator('.rp-now__note').isHidden(), true);
         assert.deepEqual(errors, []);
         await page.close();
@@ -87,7 +170,9 @@ describe('right panel content', { concurrency: false }, () => {
         const { page, errors } = await open({ fields: {} });
         assert.equal(await page.locator('.rp-now__note').textContent(), 'No lyrics for this song');
         assert.equal(await page.locator('.rp-now__cover-frame').isVisible(), true);
-        assert.equal(await page.locator('.rp-line, .rp-plain').count(), 0);
+        assert.equal(await page.locator('.rp-line').count(), 0);
+        assert.equal(await page.locator('.rp-skel').isVisible(), true, 'the lyrics preview shows');
+        assert.equal(await page.locator('.rp-now__cover-empty').isHidden(), true, 'the real cover is on, not the blank one');
         assert.deepEqual(errors, []);
         await page.close();
     });
@@ -159,8 +244,18 @@ describe('right panel content', { concurrency: false }, () => {
         await page.waitForSelector('.rp-line--active:has-text("line 20")');
         await page.waitForTimeout(1200); // the panel's own smooth scroll ends
         assert.equal(await page.locator('.rp-now__follow').isHidden(), true);
+        const lyricsHeight = () => page.evaluate(() => document.querySelector('.rp-now__lyrics').getBoundingClientRect().height);
+        const before = await lyricsHeight();
         await page.evaluate(() => (document.querySelector('.rp-now__lyrics').scrollTop = 0)); // what a thumb drag does: scroll, no wheel
         await page.waitForSelector('.rp-now__follow:visible');
+        assert.equal(await lyricsHeight(), before, 'the button floats: the lyrics keep their height');
+        const place = await page.evaluate(() => {
+            const button = document.querySelector('.rp-now__follow').getBoundingClientRect();
+            const lyrics = document.querySelector('.rp-now__lyrics').getBoundingClientRect();
+            return { over: button.top >= lyrics.top && button.bottom <= lyrics.bottom, off: Math.abs(button.left + button.width / 2 - (lyrics.left + lyrics.width / 2)) };
+        });
+        assert.equal(place.over, true, 'it sits over the lyrics');
+        assert.ok(place.off <= 2, `centered (${place.off}px off)`);
         await page.locator('.rp-now__follow').click();
         await page.waitForSelector('.rp-now__follow', { state: 'hidden' });
         assert.deepEqual(errors, []);
@@ -177,7 +272,7 @@ describe('right panel content', { concurrency: false }, () => {
         assert.equal(await page.locator('.rp-now__cover-frame').isHidden(), true);
         assert.equal(await page.locator('.rp-now__info').isHidden(), true);
         assert.equal(await width(), 320);
-        assert.equal(await page.locator('.rp-plain').isVisible(), true);
+        assert.equal(await page.locator('.rp-line--plain').first().isVisible(), true);
         assert.equal(await page.evaluate(() => localStorage.getItem('xplayer.ui-next.right-lyrics-only')), 'true');
         await page.locator('button[aria-label="Show the cover"]').click();
         assert.equal(await page.locator('.rp-now__cover-frame').isVisible(), true);

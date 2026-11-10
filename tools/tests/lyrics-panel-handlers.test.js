@@ -60,10 +60,9 @@ describe('lyrics, metadata and panel views converted to data-action', { concurre
             const found = text.match(/\bon(click|change|input|keydown|mousedown|contextmenu|dblclick|blur|error)\s*=\s*["'\\]|setAttribute\(\s*['"]on/g);
             assert.equal(found, null, `${file} still has an inline handler: ${found}`);
         }
-        // 08d keeps one: the close button of the extended info panel sits inside #extended-info-content, which
-        // stops clicks inline in build/music_player.html, so a delegated click could never reach it.
+        // 08d: the close button of the extended info panel is a data-action too (the page policy forbids inline handlers).
         const d = fs.readFileSync(path.join(SRC, 'ui/08d-panel-right-tabs.js'), 'utf8').match(/\bon[a-z]+\s*=\s*"/g);
-        assert.deepEqual(d, ['onclick="']);
+        assert.equal(d, null);
     });
 
     test('lyrics editor: Save stores the text, the modal keeps clicks, the backdrop closes it', TEST_OPTIONS, async (t) => {

@@ -263,7 +263,7 @@ export function closeFolder() {
     const leftPanelMainList = document.querySelector('.left-panel-main-list');
     if (leftPanelMainList) {
         leftPanelMainList.innerHTML = `
-                <li class="left-panel-main-item active" onclick="switchView(VIEWS.ALL_SONGS)" oncontextmenu="showSpecialItemContextMenu(event, VIEWS.ALL_SONGS, 'All Songs'); return false;" data-view="all-songs" data-pin-id="all-songs" tabindex="0">
+                <li class="left-panel-main-item active" ${actionAttrs('switchView', [VIEWS.ALL_SONGS])} ${actionAttrs('openSpecialItemMenu', ['$event', VIEWS.ALL_SONGS, 'All Songs'], { event: 'contextmenu' })} data-view="all-songs" data-pin-id="all-songs" tabindex="0">
             <div class="subfolder-row">
                 <div class="main-item-cover-wrapper">
                     <svg class="main-item-cover-svg cover-ph cover-ph--all-songs" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
@@ -271,7 +271,7 @@ export function closeFolder() {
                         <circle cx="200" cy="200" r="70" fill="none" stroke="#000000" stroke-width="12"/>
                         <polygon points="180,160 180,240 240,200" fill="#000000"/>
                     </svg>
-                    <button class="left-panel-cover-play-btn" data-view="all-songs" onmousedown="event.stopPropagation()" aria-label="Play"></button>
+                    <button class="left-panel-cover-play-btn" data-view="all-songs" data-stop-mousedown aria-label="Play"></button>
                 </div>
                 <div class="main-item-info">
                     <span class="main-item-title">All Songs</span>
@@ -284,7 +284,7 @@ export function closeFolder() {
                 <span class="now-playing-indicator"><span></span><span></span><span></span><span></span></span>
             </div>
         </li>
-        <li class="left-panel-main-item" onclick="switchView(VIEWS.FAVORITES)" oncontextmenu="showSpecialItemContextMenu(event, VIEWS.FAVORITES, 'Liked Songs'); return false;" data-view="favorites" data-pin-id="favorites" tabindex="0">
+        <li class="left-panel-main-item" ${actionAttrs('switchView', [VIEWS.FAVORITES])} ${actionAttrs('openSpecialItemMenu', ['$event', VIEWS.FAVORITES, 'Liked Songs'], { event: 'contextmenu' })} data-view="favorites" data-pin-id="favorites" tabindex="0">
             <div class="subfolder-row">
                 <div class="main-item-cover-wrapper">
                     <svg class="main-item-cover-svg cover-ph cover-ph--liked" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="50" height="50">
@@ -297,7 +297,7 @@ export function closeFolder() {
                         <rect width="400" height="400" rx="8" fill="url(#likedGradient)"/>
                         <path d="M200 290 L170 260 C140 230 110 200 110 170 C110 140 135 115 165 115 C180 115 195 125 200 135 C205 125 220 115 235 115 C265 115 290 140 290 170 C290 200 260 230 230 260 L200 290Z" fill="#ffffff" stroke="none" transform="scale(0.6) translate(135, 100)"/>
                     </svg>
-                    <button class="left-panel-cover-play-btn" data-view="favorites" onmousedown="event.stopPropagation()" aria-label="Play"></button>
+                    <button class="left-panel-cover-play-btn" data-view="favorites" data-stop-mousedown aria-label="Play"></button>
                 </div>
                 <div class="main-item-info">
                     <span class="main-item-title">Liked Songs</span>
@@ -382,7 +382,14 @@ export async function confirmDeleteFolder(folderId, folderName) {
     }
 }
 
-// Other files and inline handlers call these by name, so they are registered on window.
+// The right-click menu of the two fixed rows (All Songs, Liked Songs); the row markup names it in data-action-contextmenu.
+function openSpecialItemMenu(event, itemId, itemName) {
+    showSpecialItemContextMenu(event, itemId, itemName);
+    event.preventDefault();
+}
+registerActions({ openSpecialItemMenu });
+
+// Other files call these by name, so they are registered on window.
 if (typeof registerLegacyGlobals === 'function') {
     registerLegacyGlobals({
         removeSongFromPlaylistAndRefresh,

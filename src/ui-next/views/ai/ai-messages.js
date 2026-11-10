@@ -22,6 +22,7 @@ const TEXT = {
     'bad-language': 'Write the language as a plain name, for example French.',
     'nothing-to-translate': 'These lyrics have no text lines to translate.',
     'no-lyrics': 'This song has no lyrics to translate.',
+    'no-player': 'The main player is not open, so the library cannot be read. Open the player and try again.',
     busy: 'Another AI request is still running. Wait for it, or cancel it.',
     cancelled: 'Cancelled.',
     unexpected: 'Something went wrong.'

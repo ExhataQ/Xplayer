@@ -77,11 +77,10 @@ function getPeaksDir() {
     return path.join(getConfigDir(), 'waveform-peaks');
 }
 
-// Where the built page (music_player.html), player.js, songs.json, covers and the taskbar icons live.
-// MUSIC_PLAYER_OUTPUT_DIR replaces the default folder next to the code, so a test can run the app against a
-// throwaway library. Read on every call; an unset or empty variable means the default.
-function getOutputDir() {
-    return process.env.MUSIC_PLAYER_OUTPUT_DIR || path.join(__dirname, 'MusicPlayerOutput');
+// Where the library lives: songs.json and the covers. app-paths.js decides (<data>/library; a test points XPLAYER_DATA at a
+// throwaway folder).
+function getLibraryDir() {
+    return require('./app-paths').getLibraryDir();
 }
 
-module.exports = { CONFIG_FILES, getConfigDir, setConfigDir, configPath, getOutputDir, getPeaksDir };
+module.exports = { CONFIG_FILES, getConfigDir, setConfigDir, configPath, getLibraryDir, getPeaksDir };

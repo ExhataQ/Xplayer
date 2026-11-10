@@ -38,8 +38,21 @@ test('the AI key and on/off state are never written by the page', () => {
     for (const file of viewFiles) assert.doesNotMatch(read('views', 'ai', file), /localStorage|sessionStorage|indexedDB|document\.cookie/);
 });
 
-test('the new adapter files (ai-bridge.js and ai-lyrics.js) stay within the 300 code lines approved together (DP9)', () => {
+// DP14 (2026-10-30): the owner allowed the growth (the assistant reads the queue, playlists and folders; the chat can run in a window of
+// its own). The approved total is now 320.
+test('the new adapter files (ai-bridge.js and ai-lyrics.js) stay within the 320 code lines approved together (DP9, DP14)', () => {
     const count = (file) => read('adapter', file).split(/\r?\n/).filter((line) => line.trim() && !/^\s*(?:\/\/|\/\*|\*|\*\/)/.test(line)).length;
     const total = count('ai-bridge.js') + count('ai-lyrics.js');
-    assert.ok(total <= 300, `the AI adapter files use ${total} code lines (maximum 300)`);
+    assert.ok(total <= 320, `the AI adapter files use ${total} code lines (maximum 320)`);
+});
+
+test('the ready-made messages row has no scroll bar, so it moves with the wheel and by dragging (and a drag is not a click)', () => {
+    const row = read('views', 'ai', 'sideways-scroll.js');
+    assert.match(row, /addEventListener\(\s*'wheel'/);
+    assert.match(row, /passive: false/, 'the wheel handler must be able to stop the vertical scroll');
+    assert.match(row, /pointerdown/);
+    assert.match(row, /setPointerCapture/);
+    assert.match(row, /if \(!dragged\) return;[\s\S]*stopPropagation/, 'the click after a drag is swallowed');
+    assert.match(read('views', 'ai', 'ai-chat.js'), /sidewaysScroll\(strip\.row, \{ wheel: false \}\)/, 'the chip strip around the row does the wheel, so the drag helper must not do it twice');
+    assert.match(read('views', 'ai', 'ai-chat.js'), /chipStrip\(prompts,/, 'the arrows are the left panel\'s chip strip, not a second copy');
 });

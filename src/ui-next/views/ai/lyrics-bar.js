@@ -45,14 +45,14 @@ export async function translateNow(language) {
     if (!song || !song.lyrics) return notify({ title: 'Nothing to translate', detail: song ? 'This song has no lyrics.' : 'Play a song with lyrics first.', kind: 'warning', where: 'toast' });
     const target = language || (await getStatus()).translateLanguage || (await askLanguage());
     if (!target) return null;
-    const note = notify({ title: `Translating "${song.title}" into ${target}…`, kind: 'info', where: 'toast' });
+    // One action, one notification: "Translating..." turns into the result in the same toast.
+    notify({ key: 'translate', title: `Translating "${song.title}" into ${target}…`, kind: 'info', where: 'toast' });
     const result = await translateSong(song, target);
-    note.dismiss();
-    if (!result.ok) return notify({ title: 'Could not translate', detail: explain(result), kind: 'error' });
+    if (!result.ok) return notify({ key: 'translate', title: 'Could not translate', detail: explain(result), kind: 'error' });
     return notify(
         result.saved
-            ? { title: `Translated into ${result.targetLanguage}`, detail: 'The right panel shows it with the original; the buttons in its header change that.', kind: 'success', where: 'toast' }
-            : { title: 'Translated, but not saved', detail: 'These lyrics have no timing, so the translation could not be shown with the lyrics. Ask in the AI chat to copy it.', kind: 'warning', where: 'both' }
+            ? { key: 'translate', title: `Translated into ${result.targetLanguage}`, detail: 'The right panel shows it with the original; the buttons in its header change that.', kind: 'success', where: 'toast' }
+            : { key: 'translate', title: 'Translated, but not saved', detail: 'These lyrics have no timing, so the translation could not be shown with the lyrics. Ask in the AI chat to copy it.', kind: 'warning', where: 'both' }
     );
 }
 

@@ -19,6 +19,8 @@
 // scrollbar" tail. Both now emit the same 'playlist:listChanged' event, so that
 // duplication is gone too, not just moved.
 
+const isRatingPlaylistSafe = (playlist) => typeof isRatingPlaylist === 'function' && isRatingPlaylist(playlist); // the rating rules are an engine global
+
 export function getPlaylists() {
     return storageReadJson(STORAGE_KEYS.PLAYLISTS, [], normalizePlaylists);
 }
@@ -54,6 +56,7 @@ export function createPlaylist(name) {
 
 export function deletePlaylist(playlistId) {
     let playlists = getPlaylists();
+    if (isRatingPlaylistSafe(playlists.find((p) => p.id == playlistId))) return; // Top rated and Not rated go with the Rating system, not by hand
     const wasCurrentView =
         currentView &&
         currentView.startsWith('playlist-') &&
@@ -100,6 +103,10 @@ export function deletePlaylist(playlistId) {
 export async function deletePlaylistAndClose(playlistId) {
     const playlists = getPlaylists();
     const playlist = playlists.find((p) => p.id == playlistId || p.id === playlistId);
+    if (isRatingPlaylistSafe(playlist)) {
+        showNotification(`"${playlist.name}" follows your ratings. Turn the Rating system off to remove it.`, 'info', 3500);
+        return;
+    }
     const playlistName = playlist ? playlist.name : 'Playlist';
 
     const confirmed = await showConfirmDialog({
@@ -127,7 +134,7 @@ export function getPlaylistSongs(playlistId) {
 export function removeSongFromPlaylist(songId, playlistId) {
     let playlists = getPlaylists();
     const playlistIndex = playlists.findIndex((p) => p.id == playlistId || p.id === playlistId);
-    if (playlistIndex === -1) return false;
+    if (playlistIndex === -1 || isRatingPlaylistSafe(playlists[playlistIndex])) return false; // a rating playlist is not edited by hand
 
     const originalLength = playlists[playlistIndex].songs.length;
     playlists[playlistIndex].songs = playlists[playlistIndex].songs.filter((id) => id !== songId);
@@ -141,12 +148,12 @@ export function removeSongFromPlaylist(songId, playlistId) {
 export function addSongToPlaylist(songId, playlistId) {
     let playlists = getPlaylists();
     const playlistIndex = playlists.findIndex((p) => p.id == playlistId || p.id === playlistId);
-    if (playlistIndex === -1) return false;
+    if (playlistIndex === -1 || isRatingPlaylistSafe(playlists[playlistIndex])) return false; // a rating playlist is not edited by hand
 
     if (!playlists[playlistIndex].songs.includes(songId)) {
         playlists[playlistIndex].songs.push(songId);
         savePlaylists(playlists);
-        emit('playlist:songCountChanged', { playlistId, count: playlists[playlistIndex].songs.length });
+        emit('playlist:songCountChanged', { playlistId, count: playlists[playlistIndex].songs.length, added: true }); // `added` lets the new screen pulse the row (C8)
         return true;
     }
     return false;

@@ -246,7 +246,9 @@ function escapeLucene(value) {
     return String(value || '').replace(/([+\-!(){}\[\]^"~*?:\\/])/g, '\\$1');
 }
 
-async function searchOnlineMetadata({ fileUrl, title, artist, album, duration, scope='recording' }) {
+// recordingLimit: how many matching recordings a release search looks through (MusicBrainz allows up to 100). A famous song has many recordings
+// (live, remixes, compilation copies), so the few best matches can all be compilations; the multi tag finder asks for more.
+async function searchOnlineMetadata({ fileUrl, title, artist, album, duration, scope='recording', recordingLimit }) {
     const cleanTitle = String(title || '').trim();
     const cleanArtist = String(artist || '').trim();
     const cleanAlbum = String(album || '').trim();
@@ -259,6 +261,7 @@ async function searchOnlineMetadata({ fileUrl, title, artist, album, duration, s
     // recording:"..." there causes HTTP 400. Search recordings first and use their
     // associated releases; this also gives us the correct original-release candidates.
     if (scope === 'release') {
+        const recordingMax = Math.min(100, Math.max(1, Number(recordingLimit) || 8));
         const recordingParts = [];
         if (cleanTitle) recordingParts.push(`recording:"${escapeLucene(cleanTitle)}"`);
         if (cleanArtist) recordingParts.push(`artist:"${escapeLucene(cleanArtist)}"`);
@@ -269,14 +272,14 @@ async function searchOnlineMetadata({ fileUrl, title, artist, album, duration, s
                 recordingResult = await mbFetch(buildUrl(`${MB_BASE}/recording`, {
                     query: recordingParts.join(' AND '),
                     fmt: 'json',
-                    limit: 8
+                    limit: recordingMax
                 }));
             } catch (error) {
                 if (Number(error?.status) !== 400) throw error;
                 recordingResult = await mbFetch(buildUrl(`${MB_BASE}/recording`, {
                     query: [cleanTitle, cleanArtist, cleanAlbum].filter(Boolean).join(' '),
                     fmt: 'json',
-                    limit: 8
+                    limit: recordingMax
                 }));
             }
         }
@@ -401,7 +404,8 @@ async function getOnlineMetadata({ fileUrl, recordingId, releaseId, title='', sk
         let track;
         if (wanted) {
             track = tracks.find(t=>String(t.title||t.recording?.title||'').trim().toLowerCase()===wanted);
-            if (!track) throw new Error('No track in that release matches this song\'s title. Pick a different release, or search by song instead.');
+            // A normal outcome for a song whose title is spelt differently, not a failure of the connection: the code lets callers tell them apart.
+            if (!track) throw Object.assign(new Error('No track in that release matches this song\'s title. Pick a different release, or search by song instead.'), { code: 'NO_MATCHING_TRACK' });
         } else {
             track = tracks[0];
         }

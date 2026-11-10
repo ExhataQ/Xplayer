@@ -33,19 +33,18 @@ test('the scrollbar color is a saved appearance choice, applied before the first
     const appearance = read('shell', 'appearance.js');
     assert.match(appearance, /SCROLLBARS = \[\s*\{ id: 'theme'[\s\S]*?\{ id: 'neutral'/);
     assert.match(appearance, /root\.dataset\.scrollbar = state\.scrollbar/);
-    assert.match(read('shell', 'appearance-boot.js'), /saved\.scrollbar === 'neutral'/);
+    assert.match(read('shell', 'appearance-boot.js'), /saved\.scrollbar === 'theme'/);
     assert.match(read('shell', 'appearance-settings.js'), /label: 'Scrollbar color'/);
 });
 
-test('the scrollbar shape (flush bar or wall tab) is a saved choice, and the tab rounds only the side away from the wall', () => {
+test('the scrollbar shape (flush bar or standard) is a saved choice, and the standard thumb floats inside the bar with a gap to the wall', () => {
     const appearance = read('shell', 'appearance.js');
-    assert.match(appearance, /SCROLLBAR_SHAPES = \[\s*\{ id: 'bar'[\s\S]*?\{ id: 'tab'/);
+    assert.match(appearance, /SCROLLBAR_SHAPES = \[\s*\{ id: 'bar'[\s\S]*?\{ id: 'standard'/);
     assert.match(appearance, /root\.dataset\.scrollbarShape = state\.scrollbarShape/);
-    assert.match(read('shell', 'appearance-boot.js'), /saved\.scrollbarShape === 'tab'/);
+    assert.match(read('shell', 'appearance-boot.js'), /saved\.scrollbarShape === 'bar'/);
     assert.match(read('shell', 'appearance-settings.js'), /label: 'Scrollbar shape'/);
     const css = stripComments(read('scrollbar.css'));
-    assert.match(css, /\[data-scrollbar-shape='tab'\] \*::-webkit-scrollbar-thumb:vertical\s*\{[^}]*border-radius:\s*4px 0 0 4px/);
-    assert.match(css, /\[data-scrollbar-shape='tab'\] \*::-webkit-scrollbar-thumb:horizontal\s*\{[^}]*border-radius:\s*4px 4px 0 0/);
+    assert.match(css, /\[data-scrollbar-shape='standard'\] \*::-webkit-scrollbar-thumb\s*\{[^}]*border:\s*3px solid transparent[^}]*border-radius:\s*999px/);
 });
 
 test('the cat scrollbar is a saved choice (off by default), applied before the first paint, with a row in Settings', () => {
@@ -64,15 +63,15 @@ test('the cat scrollbar hides the native bar only on scrollers that have a cat, 
     assert.match(css, /\[data-cat-scroll\]::-webkit-scrollbar:vertical\s*\{[^}]*width:\s*0/);
     assert.doesNotMatch(css, /\*::-webkit-scrollbar/, 'no blanket rule: scrollers without a cat keep their bar');
     assert.match(css, /\.xp-cat-layer\s*\{[^}]*pointer-events:\s*none/, 'the layer never blocks clicks on the list under it');
-    // Every animation is inside the no-preference block, so reduce motion stops all of them.
-    const outside = css.replace(/@media \(prefers-reduced-motion: no-preference\)\s*\{[\s\S]*?\n\}\n/, '').replace(/@keyframes[\s\S]*?\n\}\n/g, '');
+    // Every animation sits under :where(:root:not([data-motion='reduced'])), so Reduce animations stops all of them.
+    const outside = css.replace(/:where\(:root:not\(\[data-motion='reduced'\]\)\)[^{]*\{[^}]*\}\n/g, '').replace(/@keyframes[\s\S]*?\n\}\n/g, '');
     assert.doesNotMatch(outside, /animation\s*:/);
 });
 
 test('the cat scrollbar script draws nothing and watches nothing while the option is off', () => {
     const js = read('shell', 'cat-scrollbar.js');
     assert.match(js, /dataset\.scrollbarCat === 'on'/);
-    assert.match(js, /attributeFilter: \['data-scrollbar-cat'\]/);
+    assert.match(js, /attributeFilter: \['data-scrollbar-cat'[,\]]/);
     assert.doesNotMatch(js, /localStorage|fetch\(|require\(/, 'no storage, network or Node access');
     // start() is the only place the layer and the body observer are created, and stop() undoes both.
     assert.match(js, /function stop\(\)[\s\S]*observer\.disconnect\(\)[\s\S]*layer\.remove\(\)/);

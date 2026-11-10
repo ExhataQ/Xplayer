@@ -5,14 +5,15 @@
 // Things that only belong to the previous interface are hidden here, in the new screen only (the engine page is shared with the
 // old screen and stays as it is): the History shortcut buttons, the old Theme Color block, the engine's own Interface section and
 // the "Change Music Folder (Legacy)" button. Two labels lose their old-interface wording ("Smart Shuffle v1", "(new interface)").
-import { el, tabs } from '../components/index.js';
+import { el, tabs, reducedMotion } from '../components/index.js';
+import { bindRangeFill } from '../views/tools/range-fill.js';
 
 export const SETTINGS_GROUPS = [
-    { id: 'general', label: 'General', icon: 'sliders-horizontal', summary: 'Appearance, window and startup screen', titles: ['Appearance', 'Scrollbar', 'Window', 'Interface', 'Startup screen'] },
-    { id: 'playback', label: 'Playback', icon: 'volume-2', summary: 'Crossfade, fades, volume levelling, waveform and Smart Shuffle', titles: ['Playback', 'Player bar', 'Smart Shuffle'] },
-    { id: 'library', label: 'Library', icon: 'folder', summary: 'Music folders and where downloads are saved', titles: ['Music Library', 'Play from URL'] },
+    { id: 'general', label: 'General', icon: 'sliders-horizontal', summary: 'Appearance, window and startup screen', titles: ['Appearance', 'Scrollbar', 'The cat', 'Window', 'Interface', 'Startup screen'] },
+    { id: 'playback', label: 'Playback', icon: 'volume-2', summary: 'Crossfade, fades, volume levelling, equalizer, waveform and Smart Shuffle', titles: ['Playback', 'Equalizer', 'Player bar', 'Smart Shuffle'] },
+    { id: 'library', label: 'Library', icon: 'folder', summary: 'Music folders, where downloads are saved, and the rating system', titles: ['Music Library', 'Play from URL', 'Rating system'] },
     { id: 'ai', label: 'AI', icon: 'sparkles', summary: 'Assistant, provider and privacy', titles: ['AI'] },
-    { id: 'data', label: 'Data', icon: 'download', summary: 'Backup, restore and advanced options', titles: ['Backup', 'Advanced'] }
+    { id: 'data', label: 'Data', icon: 'download', summary: 'Backup, restore, advanced options, version and data folder', titles: ['Backup', 'Advanced', 'About'] }
 ];
 const MORE = { id: 'more', label: 'More', icon: 'ellipsis', summary: 'Everything else', titles: [] };
 
@@ -101,7 +102,7 @@ export function layoutSettings(host) {
     actions.setAttribute('role', 'tabpanel');
 
     const scroller = scrollerOf(content);
-    const reduce = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduce = reducedMotion;
 
     function show(id) {
         const group = present.find((g) => g.id === id) || present[0];
@@ -119,5 +120,6 @@ export function layoutSettings(host) {
         }
     }
 
+    bindRangeFill(actions); // the filled part of every slider's track (views/tools/range-fill.js)
     show(currentPage);
 }

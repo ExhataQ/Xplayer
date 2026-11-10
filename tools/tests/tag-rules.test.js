@@ -1,13 +1,12 @@
 'use strict';
 
-// electron/tag-rules.js: which tags the Node backend keeps, writes and clears. These are the cases of
-// tools/tests/metadata_backend_logic.py, run against the Node rules, so the two backends make the same decisions.
+// electron/tag-rules.js: which tags the Node backend keeps, writes and clears, on in-memory models (no library, no files).
 // Run: node --test tools/tests/tag-rules.test.js
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readMetadata, applyPatch } = require('../../electron/tag-rules');
-const { id3Model, vorbisModel, sampleId3 } = require('./helpers/fake-tag-models');
+const { id3Model, vorbisModel, mp4Model, sampleId3 } = require('./helpers/fake-tag-models');
 
 const keys = (m) => new Set(m.state.frames.map((f) => f.key));
 const text = (m, key) => m.get(key).join('|');
@@ -128,4 +127,46 @@ test('vorbis: year is DATE, track and disc keep their totals, album artist reads
 test('vorbis: other tags excludes the known names in any case', () => {
     const m = vorbisModel({ TITLE: ['x'], REPLAYGAIN_TRACK_GAIN: ['-7 dB'] });
     assert.deepEqual(readMetadata('vorbis', m).otherTags, [{ key: 'replaygain_track_gain', values: ['-7 dB'] }]);
+});
+
+const NAM = '\u00a9nam', ART = '\u00a9ART', ALB = '\u00a9alb', DAY = '\u00a9day', GEN = '\u00a9gen', WRT = '\u00a9wrt';
+
+test('mp4: the atoms are read into the fields, "n/total" atoms are split, a semicolon separates values', () => {
+    const m = mp4Model({ [NAM]: ['Song'], [ART]: ['Earth, Wind & Fire'], [GEN]: ['Funk; Soul'], [DAY]: ['1977'], trkn: ['7/13'], disk: ['2'], tmpo: ['120'], cpil: ['1'], '----:MOOD': ['Calm'], '----:MusicBrainz Track Id': ['abc'], '\u00a9lyr': ['la la'] });
+    const r = readMetadata('mp4', m);
+    assert.equal(r.title, 'Song'); assert.deepEqual(r.artist, ['Earth, Wind & Fire']); assert.deepEqual(r.genre, ['Funk', 'Soul']);
+    assert.equal(r.year, '1977'); assert.equal(r.track, '7'); assert.equal(r.trackTotal, '13'); assert.equal(r.discNumber, '2'); assert.equal(r.discTotal, '');
+    assert.equal(r.bpm, '120'); assert.equal(r.compilation, '1'); assert.equal(r.mood, 'Calm'); assert.equal(r.musicBrainzTrackId, 'abc');
+    assert.deepEqual(r.otherTags, [{ key: '\u00a9lyr', values: ['la la'] }], 'only the atoms the editor has no field for');
+});
+
+test('mp4: a patch changes only what was sent; several artists are one "; " text; an empty value clears', () => {
+    const m = mp4Model({ [NAM]: ['Old'], [ALB]: ['Kept'], [ART]: ['X'], '----:MOOD': ['Calm'] });
+    assert.deepEqual(applyPatch('mp4', m, { title: 'New', artist: ['A', 'B, C'], mood: '' }), []);
+    assert.deepEqual(m.state[NAM], ['New']); assert.deepEqual(m.state[ART], ['A; B, C']);
+    assert.deepEqual(m.state[ALB], ['Kept']); assert.ok(!('----:MOOD' in m.state));
+    assert.deepEqual(readMetadata('mp4', m).artist, ['A', 'B, C']);
+});
+
+test('mp4: track and disc keep the other half; clearing both removes the atom; Label and Publisher are one atom', () => {
+    const m = mp4Model({ trkn: ['7/13'], disk: ['1/2'] });
+    applyPatch('mp4', m, { trackTotal: '20' });
+    assert.deepEqual(m.state.trkn, ['7/20']);
+    applyPatch('mp4', m, { track: '' });
+    assert.deepEqual(m.state.trkn, ['/20']);
+    applyPatch('mp4', m, { track: '', trackTotal: '' });
+    assert.ok(!('trkn' in m.state));
+    applyPatch('mp4', m, { discNumber: '3' });
+    assert.deepEqual(m.state.disk, ['3/2']);
+    applyPatch('mp4', m, { publisher: 'EMI' });
+    assert.deepEqual(m.state['----:LABEL'], ['EMI']);
+});
+
+test('mp4: BPM and compilation are written as the numeric atoms, a field the format cannot hold is reported', () => {
+    const m = mp4Model({});
+    const skipped = applyPatch('mp4', m, { bpm: '98', compilation: '1', mediaKind: 'Music', __coverPath: 'x.png' });
+    assert.deepEqual(m.state.tmpo, ['98']); assert.deepEqual(m.state.cpil, ['1']);
+    assert.deepEqual(skipped, ['mediaKind']);
+    applyPatch('mp4', m, { compilation: '0', bpm: '' });
+    assert.ok(!('cpil' in m.state) && !('tmpo' in m.state));
 });

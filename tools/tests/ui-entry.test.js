@@ -13,9 +13,10 @@ const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
 const { resolveUiEntry, CURRENT_ENTRY, NEXT_ENTRY } = require(path.join(ROOT, 'electron', 'ui-entry.js'));
 
 describe('resolveUiEntry', () => {
-    test('loads the current interface by default', () => {
-        assert.equal(resolveUiEntry({ argv: ['electron.exe', '.'], env: {} }), 'music_player.html');
-        assert.equal(resolveUiEntry(), CURRENT_ENTRY);
+    test('loads the new interface by default; the old one only when chosen', () => {
+        assert.equal(resolveUiEntry({ argv: ['electron.exe', '.'], env: {} }), 'ui-next/index.html');
+        assert.equal(resolveUiEntry(), NEXT_ENTRY);
+        assert.equal(CURRENT_ENTRY, 'music_player.html');
     });
 
     test('loads the new interface with --ui=next', () => {
@@ -39,7 +40,7 @@ describe('resolveUiEntry', () => {
         assert.equal(resolveUiEntry({ argv: [], env: {}, saved: 'next' }), NEXT_ENTRY);
         assert.equal(resolveUiEntry({ argv: [], env: {}, saved: 'current' }), CURRENT_ENTRY);
         assert.equal(resolveUiEntry({ argv: ['--ui=next'], env: {}, saved: 'current' }), NEXT_ENTRY);
-        assert.equal(resolveUiEntry({ argv: [], env: {}, saved: 'nonsense' }), CURRENT_ENTRY);
+        assert.equal(resolveUiEntry({ argv: [], env: {}, saved: 'nonsense' }), NEXT_ENTRY);
     });
 
     test('the new entry is a forward-slash path to a file that exists in src/', () => {
@@ -71,16 +72,12 @@ describe('saved choice', () => {
     });
 });
 
-describe('build', () => {
-    const build = fs.readFileSync(path.join(ROOT, 'build', 'music_player.py'), 'utf8');
-
-    test('copies ui-entry.js and the src/ui-next folder into the app', () => {
-        // Every .js file in electron/ is copied (os.listdir + endswith), so ui-entry.js only has to exist there.
-        assert.match(build, /os\.listdir\(electron_dir\)/);
-        assert.match(build, /name\.endswith\("\.js"\)/);
+describe('the packaged app', () => {
+    test('ships ui-entry.js (electron/) and the src/ui-next folder', () => {
+        const files = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).build.files;
+        assert.ok(files.includes('electron/**/*') && files.includes('src/**/*'));
         assert.ok(fs.existsSync(path.join(ROOT, 'electron', 'ui-entry.js')));
-        assert.match(build, /"src", "ui-next"/);
-        assert.match(build, /copytree\(ui_next_src, ui_next_dst\)/);
+        assert.ok(fs.existsSync(path.join(ROOT, 'src', 'ui-next', 'index.html')));
     });
 
     test('window-manager loads the page through the active choice and can switch it', () => {

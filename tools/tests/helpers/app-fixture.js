@@ -51,7 +51,39 @@ function writeLaunchCache(value) {
     }
 }
 
-async function launch(pw) {
+// The right panel is open by default in the app (shell/right-panel.js), but almost every test was written for the closed panel (a list at its full
+// width, the panel opened by the test itself when it needs it). So every page and context a test opens starts with the panel closed, unless a choice
+// is already saved: a test of the default clears the key first (ui-next-right-panel.test.js), and a reload keeps what the person chose.
+function startWithRightPanelClosed() {
+    try {
+        if (localStorage.getItem('xplayer.ui-next.right-open') === null) localStorage.setItem('xplayer.ui-next.right-open', 'false');
+    } catch (_) {
+        /* no storage on this page */
+    }
+}
+
+// The pages carry a Content-Security-Policy (tools/tests/csp.test.js) that allows scripts from files only. Most tests write a small inline
+// <script> stub into a copy of the page to stand in for the desktop bridge, so by default the browsers these helpers make ignore the policy
+// (Playwright's bypassCSP). A test that is about the policy itself starts its browser with launch(pw, { enforceCsp: true }).
+function withRightPanelClosed(browser, { bypassCSP = true } = {}) {
+    const rawNewPage = browser.newPage.bind(browser);
+    const rawNewContext = browser.newContext.bind(browser);
+    const newPage = (options) => rawNewPage({ bypassCSP, ...(options || {}) });
+    const newContext = (options) => rawNewContext({ bypassCSP, ...(options || {}) });
+    browser.newPage = async (...args) => {
+        const page = await newPage(...args);
+        await page.addInitScript(startWithRightPanelClosed);
+        return page;
+    };
+    browser.newContext = async (...args) => {
+        const context = await newContext(...args);
+        await context.addInitScript(startWithRightPanelClosed);
+        return context;
+    };
+    return browser;
+}
+
+async function launch(pw, { enforceCsp = false } = {}) {
     if (!pw) return null;
     const cached = readLaunchCache();
     const order = BROWSER_OPTIONS.map((_, i) => i);
@@ -64,7 +96,7 @@ async function launch(pw) {
                 ...BROWSER_OPTIONS[i]
             });
             writeLaunchCache({ available: true, index: i });
-            return browser;
+            return withRightPanelClosed(browser, { bypassCSP: !enforceCsp });
         } catch (_) {
             /* next */
         }
@@ -146,7 +178,7 @@ function buildApp(songCount = 50) {
     }));
     const tpl = fs.readFileSync(path.join(ROOT, 'src', 'js', '99-player.js'), 'utf8');
     fs.writeFileSync(path.join(out, 'player.js'), tpl.replace('{{SONGS_DATA}}', () => JSON.stringify(songs)).replace('{{PLACEHOLDER_IMAGE}}', () => PH.replace(/'/g, "\\'")));
-    let html = fs.readFileSync(path.join(ROOT, 'build', 'music_player.html'), 'utf8');
+    let html = fs.readFileSync(path.join(ROOT, 'src', 'old-ui', 'music_player.template.html'), 'utf8');
     html = renderTemplate(html, ROOT);
     html = html.replace('{{SONGS_COUNT}}', String(songCount)).split('{{PLACEHOLDER_IMAGE}}').join(PH);
     const stub = `<script>window.electronAPI = new Proxy({}, {get:(t,k)=> (k==='then')?undefined:(...a)=>{ if(/^on[A-Z]/.test(String(k))) return ()=>{}; return Promise.resolve(null);} });</script>\n`;

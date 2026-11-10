@@ -1,6 +1,6 @@
 'use strict';
 
-// electron/tag-service.js with a fake backend: no Python, no audio files.
+// electron/tag-service.js with a fake backend: no audio files.
 // Run: node --test tools/tests/tag-service.test.js
 
 const { test } = require('node:test');
@@ -57,14 +57,14 @@ test('writeMany with nothing to do returns an empty list', async () => {
 
 test('writeMany: when the backend itself is missing, every song says so, with the reason, and nothing is written', async () => {
     const { createTagService } = require('../../electron/tag-service');
-    const message = 'Tags cannot be read or saved yet: the Python package "mutagen" is not installed. Install it with: python -m pip install mutagen';
+    const message = 'The tag library (node-taglib-sharp) is not installed. Run: npm install node-taglib-sharp';
     let writes = 0;
     const service = createTagService({
-        getAudioMetadata: async () => ({ success: false, reason: 'no-mutagen', error: message }),
+        getAudioMetadata: async () => ({ success: false, reason: 'no-library', error: message }),
         saveAudioMetadata: async () => { writes += 1; return { success: true, metadata: {} }; }
     });
     const out = await service.writeMany([{ fileUrl: 'file:///a.mp3', metadata: { album: 'X' } }, { fileUrl: 'file:///b.mp3', metadata: { album: 'X' } }]);
-    assert.deepEqual(out, [{ fileUrl: 'file:///a.mp3', success: false, error: message, reason: 'no-mutagen' }, { fileUrl: 'file:///b.mp3', success: false, error: message, reason: 'no-mutagen' }]);
+    assert.deepEqual(out, [{ fileUrl: 'file:///a.mp3', success: false, error: message, reason: 'no-library' }, { fileUrl: 'file:///b.mp3', success: false, error: message, reason: 'no-library' }]);
     assert.equal(writes, 0);
 });
 

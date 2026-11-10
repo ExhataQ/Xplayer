@@ -18,7 +18,7 @@
 .plist-panel__controls {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
+    gap: var(--panel-controls-gap);
     padding: var(--panel-pad-top) var(--space-4) var(--panel-pad-bottom);
 }
 .plist-panel__controls .chip-group {
@@ -32,10 +32,16 @@
     clip-path: inset(50%);
     white-space: nowrap;
 }
+.plist-results-wrap {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+}
 .plist-results {
     flex: 1;
     min-height: 0;
-    padding: 0 var(--space-2) var(--panel-list-end);
+    padding: 0 var(--panel-list-pad-x) var(--panel-list-end);
     overflow-y: auto;
 }
 .plist-panel:not(:has(.plist-panel__controls)) .plist-results {
@@ -117,6 +123,9 @@
     font: inherit;
     text-align: left;
     cursor: pointer;
+}
+.plist-row[aria-current='page'] {
+    background: var(--surface-selected); /* the page the main view shows, the same look as the Library's selected row */
 }
 .plist-row:focus-visible,
 .plist-toggle:focus-visible {

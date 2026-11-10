@@ -34,10 +34,12 @@ describe('right panel slot', { concurrency: false }, () => {
 
     const guard = (t) => (skip ? (t.skip(skip), false) : true);
 
-    async function open(vw = 1400) {
+    // `fresh`: starts with no saved choice, so the panel shows what the app does by default (the test fixture would otherwise start it closed).
+    async function open(vw = 1400, { fresh = false } = {}) {
         const page = await browser.newPage({ viewport: { width: vw, height: 860 } });
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e.message)));
+        if (fresh) await page.addInitScript(() => !sessionStorage.getItem('fresh-start') && (sessionStorage.setItem('fresh-start', '1'), localStorage.removeItem('xplayer.ui-next.right-open'))); // once per tab: a reload keeps the choice made since
         await page.goto('file://' + path.join(dir, 'ui-next', 'index.html').replace(/\\/g, '/'));
         await waitForAppSettled(page, 4000);
         await page.waitForSelector('.view-host .song-item:not(.lazy-skeleton)');
@@ -53,12 +55,28 @@ describe('right panel slot', { concurrency: false }, () => {
             m.registerRightPanel({ mount(body) { window.__rp.mounts++; body.textContent = 'provider body'; return {}; } });
         });
 
-    test('the player registers the panel content (PC-13): the button shows, the panel stays closed until it is opened', TEST_OPTIONS, async (t) => {
+    test('the right panel is open by default, and a closed panel stays closed after a reload', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open(1400, { fresh: true });
+        await page.waitForSelector('.right-host .rp-now');
+        assert.equal(await host(page).isVisible(), true, 'open by default');
+        assert.equal(await button(page).getAttribute('aria-pressed'), 'true');
+        await button(page).click();
+        await host(page).waitFor({ state: 'hidden' }); // it slides out first (C8)
+        assert.equal(await host(page).isHidden(), true);
+        await page.reload();
+        await waitForAppSettled(page, 4000);
+        assert.equal(await host(page).isHidden(), true, 'the choice is remembered');
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('the player registers the panel content (PC-13): the button shows, and a closed panel opens with it', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open();
         assert.equal(await button(page).count(), 1);
         assert.equal(await button(page).isVisible(), true, 'the content registered, so the title bar button exists');
-        assert.equal(await host(page).isHidden(), true, 'closed by default');
+        assert.equal(await host(page).isHidden(), true, 'closed here: the test fixture starts a page with the panel closed');
         await button(page).click();
         await page.waitForSelector('.right-host .rp-now');
         assert.equal(await host(page).isVisible(), true);
@@ -113,6 +131,7 @@ describe('right panel slot', { concurrency: false }, () => {
         const { page } = await open(1600);
         await register(page);
         await button(page).click();
+        await page.waitForFunction(() => !document.querySelector('.right-host').hasAttribute('data-enter')); // it slides in (C8): measure where it stops
         const box = await page.locator('.right-resizer').boundingBox();
         await page.mouse.move(box.x + 2, box.y + 50);
         await page.mouse.down();

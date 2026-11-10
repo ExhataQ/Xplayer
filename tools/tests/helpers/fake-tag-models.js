@@ -18,6 +18,19 @@ function id3Model(frames = [], comments = []) {
     return model;
 }
 
+// MP4 atoms: keys are the four-letter atom names, '----:NAME' for free-form atoms, and the numeric atoms as text ('trkn' "7/13").
+function mp4Model(map = {}) {
+    const state = {};
+    for (const [k, v] of Object.entries(map)) state[k] = [...v];
+    return {
+        state,
+        get: (key) => [...(state[key] || [])],
+        set: (key, values) => { if (values.length) state[key] = [...values]; else delete state[key]; },
+        del: (key) => { delete state[key]; },
+        entries: () => Object.entries(state).map(([key, values]) => ({ key, values }))
+    };
+}
+
 function vorbisModel(map = {}) {
     const state = {};
     for (const [k, v] of Object.entries(map)) state[k.toLowerCase()] = [...v];
@@ -30,7 +43,7 @@ function vorbisModel(map = {}) {
     };
 }
 
-// The same file the Python logic test uses (tools/tests/metadata_backend_logic.py, id3_file()).
+// An ID3 file with a few frames, an iTunes comment and the user's comment.
 function sampleId3() {
     return id3Model([
         { key: 'TIT2', values: ['Old title'] }, { key: 'TPE1', values: ['Earth, Wind & Fire'] }, { key: 'TALB', values: ['Jazz'] },
@@ -42,4 +55,4 @@ function sampleId3() {
     ]);
 }
 
-module.exports = { id3Model, vorbisModel, sampleId3 };
+module.exports = { id3Model, vorbisModel, mp4Model, sampleId3 };

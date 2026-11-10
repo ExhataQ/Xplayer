@@ -96,7 +96,7 @@ test('multi-value text splits on ";" only; a comma stays inside a name', () => {
 test('the search and the fetch get what they need: first artist, the chosen release, the song title, and no cover download', async () => {
     const f = fakes();
     await createTagFinder(f.deps).findOne(song('7', { artist: ['First', 'Second'], album: 'Hint', duration: 200 }));
-    assert.deepEqual(f.calls.search[0], { fileUrl: 'file:///music/7.mp3', title: 'Song 7', artist: 'First', album: 'Hint', duration: 200, scope: 'release' });
+    assert.deepEqual(f.calls.search[0], { fileUrl: 'file:///music/7.mp3', title: 'Song 7', artist: 'First', album: 'Hint', duration: 200, scope: 'release', recordingLimit: 25 });
     assert.deepEqual(f.calls.get[0], { fileUrl: 'file:///music/7.mp3', releaseId: 'a', title: 'Song 7', skipCover: true });
 });
 
@@ -163,7 +163,7 @@ test('an empty or missing list is a finished run, not an error', async () => {
 test('the finder has no way to write: it exports no save or apply function and its source never touches a file', () => {
     const source = require('fs').readFileSync(require.resolve('../../electron/tag-finder'), 'utf8').replace(/\/\/.*$/gm, '');
     assert.ok(!/writeFile|writeMany|saveAudioMetadata|\.write\(|fs\./.test(source));
-    assert.deepEqual(Object.keys(require('../../electron/tag-finder')).sort(), ['DEFAULT_FIELDS', 'MAX_CONSECUTIVE_ERRORS', 'compareTags', 'createTagFinder']);
+    assert.deepEqual(Object.keys(require('../../electron/tag-finder')).sort(), ['DEFAULT_FIELDS', 'MAX_CONSECUTIVE_ERRORS', 'RECORDING_LIMIT', 'compareTags', 'createTagFinder', 'stripVersionNote']);
 });
 
 // ---- the "popular" rule (PD-04) ----
@@ -198,4 +198,65 @@ test('popular: popularity given by the caller is used as it is', async () => {
     const finder = createTagFinder({ ...f.deps, getPopularity: async () => { asked += 1; return null; } });
     const out = await finder.findOne(song('1'), { rule: 'popular', popularity: { 'g-a': 0, 'g-b': 1 }, autoThreshold: 0.1 });
     assert.equal(out.release.id, 'b'); assert.equal(asked, 0);
+});
+
+// ---- first real run on a library (PD-04): version notes in titles, and a release that names the song differently ----
+const { stripVersionNote } = require('../../electron/tag-finder');
+const noMatch = () => Object.assign(new Error("No track in that release matches this song's title."), { code: 'NO_MATCHING_TRACK' });
+
+test('stripVersionNote: remaster, mono and deluxe notes come off, other versions of a song stay', () => {
+    for (const [from, to] of [
+        ['In My Life (Remastered 2009)', 'In My Life'], ['Breakthru - 2011 Remaster', 'Breakthru'], ['Help! - Remastered 2009', 'Help!'],
+        ['Song (Mono Version)', 'Song'], ['Song [Bonus Track]', 'Song'], ['Song (Deluxe Edition)', 'Song'], ['Hey Jude - Remastered', 'Hey Jude'],
+        ['Yesterday (Remastered 2009) (Mono)', 'Yesterday'],
+        ['Song (Live)', 'Song (Live)'], ['The Sound of Silence (Acoustic Version)', 'The Sound of Silence (Acoustic Version)'], ['Song (Remix)', 'Song (Remix)'],
+        ['A-B - C', 'A-B - C'], ['(Remastered)', '(Remastered)'], ['', '']
+    ]) assert.equal(stripVersionNote(from), to, from);
+});
+
+test('nothing found under a title with a remaster note: it is asked again without the note, and the answer says so', async () => {
+    const f = fakes({ releases: (q) => (q.title === 'Song 1' ? CLEAR : []) });
+    const out = await createTagFinder(f.deps).findOne(song('1', { title: 'Song 1 (Remastered 2009)' }));
+    assert.deepEqual(f.calls.search.map((q) => q.title), ['Song 1 (Remastered 2009)', 'Song 1']);
+    assert.equal(out.decision, 'auto');
+    assert.ok(out.reasons.some((r) => /without the version note/.test(r)));
+    assert.equal(f.calls.get[0].title, 'Song 1', 'the release is asked for the plain title first');
+});
+
+test('a title that finds releases the first time is not asked twice, and a title without a note is never changed', async () => {
+    const withNote = fakes();
+    await createTagFinder(withNote.deps).findOne(song('1', { title: 'Song 1 (Remastered 2009)' }));
+    assert.equal(withNote.calls.search.length, 1);
+    const plain = fakes({ releases: [] });
+    await createTagFinder(plain.deps).findOne(song('2'));
+    assert.equal(plain.calls.search.length, 1);
+});
+
+test('the plain title finds no track in the release: the file\'s own title is tried before giving up', async () => {
+    const f = fakes({ releases: (q) => (q.title === 'Song 1' ? CLEAR : []), onGet: (q) => { if (q.title === 'Song 1') throw noMatch(); return { success: true, metadata: online }; } });
+    const out = await createTagFinder(f.deps).findOne(song('1', { title: 'Song 1 (Remastered 2009)' }));
+    assert.deepEqual(f.calls.get.map((q) => q.title), ['Song 1', 'Song 1 (Remastered 2009)']);
+    assert.equal(out.decision, 'auto');
+});
+
+test('a release with no track of that title is a result (none, with the release and the reason), not an error', async () => {
+    const f = fakes({ onGet: () => { throw noMatch(); } });
+    const out = await createTagFinder(f.deps).findOne(song('1'));
+    assert.equal(out.decision, 'none');
+    assert.equal(out.release.id, 'a');
+    assert.match(out.reasons.join(' '), /no track with this title/);
+    assert.deepEqual(out.patch, {});
+});
+
+test('many such songs in a row do not stop the run as if the connection were dead; a real error still counts', async () => {
+    const f = fakes({ onGet: () => { throw noMatch(); } });
+    const songs = Array.from({ length: 8 }, (_, i) => song(String(i)));
+    const run = await createTagFinder(f.deps).findMany(songs);
+    assert.equal(run.stopped, null);
+    assert.equal(run.summary.processed, 8);
+    assert.equal(run.summary.error, 0);
+
+    const down = fakes({ onGet: () => { throw new Error('getaddrinfo ENOTFOUND musicbrainz.org'); } });
+    const stopped = await createTagFinder(down.deps).findMany(songs);
+    assert.ok(stopped.stopped, 'five real failures in a row still stop it');
 });

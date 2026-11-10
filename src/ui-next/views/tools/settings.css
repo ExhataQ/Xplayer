@@ -38,10 +38,50 @@
 .settings-panel-content [hidden] {
     display: none !important;
 }
-/* The engine writes Font Awesome icons (<i class="fas fa-...">) in its buttons. The new screen does not load that font, so each one is an
-   empty box that pushes the label off center. The old swatch icons are in a block that is hidden already. */
+/* The engine writes Font Awesome icons (<i class="fas fa-...">) in its buttons and lists. The new screen does not load that font, so they were
+   hidden (an empty box pushed the label off center), which also took every icon out of the folder list and its buttons. The ones this page uses are
+   drawn again here as masks of the Lucide icons the rest of the new interface uses (ISC), in the text's color; any other stays hidden. */
 .settings-panel-content i.fas {
     display: none;
+}
+.settings-panel-content i.fas:is(.fa-plus, .fa-trash-alt, .fa-folder, .fa-folder-open, .fa-save, .fa-search, .fa-history, .fa-upload, .fa-download, .fa-undo) {
+    display: inline-block;
+    flex: none;
+    width: 1.15em;
+    height: 1.15em;
+    background: currentColor;
+    -webkit-mask: var(--fa-icon) center / contain no-repeat;
+    mask: var(--fa-icon) center / contain no-repeat;
+}
+.settings-panel-content i.fa-plus {
+    --fa-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14'/%3E%3Cpath d='M12 5v14'/%3E%3C/svg%3E");
+}
+.settings-panel-content i.fa-trash-alt {
+    --fa-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 11v6'/%3E%3Cpath d='M14 11v6'/%3E%3Cpath d='M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6'/%3E%3Cpath d='M3 6h18'/%3E%3Cpath d='M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'/%3E%3C/svg%3E");
+}
+.settings-panel-content i.fa-folder {
+    --fa-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z'/%3E%3C/svg%3E");
+}
+.settings-panel-content i.fa-folder-open {
+    --fa-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2'/%3E%3C/svg%3E");
+}
+.settings-panel-content i.fa-save {
+    --fa-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z'/%3E%3Cpath d='M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7'/%3E%3Cpath d='M7 3v4a1 1 0 0 0 1 1h7'/%3E%3C/svg%3E");
+}
+.settings-panel-content i.fa-search {
+    --fa-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m21 21-4.34-4.34'/%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3C/svg%3E");
+}
+.settings-panel-content i.fa-history {
+    --fa-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8'/%3E%3Cpath d='M3 3v5h5'/%3E%3Cpath d='M12 7v5l4 2'/%3E%3C/svg%3E");
+}
+.settings-panel-content i.fa-upload {
+    --fa-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v12'/%3E%3Cpath d='m17 8-5-5-5 5'/%3E%3Cpath d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/%3E%3C/svg%3E");
+}
+.settings-panel-content i.fa-download {
+    --fa-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 15V3'/%3E%3Cpath d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/%3E%3Cpath d='m7 10 5 5 5-5'/%3E%3C/svg%3E");
+}
+.settings-panel-content i.fa-undo {
+    --fa-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 14 4 9l5-5'/%3E%3Cpath d='M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11'/%3E%3C/svg%3E");
 }
 
 /* ---------- header and menu bar (PA-11, shell/settings-layout.js) ---------- */
@@ -76,10 +116,8 @@
     justify-content: center; /* the category tabs sit in the middle of the page, not against the left edge */
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .settings-panel-actions.is-entering {
-        animation: settings-enter 200ms var(--motion-ease) both;
-    }
+:where(:root:not([data-motion='reduced'])) .settings-panel-actions.is-entering {
+    animation: settings-enter 200ms var(--motion-ease) both;
 }
 @keyframes settings-enter {
     from {
@@ -173,9 +211,16 @@
 }
 
 /* The engine writes Remove Folder in a fixed red; use the theme's error color and keep it an outline. */
-.library-locations-header-buttons .library-locations-add-btn[style*='ff4444'] {
+.library-locations-header-buttons .library-locations-add-btn[style*='ff4444'],
+.library-locations-danger {
     border-color: var(--danger) !important;
     color: var(--danger) !important;
+}
+.library-locations-section:not(:has(.library-location-item.selected)) .library-locations-danger {
+    opacity: 0.55; /* nothing is selected yet: the button says it would have nothing to remove */
+}
+.library-locations-danger:hover {
+    background: color-mix(in srgb, var(--danger) 14%, transparent);
 }
 
 /* ---------- rows ---------- */
@@ -190,15 +235,12 @@
 .settings-toggle-row {
     flex-direction: row-reverse; /* the switch sits at the end of the row, like every other control */
     justify-content: space-between;
-    cursor: pointer;
     border-radius: var(--radius-md);
+    pointer-events: none; /* only the switch takes a click: the engine wraps the switch and its words in one <label>, which would turn on a click anywhere on the row */
 }
 .settings-section > :is(.settings-toggle-row, .settings-threshold-row, .appearance__row) + :is(.settings-toggle-row, .settings-threshold-row, .appearance__row) {
     padding-top: var(--space-3);
     border-top: 1px solid var(--border-subtle);
-}
-.settings-toggle-row:hover {
-    color: var(--text-primary);
 }
 .settings-threshold-row {
     justify-content: space-between;
@@ -216,6 +258,7 @@
 
 .settings-toggle-row input[type='checkbox'] {
     position: relative;
+    pointer-events: auto; /* the one part of the row that answers a click */
     flex: none;
     width: 34px;
     height: 20px;
@@ -237,15 +280,29 @@
     height: 14px;
     border-radius: var(--radius-pill);
     background: var(--text-secondary);
-    transition: transform var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease);
+    transition: translate 180ms var(--motion-ease), width 150ms var(--motion-ease), background-color var(--motion-fast) var(--motion-ease); /* the thumb glides and stretches, it does not jump */
+}
+.settings-toggle-row input[type='checkbox']::before {
+    content: '';
+    position: absolute;
+    inset: -8px -6px; /* a larger place to click than the switch that is drawn, as every switch guideline asks */
+}
+.settings-toggle-row input[type='checkbox']:hover {
+    border-color: var(--text-secondary);
+}
+.settings-toggle-row input[type='checkbox']:active::after {
+    width: 18px; /* the thumb stretches while it is pressed */
 }
 .settings-toggle-row input[type='checkbox']:checked {
     border-color: var(--accent);
     background: var(--accent);
 }
+.settings-toggle-row input[type='checkbox']:checked:active::after {
+    translate: 10px 0; /* stretched by 4px, so the thumb's right edge stays where it was */
+}
 .settings-toggle-row input[type='checkbox']:checked::after {
     background: var(--text-on-accent);
-    transform: translateX(14px);
+    translate: 14px 0;
 }
 .settings-toggle-row input[type='checkbox']:focus-visible {
     outline: 2px solid var(--focus-ring);
@@ -253,7 +310,99 @@
 }
 .settings-threshold-row input[type='range'] {
     flex: 0 1 220px;
-    accent-color: var(--accent);
+}
+
+/* ---------- sliders ----------
+ * A thin track with the part up to the thumb in the accent color and the rest in a faint tint of it, and a round thumb that gets a halo when
+ * pointed at or pressed: the shape sliders have in Material Design (active and inactive track, thumb) and on the platforms. The two numbers
+ * --lo and --hi (0 to 1) say which part of the track is filled: views/tools/range-fill.js sets them.
+ *
+ * The thumb box is exactly the 12px dot, so at both ends of the slider the dot's edge meets the track's end (a thumb box with a halo border in it
+ * left the dot 5px short of each end). The halo is a 5px shadow around the dot. Chromium clips whatever a slider draws outside its own box, so the
+ * slider has 5px of padding at each side: the track and the dot's travel stay inside it, the halo fits in it, and nothing is cut off. */
+.settings-section input[type='range'] {
+    --range-thumb: 12px; /* the dot; the halo is a 5px shadow around it */
+    --range-halo-size: 5px;
+    --range-halo: transparent;
+    --range-inactive: color-mix(in srgb, var(--accent) 24%, var(--surface-selected));
+    box-sizing: border-box;
+    height: 24px;
+    margin: 0;
+    padding: 0 var(--range-halo-size); /* room for the halo at both ends of the track: the slider clips whatever it draws outside its own box */
+    border-radius: var(--radius-pill);
+    background: transparent;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+.settings-section input[type='range']::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: var(--radius-pill);
+    /* The fill runs from --lo to --hi of the track's WHOLE width. Where the thumb is (its left edge is at (W - thumb) * v, its width is the thumb), the
+     * point v * W always lies under the thumb, so the join between fill and track is hidden by the thumb, and at 0 and 1 it is the track's own ends:
+     * no pale stub at either end, and nothing to special-case. (Measuring from the thumb's centre left half a thumb of track outside the fill.) */
+    background: linear-gradient(
+        to right,
+        var(--range-inactive) calc(100% * var(--lo, 0)),
+        var(--accent) 0,
+        var(--accent) calc(100% * var(--hi, 0)),
+        var(--range-inactive) 0
+    );
+}
+.settings-section input[type='range']::-webkit-slider-thumb {
+    box-sizing: border-box;
+    width: var(--range-thumb);
+    height: var(--range-thumb);
+    margin-top: calc((4px - var(--range-thumb)) / 2); /* centered on the 4px track */
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    box-shadow: 0 0 0 var(--range-halo-size) var(--range-halo);
+    appearance: none;
+    -webkit-appearance: none;
+    transition: box-shadow 160ms var(--motion-ease);
+}
+.settings-section input[type='range']:hover {
+    --range-halo: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.settings-section input[type='range']:active {
+    --range-halo: color-mix(in srgb, var(--accent) 34%, transparent);
+}
+.settings-section input[type='range']:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 3px;
+}
+.settings-section input[type='range']:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+/* ---------- a feature and its settings ----------
+ * A switch with the settings that depend on it under it, set in a little and joined to it by a line. While the switch is off they fade: they can
+ * still be set (the choices are kept), but it is plain they do nothing yet. */
+.settings-feature {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+.settings-section > .settings-feature + .settings-feature {
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-subtle);
+}
+.settings-sub {
+    margin-inline-start: var(--space-1);
+    padding-inline-start: var(--space-4);
+    border-inline-start: 2px solid var(--border-subtle);
+    transition: opacity var(--motion-fast) var(--motion-ease);
+}
+.settings-feature:has(> .settings-toggle-row input[type='checkbox']:not(:checked)) > .settings-sub {
+    opacity: 0.5;
+}
+.settings-threshold-row > span:last-child:not(:first-child) {
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-pill);
+    background: var(--surface-selected);
+    color: var(--text-primary);
 }
 
 .settings-threshold-row select,
@@ -364,7 +513,8 @@
     background: var(--surface-ground);
 }
 .library-locations-list {
-    max-height: 240px;
+    box-sizing: border-box;
+    height: 240px; /* fixed, as in the old interface: the box does not shrink when a folder is added, and the folders scroll inside it */
     overflow-y: auto;
     padding: var(--space-1);
 }
@@ -373,18 +523,23 @@
     outline-offset: -2px;
 }
 .library-location-item {
-    display: flex;
+    -webkit-user-select: none;
+    user-select: none; /* Shift-click selects a range of folders, not a range of text */
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) auto; /* name | path | songs */
     align-items: center;
     gap: var(--space-3);
     padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-md);
     cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease);
 }
 .library-location-item:hover {
     background: var(--control-hover-bg);
 }
 .library-location-item.selected {
-    background: var(--surface-selected);
+    background: color-mix(in srgb, var(--accent) 16%, var(--surface-selected));
+    box-shadow: inset 3px 0 0 var(--accent); /* plain which folders the Remove Folder button will take */
 }
 .library-location-name,
 .library-location-path,
@@ -394,20 +549,29 @@
     font-size: var(--text-sm);
 }
 .library-location-name {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    overflow: hidden;
     color: var(--text-primary);
     font-size: var(--text-md);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.library-location-name i {
+    color: var(--accent);
 }
 .library-location-path {
-    overflow-wrap: anywhere;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
-.library-location-remove {
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    cursor: pointer;
-}
-.library-location-remove:hover {
-    color: var(--danger);
+.library-location-song-count {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 .library-locations-footer {
     display: flex;
@@ -476,25 +640,10 @@
     gap: var(--space-4);
 }
 
-/* The threshold slider gets its fill from an inline gradient the engine updates; only size and thumb are styled here. */
+/* The virtual-scroll slider is a plain slider: the generic rule above draws it, and the engine sets --lo/--hi on it like range-fill.js does. */
 .settings-threshold-slider {
     flex: 1 1 auto;
-    height: var(--progress-height);
-    border-radius: var(--radius-pill);
-    appearance: none;
-    -webkit-appearance: none;
-    cursor: pointer;
-}
-.settings-threshold-slider::-webkit-slider-thumb {
-    width: 14px;
-    height: 14px;
-    border: none;
-    border-radius: var(--radius-pill);
-    background: var(--text-primary);
-    -webkit-appearance: none;
-}
-.settings-threshold-slider::-webkit-slider-thumb:hover {
-    background: var(--accent);
+    background: transparent !important; /* an older inline gradient must never paint a full-width bar behind the thumb */
 }
 .settings-threshold-value {
     min-width: 56px;
@@ -575,4 +724,56 @@
     font-size: var(--text-xs);
     line-height: 18px;
     text-align: center;
+}
+
+/* ---------- Equalizer (the section of the engine's settings page: js/ui/08e1-equalizer-settings.js) ---------- */
+.eq-section .eq-unavailable {
+    display: none;
+}
+.eq-section[data-available='false'] .eq-unavailable {
+    display: block;
+}
+.eq-section[data-available='false'] .eq-body {
+    opacity: 0.5;
+    pointer-events: none;
+}
+.eq-section[data-enabled='false'] .eq-bands,
+.eq-section[data-enabled='false'] [data-eq='preamp'] {
+    opacity: 0.55; /* still adjustable: the settings are kept for when it is switched on */
+}
+.eq-bands {
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: var(--space-1);
+    padding: var(--space-3) 0 var(--space-2);
+}
+.eq-band {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+}
+.eq-band-db,
+.eq-band-freq {
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.eq-band-db {
+    min-height: 1.6em;
+}
+.eq-slider-slot {
+    position: relative;
+    width: 28px;
+    height: 150px;
+}
+.eq-slider {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 150px; /* the slider is laid flat and turned upright: up is louder */
+    translate: -50% -50%;
+    rotate: -90deg;
 }

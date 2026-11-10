@@ -22,6 +22,13 @@ const groups = {
         onThumbarNext: (cb) => ipcRenderer.on('thumbar-next', () => cb()),
         onWindowMaximize: (cb) => ipcRenderer.on('window-maximized', (event, isMax) => cb(isMax))
     },
+    app: {
+        getAppInfo: () => ipcRenderer.invoke('app-info'),
+        openDataFolder: () => ipcRenderer.invoke('open-data-folder'),
+        copyDiagnostics: () => ipcRenderer.invoke('copy-diagnostics'),
+        perfRecording: (enable) => ipcRenderer.invoke('perf-record', enable),
+        copyPerfSummary: () => ipcRenderer.invoke('perf-summary')
+    },
     library: {
         changeMusicFolder: () => ipcRenderer.invoke('change-folder'),
         getMusicFolders: () => ipcRenderer.invoke('get-music-folders'),
@@ -32,6 +39,7 @@ const groups = {
         getFolderStats: (folderPath) => ipcRenderer.invoke('get-folder-stats', folderPath),
         importDroppedFiles: (filePaths, targetView) => ipcRenderer.invoke('import-dropped-files', filePaths, targetView),
         downloadAndScan: (url, isTemp) => ipcRenderer.invoke('download-and-scan', url, isTemp),
+        probeUrl: (url) => ipcRenderer.invoke('probe-url', url),
         cancelDownload: () => ipcRenderer.invoke('cancel-download'),
         cancelCoverSearch: () => ipcRenderer.invoke('cancel-cover-search'),
         welcomeSelectFolder: () => ipcRenderer.invoke('welcome-select-folder'),
@@ -61,6 +69,9 @@ const groups = {
         showFileInExplorer: (filePath) => ipcRenderer.send('show-file-in-explorer', filePath),
         deleteFile: (filePath) => ipcRenderer.send('delete-file', filePath),
         readAudioBytes: (fileUrl) => ipcRenderer.invoke('read-audio-bytes', fileUrl),
+        // True: this build serves the music through the media protocol, which the equalizer needs (electron/media-protocol.js).
+        mediaProtocolAvailable: () => true,
+        readCoverThumb: (fileUrl) => ipcRenderer.invoke('read-cover-thumb', fileUrl),
         getWaveformPeaks: (key) => ipcRenderer.invoke('waveform-peaks:get', key),
         setWaveformPeaks: (key, bytes) => ipcRenderer.invoke('waveform-peaks:set', key, bytes),
         // A dropped File has no .path in newer Electron: this is how the page gets the real path of a file the person dropped.
@@ -76,7 +87,8 @@ const groups = {
         saveLyricsFile: (defaultName, contents) => ipcRenderer.invoke('save-lyrics-file', defaultName, contents),
         readLyricsFile: () => ipcRenderer.invoke('read-lyrics-file'),
         searchOnlineLyrics: (params) => ipcRenderer.invoke('search-online-lyrics', params),
-        downloadOnlineLyrics: (params) => ipcRenderer.invoke('download-online-lyrics', params)
+        downloadOnlineLyrics: (params) => ipcRenderer.invoke('download-online-lyrics', params),
+        openLrclibSite: () => ipcRenderer.invoke('open-lrclib-site')
     },
     ai: {
         aiGetStatus: () => ipcRenderer.invoke('ai:get-status'),
@@ -92,7 +104,11 @@ const groups = {
         aiJournalList: () => ipcRenderer.invoke('ai:journal-list'),
         aiJournalGet: (id) => ipcRenderer.invoke('ai:journal-get', id),
         aiJournalRecord: (entry) => ipcRenderer.invoke('ai:journal-record', entry),
-        aiJournalMarkUndone: (id) => ipcRenderer.invoke('ai:journal-mark-undone', id)
+        aiJournalMarkUndone: (id) => ipcRenderer.invoke('ai:journal-mark-undone', id),
+        // The chat window asks the main window for the library, queue and playlists (electron/ai/host-relay.js).
+        aiHostCall: (name, args, focus) => ipcRenderer.invoke('ai:host-call', name, args, focus),
+        onAiHostRequest: (cb) => ipcRenderer.on('ai:host-request', (event, message) => cb(message)),
+        aiHostRespond: (message) => ipcRenderer.send('ai:host-response', message)
     }
 };
 

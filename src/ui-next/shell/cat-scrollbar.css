@@ -4,7 +4,7 @@
  * One fixed layer on <body> holds a cat per long scroller. The layer and the cat's box ignore the pointer; only the cat's painted
  * shapes take it, so a list under the empty part of the box still gets its clicks. At rest the cat peeks out from behind the wall
  * (the SVG is pushed right and the box clips it); it slides out while the list scrolls, while it is hovered and while it is dragged.
- * Only transform and opacity animate. prefers-reduced-motion keeps the cat but stops every movement.
+ * Only transform and opacity animate. Reduce animations (data-motion="reduced" on the root) keeps the cat but stops every movement.
  *
  * The cat's colors are its own (yellow and orange), not the theme's. The scroller's native bar is hidden through [data-cat-scroll],
  * which the script sets only on scrollers that have a cat, so short lists, text fields and horizontal bars keep the normal bar.
@@ -311,84 +311,82 @@
     transform: rotate(-6deg);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    /* Resting: the tail sways and the eyes blink now and then. */
-    .cat-tail {
-        transform-origin: 15px 45px;
-        animation: cat-sway 2.6s ease-in-out infinite alternate;
-    }
-    .cat-eye {
-        transform-box: fill-box;
-        transform-origin: center;
-        animation: cat-blink 5.5s infinite;
-    }
-    /* Hovered: the whiskers twitch, the ears twitch and the tail wags. */
-    .xp-cat[data-hover] .cat-whiskers {
-        transform-origin: 24px 26px;
-        animation: cat-whisk 0.6s ease-in-out infinite alternate;
-    }
-    .xp-cat[data-hover] .cat-ear--l {
-        transform-origin: 11.5px 13px;
-        animation: cat-ear-l 0.5s ease-in-out infinite alternate;
-    }
-    .xp-cat[data-hover] .cat-ear--r {
-        transform-origin: 36.5px 13px;
-        animation: cat-ear-r 0.5s ease-in-out 0.12s infinite alternate;
-    }
-    .xp-cat[data-hover] .cat-tail,
-    .xp-cat[data-drag] .cat-tail {
-        animation: cat-wag 0.34s ease-in-out infinite alternate;
-    }
-    /* Walking (the list scrolls, or the cat walks by itself): one 0.56s step cycle that every part shares, so they stay in time.
-       A diagonal gait, as a cat climbs: the upper paw and the opposite foot move together, then the other pair. Each limb reaches
-       out, grabs, then pulls (an ease in and out, not a straight slide); the body leans into the pull and rises and sinks with it; the
-       head stays steadier than the body; the tail swings against the step to balance it. */
-    .xp-cat[data-dir] .cat-tail {
-        transform-origin: 15px 45px;
-        animation: cat-tail-walk 0.56s ease-in-out infinite;
-    }
-    .xp-cat[data-dir] .cat-bodyset {
-        transform-origin: 26px 50px;
-        animation: cat-body-walk 0.56s ease-in-out infinite;
-    }
-    .xp-cat[data-dir] .cat-arm--a {
-        transform-origin: 33px 33.5px;
-        animation: cat-arm-walk 0.56s ease-in-out infinite;
-    }
-    .xp-cat[data-dir] .cat-arm--b {
-        transform-origin: 33.5px 41px;
-        animation: cat-arm-walk 0.56s ease-in-out -0.28s infinite;
-    }
-    .xp-cat[data-dir] .cat-foot--a {
-        animation: cat-foot-walk 0.56s ease-in-out -0.28s infinite;
-    }
-    .xp-cat[data-dir] .cat-foot--b {
-        animation: cat-foot-walk 0.56s ease-in-out infinite;
-    }
-    .xp-cat[data-dir='up'] :is(.cat-arm--a, .cat-arm--b) {
-        animation-direction: reverse; /* climbing up: the paws reach up and pull down */
-    }
-    .xp-cat[data-dir='down'] .cat-headset {
-        animation: cat-head-walk-down 0.56s ease-in-out infinite;
-    }
-    .xp-cat[data-dir='up'] .cat-headset {
-        animation: cat-head-walk-up 0.56s ease-in-out infinite;
-    }
-    /* After a walk: a small shake, as a cat does when it stops. */
-    .xp-cat[data-settle] .cat-all {
-        transform-origin: 26px 52px;
-        animation: cat-settle 0.42s ease-out;
-    }
-    /* Dragged: it hangs on and kicks its legs. */
-    .xp-cat[data-drag] .cat-feet {
-        transform-origin: 25px 44px;
-        animation: cat-dangle 0.3s ease-in-out infinite alternate;
-    }
-    /* Poked (a click without a drag): a little hop. */
-    .xp-cat[data-poke] .cat-all {
-        transform-origin: 26px 52px;
-        animation: cat-poke 0.5s ease-out;
-    }
+/* Resting: the tail sways and the eyes blink now and then. */
+:where(:root:not([data-motion='reduced'])) .cat-tail {
+    transform-origin: 15px 45px;
+    animation: cat-sway 2.6s ease-in-out infinite alternate;
+}
+:where(:root:not([data-motion='reduced'])) .cat-eye {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: cat-blink 5.5s infinite;
+}
+/* Hovered: the whiskers twitch, the ears twitch and the tail wags. */
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-hover] .cat-whiskers {
+    transform-origin: 24px 26px;
+    animation: cat-whisk 0.6s ease-in-out infinite alternate;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-hover] .cat-ear--l {
+    transform-origin: 11.5px 13px;
+    animation: cat-ear-l 0.5s ease-in-out infinite alternate;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-hover] .cat-ear--r {
+    transform-origin: 36.5px 13px;
+    animation: cat-ear-r 0.5s ease-in-out 0.12s infinite alternate;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-hover] .cat-tail,
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-drag] .cat-tail {
+    animation: cat-wag 0.34s ease-in-out infinite alternate;
+}
+/* Walking (the list scrolls, or the cat walks by itself): one 0.56s step cycle that every part shares, so they stay in time.
+   A diagonal gait, as a cat climbs: the upper paw and the opposite foot move together, then the other pair. Each limb reaches
+   out, grabs, then pulls (an ease in and out, not a straight slide); the body leans into the pull and rises and sinks with it; the
+   head stays steadier than the body; the tail swings against the step to balance it. */
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-dir] .cat-tail {
+    transform-origin: 15px 45px;
+    animation: cat-tail-walk 0.56s ease-in-out infinite;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-dir] .cat-bodyset {
+    transform-origin: 26px 50px;
+    animation: cat-body-walk 0.56s ease-in-out infinite;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-dir] .cat-arm--a {
+    transform-origin: 33px 33.5px;
+    animation: cat-arm-walk 0.56s ease-in-out infinite;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-dir] .cat-arm--b {
+    transform-origin: 33.5px 41px;
+    animation: cat-arm-walk 0.56s ease-in-out -0.28s infinite;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-dir] .cat-foot--a {
+    animation: cat-foot-walk 0.56s ease-in-out -0.28s infinite;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-dir] .cat-foot--b {
+    animation: cat-foot-walk 0.56s ease-in-out infinite;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-dir='up'] :is(.cat-arm--a, .cat-arm--b) {
+    animation-direction: reverse; /* climbing up: the paws reach up and pull down */
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-dir='down'] .cat-headset {
+    animation: cat-head-walk-down 0.56s ease-in-out infinite;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-dir='up'] .cat-headset {
+    animation: cat-head-walk-up 0.56s ease-in-out infinite;
+}
+/* After a walk: a small shake, as a cat does when it stops. */
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-settle] .cat-all {
+    transform-origin: 26px 52px;
+    animation: cat-settle 0.42s ease-out;
+}
+/* Dragged: it hangs on and kicks its legs. */
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-drag] .cat-feet {
+    transform-origin: 25px 44px;
+    animation: cat-dangle 0.3s ease-in-out infinite alternate;
+}
+/* Poked (a click without a drag): a little hop. */
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-poke] .cat-all {
+    transform-origin: 26px 52px;
+    animation: cat-poke 0.5s ease-out;
 }
 
 @keyframes cat-sway {
@@ -543,14 +541,297 @@
     }
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .xp-cat__svg,
-    .cat-all,
-    .cat-headset,
-    .cat-eyes,
-    .cat-pupil,
-    .cat-look,
-    .cat-blush {
-        transition: none;
+:where(:root[data-motion='reduced']) .xp-cat__svg,
+:where(:root[data-motion='reduced']) .cat-all,
+:where(:root[data-motion='reduced']) .cat-headset,
+:where(:root[data-motion='reduced']) .cat-eyes,
+:where(:root[data-motion='reduced']) .cat-pupil,
+:where(:root[data-motion='reduced']) .cat-look,
+:where(:root[data-motion='reduced']) .cat-blush {
+    transition: none;
+}
+
+/* ---------- life: sleeping, yawning, stretching, the music, purring and the startled hop ---------- */
+.cat-sleepy {
+    display: none;
+    fill: none;
+    stroke: var(--cat-ink);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+}
+.cat-yawn {
+    fill: #8a2f3c;
+    opacity: 0;
+}
+.xp-cat[data-skin]:not([data-skin='classic']) .cat-yawn {
+    fill: var(--m-eye);
+}
+.cat-zzz {
+    display: none;
+}
+.cat-z {
+    fill: var(--text-secondary, #9aa3b2);
+    font: 700 6px/1 system-ui, sans-serif;
+    opacity: 0.9;
+}
+.cat-z--b {
+    font-size: 7.5px;
+}
+.cat-z--c {
+    font-size: 8px;
+}
+.xp-cat[data-sleeping] .cat-sleepy {
+    display: block;
+}
+.xp-cat[data-sleeping] .cat-zzz {
+    display: block;
+}
+.xp-cat[data-sleeping] .cat-eyes,
+.xp-cat[data-purr] .cat-eyes {
+    display: none;
+}
+.xp-cat[data-purr] .cat-happy {
+    display: block;
+}
+.xp-cat[data-sleeping] .cat-headset {
+    transform: translateY(1.5px) rotate(4deg);
+    transition: transform 0.6s ease-in-out;
+}
+.xp-cat[data-purr] .cat-blush {
+    opacity: 1;
+}
+.xp-cat[data-act='yawn'] .cat-yawn {
+    opacity: 1;
+}
+.xp-cat[data-act] .cat-eyes {
+    transform-origin: 24px 21px;
+}
+.xp-cat[data-jump] .cat-pupil {
+    transform: scale(0.55, 1); /* wide eyes */
+}
+
+/* Yawn: the head tips back, the eyes squeeze shut and the mouth opens wide, then it all relaxes. */
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-act='yawn'] .cat-yawn {
+    transform-box: fill-box;
+    transform-origin: 50% 0;
+    animation: cat-yawn-mouth 1.9s ease-in-out both;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-act='yawn'] .cat-headset {
+    transform-origin: 24px 30px;
+    animation: cat-yawn-head 1.9s ease-in-out both;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-act='yawn'] .cat-eyes {
+    animation: cat-squint 1.9s ease-in-out both;
+}
+/* Stretch: one arm reaches up and out, the body lengthens, the head tips up. */
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-act='stretch'] .cat-arm--a {
+    transform-origin: 33px 33.5px;
+    animation: cat-stretch-arm 1.7s ease-in-out both;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-act='stretch'] .cat-bodyset {
+    transform-origin: 26px 50px;
+    animation: cat-stretch-body 1.7s ease-in-out both;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-act='stretch'] .cat-headset {
+    transform-origin: 24px 30px;
+    animation: cat-stretch-head 1.7s ease-in-out both;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-act='stretch'] .cat-eyes {
+    animation: cat-squint 1.7s ease-in-out both;
+}
+/* Asleep: slow breathing, and the z's float up. */
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-sleeping] .cat-bodyset {
+    transform-origin: 26px 50px;
+    animation: cat-breathe 3.6s ease-in-out infinite;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-sleeping] .cat-z {
+    animation: cat-z-float 3.2s ease-in-out infinite;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-sleeping] .cat-z--b {
+    animation-delay: 0.9s;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-sleeping] .cat-z--c {
+    animation-delay: 1.8s;
+}
+/* Music playing: the head bobs, the body bounces a little, the tail swings in time. */
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-music]:not([data-dir], [data-sleeping], [data-looking], [data-hover], [data-drag]) .cat-headset {
+    transform-origin: 24px 30px;
+    animation: cat-groove-head 0.64s ease-in-out infinite alternate;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-music]:not([data-dir], [data-sleeping], [data-looking], [data-hover], [data-drag]) .cat-bodyset {
+    transform-origin: 26px 50px;
+    animation: cat-groove-body 0.32s ease-in-out infinite alternate;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-music]:not([data-dir], [data-sleeping], [data-looking], [data-hover], [data-drag]) .cat-tail {
+    animation: cat-sway 0.64s ease-in-out infinite alternate;
+}
+/* Purring: a fine tremble (the translate property, so the head's tilt stays). */
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-purr] :is(.cat-bodyset, .cat-headset) {
+    animation: cat-purr 0.09s linear infinite alternate;
+}
+/* Double click: a startled hop. */
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-jump] .cat-all {
+    transform-origin: 26px 52px;
+    animation: cat-jump 0.6s cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+@keyframes cat-yawn-mouth {
+    0%,
+    100% {
+        transform: scaleY(0.3);
+    }
+    28%,
+    68% {
+        transform: scaleY(9);
+    }
+}
+@keyframes cat-yawn-head {
+    0%,
+    100% {
+        transform: rotate(0deg);
+    }
+    28%,
+    68% {
+        transform: translateY(-1px) rotate(-7deg);
+    }
+}
+@keyframes cat-squint {
+    0%,
+    100% {
+        transform: scaleY(1);
+    }
+    25%,
+    72% {
+        transform: scaleY(0.15);
+    }
+}
+@keyframes cat-stretch-arm {
+    0%,
+    100% {
+        transform: none;
+    }
+    30%,
+    70% {
+        transform: translateY(-10px) rotate(-16deg) scaleX(1.12);
+    }
+}
+@keyframes cat-stretch-body {
+    0%,
+    100% {
+        transform: none;
+    }
+    30%,
+    70% {
+        transform: scale(0.97, 1.07);
+    }
+}
+@keyframes cat-stretch-head {
+    0%,
+    100% {
+        transform: rotate(0deg);
+    }
+    30%,
+    70% {
+        transform: translateY(-1px) rotate(-5deg);
+    }
+}
+@keyframes cat-breathe {
+    0%,
+    100% {
+        transform: scale(1, 1);
+    }
+    50% {
+        transform: scale(1.03, 1.05);
+    }
+}
+@keyframes cat-z-float {
+    0% {
+        opacity: 0;
+        transform: translate(1px, 4px);
+    }
+    25% {
+        opacity: 0.9;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-3px, -6px);
+    }
+}
+@keyframes cat-groove-head {
+    from {
+        transform: rotate(-4deg) translateY(0.6px);
+    }
+    to {
+        transform: rotate(4deg) translateY(-0.6px);
+    }
+}
+@keyframes cat-groove-body {
+    from {
+        transform: translateY(0);
+    }
+    to {
+        transform: translateY(-0.8px);
+    }
+}
+@keyframes cat-purr {
+    from {
+        translate: -0.35px 0;
+    }
+    to {
+        translate: 0.35px 0;
+    }
+}
+@keyframes cat-jump {
+    0% {
+        transform: none;
+    }
+    35% {
+        transform: translateY(-9px) scale(0.95, 1.08);
+    }
+    70% {
+        transform: translateY(0) scale(1.06, 0.92);
+    }
+    100% {
+        transform: none;
+    }
+}
+
+/* Music particles, like the z's: small notes float up beside the head while a song plays. */
+.cat-notes {
+    display: none;
+}
+.cat-note {
+    fill: var(--accent, #f5a623);
+    font: 700 7px/1 'Segoe UI Symbol', system-ui, sans-serif;
+    opacity: 0;
+}
+
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-music]:not([data-sleeping]) .cat-notes {
+    display: block;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-music] .cat-note {
+    animation: cat-note-float 2.6s ease-out infinite;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-music] .cat-note--b {
+    font-size: 8px;
+    animation-delay: 0.85s;
+}
+:where(:root:not([data-motion='reduced'])) .xp-cat[data-music] .cat-note--c {
+    animation-delay: 1.7s;
+}
+@keyframes cat-note-float {
+    0% {
+        opacity: 0;
+        transform: translate(1px, 4px) rotate(0deg);
+    }
+    20% {
+        opacity: 0.95;
+    }
+    60% {
+        transform: translate(-2px, -2px) rotate(-8deg);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(1px, -7px) rotate(8deg);
     }
 }

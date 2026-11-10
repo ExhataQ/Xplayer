@@ -1,6 +1,7 @@
 // ==============================================================================
 // SETTINGS PANEL
 // ==============================================================================
+import { buildEqualizerSection } from './08e1-equalizer-settings.js';
 registerActions({
     addLibraryLocation: function (...args) {
         return addLibraryLocation.apply(this, args);
@@ -138,19 +139,30 @@ export function openSettingsPanel() {
                     </div>
                     <div class="settings-section">
                         <div class="settings-section-title">Playback & Audio</div>
-                        <label class="settings-toggle-row"><input type="checkbox" data-playback-setting="crossfadeEnabled" ${getAudioPlaybackSettings().crossfadeEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["crossfadeEnabled","$checked"]'><span>Crossfade between tracks</span></label>
-                        <div class="settings-threshold-row"><span>Crossfade length</span><input type="range" min="0.5" max="10" step="0.5" value="${Number(getAudioPlaybackSettings().crossfadeDuration) || 4}" data-action-input="setAudioPlaybackDurationSetting" data-args-input='["$this","crossfadeDuration"]' aria-label="Crossfade duration"><span>${Number(getAudioPlaybackSettings().crossfadeDuration) || 4}s</span></div>
-                        <label class="settings-toggle-row"><input type="checkbox" data-playback-setting="gaplessEnabled" ${getAudioPlaybackSettings().gaplessEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["gaplessEnabled","$checked"]'><span>Gapless playback</span></label>
-                        <label class="settings-toggle-row"><input type="checkbox" ${getAudioPlaybackSettings().fadeInEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["fadeInEnabled","$checked"]'><span>Fade in</span></label>
-                        <div class="settings-threshold-row"><span>Fade in length</span><input type="range" min="0.2" max="5" step="0.1" value="${Number(getAudioPlaybackSettings().fadeInDuration) || 1}" data-action-input="setAudioPlaybackDurationSetting" data-args-input='["$this","fadeInDuration"]' aria-label="Fade in duration"><span>${Number(getAudioPlaybackSettings().fadeInDuration) || 1}s</span></div>
-                        <label class="settings-toggle-row"><input type="checkbox" ${getAudioPlaybackSettings().fadeOutEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["fadeOutEnabled","$checked"]'><span>Fade out</span></label>
-                        <div class="settings-threshold-row"><span>Fade out length</span><input type="range" min="0.2" max="5" step="0.1" value="${Number(getAudioPlaybackSettings().fadeOutDuration) || 1.25}" data-action-input="setAudioPlaybackDurationSetting" data-args-input='["$this","fadeOutDuration"]' aria-label="Fade out duration"><span>${Number(getAudioPlaybackSettings().fadeOutDuration) || 1.25}s</span></div>
-                        <label class="settings-toggle-row"><input type="checkbox" ${getAudioPlaybackSettings().replayGainEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["replayGainEnabled","$checked"]'><span>ReplayGain / loudness normalization</span></label>
-                        <div class="settings-threshold-row"><span>Gain mode</span><select data-action-change="setAudioPlaybackSetting" data-args-change='["replayGainMode","$value"]'>
-                            ${['track', 'album'].map((value) => `<option value="${value}" ${getAudioPlaybackSettings().replayGainMode === value ? 'selected' : ''}>${value.charAt(0).toUpperCase() + value.slice(1)}</option>`).join('')}
-                        </select></div>
-                        <div class="settings-threshold-row"><span>Trim</span><input type="range" min="-6" max="6" step="0.5" value="${Number(getAudioPlaybackSettings().replayGainTrimDb) || 0}" data-action-input="setReplayGainTrimSetting" data-args-input='["$this"]' aria-label="ReplayGain trim"><span>${(Number(getAudioPlaybackSettings().replayGainTrimDb) || 0) > 0 ? '+' : ''}${Number(getAudioPlaybackSettings().replayGainTrimDb) || 0} dB</span></div>
+                        <div class="settings-feature">
+                            <label class="settings-toggle-row"><input type="checkbox" data-playback-setting="crossfadeEnabled" ${getAudioPlaybackSettings().crossfadeEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["crossfadeEnabled","$checked"]'><span>Crossfade between tracks</span></label>
+                            <div class="settings-threshold-row settings-sub"><span>Crossfade length</span><input type="range" min="0.5" max="10" step="0.5" value="${Number(getAudioPlaybackSettings().crossfadeDuration) || 4}" data-action-input="setAudioPlaybackDurationSetting" data-args-input='["$this","crossfadeDuration"]' aria-label="Crossfade duration"><span>${Number(getAudioPlaybackSettings().crossfadeDuration) || 4}s</span></div>
+                        </div>
+                        <div class="settings-feature">
+                            <label class="settings-toggle-row"><input type="checkbox" data-playback-setting="gaplessEnabled" ${getAudioPlaybackSettings().gaplessEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["gaplessEnabled","$checked"]'><span>Gapless playback</span></label>
+                        </div>
+                        <div class="settings-feature">
+                            <label class="settings-toggle-row"><input type="checkbox" ${getAudioPlaybackSettings().fadeInEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["fadeInEnabled","$checked"]'><span>Fade in</span></label>
+                            <div class="settings-threshold-row settings-sub"><span>Fade in length</span><input type="range" min="0.2" max="5" step="0.1" value="${Number(getAudioPlaybackSettings().fadeInDuration) || 1}" data-action-input="setAudioPlaybackDurationSetting" data-args-input='["$this","fadeInDuration"]' aria-label="Fade in duration"><span>${Number(getAudioPlaybackSettings().fadeInDuration) || 1}s</span></div>
+                        </div>
+                        <div class="settings-feature">
+                            <label class="settings-toggle-row"><input type="checkbox" ${getAudioPlaybackSettings().fadeOutEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["fadeOutEnabled","$checked"]'><span>Fade out</span></label>
+                            <div class="settings-threshold-row settings-sub"><span>Fade out length</span><input type="range" min="0.2" max="5" step="0.1" value="${Number(getAudioPlaybackSettings().fadeOutDuration) || 1.25}" data-action-input="setAudioPlaybackDurationSetting" data-args-input='["$this","fadeOutDuration"]' aria-label="Fade out duration"><span>${Number(getAudioPlaybackSettings().fadeOutDuration) || 1.25}s</span></div>
+                        </div>
+                        <div class="settings-feature">
+                            <label class="settings-toggle-row"><input type="checkbox" ${getAudioPlaybackSettings().replayGainEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["replayGainEnabled","$checked"]'><span>ReplayGain / loudness normalization</span></label>
+                            <div class="settings-threshold-row settings-sub"><span>Gain mode</span><select data-action-change="setAudioPlaybackSetting" data-args-change='["replayGainMode","$value"]'>
+                                ${['track', 'album'].map((value) => `<option value="${value}" ${getAudioPlaybackSettings().replayGainMode === value ? 'selected' : ''}>${value.charAt(0).toUpperCase() + value.slice(1)}</option>`).join('')}
+                            </select></div>
+                            <div class="settings-threshold-row settings-sub"><span>Trim</span><input type="range" min="-6" max="6" step="0.5" value="${Number(getAudioPlaybackSettings().replayGainTrimDb) || 0}" data-action-input="setReplayGainTrimSetting" data-args-input='["$this"]' aria-label="ReplayGain trim"><span>${(Number(getAudioPlaybackSettings().replayGainTrimDb) || 0) > 0 ? '+' : ''}${Number(getAudioPlaybackSettings().replayGainTrimDb) || 0} dB</span></div>
+                        </div>
                     </div>
+                    ${buildEqualizerSection()}
                     <div class="settings-section">
                         <div class="settings-section-title">Smart Shuffle v1</div>
                         <div class="settings-threshold-hint" style="margin-bottom: 12px;">Uses local metadata, favorites, and playback history. It is available in lists with more than 50 songs.</div>
@@ -193,7 +205,7 @@ export function openSettingsPanel() {
 <i class="fas fa-plus"></i>
 Add Folder
 </button>
-<button class="library-locations-add-btn" data-action="removeSelectedLibraryFolder" style="border-color: #ff4444; color: #ff4444;">
+<button class="library-locations-add-btn library-locations-danger" data-action="removeSelectedLibraryFolder" style="border-color: #ff4444; color: #ff4444;">
 <i class="fas fa-trash-alt"></i>
 Remove Folder
 </button>
@@ -458,7 +470,10 @@ export function updateThresholdSliderFill(value) {
     const min = parseInt(slider.min, 10) || 0;
     const max = parseInt(slider.max, 10) || 100;
     const pct = max > min ? ((value - min) / (max - min)) * 100 : 0;
-    slider.style.background = `linear-gradient(to right, var(--accent) 0%, var(--accent) ${pct}%, var(--bg-hover) ${pct}%, var(--bg-hover) 100%)`;
+    // The same two numbers views/tools/range-fill.js sets on the other sliders: the CSS draws the fill, including the ends of the track.
+    slider.style.background = '';
+    slider.style.setProperty('--lo', '0');
+    slider.style.setProperty('--hi', String(Math.min(1, Math.max(0, pct / 100))));
 }
 
 export function enterSettingsFromHistory() {

@@ -115,15 +115,15 @@ describe('playback surfaces in the new shell with the real engine', { concurrenc
 
     // ---------------------------------------------------------------- controls (C-01)
 
-    test('transport tooltips show the name, the state and the engine\'s own shortcut; previous and next show no shortcut', TEST_OPTIONS, async (t) => {
+    test('transport tooltips show the name and the engine\'s own shortcut (no on/off or mode text); previous and next show no shortcut', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open({ play: true });
         const expected = [
             ['#play-btn', { name: 'Pause', state: '', shortcut: 'Space' }],
-            ['#shuffle-btn', { name: 'Shuffle', state: 'Off', shortcut: 'S' }],
-            ['#repeat-btn', { name: 'Repeat', state: 'Off', shortcut: 'R' }],
-            ['#prev-btn', { name: 'Previous song', state: '', shortcut: '' }],
-            ['#next-btn', { name: 'Next song', state: '', shortcut: '' }],
+            ['#shuffle-btn', { name: 'Shuffle', state: '', shortcut: 'S' }],
+            ['#repeat-btn', { name: 'Repeat', state: '', shortcut: 'R' }],
+            ['#prev-btn', { name: 'Previous', state: '', shortcut: '' }],
+            ['#next-btn', { name: 'Next', state: '', shortcut: '' }],
             ['#volume-icon', { name: 'Mute', state: '', shortcut: 'M' }]
         ];
         for (const [selector, want] of expected) {
@@ -136,16 +136,16 @@ describe('playback surfaces in the new shell with the real engine', { concurrenc
         await page.close();
     });
 
-    test('a toggle tooltip follows the state after a click: repeat goes Off, All songs, One song, Off', TEST_OPTIONS, async (t) => {
+    test('repeat shows no mode in its tooltip, but its label still goes off, all songs, one song, off', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open({ play: true });
         await page.hover('#repeat-btn');
-        assert.equal((await tip(page)).state, 'Off');
-        for (const want of ['All songs', 'One song', 'Off']) {
+        assert.equal((await tip(page)).state, '');
+        for (const want of ['Repeat: all songs', 'Repeat: one song', 'Repeat: off']) {
             await page.click('#repeat-btn');
-            await page.waitForFunction((w) => document.querySelector('#ui-tooltip .tooltip__state').textContent === w || (w === 'Off' && document.querySelector('#ui-tooltip .tooltip__state').hidden), want, { timeout: 2000 });
+            await page.waitForFunction(([s, w]) => document.querySelector(s).getAttribute('aria-label') === w, ['#repeat-btn', want], { timeout: 2000 });
         }
-        assert.equal(await page.getAttribute('#repeat-btn', 'aria-label'), 'Repeat: off');
+        assert.equal((await tip(page)).state, '');
         await page.close();
     });
 
@@ -318,7 +318,10 @@ describe('playback surfaces in the new shell with the real engine', { concurrenc
     const openQueue = async (page) => {
         await page.click('.queue-btn');
         await page.waitForSelector('.queue-panel:not([hidden])');
+        await page.waitForFunction(() => !document.querySelector('.queue-panel').hasAttribute('data-enter')); // it rises when it opens (C8): measure it at rest
     };
+    // The drawer sinks for a moment before it is hidden (C8, Reduce animations off): wait for that.
+    const queueGone = (page) => page.waitForSelector('.queue-panel', { state: 'hidden' });
 
     test('the queue button opens a drawer with the engine\'s queue, styled; the three dots are drawn, not written', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
@@ -387,6 +390,7 @@ describe('playback surfaces in the new shell with the real engine', { concurrenc
         await page.keyboard.press('Enter');
         await page.waitForFunction(() => document.getElementById('player-title').textContent.includes('number 3'), null, { timeout: 4000 });
         await page.keyboard.press('Escape');
+        await queueGone(page);
         assert.equal(await page.isVisible('.queue-panel'), false);
         assert.equal(await page.evaluate(() => document.activeElement.classList.contains('queue-btn')), true, 'focus is back on the queue button');
         await page.close();
@@ -399,10 +403,32 @@ describe('playback surfaces in the new shell with the real engine', { concurrenc
         await page.click('.queue-panel__title');
         assert.equal(await page.isVisible('.queue-panel'), true);
         await page.mouse.click(700, 300);
+        await queueGone(page);
         assert.equal(await page.isVisible('.queue-panel'), false);
         await openQueue(page);
         await page.click('.queue-btn');
+        await queueGone(page);
         assert.equal(await page.isVisible('.queue-panel'), false);
+        await page.close();
+    });
+
+    test('while a song is dragged the queue opens after a short rest above the button, and closes again when the drag ends', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open();
+        const row = await page.locator('#song-list .song-item .song-title').first().boundingBox();
+        const button = await page.locator('.queue-btn').boundingBox();
+        await page.mouse.move(row.x + 10, row.y + row.height / 2);
+        await page.mouse.down();
+        await page.mouse.move(row.x + 30, row.y + row.height / 2 + 12);
+        await page.mouse.move(400, 300, { steps: 6 }); // the middle of the list: not near the button, not in the zone
+        await page.waitForTimeout(350);
+        assert.equal(await page.isVisible('.queue-panel'), false, 'the middle of the list does not open it');
+        // 100 px above the button is outside the old 72 px margin, inside the new zone
+        await page.mouse.move(button.x + button.width / 2, button.y - 100, { steps: 8 });
+        await page.waitForSelector('.queue-panel:not([hidden])', { timeout: 2000 });
+        await page.mouse.up();
+        await page.waitForSelector('.queue-panel[hidden]', { state: 'attached', timeout: 2000 });
+        assert.deepEqual(errors, []);
         await page.close();
     });
 
@@ -422,27 +448,76 @@ describe('playback surfaces in the new shell with the real engine', { concurrenc
         await page.close();
     });
 
+    // ---------------------------------------------------------------- like and info buttons after the title and artist
+
+    test('the player bar has a heart and an info button after the title and artist: the heart follows the favorites, the info button opens the metadata', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open({ play: true });
+        const like = page.locator('.player-like');
+        const info = page.locator('.player-info');
+        assert.equal(await like.isVisible(), true);
+        assert.equal(await info.isVisible(), true);
+        const songId = await page.evaluate(() => { const item = playbackQueue[currentQueueIndex]; return (item.song || item).id; });
+        const order = await page.evaluate(() => [...document.querySelector('.player-song-info').children].map((n) => n.id || n.className.split(' ')[0]));
+        assert.deepEqual(order, ['player-cover', 'player-text-info', 'player-song-actions'], 'after the title and artist');
+        const gap = await page.evaluate(() => {
+            const right = (selector) => {
+                const box = document.querySelector(selector);
+                const range = document.createRange();
+                range.selectNodeContents(box);
+                return range.getBoundingClientRect().right; // where the text itself ends, not the box
+            };
+            return document.querySelector('.player-song-actions').getBoundingClientRect().left - Math.max(right('#player-title'), right('#player-artist'));
+        });
+        assert.ok(gap >= 0 && gap <= 24, `the buttons start where the title and artist end (gap ${gap}px)`);
+        assert.equal(await like.getAttribute('aria-pressed'), 'false');
+        await like.click();
+        await page.waitForFunction(() => document.querySelector('.player-like').getAttribute('aria-pressed') === 'true');
+        assert.equal(await like.getAttribute('aria-label'), 'Remove from favorites');
+        assert.equal(await page.evaluate((id) => getFavorites().includes(id), songId), true);
+        await like.click();
+        await page.waitForFunction(() => document.querySelector('.player-like').getAttribute('aria-pressed') === 'false');
+        await page.evaluate(() => (window.showSongMetadataModal = (id) => (window.__metadataFor = id)));
+        await info.click();
+        assert.equal(await page.evaluate(() => window.__metadataFor), songId);
+        await page.click('#player-cover', { button: 'right' }); // the small cover has the song's menu too
+        await page.waitForSelector('.context-menu .context-menu-item');
+        assert.ok((await page.$$eval('.context-menu .context-menu-item', (items) => items.map((i) => i.textContent))).some((l) => /Show metadata/.test(l)));
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
     // ---------------------------------------------------------------- cover viewer (C-04)
 
     const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR4nGP8z8DAwMDAAAUAAh4BBSb7bDYAAAAASUVORK5CYII=';
 
-    test('the cover button appears only for a real cover and opens the big picture with the title and artist; Escape fades it out and returns focus', TEST_OPTIONS, async (t) => {
+    // The big picture opens from the right panel's cover (ui-next-right-panel-content.test.js); these open it directly to test the viewer itself.
+    const openViewer = (page) =>
+        page.evaluate(async (src) => {
+            const { openBigPicture } = await import('./views/playback/cover-viewer.js');
+            openBigPicture({ src, title: 'Song title number 1', artist: 'Artist 0' });
+        }, PNG);
+
+    test('the player bar has no cover button: a real cover shows no "view cover" button there', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open({ play: true });
-        assert.equal(await page.isVisible('.cover-expand'), false, 'the engine\'s placeholder is not a cover');
         await page.evaluate((src) => (document.getElementById('player-cover').src = src), PNG);
-        await page.waitForFunction(() => !document.querySelector('.cover-expand').hidden, null, { timeout: 2000 });
         await page.hover('.player-song-info');
-        assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.cover-expand')).opacity), '1');
-        await page.focus('.cover-expand');
-        await page.keyboard.press('Enter');
+        assert.equal(await page.locator('.cover-expand').count(), 0, 'the cover opens large from the right panel only');
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('the big picture shows the title and artist, has a pointing cursor, and Escape fades it out', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open({ play: true });
+        await openViewer(page);
         await page.waitForSelector('dialog.cover-overlay[open]');
         await page.waitForSelector('dialog.cover-overlay.cover-overlay--shown');
-        const view = await page.evaluate(() => { const d = document.querySelector('dialog.cover-overlay'); const img = d.querySelector('.cover-overlay__image'); const r = d.getBoundingClientRect(); return { label: d.getAttribute('aria-label'), src: img.src === document.getElementById('player-cover').src, alt: img.alt, covers: r.width === innerWidth && r.height === innerHeight, paused: audioElement.paused }; });
-        assert.deepEqual(view, { label: 'Song title number 1, Artist 0', src: true, alt: 'Cover of Song title number 1', covers: true, paused: false });
+        const view = await page.evaluate((src) => { const d = document.querySelector('dialog.cover-overlay'); const img = d.querySelector('.cover-overlay__image'); const r = d.getBoundingClientRect(); return { label: d.getAttribute('aria-label'), src: img.src === src, alt: img.alt, covers: r.width === innerWidth && r.height === innerHeight, cursor: getComputedStyle(img).cursor }; }, PNG);
+        assert.deepEqual(view, { label: 'Song title number 1, Artist 0', src: true, alt: 'Cover of Song title number 1', covers: true, cursor: 'pointer' });
         await page.keyboard.press('Escape');
         await page.waitForSelector('dialog.cover-overlay', { state: 'detached' });
-        assert.equal(await page.evaluate(() => document.activeElement.classList.contains('cover-expand')), true, 'focus returns to the cover button');
         assert.deepEqual(errors, []);
         await page.close();
     });
@@ -450,10 +525,7 @@ describe('playback surfaces in the new shell with the real engine', { concurrenc
     test('in the big picture a click on the picture turns the magnifier on and off, and the close button and backdrop close it', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open({ play: true });
-        await page.evaluate((src) => (document.getElementById('player-cover').src = src), PNG);
-        await page.waitForFunction(() => !document.querySelector('.cover-expand').hidden);
-        await page.hover('.player-song-info');
-        await page.click('.cover-expand');
+        await openViewer(page);
         await page.waitForSelector('dialog.cover-overlay.cover-overlay--shown');
         const lens = () => page.evaluate(() => { const l = document.querySelector('.cover-lens'); return { hidden: l.hidden, on: document.querySelector('.cover-overlay__image').classList.contains('cover-overlay__image--lens') }; });
         assert.deepEqual(await lens(), { hidden: true, on: false });
@@ -468,8 +540,7 @@ describe('playback surfaces in the new shell with the real engine', { concurrenc
         assert.equal((await lens()).on, false, 'a second click turns it off');
         await page.click('.cover-overlay__close');
         await page.waitForSelector('dialog.cover-overlay', { state: 'detached' });
-        await page.hover('.player-song-info');
-        await page.click('.cover-expand');
+        await openViewer(page);
         await page.waitForSelector('dialog.cover-overlay.cover-overlay--shown');
         await page.mouse.click(8, 400); // the backdrop
         await page.waitForSelector('dialog.cover-overlay', { state: 'detached' });

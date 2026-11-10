@@ -24,13 +24,13 @@
     box-shadow: inset 0 0 0 2px var(--accent);
     border-radius: var(--radius-md);
 }
-body.dragging-song .left-panel-main-item.drag-hover {
+body:is(.dragging-song, .dragging-files) .left-panel-main-item.drag-hover {
     cursor: copy;
 }
 
 /* A folder that would take the dragged item. */
 .left-panel-main-item.drag-folder-hover,
-body.dragging-song .left-panel-main-item.drag-folder-hover:hover {
+body:is(.dragging-song, .dragging-files) .left-panel-main-item.drag-folder-hover:hover {
     background: color-mix(in srgb, var(--accent) 15%, transparent) !important;
     border-radius: var(--radius-md);
 }
@@ -45,22 +45,22 @@ body.dragging-song .left-panel-main-item.drag-folder-hover:hover {
 }
 
 /* While something is dragged the rows do not react to the pointer, so only the ring and the tint above show where it will go. */
-body.dragging-song .left-panel-main-item:hover,
-body.dragging-song .left-panel-main-item.active:hover,
-body.dragging-song .left-panel-main-item.playing:hover,
-body.dragging-song .left-panel-main-item.drag-invalid:hover {
+body:is(.dragging-song, .dragging-files) .left-panel-main-item:hover,
+body:is(.dragging-song, .dragging-files) .left-panel-main-item.active:hover,
+body:is(.dragging-song, .dragging-files) .left-panel-main-item.playing:hover,
+body:is(.dragging-song, .dragging-files) .left-panel-main-item.drag-invalid:hover {
     background: transparent !important;
 }
-body.dragging-song .left-panel-main-item .left-panel-cover-play-btn {
+body:is(.dragging-song, .dragging-files) .left-panel-main-item .left-panel-cover-play-btn {
     display: none !important;
 }
-body.dragging-song .left-panel-main-item .main-item-cover-wrapper::after {
+body:is(.dragging-song, .dragging-files) .left-panel-main-item .main-item-cover-wrapper::after {
     opacity: 0 !important;
 }
-body.dragging-song #queue-list .queue-item:hover {
+body:is(.dragging-song, .dragging-files) #queue-list .queue-item:hover {
     background: transparent !important;
 }
-body.dragging-song #queue-list .queue-item {
+body:is(.dragging-song, .dragging-files) #queue-list .queue-item {
     cursor: copy;
 }
 
@@ -91,4 +91,9 @@ body.dragging-song #queue-list .queue-item {
 }
 .drag-song-artist {
     color: var(--text-secondary);
+}
+
+/* The queue drawer while files from Windows are over it: a ring in the accent color, like a row that would take them. */
+.queue-panel.file-drop-hover {
+    box-shadow: inset 0 0 0 2px var(--accent);
 }

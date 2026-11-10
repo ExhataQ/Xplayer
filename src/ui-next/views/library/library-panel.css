@@ -12,9 +12,12 @@
     --left-item-height: var(--panel-row-height);
     --panel-cover-size: 44px;
     /* One layout for the Library, Search and Recents panels (panel-lists.css uses the same values): little space above the controls and under the list. */
-    --panel-pad-top: var(--space-1);
-    --panel-pad-bottom: var(--space-2);
-    --panel-list-end: var(--space-1);
+    --panel-pad-top: 0px;
+    --panel-pad-bottom: 0px;
+    --panel-controls-gap: 6px; /* between the chips, the find row and the list */
+    --panel-list-end: 0px;
+    --panel-list-inset: var(--space-4); /* what shows between the panel's edge and the rows (Library, Search and Recents), the same on both sides */
+    --panel-list-pad-x: max(0px, calc(var(--panel-list-inset) - var(--scroll-gutter))); /* the list's padding: the inset less the room the bar reserves (scrollbar.css) */
     --panel-row-pad-x: var(--space-2); /* inside a row: between the highlight's edge and the cover, so a hovered row has room on its left */
 }
 /* Density (D60, D61): compact panel rows. Set on <html> before the first paint, so the engine's first read is already right; a change
@@ -42,11 +45,57 @@
 .library-panel__controls {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
-    padding: var(--panel-pad-top) var(--space-4) var(--panel-pad-bottom);
+    gap: var(--panel-controls-gap);
+    padding: var(--panel-pad-top) var(--space-4) var(--panel-controls-gap);
 }
-.library-panel__controls .chip-group {
-    flex-wrap: wrap;
+/* the filter chips stay on one line and scroll sideways (chip-strip.js). The arrows sit on top of the chips' two ends and take no room of their own;
+   each one shows only on the side that has more chips to reach, and the chips fade out under it. */
+.chip-strip {
+    position: relative;
+    min-width: 0;
+    --strip-fade-l: 0px;
+    --strip-fade-r: 0px;
+}
+.chip-strip[data-fade-start='true'] {
+    --strip-fade-l: 36px;
+}
+.chip-strip[data-fade-end='true'] {
+    --strip-fade-r: 36px;
+}
+.chip-strip__arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 1;
+    transform: translateY(-50%);
+}
+.chip-strip__arrow:first-child {
+    left: 0;
+}
+.chip-strip__arrow:last-child {
+    right: 0;
+}
+.chip-strip[data-fade-start='false'] .chip-strip__arrow:first-child,
+.chip-strip[data-fade-end='false'] .chip-strip__arrow:last-child {
+    display: none;
+}
+.chip-strip__row {
+    min-width: 0;
+    padding: 2px 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--strip-fade-l), #000 calc(100% - var(--strip-fade-r)), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 var(--strip-fade-l), #000 calc(100% - var(--strip-fade-r)), transparent 100%);
+}
+.chip-strip__row::-webkit-scrollbar {
+    display: none;
+}
+.chip-strip .chip-group {
+    flex-wrap: nowrap;
+    width: max-content;
+}
+.chip-strip .chip {
+    flex: none;
+    white-space: nowrap;
 }
 /* The field component needs a label; here the placeholder and the icon say it, so the label is only for screen readers. */
 .library-panel .field__label {
@@ -59,12 +108,97 @@
 }
 .library-panel__row {
     display: flex;
-    align-items: flex-end;
-    gap: var(--space-2);
+    align-items: center;
+    gap: var(--space-1);
 }
-.library-panel__row .field {
+.library-sort {
+    position: relative;
+    flex: none;
+    margin-inline-start: auto; /* stays at the far right, whether the find field is shut or open */
+}
+
+.library-sort[data-filtered='true']::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+/* the find control: a button that opens into a field (panel-search.js) */
+.panel-search {
+    display: flex;
+    align-items: center;
+    flex: none;
+    min-width: 0;
+    height: var(--icon-button-size-sm);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    transition: border-color var(--motion-fast) var(--motion-ease), background var(--motion-fast) var(--motion-ease);
+}
+.panel-search[data-open='true'] {
+    flex: 1;
+    border-color: var(--input-border);
+    background: var(--input-bg);
+}
+.panel-search[data-open='true']:hover {
+    border-color: var(--input-border-hover);
+}
+.panel-search[data-open='true']:focus-within {
+    border-color: var(--accent);
+}
+.panel-search__button {
+    flex: none;
+    margin: -1px; /* the border of the open field sits around the button without moving it */
+}
+.panel-search[data-open='true'] .panel-search__button {
+    pointer-events: none; /* the icon only labels the field while it is open */
+    color: var(--text-secondary);
+}
+.panel-search__field {
+    display: grid;
+    grid-template-columns: 0fr;
     flex: 1;
     min-width: 0;
+    transition: grid-template-columns 180ms var(--motion-ease);
+}
+.panel-search[data-open='true'] .panel-search__field {
+    grid-template-columns: 1fr;
+}
+.panel-search__inner {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+}
+.panel-search__input {
+    flex: 1;
+    min-width: 0;
+    height: calc(var(--icon-button-size-sm) - 2px);
+    padding: 0 var(--space-1) 0 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-sm);
+}
+.panel-search__input::-webkit-search-cancel-button {
+    display: none;
+}
+.panel-search__clear {
+    flex: none;
+}
+.panel-search__clear[hidden] {
+    display: none;
+}
+
+:where(:root[data-motion='reduced']) .panel-search,
+:where(:root[data-motion='reduced']) .panel-search__field {
+    transition: none;
 }
 .library-panel[data-folder='open'] .library-panel__controls {
     display: none;
@@ -117,7 +251,7 @@
 }
 .library-panel .left-panel-main-list {
     margin: 0;
-    padding: 0 var(--space-2);
+    padding: 0 var(--panel-list-pad-x) var(--space-4); /* room under the last row, inside the scrolled content: the scroll thumb still runs the whole height */
     list-style: none;
 }
 
@@ -317,15 +451,12 @@
         transform: none;
     }
 }
-@media (prefers-reduced-motion: no-preference) {
-    .library-panel__list[data-swap] .left-panel-main-list {
-        animation: library-rows-in 180ms var(--motion-ease) backwards;
-    }
+
+:where(:root:not([data-motion='reduced'])) .library-panel__list[data-swap] .left-panel-main-list {
+    animation: library-rows-in 180ms var(--motion-ease) backwards;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .library-panel .left-panel-main-item,
-    .library-panel .left-panel-cover-play-btn {
-        transition: background-color var(--motion-fast) ease, opacity var(--motion-fast) ease;
-    }
+:where(:root:not([data-motion='reduced'])) .library-panel .left-panel-main-item,
+:where(:root:not([data-motion='reduced'])) .library-panel .left-panel-cover-play-btn {
+    transition: background-color var(--motion-fast) ease, opacity var(--motion-fast) ease;
 }

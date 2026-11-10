@@ -11,6 +11,9 @@ const path = require('path');
 
 const DEFAULT_CAP = 50;
 const MAX_CHANGES_PER_ENTRY = 5000;
+// Thrown by record() when the entry could not be written to disk. The change it describes HAS happened, and the entry is kept in memory:
+// `error.entry` is that entry, so the caller can still offer Undo until the app closes instead of losing track of what was changed.
+const NOT_SAVED = 'JOURNAL_NOT_SAVED';
 
 function createJournal({ file, cap = DEFAULT_CAP, now = () => Date.now() }) {
     let entries = null;
@@ -63,7 +66,14 @@ function createJournal({ file, cap = DEFAULT_CAP, now = () => Date.now() }) {
         };
         entries.push(entry);
         while (entries.length > cap) entries.shift();
-        save();
+        try {
+            save();
+        } catch (failure) {
+            const error = new Error(`The undo history could not be saved (${failure.message}); this change can be undone until the app is closed.`);
+            error.code = NOT_SAVED;
+            error.entry = entry;
+            throw error;
+        }
         return entry;
     }
 
@@ -87,11 +97,32 @@ function createJournal({ file, cap = DEFAULT_CAP, now = () => Date.now() }) {
         const entry = get(id);
         if (!entry) return false;
         entry.status = 'undone';
-        save();
+        try {
+            save();
+        } catch (failure) {
+            // The undo itself already happened; being unable to write that down must not turn it into an error. Until the app closes the entry
+            // is undone in memory; after a restart it would be offered again, which is why the callers re-check the files before writing old values.
+        }
         return true;
     }
 
     return { record, list, get, latestUndoable, markUndone };
 }
 
-module.exports = { createJournal, DEFAULT_CAP };
+/**
+ * record() for a caller across a process boundary (the IPC handler): never throws, and says whether the entry reached the disk.
+ *   { ok: true, entry }                                    written
+ *   { ok: false, error: 'not-saved', message, entry }      the change stands and the entry is held in memory: Undo works until the app closes
+ *   { ok: false, error: 'bad-entry', message }             the entry was refused (nothing was recorded)
+ */
+function recordSafely(journal, input) {
+    const e = input && typeof input === 'object' ? input : {};
+    try {
+        return { ok: true, entry: journal.record({ kind: e.kind, summary: e.summary, changes: e.changes }) };
+    } catch (error) {
+        if (error && error.code === NOT_SAVED && error.entry) return { ok: false, error: 'not-saved', message: error.message, entry: error.entry };
+        return { ok: false, error: 'bad-entry', message: error && error.message ? error.message : String(error) };
+    }
+}
+
+module.exports = { createJournal, recordSafely, DEFAULT_CAP, NOT_SAVED };

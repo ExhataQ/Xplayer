@@ -11,7 +11,7 @@
 //   changes(sheet)                         -> [{ id, key, before, after }] for the review step
 //   discard(sheet)
 
-/** key -> { label, multi }. Multi-value tags split on ";" like the tag writer (electron/metadata-editor.py); a comma never splits. */
+/** key -> { label, multi }. Multi-value tags split on ";" like the tag writer (electron/tag-rules.js); a comma never splits. */
 export const COLUMNS = {
     title: { label: 'Title', multi: false },
     artist: { label: 'Artist', multi: true },

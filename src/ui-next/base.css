@@ -64,6 +64,11 @@ html {
     background: var(--surface-ground);
 }
 
+/* Native controls, scrollbars and the focus ring follow the mode (data-mode, set before the first paint). */
+html[data-mode='light'] {
+    color-scheme: light;
+}
+
 body {
     margin: 0;
     min-width: var(--window-min-width);
@@ -126,6 +131,13 @@ button:disabled,
     user-select: none;
 }
 
+/* Pictures are never dragged by the browser (covers, avatars, shelf images). A browser drag of a cover shows a ghost image and
+ * could drop it into a folder; the only drags in the app are the engine's own song and panel drags (ui/06f, ui/06g). */
+img,
+svg {
+    -webkit-user-drag: none;
+}
+
 input,
 textarea,
 [contenteditable]:not([contenteditable='false']),
@@ -151,12 +163,10 @@ textarea,
     border: 0;
 }
 
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
+:where(:root[data-motion='reduced']) *,
+:where(:root[data-motion='reduced']) *::before,
+:where(:root[data-motion='reduced']) *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
 }

@@ -2,6 +2,9 @@
 // PLAYBACK - QUEUE MANAGEMENT
 // ==============================================================================
 // True while the queue has songs past the ones drawn; set by updateQueueDisplay, read when the queue is scrolled to its end.
+import { assignAudioSource } from './15h-equalizer.js';
+import { peekTrackEdges } from './10e-gapless-edges.js';
+
 let queueHasMoreItems = false;
 const QUEUE_LOAD_MARGIN_PX = 160;
 const QUEUE_DISPLAY_START = 50; // the same starting size createQueueFromSongList uses
@@ -375,8 +378,221 @@ export function addSongToQueueAt(songId, insertIndex) {
 let gaplessPreloadedSongId = null;
 let gaplessPreloadedUrl = null;
 
+// GAPLESS, THE EARLY START. Waiting for the 'ended' event always leaves a gap: the event comes after the last sample, and play() on the spare
+// element then needs tens of milliseconds to turn into sound. So the next track is started a little BEFORE the current one ends, by the time
+// play() has been seen to take (learned from every swap, starting from a guess). The current track is not cut: it plays out its last
+// milliseconds on its own element (the "outgoing" element) while the next one comes in.
+const GAPLESS_LEAD_START_MS = 35; // where a format starts before anything is measured: real changes took 16 to 30 ms (MP3) and 21 to 70 ms (FLAC)
+const GAPLESS_LEAD_MIN_MS = 8;
+const GAPLESS_LEAD_MAX_MS = 300;
+const GAPLESS_LEAD_SAFETY_MS = 6; // a tiny overlap is less audible than a tiny gap, so the start errs early, but only by this much
+const GAPLESS_EDGES_MAX_MS = 120; // the most the silent edges (10e-gapless-edges.js) can move the start by, whatever was measured
+const GAPLESS_READY_STATE = 3; // HAVE_FUTURE_DATA: the spare element can play on without waiting
+const GAPLESS_LEAD_SAMPLES = 5; // how many recent measurements a format's lead is the median of
+const GAPLESS_PRELOAD_DELAY_MS = 1200; // the next-but-one track is loaded this long after a track has started, not while it is starting
+const gaplessLeadByFormat = new Map(); // file extension -> its recent measured start-up times (ms): a FLAC takes a different time to start than an MP3
+let gaplessPreloadTimer = null;
+let gaplessLeadTimer = null;
+let gaplessEarlyAdvance = false;
+let gaplessSoundTimer = null;
+let gaplessOutgoingElement = null;
+let gaplessOutgoingTimer = null;
+
+/** How long to wait before the early start fires: 0 or less means it is time now. Pure, so it can be tested. */
+export function gaplessWaitMs(remainingSeconds, playbackRate, leadMs) {
+    const rate = Number(playbackRate) > 0 ? Number(playbackRate) : 1;
+    return (remainingSeconds / rate) * 1000 - leadMs;
+}
+
+/**
+ * The lead to use from recent measured play()-to-sound times: their median, so one slow start (the main thread was busy, a file was cold) or one
+ * fast one does not move it much. Measurements that cannot be right are ignored; null when none is usable. Pure.
+ */
+export function gaplessLeadFromSamples(samples) {
+    const usable = (samples || []).filter((ms) => Number.isFinite(ms) && ms >= 5 && ms <= 600).sort((a, b) => a - b);
+    if (usable.length === 0) return null;
+    const middle = usable.length >> 1;
+    const median = usable.length % 2 ? usable[middle] : (usable[middle - 1] + usable[middle]) / 2;
+    return Math.min(GAPLESS_LEAD_MAX_MS, Math.max(GAPLESS_LEAD_MIN_MS, median));
+}
+
+export function cancelGaplessLead() {
+    if (gaplessLeadTimer) {
+        clearTimeout(gaplessLeadTimer);
+        gaplessLeadTimer = null;
+    }
+}
+
+/** The file extension of a song ('flac', 'mp3', ...), lower case, or '' when its url has none. Pure. */
+export function gaplessFormatOf(song) {
+    const match = /\.([a-z0-9]{2,5})(?:[?#].*)?$/i.exec(String(song && song.url ? song.url : ''));
+    return match ? match[1].toLowerCase() : '';
+}
+
+function gaplessLeadFor(song) {
+    const learned = gaplessLeadFromSamples(gaplessLeadByFormat.get(gaplessFormatOf(song)));
+    return learned === null ? GAPLESS_LEAD_START_MS : learned;
+}
+
+function gaplessNextSong() {
+    const nextItem = playbackQueue[getGaplessNextQueueIndex()];
+    return nextItem ? nextItem.song || nextItem : null;
+}
+
+/** The silence at the end of the track playing plus the silence at the start of the next one: the next track has to start that much earlier still. */
+function gaplessEdgesMs() {
+    const currentItem = playbackQueue[currentQueueIndex];
+    const tail = peekTrackEdges(currentItem && (currentItem.song || currentItem));
+    const head = peekTrackEdges(gaplessNextSong());
+    return Math.min(GAPLESS_EDGES_MAX_MS, (tail ? tail.tailMs : 0) + (head ? head.headMs : 0));
+}
+
+function gaplessTotalLeadMs() {
+    return gaplessLeadFor(gaplessNextSong()) + GAPLESS_LEAD_SAFETY_MS + gaplessEdgesMs();
+}
+
+/** Why the early start cannot happen now ('' when it can). The first two are normal and silent; the others are logged near the end of a track. */
+function gaplessBlocker() {
+    if (gaplessOutgoingElement) return 'outgoing';
+    if (repeatFunctionalityActive && repeatMode === 2) return 'repeat-one';
+    const nextIndex = getGaplessNextQueueIndex();
+    if (nextIndex === -1) return 'last-track';
+    const nextItem = playbackQueue[nextIndex];
+    const nextSong = nextItem && (nextItem.song || nextItem);
+    if (!nextSong || gaplessPreloadedSongId !== nextSong.id || gaplessPreloadedUrl !== nextSong.url) return 'next track not preloaded';
+    if (gaplessAudioElement.readyState < GAPLESS_READY_STATE) return `next track not buffered yet (readyState ${gaplessAudioElement.readyState})`;
+    return '';
+}
+
+function isGaplessNextReady() {
+    return gaplessBlocker() === '';
+}
+
+let gaplessBlockedLoggedFor = '';
+
+// Said once per track, in the last 4 seconds, so a missing early start can be explained from the console instead of guessed at.
+function noteGaplessBlocked(audio, blocker) {
+    if (!blocker || blocker === 'outgoing' || blocker === 'repeat-one' || blocker === 'last-track') return;
+    if (audio.duration - audio.currentTime > 4) return;
+    const key = `${currentQueueIndex}:${blocker}`;
+    if (key === gaplessBlockedLoggedFor) return;
+    gaplessBlockedLoggedFor = key;
+    console.info(`[gapless] no early start for this change: ${blocker}`);
+}
+
+/** Called on every progress tick, seek, rate change and play of the active element: works out when the early start is due and sets one timer for it. */
+export function armGaplessLead(audio) {
+    if (audio !== audioElement) return; // the outgoing element's own ticks must not cancel the timer of the track that is starting
+    cancelGaplessLead();
+    if (audio.paused || audio.ended) return;
+    if (!getAudioPlaybackSettings().gaplessEnabled) return;
+    if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
+    const blocker = gaplessBlocker();
+    if (blocker) {
+        noteGaplessBlocked(audio, blocker);
+        return;
+    }
+
+    const waitMs = gaplessWaitMs(audio.duration - audio.currentTime, audio.playbackRate, gaplessTotalLeadMs());
+    if (waitMs > 30) {
+        // Sleep to just short of the moment, then work it out again from the real position: sleeping the whole way would trust a clock that seeks and stalls move.
+        gaplessLeadTimer = setTimeout(() => armGaplessLead(audio), Math.min(waitMs - 25, 1000));
+        return;
+    }
+    pollGaplessStart(audio);
+}
+
+// The last 30 ms: look at the real position every 2 ms instead of trusting one timer, so the start lands within a couple of ms of the moment.
+function pollGaplessStart(audio) {
+    gaplessLeadTimer = setTimeout(() => {
+        gaplessLeadTimer = null;
+        if (audio !== audioElement || audio.paused || audio.ended) return;
+        const waitNow = gaplessWaitMs(audio.duration - audio.currentTime, audio.playbackRate, gaplessTotalLeadMs());
+        if (waitNow <= 1) startGaplessEarly(audio);
+        else if (waitNow > 30) armGaplessLead(audio); // the position jumped (a seek, a stall): work it out afresh
+        else pollGaplessStart(audio);
+    }, 2);
+}
+
+function startGaplessEarly(audio) {
+    if (audio !== audioElement || audio.paused || audio.ended || !isGaplessNextReady()) return;
+    const nextIndex = getGaplessNextQueueIndex();
+    console.info(`[gapless] early start with ${Math.round((audio.duration - audio.currentTime) * 1000)} ms left; lead ${Math.round(gaplessLeadFor(gaplessNextSong()))} ms (${gaplessFormatOf(gaplessNextSong()) || '?'}) + safety ${GAPLESS_LEAD_SAFETY_MS} ms + silent edges ${Math.round(gaplessEdgesMs())} ms`);
+    emit('playback:recentPanelChanged'); // what the 'ended' handler does before it moves on
+    gaplessEarlyAdvance = true;
+    try {
+        playSongFromQueue(nextIndex);
+    } finally {
+        gaplessEarlyAdvance = false;
+    }
+}
+
+/**
+ * playSong calls this just before play() on a preloaded element. The 'playing' event comes before the first audio reaches the speakers, so it is
+ * not used: the start-up time is taken as the moment the element's own clock begins to run, found by looking every 2 ms, and learned for this
+ * file format.
+ */
+export function noteGaplessPlayRequested(song) {
+    if (gaplessSoundTimer) clearTimeout(gaplessSoundTimer);
+    const audio = audioElement;
+    const format = gaplessFormatOf(song);
+    const startedAt = performance.now();
+    const look = () => {
+        gaplessSoundTimer = null;
+        if (audio !== audioElement) return;
+        const waited = performance.now() - startedAt;
+        if (audio.currentTime >= 0.003) {
+            const measured = waited - 3; // the clock had already run 3 ms when it was seen
+            const recent = (gaplessLeadByFormat.get(format) || []).concat(measured).slice(-GAPLESS_LEAD_SAMPLES);
+            gaplessLeadByFormat.set(format, recent);
+            console.info(`[gapless] ${format || 'this format'} took ${Math.round(measured)} ms from play() to sound; the lead for it is now ${Math.round(gaplessLeadFor(song))} ms`);
+            return;
+        }
+        if (waited < 800) gaplessSoundTimer = setTimeout(look, 2);
+    };
+    gaplessSoundTimer = setTimeout(look, 2);
+}
+
+function holdGaplessOutgoing(element) {
+    gaplessOutgoingElement = element;
+    element.addEventListener('ended', finishGaplessOutgoing, { once: true });
+    const remainingMs = Number.isFinite(element.duration)
+        ? ((element.duration - element.currentTime) / (element.playbackRate || 1)) * 1000
+        : 0;
+    // The 'ended' event is the normal end; this timer only makes sure a stalled element cannot hold the spare slot for good.
+    gaplessOutgoingTimer = setTimeout(finishGaplessOutgoing, Math.min(3000, Math.max(0, remainingMs) + 300));
+}
+
+function finishGaplessOutgoing() {
+    if (gaplessOutgoingTimer) {
+        clearTimeout(gaplessOutgoingTimer);
+        gaplessOutgoingTimer = null;
+    }
+    const element = gaplessOutgoingElement;
+    if (!element) return;
+    gaplessOutgoingElement = null;
+    element.removeEventListener('ended', finishGaplessOutgoing);
+    if (element === gaplessAudioElement) {
+        element.pause();
+        element.removeAttribute('src');
+        element.load();
+    }
+    prepareGaplessNextTrackSoon(); // the spare element was busy; now the track after the one that just started can load into it
+}
+
 export function clearGaplessPreload() {
     if (!gaplessAudioElement) return;
+
+    if (gaplessOutgoingTimer) {
+        clearTimeout(gaplessOutgoingTimer);
+        gaplessOutgoingTimer = null;
+    }
+    gaplessOutgoingElement = null;
+    cancelGaplessLead();
+    if (gaplessPreloadTimer) {
+        clearTimeout(gaplessPreloadTimer);
+        gaplessPreloadTimer = null;
+    }
 
     gaplessAudioElement.pause();
     gaplessAudioElement.removeAttribute('src');
@@ -416,12 +632,24 @@ function preloadGaplessSong(song) {
     }
 
     gaplessAudioElement.pause();
-    gaplessAudioElement.src = song.url;
+    assignAudioSource(gaplessAudioElement, song.url);
     gaplessAudioElement.preload = 'auto';
     gaplessAudioElement.load();
 
     gaplessPreloadedSongId = song.id;
     gaplessPreloadedUrl = song.url;
+}
+
+/**
+ * Loads the next track into the spare element a little after the current one has started. Doing it at once, as a track begins, makes the file
+ * read and decoder set-up of the next (large, for FLAC) file compete with the start-up of the track that is just beginning.
+ */
+export function prepareGaplessNextTrackSoon() {
+    if (gaplessPreloadTimer) clearTimeout(gaplessPreloadTimer);
+    gaplessPreloadTimer = setTimeout(() => {
+        gaplessPreloadTimer = null;
+        prepareGaplessNextTrack();
+    }, GAPLESS_PRELOAD_DELAY_MS);
 }
 
 export function prepareGaplessNextTrack() {
@@ -434,6 +662,8 @@ export function prepareGaplessNextTrack() {
         clearGaplessPreload();
         return;
     }
+
+    if (gaplessOutgoingElement) return; // the spare element is still playing the last of the old track; finishGaplessOutgoing loads the next one
 
     const nextQueueIndex = getGaplessNextQueueIndex();
 
@@ -464,18 +694,25 @@ export function usePreloadedGaplessTrack(song) {
 
     const oldActiveAudio = audioElement;
     const nextAudio = gaplessAudioElement;
+    // Started early: the old element has not ended yet, and is left to play its last milliseconds instead of being cut off here.
+    const keepOutgoing = gaplessEarlyAdvance && !oldActiveAudio.paused && !oldActiveAudio.ended;
 
+    cancelGaplessLead();
     setGaplessActiveElement(nextAudio);
     setAudioElement(nextAudio);
 
     audioElement.volume = getTargetTrackVolume(song);
-    audioElement.currentTime = 0;
+    if (audioElement.currentTime > 0) audioElement.currentTime = 0; // a seek throws away what is buffered, so a fresh element is not seeked
 
     setGaplessAudioElement(oldActiveAudio);
 
-    gaplessAudioElement.pause();
-    gaplessAudioElement.removeAttribute('src');
-    gaplessAudioElement.load();
+    if (keepOutgoing) {
+        holdGaplessOutgoing(oldActiveAudio);
+    } else {
+        gaplessAudioElement.pause();
+        gaplessAudioElement.removeAttribute('src');
+        gaplessAudioElement.load();
+    }
 
     gaplessPreloadedSongId = null;
     gaplessPreloadedUrl = null;
@@ -497,6 +734,10 @@ if (typeof registerLegacyGlobals === 'function') {
         addSongToQueueAt,
         clearGaplessPreload,
         prepareGaplessNextTrack,
-        usePreloadedGaplessTrack
+        prepareGaplessNextTrackSoon,
+        usePreloadedGaplessTrack,
+        armGaplessLead,
+        cancelGaplessLead,
+        noteGaplessPlayRequested
     });
 }

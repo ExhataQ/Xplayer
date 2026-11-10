@@ -229,45 +229,107 @@
     --c-danger: #f08a80;
 }
 
+/* The Light theme (C9): the one light choice next to the dark ones. Every text and accent value meets 4.5:1 on all four surfaces
+   (tools/tests/ui-next-tokens.test.js); the accent is the amber of Warm Graphite, darkened until it reads on a light ground. */
+:root[data-theme='light'] {
+    --c-ground: #f3f1ec;
+    --c-surface: #faf9f6;
+    --c-raised: #ffffff;
+    --c-selected: #e7e3db;
+    --c-line: #e2ded5;
+    --c-line-strong: #cbc6ba;
+    --c-ink: #1d1c1a;
+    --c-ink-dim: #55534d;
+    --c-ink-faint: #5c5a54;
+    --c-accent: #935300;
+    --c-accent-hover: #7a4600;
+    --c-accent-own: #935300;
+    --c-accent-rgb: 147 83 0;
+    --c-on-accent: #ffffff;
+    --c-danger: #b3261e;
+}
+
 /* Previews for the Appearance settings (task A-10): what each theme looks like while another one is on.
    tools/tests/ui-next-appearance.test.js checks they equal the real theme values above. */
 :root {
     --preview-warm-graphite-ground: #0e1013;
     --preview-warm-graphite-surface: #13161b;
     --preview-warm-graphite-accent: #eba43a;
+    --preview-warm-graphite-ink: #ece9e3;
+    --preview-warm-graphite-raised: #1a1e25;
+    --preview-warm-graphite-line: #242932;
     --preview-deep-forest-ground: #0b100e;
     --preview-deep-forest-surface: #101714;
     --preview-deep-forest-accent: #8fd3a6;
+    --preview-deep-forest-ink: #e6ebe5;
+    --preview-deep-forest-raised: #171e1b;
+    --preview-deep-forest-line: #1f2b26;
     --preview-espresso-copper-ground: #120e0b;
     --preview-espresso-copper-surface: #1a1410;
     --preview-espresso-copper-accent: #cf8352;
+    --preview-espresso-copper-ink: #f0e6d8;
+    --preview-espresso-copper-raised: #211b17;
+    --preview-espresso-copper-line: #2e241c;
     --preview-pure-black-ground: #000000;
     --preview-pure-black-surface: #0a0a0a;
     --preview-pure-black-accent: #ffd60a;
+    --preview-pure-black-ink: #f2f2f2;
+    --preview-pure-black-raised: #141414;
+    --preview-pure-black-line: #1d1d1d;
     --preview-graphite-gold-ground: #141516;
     --preview-graphite-gold-surface: #1b1c1e;
     --preview-graphite-gold-accent: #f5c518;
+    --preview-graphite-gold-ink: #eeeeee;
+    --preview-graphite-gold-raised: #232527;
+    --preview-graphite-gold-line: #2a2c2f;
     --preview-carbon-honey-ground: #0d0e10;
     --preview-carbon-honey-surface: #131518;
     --preview-carbon-honey-accent: #ffc94d;
+    --preview-carbon-honey-ink: #eaecef;
+    --preview-carbon-honey-raised: #1b1e22;
+    --preview-carbon-honey-line: #22262b;
     --preview-high-contrast-ground: #000000;
     --preview-high-contrast-surface: #080808;
     --preview-high-contrast-accent: #ffe600;
+    --preview-high-contrast-ink: #ffffff;
+    --preview-high-contrast-raised: #111111;
+    --preview-high-contrast-line: #4a4a4a;
     --preview-midnight-blue-ground: #0a0e1a;
     --preview-midnight-blue-surface: #0f1524;
     --preview-midnight-blue-accent: #6fa8ff;
+    --preview-midnight-blue-ink: #e8ecf6;
+    --preview-midnight-blue-raised: #161d31;
+    --preview-midnight-blue-line: #1c2540;
     --preview-aubergine-rose-ground: #130c14;
     --preview-aubergine-rose-surface: #1a111c;
     --preview-aubergine-rose-accent: #f08cb6;
+    --preview-aubergine-rose-ink: #f1e7ef;
+    --preview-aubergine-rose-raised: #231925;
+    --preview-aubergine-rose-line: #2b1f30;
     --preview-ocean-teal-ground: #091214;
     --preview-ocean-teal-surface: #0e1a1d;
     --preview-ocean-teal-accent: #4fd1c5;
+    --preview-ocean-teal-ink: #e2eeee;
+    --preview-ocean-teal-raised: #142327;
+    --preview-ocean-teal-line: #1a2b30;
     --preview-crimson-noir-ground: #0f0b0c;
     --preview-crimson-noir-surface: #171112;
     --preview-crimson-noir-accent: #ee6770;
+    --preview-crimson-noir-ink: #f0e7e7;
+    --preview-crimson-noir-raised: #1f1719;
+    --preview-crimson-noir-line: #291d20;
     --preview-violet-night-ground: #0e0c17;
     --preview-violet-night-surface: #141120;
     --preview-violet-night-accent: #a58bff;
+    --preview-violet-night-ink: #ece9f6;
+    --preview-violet-night-raised: #1c182b;
+    --preview-violet-night-line: #231e36;
+    --preview-light-ground: #f3f1ec;
+    --preview-light-surface: #faf9f6;
+    --preview-light-accent: #935300;
+    --preview-light-ink: #1d1c1a;
+    --preview-light-raised: #ffffff;
+    --preview-light-line: #e2ded5;
 }
 
 /* ---------- 2. semantic layer ---------- */
@@ -394,9 +456,19 @@
     --dialog-width-wide: 640px;
     --progress-height: 4px;
     --shadow-raised: 0 8px 24px rgb(5 6 8 / 0.45);
+    --scroll-shadow-color: rgb(0 0 0 / 0.35); /* the fade under a header while the list under it is scrolled */
 
     --layer-startup: 40; /* above the whole app, below the title bar (it floats over the startup view) and below toasts */
     --layer-toast: 50;
     --layer-menu: 60;
     --layer-tooltip: 100300; /* above the engine's dialogs (80, and 100060 over the sync editor), as its old tooltip was (100200) */
+}
+
+/* ---------- 4. mode: what changes between a dark and a light theme besides the colors ---------- */
+/* <html data-mode> is set from the theme before the first paint (shell/appearance-boot.js). Shadows and scrims are dark smudges on a dark
+   ground; on a light one they are softer and warmer, or they look like dirt. */
+:root[data-mode='light'] {
+    --surface-scrim: rgb(40 34 22 / 0.35);
+    --shadow-raised: 0 8px 24px rgb(40 34 22 / 0.18);
+    --scroll-shadow-color: rgb(40 34 22 / 0.14);
 }

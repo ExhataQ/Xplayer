@@ -24,7 +24,7 @@ describe('url-button.css (static)', () => {
         assert.deepEqual(missing, []);
         assert.doesNotMatch(css, /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(|--c-[a-z]/);
         assert.doesNotMatch(css, /infinite/);
-        assert.match(css, /@media \(prefers-reduced-motion: no-preference\)/);
+        assert.match(css, /:where\(:root:not\(\[data-motion='reduced'\]\)\)/);
         for (const name of ['url-link-a', 'url-link-b']) assert.match(css, new RegExp(`@keyframes ${name}\\b`));
     });
 

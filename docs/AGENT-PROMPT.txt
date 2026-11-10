@@ -1,0 +1,11 @@
+Xplayer is a free, local Electron music player for Windows. This repository (Source) is the whole project: run it with `npm start`, test it with `npm test`, build the portable app with `npm run dist`.
+
+Layout: electron/ owns the main process, preload/IPC, the runtime scanner and the metadata, download, lyrics, AI and window services; src/js/ is the renderer engine (ES modules, src/js/main.js is the single entry and its import order is the load order; keep the numeric filename prefixes); src/ui-next/ is the new interface, a shell over the engine that reaches it only through src/ui-next/adapter/; src/css/ and src/assets/ hold the old interface's resources; src/old-ui/music_player.template.html is the old interface's template; tools/ holds tests/, checks/, dev/, fonts/, icons/ and lib/; docs/ and .agent/ hold the guides and plans.
+
+Where things are: electron/app-paths.js decides where pages (src/) and data (library, settings, logs) live. The library is songs.json in the data folder (.dev-data/ in development), managed by electron/songs-store.js. Generated files (src/player.js, src/music_player.html, src/fonts/, src/icons/, dist/) are written by tools/dev/gen-web.js and the build; never edit them.
+
+Runtime scanning belongs to electron/scan-folder.js. Electron uses nodeIntegration: false and contextIsolation: true; renderer/main communication goes through preload/contextBridge and IPC.
+
+Read .agent/AGENTS.md before changing files, claude.md for ownership and workflow, docs/DEVELOPMENT.md for commands and docs/ARCHITECTURE.md for the map. Test commands, grouping and prerequisites are in tools/tests/README.md. Current plans: .agent/archive/dev-plan/DEV-PLAN.md and .agent/E-D-REMAINING.md.
+
+Record detailed changes and verification in your own uniquely named report under .agent/reports/. Add one concise line to CHANGELOG.md after a change is integrated and verified. Never describe skipped or unrun checks as passing.

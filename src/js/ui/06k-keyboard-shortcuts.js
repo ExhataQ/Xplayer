@@ -40,16 +40,14 @@ document.addEventListener('keydown', function (e) {
         case 'ArrowUp':
             if (e.ctrlKey) {
                 e.preventDefault();
-                audioElement.volume = Math.min(1, audioElement.volume + 0.1);
-                updateVolume(audioElement.volume);
+                nudgeVolume(1);
             }
             break;
 
         case 'ArrowDown':
             if (e.ctrlKey) {
                 e.preventDefault();
-                audioElement.volume = Math.max(0, audioElement.volume - 0.1);
-                updateVolume(audioElement.volume);
+                nudgeVolume(-1);
             }
             break;
 

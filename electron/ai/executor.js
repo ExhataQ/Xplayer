@@ -8,6 +8,7 @@
 // person can undo the part that ran; nothing is left half-done and untracked.
 
 const { ACTIONS } = require('./actions');
+const { NOT_SAVED } = require('./journal');
 
 async function executePlan(plan, { handlers, journal, summary, onProgress }) {
     const done = [];
@@ -29,8 +30,19 @@ async function executePlan(plan, { handlers, journal, summary, onProgress }) {
         }
     }
     let entry = null;
-    if (done.length) entry = journal.record({ kind: 'ai-plan', summary: summary || plan.summary, changes: done });
-    return { ok: !failure, failure, applied: done.length, total: plan.actions.length, entryId: entry ? entry.id : null };
+    let notSaved = null;
+    if (done.length) {
+        try {
+            entry = journal.record({ kind: 'ai-plan', summary: summary || plan.summary, changes: done });
+        } catch (error) {
+            // The plan has already changed things. A journal that cannot be written must not hide that or lose the way back: the entry is
+            // held in memory (Undo works until the app closes) and the result says it was not saved.
+            if (!(error && error.code === NOT_SAVED && error.entry)) throw error;
+            entry = error.entry;
+            notSaved = error.message;
+        }
+    }
+    return { ok: !failure, failure, applied: done.length, total: plan.actions.length, entryId: entry ? entry.id : null, ...(notSaved ? { journalSaved: false, journalMessage: notSaved } : {}) };
 }
 
 // Undo runs the entry's changes in reverse. A change that cannot be reversed is reported and the

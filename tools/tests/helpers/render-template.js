@@ -1,7 +1,7 @@
 'use strict';
 
-// Renders build/music_player.html's {{CSS_LINKS}} / {{JS_SCRIPTS}} placeholders from
-// src/manifest.json - the same thing build/build_manifest.py does for the real build.
+// Renders src/old-ui/music_player.template.html's {{CSS_LINKS}} / {{JS_SCRIPTS}} placeholders from
+// src/manifest.json - the same thing tools/dev/gen-web.js does for the real page.
 // The manifest names the stylesheets and the one module entry (src/js/main.js); the entry's imports
 // are the renderer's load order.
 

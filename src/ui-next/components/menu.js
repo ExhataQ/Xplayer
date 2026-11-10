@@ -4,7 +4,16 @@
 // { type: 'separator' }, { type: 'heading', label }.
 import { el, iconEl, overlayHost, clampToViewport } from './dom.js';
 
-const SUBMENU_DELAY = 150;
+const SUBMENU_DELAY = 150; // before a hovered submenu item opens its submenu
+const SUBMENU_CLOSE_DELAY = 80; // before hovering another item shuts the open submenu (short, so the old item does not stay lit; long enough to cross a neighbour on the way to the submenu)
+
+// What the person used last. A menu opened with the mouse or a finger keeps keyboard focus on its first item (so the keys work at once) but does not
+// paint that item as selected, which looked like a hover nobody made. A menu opened from the keyboard, or by code, shows it as before.
+let lastInput = 'keyboard';
+if (typeof document !== 'undefined') {
+    document.addEventListener('pointerdown', () => (lastInput = 'pointer'), true);
+    document.addEventListener('keydown', () => (lastInput = 'keyboard'), true);
+}
 
 /**
  * openMenu({ anchor, items, point?, above?, onClose? }) opens below `anchor` (above it when `above` is true, for buttons at the bottom of the window), or at `point` {x, y} for a context menu.
@@ -16,6 +25,7 @@ export function openMenu({ anchor, items, point, above = false, onClose } = {}) 
     const opener = document.activeElement;
     const layers = []; // open menus, innermost last
     let closed = false;
+    let mode = lastInput; // 'pointer' until a key is pressed in the menu (then 'keyboard')
 
     function build(list, depth) {
         const root = el('ul', { class: 'menu', role: 'menu', 'data-depth': String(depth) });
@@ -67,6 +77,7 @@ export function openMenu({ anchor, items, point, above = false, onClose } = {}) 
 
     function openLayer(list, x, y, alignTo) {
         const menu = build(list, layers.length);
+        menu.dataset.input = mode;
         host.append(menu);
         position(menu, x, y, alignTo);
         layers.push(menu);
@@ -156,6 +167,18 @@ export function openMenu({ anchor, items, point, above = false, onClose } = {}) 
 
     function onKey(event) {
         const menu = layers[layers.length - 1];
+        if (mode === 'pointer') {
+            // the first key press brings the selected look in; Up and Down then start from the first (or last) item instead of skipping the hidden one
+            mode = 'keyboard';
+            for (const layer of layers) layer.dataset.input = 'keyboard';
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                const all = enabled(menu);
+                (event.key === 'ArrowDown' ? all[0] : all[all.length - 1])?.focus();
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
+        }
         const current = menu._nodes.indexOf(document.activeElement);
         const list = enabled(menu);
         const at = list.indexOf(document.activeElement);
@@ -189,13 +212,16 @@ export function openMenu({ anchor, items, point, above = false, onClose } = {}) 
     }
 
     // Hovering a submenu item opens it after a short delay; hovering any other item closes the open submenus.
+    // Focus follows the pointer, so only one item is ever lit: the one under it. Without this the item that had focus when the menu opened
+    // stayed lit while another one was hovered, and the highlight seemed to take a moment to leave.
     function onPointerOver(event) {
         const node = event.target.closest && event.target.closest('.menu__item');
         if (!node || !node._item || !inMenu(node)) return;
         const depth = Number(node.closest('.menu').dataset.depth);
+        if (node.getAttribute('aria-disabled') !== 'true' && document.activeElement !== node) node.focus({ preventScroll: true });
         clearTimeout(hoverTimer);
         if (node._item.items) hoverTimer = setTimeout(() => openSubmenu(node, false), SUBMENU_DELAY);
-        else hoverTimer = setTimeout(() => closeLayersAbove(depth), SUBMENU_DELAY);
+        else hoverTimer = setTimeout(() => closeLayersAbove(depth), SUBMENU_CLOSE_DELAY);
     }
     function onClick(event) {
         const node = event.target.closest && event.target.closest('.menu__item');

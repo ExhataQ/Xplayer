@@ -44,7 +44,7 @@ test('each icon rule has a real image, and the rules sit under .context-menu so 
 test('the generator reproduces the checked-in file', async () => {
     const { execFileSync } = require('node:child_process');
     const before = css;
-    execFileSync(process.execPath, [path.join(ROOT, 'tools', 'build-context-menu-icons.mjs')], { stdio: 'pipe' });
+    execFileSync(process.execPath, [path.join(ROOT, 'tools', 'icons', 'build-context-menu-icons.mjs')], { stdio: 'pipe' });
     const after = fs.readFileSync(path.join(ROOT, 'src', 'ui-next', 'adapter', 'context-menu-icons.css'), 'utf8').replace(/\r\n/g, '\n');
     assert.equal(after, before);
 });

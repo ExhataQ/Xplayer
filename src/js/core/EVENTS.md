@@ -64,7 +64,7 @@ State events (emitted by the setters in `core/`, no subscribers yet; for B, C an
 
 ### Events added after the first release: add rows only in your own section
 
-Agent A events: all in the first table above. A has no direct reaction calls left (`node tools/event-audit.js A`).
+Agent A events: all in the first table above. A has no direct reaction calls left (`node tools/checks/event-audit.js A`).
 
 Agent B events (playback, selection):
 

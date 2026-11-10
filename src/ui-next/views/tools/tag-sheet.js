@@ -16,7 +16,7 @@ const MAX_DRAWN = 1000;
 let applyColumn = 'genre';
 let applyText = '';
 let note = '';
-let readProblem = ''; // why files could not be read (for example Python or mutagen is missing), shown once in the status line
+let readProblem = ''; // why files could not be read (for example the tag library did not load), shown once in the status line
 
 export const tagSheetDirty = () => ui.isDirty();
 

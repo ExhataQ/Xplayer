@@ -33,7 +33,7 @@ function declarations(body) {
 }
 
 const allBlocks = blocks(tokens);
-const THEMES = ['warm-graphite', 'deep-forest', 'espresso-copper', 'pure-black', 'graphite-gold', 'carbon-honey', 'high-contrast', 'midnight-blue', 'aubergine-rose', 'ocean-teal', 'crimson-noir', 'violet-night'];
+const THEMES = ['warm-graphite', 'deep-forest', 'espresso-copper', 'pure-black', 'graphite-gold', 'carbon-honey', 'high-contrast', 'midnight-blue', 'aubergine-rose', 'ocean-teal', 'crimson-noir', 'violet-night', 'light'];
 
 function themeVars(name) {
     // The default theme is also the :root block; its [data-theme] selector is in the same selector list.

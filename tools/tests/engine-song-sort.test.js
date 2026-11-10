@@ -141,3 +141,59 @@ test('the last result is reused while the input is unchanged, and not otherwise'
     assert.notEqual(applyListSort(list, songs), again, 'a new sort is never served from the old result');
     assert.deepEqual(ids(applyListSort(list, songs)), ['b', 'c', 'a']);
 });
+
+// ----- the rating (task B3): the ratings are saved apart from the songs, so the sort asks for them once, for the whole list -----
+function withRatings(table, body) {
+    let lookups = 0;
+    let version = 0;
+    globalThis.ratingsForSongIds = (list) => (lookups++, list.map((id) => table[id] || 0));
+    globalThis.ratingsVersion = () => version;
+    try {
+        return body({ lookups: () => lookups, bump: () => version++ });
+    } finally {
+        delete globalThis.ratingsForSongIds;
+        delete globalThis.ratingsVersion;
+    }
+}
+
+test('rating sorts best first or worst first, halves included, and an unrated song is last either way', () => {
+    withRatings({ a: 3, b: 5, c: 0.5, d: 4.5, e: 0 }, () => {
+        const songs = ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => song(id));
+        assert.deepEqual(ids(sortSongs(songs, 'rating', 'desc')), ['b', 'd', 'a', 'c', 'e', 'f']);
+        assert.deepEqual(ids(sortSongs(songs, 'rating', 'asc')), ['c', 'a', 'd', 'b', 'e', 'f']);
+    });
+});
+
+test('songs with the same rating keep their order', () => {
+    withRatings({ a: 4, b: 4, c: 4, d: 2 }, () => {
+        assert.deepEqual(ids(sortSongs(['c', 'a', 'd', 'b'].map((id) => song(id)), 'rating', 'desc')), ['c', 'a', 'b', 'd']);
+    });
+});
+
+test('one lookup of the ratings for the whole list, not one for each comparison', () => {
+    withRatings({}, ({ lookups }) => {
+        const songs = Array.from({ length: 500 }, (_, i) => song('s' + i));
+        sortSongs(songs, 'rating', 'desc');
+        assert.equal(lookups(), 1);
+    });
+});
+
+test('without the rating functions nothing has a rating and the list keeps its order', () => {
+    const songs = ['b', 'a', 'c'].map((id) => song(id));
+    assert.deepEqual(ids(sortSongs(songs, 'rating', 'desc')), ['b', 'a', 'c']);
+});
+
+test('a list sorted by rating is sorted again when a rating changes, and reused while none does', () => {
+    withRatings({ a: 1, b: 5 }, ({ lookups, bump }) => {
+        const list = freshList();
+        const songs = [song('a'), song('b')];
+        setSongListSort(list, 'rating', 'desc');
+        assert.deepEqual(ids(applyListSort(list, songs)), ['b', 'a']);
+        const after = lookups();
+        applyListSort(list, songs);
+        assert.equal(lookups(), after, 'the remembered result is reused');
+        globalThis.ratingsForSongIds = (l) => (l.map((id) => ({ a: 5, b: 1 }[id])));
+        bump();
+        assert.deepEqual(ids(applyListSort(list, songs)), ['a', 'b'], 'a changed rating gives the new order');
+    });
+});

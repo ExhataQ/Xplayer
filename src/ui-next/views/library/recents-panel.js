@@ -6,13 +6,16 @@ import { el, emptyState } from '../../components/index.js';
 import { recentPlaylists, recentSongs, whenPlayed } from '../../adapter/panel-lists-bridge.js';
 import { engineEvent } from '../../adapter/engine-api.js';
 import { songRow, itemRow, toggleButton } from './panel-rows.js';
+import { scrollShadow } from '../../components/scroll-shadow.js';
 
 export const PLAYLIST_STEP = 5;
 
 /** Builds the panel inside `body`. `ctx.open(item)` opens a playlist; `ctx.openSong(id)` opens a song. */
 export function mountRecentsPanel(body, ctx) {
     const list = el('div', { class: 'plist-results' });
-    const root = el('div', { class: 'plist-panel', 'data-panel-kind': 'recent' }, list);
+    const scroller = el('div', { class: 'plist-results-wrap scroll-shadow--overlay' }, list); // the shadow is drawn over the wrapper, so it also covers the scroll bar's place
+    scrollShadow(scroller, '.plist-results');
+    const root = el('div', { class: 'plist-panel', 'data-panel-kind': 'recent' }, scroller);
     body.classList.add('panel-host__body--lists');
     body.append(root);
     const expanded = new Set(); // playlist ids; kept while the panel repaints

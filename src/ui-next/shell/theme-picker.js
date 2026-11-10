@@ -1,14 +1,22 @@
-// The theme choice in Settings, Appearance: a grid of cards, each with a small picture of the theme (its background, panels and accent),
-// then a "Custom" card for the theme the person builds (shell/theme-builder.js). One radio group: exactly one card is on.
+// The theme choice in Settings, Appearance: the two main choices (Dark and Light), then "More themes": a grid of cards, each with a simple
+// copy of the app in the theme's colors, ending with a "Custom" card for the theme the person builds (shell/theme-builder.js).
+// One radio group: exactly one card is on.
 import { el, iconEl, iconButton } from '../components/index.js';
-import { THEMES, CUSTOM_ID } from './appearance.js';
+import { THEMES, MAIN_THEMES, CUSTOM_ID } from './appearance.js';
 
+// A simple copy of the app, drawn by CSS from the theme's preview colors (appearance.css, .tp-*): rail, library panel, main view, right panel, player bar.
+const part = (kind, ...kids) => el('span', { class: kind }, ...kids);
+const song = (on) => part(on ? 'tp-row tp-row--on' : 'tp-row', part('tp-cover'), part('tp-text', part(on ? 'tp-line tp-line--accent' : 'tp-line'), part('tp-line tp-line--dim')));
 export function preview() {
     return el(
         'span',
         { class: 'theme-card__preview', 'aria-hidden': 'true' },
-        el('span', { class: 'theme-card__rail' }),
-        el('span', { class: 'theme-card__body' }, el('span', { class: 'theme-card__line theme-card__line--accent' }), el('span', { class: 'theme-card__line' }), el('span', { class: 'theme-card__line theme-card__line--short' }))
+        part('tp-title', part('tp-logo'), part('tp-dot tp-end'), part('tp-dot'), part('tp-dot')),
+        part('tp-rail', part('tp-icon'), part('tp-icon tp-icon--on'), part('tp-icon')),
+        part('tp-lib', part('tp-head'), song(true), song(false)),
+        part('tp-main', part('tp-hero', part('tp-cover'), part('tp-hero-text', part('tp-big'), part('tp-play'))), song(false)),
+        part('tp-side', part('tp-art'), part('tp-lyric tp-lyric--on'), part('tp-lyric'), part('tp-lyric')),
+        part('tp-player', part('tp-now', part('tp-cover'), part('tp-text', part('tp-line'), part('tp-line tp-line--dim'))), part('tp-center', part('tp-play'), part('tp-track')), part('tp-track tp-track--vol'))
     );
 }
 
@@ -17,18 +25,21 @@ export function preview() {
  * `colors` is { ground, surface, accent } (hex); null draws the empty "Custom" card.
  */
 export function themePicker({ value, onChange, label = 'Theme' }) {
-    const root = el('div', { class: 'theme-grid', role: 'radiogroup', 'aria-label': label });
+    const main = el('div', { class: 'theme-grid theme-grid--main' });
+    const more = el('div', { class: 'theme-grid' });
+    const root = el('div', { class: 'theme-picker', role: 'radiogroup', 'aria-label': label }, main, el('div', { class: 'theme-picker__more appearance__title' }, 'More themes'), more);
     const cards = new Map();
-    const add = (id, name, extra) => {
+    const add = (id, name, extra, into = more) => {
         const check = el('span', { class: 'theme-card__check', 'aria-hidden': 'true' }, iconEl('check', { size: 12 }));
         const card = el('button', { type: 'button', class: 'theme-card', role: 'radio', 'aria-checked': 'false', 'data-theme-id': id, tabindex: '-1' }, preview(), el('span', { class: 'theme-card__name' }, name), check);
         if (extra) card.dataset.kind = extra;
         card.addEventListener('click', () => select(id, true));
         cards.set(id, card);
-        root.append(card);
+        into.append(card);
         return card;
     };
-    for (const theme of THEMES) add(theme.id, theme.label);
+    for (const theme of MAIN_THEMES) add(theme.id, theme.label, undefined, main);
+    for (const theme of THEMES) if (!MAIN_THEMES.some((m) => m.id === theme.id)) add(theme.id, theme.label);
     const custom = add(CUSTOM_ID, 'Custom', 'custom');
 
     function select(id, notify) {
@@ -57,9 +68,9 @@ export function themePicker({ value, onChange, label = 'Theme' }) {
         setValue: (id) => cards.has(id) && select(id, false),
         setCustom(colors) {
             custom.toggleAttribute('data-empty', !colors);
-            for (const part of ['ground', 'surface', 'accent']) {
-                if (colors) custom.style.setProperty(`--sw-${part}`, colors[part]);
-                else custom.style.removeProperty(`--sw-${part}`);
+            for (const name of ['ground', 'surface', 'accent', 'ink']) {
+                if (colors && colors[name]) custom.style.setProperty(`--sw-${name}`, colors[name]);
+                else custom.style.removeProperty(`--sw-${name}`);
             }
         }
     };
@@ -72,7 +83,7 @@ export function themePicker({ value, onChange, label = 'Theme' }) {
  */
 export function savedThemeCard({ name, colors, current, onApply, onRename, onDelete }) {
     const card = el('button', { type: 'button', class: 'theme-card', 'aria-pressed': String(Boolean(current)), 'aria-label': name }, preview(), el('span', { class: 'theme-card__name' }, name));
-    for (const part of ['ground', 'surface', 'accent']) card.style.setProperty(`--sw-${part}`, colors[part]);
+    for (const name of ['ground', 'surface', 'accent', 'ink']) if (colors[name]) card.style.setProperty(`--sw-${name}`, colors[name]);
     card.addEventListener('click', onApply);
     const rename = iconButton({ icon: 'pencil', label: `Rename ${name}`, size: 'sm', onClick: onRename });
     const remove = iconButton({ icon: 'trash-2', label: `Delete ${name}`, size: 'sm', onClick: onDelete });

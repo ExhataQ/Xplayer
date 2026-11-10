@@ -7,11 +7,16 @@ import { createListToolbar } from './list-toolbar.js';
 import { trackInputMode } from './input-mode.js';
 import { trackSelectModifier } from './select-modifier.js';
 import { nextSort } from './song-sort.js';
+import { MAIN_HUE, tagline, statLine } from './main-playlists.js';
+import { knownTint, tintFor } from './cover-tint.js';
 import { canSortList, listSort, changeListSort } from '../../adapter/songsort-bridge.js';
-import { isSongView, currentSongView, onSongViewChange, setRowHeight, listElement, listTitle, onListTitleChange, listSongCount } from '../../adapter/songlist-bridge.js';
+import { isSongView, currentSongView, onSongViewChange, setRowHeight, listElement, listTitle, onListTitleChange, listSongs } from '../../adapter/songlist-bridge.js';
 import { listKind, listCover, onListCoverChange } from '../../adapter/listbar-bridge.js';
 import { defaultCover } from '../../adapter/default-cover.js';
 import { getAppearance, setAppearance, watchAppearance } from '../../shell/appearance.js';
+import { createRatingColumn } from './song-rating-column.js';
+import { ratingSystemOn } from '../../adapter/ratings-bridge.js';
+import { engineEvent } from '../../adapter/engine-api.js';
 
 const KIND_LABELS = { album: 'Album', artist: 'Artist', playlist: 'Playlist', favorites: 'Playlist', 'all-songs': 'Playlist', history: 'Playlist', recent: 'Playlist', 'search-items': 'Search results' };
 
@@ -22,20 +27,28 @@ const STORE_KEY = 'xplayer.ui-next.songlist';
 export const DEFAULT_SHARE = 5 / 9;
 export const MIN_SHARE = 0.2;
 export const MAX_SHARE = 0.8;
+// The Rating column's own width (px): at least the five stars, and the person may widen it by dragging its left edge (task B3).
+export const RATING_MIN = 88;
+export const RATING_MAX = 240;
+export const RATING_DEFAULT = 88;
+const RATING_KEY_STEP = 8;
 const MIN_TITLE_PX = 140;
 const MIN_ALBUM_PX = 90;
 const KEY_STEP = 0.02;
 
-export const DEFAULTS = { cover: true, artist: true, album: true, time: true, density: 'comfortable', share: DEFAULT_SHARE };
+export const DEFAULTS = { cover: true, artist: true, album: true, rating: true, ratingWidth: RATING_DEFAULT, time: true, density: 'comfortable', share: DEFAULT_SHARE };
 
 function normalize(saved) {
     const s = saved && typeof saved === 'object' ? saved : {};
     const flag = (k) => (typeof s[k] === 'boolean' ? s[k] : DEFAULTS[k]);
     const share = Number(s.share);
+    const ratingWidth = Number(s.ratingWidth);
     return {
         cover: flag('cover'),
         artist: flag('artist'),
         album: flag('album'),
+        rating: flag('rating'),
+        ratingWidth: ratingWidth >= RATING_MIN && ratingWidth <= RATING_MAX ? Math.round(ratingWidth) : RATING_DEFAULT,
         time: flag('time'),
         density: s.density === 'compact' ? 'compact' : 'comfortable',
         share: share >= MIN_SHARE && share <= MAX_SHARE ? share : DEFAULT_SHARE
@@ -100,9 +113,10 @@ export function attachSongList(host, { toolbar = false } = {}) {
     const barCover = el('div', { class: 'songlist-bar__cover', 'aria-hidden': 'true' });
     const barLabel = el('div', { class: 'songlist-bar__label' });
     const barTitle = el('h2', { class: 'songlist-bar__title', dir: 'auto' });
+    const barTagline = el('p', { class: 'songlist-bar__tagline', hidden: '' });
     const barCount = el('span', { class: 'songlist-bar__count' });
     const listTools = toolbar ? createListToolbar() : null;
-    const bar = el('div', { class: 'songlist-bar' }, barCover, el('div', { class: 'songlist-bar__text' }, barLabel, el('div', { class: 'songlist-bar__line' }, barTitle, barCount)), listTools ? listTools.el : '');
+    const bar = el('div', { class: 'songlist-bar' }, barCover, el('div', { class: 'songlist-bar__text' }, barLabel, el('div', { class: 'songlist-bar__line' }, barTitle, barTagline, barCount)), listTools ? listTools.el : '');
     // The hero title stays on one line and gets smaller as its room shrinks, as the old screen did (adjustHeroTitleSize in js/core/01-sizes.js).
     // The largest size that fits is used, never below TITLE_MIN; at that size a longer name is cut with an ellipsis.
     const TITLE_MAX = 56;
@@ -122,21 +136,58 @@ export function attachSongList(host, { toolbar = false } = {}) {
     const titleObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(fitTitle) : null;
     if (titleObserver) titleObserver.observe(barTitle.parentElement);
 
+    // The artist count walks the whole library, and paintBar also runs while the list scrolls: count again only when the list changed.
+    let artistsFor = '';
+    let artistsCount = 0;
+    function countArtists(view, songs) {
+        const key = `${view}|${songs.length}|${songs[0]?.id}|${songs[songs.length - 1]?.id}`;
+        if (key !== artistsFor) {
+            artistsFor = key;
+            artistsCount = new Set(songs.map((song) => String(song.artist || '').toLowerCase())).size;
+        }
+        return artistsCount;
+    }
+
+    // The header takes its colors from the cover (cover-palette.js): an album, artist or playlist with art of its own. Liked Songs and All Songs keep their
+    // fixed look, and a list with no art, or art that cannot be read, keeps the tint song-list.css gives it from its name. A cover read for the first time shows
+    // its colors a moment later (the header's gradient fades in, data-tint="pending"); one seen before shows them at once.
+    let tintedUrl = '';
+    function paintTint(kind, own) {
+        const url = (kind === 'album' || kind === 'artist' || kind === 'playlist') && own && own.tagName === 'IMG' ? own.src : '';
+        if (url === tintedUrl) return; // the same cover: nothing to do (paintBar also runs while the list scrolls)
+        tintedUrl = url;
+        const show = (colors) => {
+            for (const [name, value] of [['--hero-tint', colors && colors.tint], ['--hero-tint-2', colors && colors.tint2]]) {
+                if (value) bar.style.setProperty(name, value);
+                else bar.style.removeProperty(name);
+            }
+            delete bar.dataset.tint;
+        };
+        const known = url ? knownTint(url) : null;
+        if (known !== undefined) return show(known);
+        bar.dataset.tint = 'pending';
+        tintFor(url).then((colors) => tintedUrl === url && show(colors));
+    }
+
     let lastView = '';
     function paintBar() {
         const view = currentSongView();
-        const n = listSongCount(view);
+        const songs = listSongs(view);
         const kind = listKind(view);
         barLabel.textContent = KIND_LABELS[kind] || '';
         // A list with no art of its own shows its default cover (the same file the other lists use), not an empty space.
-        const cover = listCover(host) || Object.assign(document.createElement('img'), { alt: '', src: defaultCover(kind) });
+        const own = listCover(host);
+        const cover = own || Object.assign(document.createElement('img'), { alt: '', src: defaultCover(kind) });
         barCover.dataset.kind = kind;
         bar.dataset.kind = kind; // the hero look (song-list.css) is for the lists that have a cover and a name
-        bar.style.setProperty('--hero-hue', String(hueOf(`${kind}|${listTitle(host)}`))); // each list gets its own tint, the same list always the same one
+        bar.style.setProperty('--hero-hue', String(MAIN_HUE[kind] ?? hueOf(`${kind}|${listTitle(host)}`))); // each list gets its own tint, the same list always the same one
+        paintTint(kind, own);
         barCover.hidden = !cover;
         barCover.replaceChildren(...(cover ? [cover] : []));
         barTitle.textContent = listTitle(host);
-        barCount.textContent = `${n} ${n === 1 ? 'song' : 'songs'}`;
+        barCount.textContent = statLine(kind, songs, kind === 'all-songs' ? countArtists(view, songs) : 0);
+        barTagline.textContent = tagline(kind, songs.length);
+        barTagline.hidden = !barTagline.textContent;
         fitTitle();
         if (listTools) {
             if (view !== lastView) listTools.reset();
@@ -177,14 +228,26 @@ export function attachSongList(host, { toolbar = false } = {}) {
         'aria-valuemin': String(Math.round(MIN_SHARE * 100)),
         'aria-valuemax': String(Math.round(MAX_SHARE * 100))
     });
+    const ratingCell = el('div', { class: 'songlist-head__cell songlist-head__cell--rating' }, sortButton('rating', 'Rating')); // only while the Rating system is on and the column is chosen (song-rating-column.js)
+    const ratingResizer = el('div', {
+        class: 'songlist-rating-resizer',
+        role: 'separator',
+        tabindex: '0',
+        'aria-orientation': 'vertical',
+        'aria-label': 'Resize the Rating column',
+        'aria-valuemin': String(RATING_MIN),
+        'aria-valuemax': String(RATING_MAX)
+    });
     const header = el(
         'div',
         { class: 'songlist-head', role: 'presentation' },
         el('div', { class: 'songlist-head__cell songlist-head__cell--number', 'aria-hidden': 'true' }, '#'),
         titleCell,
         albumCell,
+        ratingCell,
         el('div', { class: 'songlist-head__tail' }, time, columnsButton),
-        resizer
+        resizer,
+        ratingResizer
     );
 
     function paintSort(view = currentSongView()) {
@@ -201,7 +264,7 @@ export function attachSongList(host, { toolbar = false } = {}) {
         }
     }
 
-    // A click on a column: ascending, then descending, then back to the list's own order.
+    // A click on a column: its first direction (the rating: best first), then the other way, then back to the list's own order.
     function cycleSort(key) {
         const view = currentSongView();
         if (!canSortList(view)) return;
@@ -210,24 +273,108 @@ export function attachSongList(host, { toolbar = false } = {}) {
         paintSort(view);
     }
 
+    // A list sorted by rating follows the ratings: when one changes, the list is drawn again in the new order (the engine reads one order for the rows, the clicks
+    // and the queue, so the rows on screen must be that order). Turning the rating system off ends a sort by rating.
+    const sortedByRating = () => {
+        const view = currentSongView();
+        const sort = canSortList(view) ? listSort(view) : null;
+        return sort && sort.key === 'rating' ? { view, sort } : null;
+    };
+    const stopRatingSort = [
+        engineEvent('ratings:changed', () => {
+            const now = sortedByRating();
+            if (now) changeListSort(now.view, 'rating', now.sort.dir);
+        }),
+        engineEvent('ratingSettings:changed', () => {
+            const now = sortedByRating();
+            if (!now || ratingSystemOn()) return;
+            changeListSort(now.view, null, 'asc');
+            paintSort(now.view);
+        })
+    ];
+
     // ----- applying state -----
     const columnWidths = () => ({ title: titleCell.getBoundingClientRect().width, album: albumCell.getBoundingClientRect().width });
+
+    // The Rating column's handle sits in the gap in front of its header cell; dragging it left makes the column wider (and the Title and Album narrower).
+    function placeRatingResizer() {
+        ratingResizer.style.left = `${ratingCell.offsetLeft - ratingResizer.offsetWidth}px`;
+        ratingResizer.setAttribute('aria-valuenow', String(state.ratingWidth));
+    }
 
     function placeResizer() {
         resizer.style.left = `${titleCell.offsetLeft + titleCell.offsetWidth}px`;
         resizer.setAttribute('aria-valuenow', String(Math.round(state.share * 100)));
+        placeRatingResizer();
     }
 
     // The header's bottom line continues across the scrollbar's width, up to the panel's wall (a piece outside the scroller, see song-list.css).
     const edge = el('div', { class: 'songlist-head-edge', 'aria-hidden': 'true', hidden: '' });
+    // The hero's colors continue across the scrollbar's width too. The hero sits inside the scroller, so its gradient stops where the scrollbar
+    // starts and a plain strip showed at the panel's wall. A piece in the wrapper, behind the scroller (like the header's edge above), draws the
+    // right-hand strip of the same gradient: as tall as the part of the hero that is on screen, and moving up with it as the list scrolls.
+    const HERO_KINDS = new Set(['album', 'playlist', 'artist', 'favorites', 'all-songs']);
+    const heroEdge = el('div', { class: 'songlist-hero-edge', 'aria-hidden': 'true', hidden: '' });
+    function copyHeroColors() {
+        const style = getComputedStyle(bar);
+        for (const name of ['--hero-tint', '--hero-tint-2', '--hero-glow']) heroEdge.style.setProperty(name, style.getPropertyValue(name));
+        heroEdge.dataset.tint = bar.dataset.tint || '';
+        // The column header and its piece at the wall need the list's kind: with a hero they are see-through at rest and solid once stuck (data-stuck).
+        for (const piece of [heroEdge, header, edge]) piece.dataset.kind = bar.dataset.kind || '';
+    }
+    // The hero's gradient goes on through the column header (song-list.css, --hero-extend = the header's height), so the header is part of the hero and the
+    // gradient is not cut off between the two. Nothing goes further down: below the header the list is plain.
+    let extended = -1;
+    function extendHero() {
+        const extend = HERO_KINDS.has(bar.dataset.kind) && !bar.hidden && !header.hidden ? header.offsetHeight : 0;
+        if (extend !== extended) {
+            extended = extend;
+            host.style.setProperty('--hero-extend', `${extend}px`);
+        }
+        return extend;
+    }
+    function placeHeroEdge() {
+        const node = content();
+        const wrapper = node && node.parentElement;
+        const scrollbar = node ? node.offsetWidth - node.clientWidth : 0;
+        const box = bar.getBoundingClientRect();
+        const extend = extendHero();
+        const wrapperBox = wrapper ? wrapper.getBoundingClientRect() : null;
+        const wrapperTop = wrapperBox ? wrapperBox.top : 0;
+        const bottom = box.bottom + extend; // where the gradient ends, hero and extension together
+        heroEdge.hidden = !wrapper || scrollbar <= 0 || bar.hidden || !HERO_KINDS.has(bar.dataset.kind) || bottom <= wrapperTop;
+        if (heroEdge.hidden) return;
+        const top = Math.max(0, box.top - wrapperTop);
+        heroEdge.style.width = `${scrollbar}px`;
+        heroEdge.style.top = `${top}px`;
+        heroEdge.style.height = `${Math.min(bottom - Math.max(box.top, wrapperTop), wrapperBox.height - top)}px`;
+        heroEdge.style.setProperty('--hero-w', `${node.offsetWidth}px`); // the gradient is drawn as wide as the hero plus the scrollbar, and this is its right-hand strip
+        heroEdge.style.setProperty('--hero-h', `${box.height + extend}px`);
+        heroEdge.style.setProperty('--hero-y', `${Math.min(0, box.top - wrapperTop)}px`);
+        // The hero's corner lines (::after) are centered on its top right corner, which is where the scrollbar starts: the strip draws the other half of them.
+        // These are that pattern's box (58% of the hero, at most 560px), the radius its fade reaches, and where its stripes are in their 12px rhythm.
+        const patternWidth = Math.min(box.width * 0.58, 560);
+        heroEdge.style.setProperty('--hero-pw', `${patternWidth}px`);
+        heroEdge.style.setProperty('--hero-ring-r', `${0.72 * Math.hypot(patternWidth, box.height + extend)}px`);
+        heroEdge.style.setProperty('--hero-phase', `${patternWidth % 12}px`);
+    }
     function placeEdge() {
+        placeHeroEdge();
         const node = content();
         const wrapper = node && node.parentElement;
         const bar = node ? node.offsetWidth - node.clientWidth : 0;
+        // Stuck: the list is scrolled and the header has reached the top. A list with a hero then has the header solid, in the list's background color, instead of the hero's gradient showing through it.
+        const headBox = header.getBoundingClientRect();
+        const wrapperTop = wrapper ? wrapper.getBoundingClientRect().top : 0;
+        const stuck = !header.hidden && HERO_KINDS.has(header.dataset.kind) && !!node && node.scrollTop > 0 && headBox.top <= wrapperTop + 1;
+        header.dataset.stuck = String(stuck);
+        edge.dataset.stuck = String(stuck);
         edge.hidden = !wrapper || header.hidden || bar <= 0;
         if (edge.hidden) return;
         edge.style.width = `${bar}px`;
-        edge.style.top = `${Math.round(header.getBoundingClientRect().bottom - wrapper.getBoundingClientRect().top) - 1}px`;
+        // At rest the piece is the header's 1px bottom line; stuck, it is the header's whole height, so the tint reaches the wall too.
+        edge.style.top = `${Math.round(stuck ? headBox.top - wrapperTop : headBox.bottom - wrapperTop - 1)}px`;
+        edge.style.height = stuck ? `${headBox.height}px` : '';
     }
     function measureScrollbar() {
         const node = content();
@@ -245,6 +392,8 @@ export function attachSongList(host, { toolbar = false } = {}) {
         host.dataset.album = state.album ? 'on' : 'off';
         host.dataset.time = state.time ? 'on' : 'off';
         host.dataset.density = state.density;
+        host.style.setProperty('--sl-rating-w', `${state.ratingWidth}px`);
+        ratingColumn.setOn(state.rating);
         const w = weights(state.share);
         host.style.setProperty('--sl-title-w', w.title);
         host.style.setProperty('--sl-album-w', w.album);
@@ -257,6 +406,8 @@ export function attachSongList(host, { toolbar = false } = {}) {
         placeResizer();
     }
 
+    const ratingColumn = createRatingColumn(host); // the stars column: cells in the engine's rows while the Rating system is on (B3)
+
     function apply(patch) {
         Object.assign(state, normalize({ ...state, ...patch }));
         write(state);
@@ -266,6 +417,7 @@ export function attachSongList(host, { toolbar = false } = {}) {
     function showForView(view) {
         header.hidden = !isSongView(view);
         bar.hidden = header.hidden;
+        ratingColumn.setOn(state.rating); // the engine may have been late at the first paint: look again at each list
         paintSort(view);
         paintBar();
         measureScrollbar();
@@ -281,13 +433,14 @@ export function attachSongList(host, { toolbar = false } = {}) {
                 toggle('cover', 'Cover art'),
                 toggle('artist', 'Artist name'),
                 toggle('album', 'Album'),
+                ...(ratingSystemOn() ? [toggle('rating', 'Rating')] : []),
                 toggle('time', 'Time'),
                 { type: 'separator' },
                 { type: 'heading', label: 'Row height' },
                 { label: 'Comfortable', radio: true, checked: state.density === 'comfortable', onSelect: () => setAppearance({ density: 'comfortable' }) },
                 { label: 'Compact', radio: true, checked: state.density === 'compact', onSelect: () => setAppearance({ density: 'compact' }) },
                 { type: 'separator' },
-                { label: 'Reset column widths', disabled: state.share === DEFAULT_SHARE, onSelect: () => apply({ share: DEFAULT_SHARE }) }
+                { label: 'Reset column widths', disabled: state.share === DEFAULT_SHARE && state.ratingWidth === RATING_DEFAULT, onSelect: () => apply({ share: DEFAULT_SHARE, ratingWidth: RATING_DEFAULT }) }
             ]
         });
     }
@@ -345,6 +498,46 @@ export function attachSongList(host, { toolbar = false } = {}) {
         apply({ share: clampShare(next, pair) });
     });
 
+    // The Rating column's handle: the same ways as the Title and Album one (drag, double click or Enter to reset, arrows, Home and End).
+    ratingResizer.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        const startX = event.clientX;
+        const startWidth = state.ratingWidth;
+        ratingResizer.setPointerCapture(event.pointerId);
+        ratingResizer.dataset.dragging = '';
+        document.body.classList.add('songlist-resizing');
+        let frame = 0;
+        const move = (e) => {
+            if (frame) return;
+            frame = requestAnimationFrame(() => {
+                frame = 0;
+                state.ratingWidth = Math.round(Math.min(RATING_MAX, Math.max(RATING_MIN, startWidth - (e.clientX - startX)))); // left makes it wider
+                paint();
+            });
+        };
+        const end = () => {
+            ratingResizer.removeEventListener('pointermove', move);
+            ratingResizer.removeEventListener('pointerup', end);
+            ratingResizer.removeEventListener('pointercancel', end);
+            if (frame) cancelAnimationFrame(frame);
+            delete ratingResizer.dataset.dragging;
+            document.body.classList.remove('songlist-resizing');
+            apply({ ratingWidth: state.ratingWidth });
+        };
+        ratingResizer.addEventListener('pointermove', move);
+        ratingResizer.addEventListener('pointerup', end);
+        ratingResizer.addEventListener('pointercancel', end);
+    });
+    ratingResizer.addEventListener('dblclick', () => apply({ ratingWidth: RATING_DEFAULT }));
+    ratingResizer.addEventListener('keydown', (event) => {
+        const big = event.shiftKey ? 5 : 1;
+        const next = { ArrowLeft: state.ratingWidth + RATING_KEY_STEP * big, ArrowRight: state.ratingWidth - RATING_KEY_STEP * big, Home: RATING_MIN, End: RATING_MAX, Enter: RATING_DEFAULT }[event.key];
+        if (next === undefined) return;
+        event.preventDefault();
+        apply({ ratingWidth: Math.min(RATING_MAX, Math.max(RATING_MIN, next)) });
+    });
+
     // ----- mount -----
     const wrapper = host.querySelector('.content-wrapper');
     // The title bar and the column header sit at the top of the scrolling content: the bar scrolls away, and the header
@@ -358,6 +551,13 @@ export function attachSongList(host, { toolbar = false } = {}) {
         host.insertBefore(header, wrapper || host.firstChild);
     }
     if (scroller && scroller.parentElement) scroller.parentElement.insertBefore(edge, scroller); // before the scroller: its scrollbar paints over the piece
+    if (scroller && scroller.parentElement) scroller.parentElement.insertBefore(heroEdge, edge); // under the header's piece at the wall, which the strip now reaches
+    const heroWatch = new MutationObserver(() => {
+        copyHeroColors();
+        placeHeroEdge();
+    });
+    heroWatch.observe(bar, { attributes: true, attributeFilter: ['style', 'data-kind', 'data-tint', 'hidden'] });
+    copyHeroColors();
     let edgeQueued = false;
     const onScroll = () => {
         if (edgeQueued) return;
@@ -377,6 +577,7 @@ export function attachSongList(host, { toolbar = false } = {}) {
     // The scrollbar appears and disappears with the list's height, and the resize handle follows the column edge.
     const observer = new ResizeObserver(measureScrollbar);
     observer.observe(host);
+    observer.observe(bar); // a name that wraps or a tagline that appears changes the hero's height
     if (content()) observer.observe(content());
     const list = listElement(host);
     if (list) observer.observe(list);
@@ -407,13 +608,17 @@ export function attachSongList(host, { toolbar = false } = {}) {
             observer.disconnect();
             if (scroller) scroller.removeEventListener('scroll', onScroll);
             edge.remove();
+            heroEdge.remove();
+            heroWatch.disconnect();
             countObserver.disconnect();
             if (titleObserver) titleObserver.disconnect();
             if (listTools) listTools.destroy();
+            stopRatingSort.forEach((stop) => stop());
+            ratingColumn.destroy();
             bar.remove();
             header.remove();
-            for (const key of ['songlist', 'cover', 'artist', 'album', 'time', 'density']) delete host.dataset[key];
-            for (const name of ['--sl-title-w', '--sl-album-w', '--sl-scrollbar']) host.style.removeProperty(name);
+            for (const key of ['songlist', 'cover', 'artist', 'album', 'time', 'density', 'ratingColumn']) delete host.dataset[key];
+            for (const name of ['--sl-title-w', '--sl-album-w', '--sl-scrollbar', '--sl-rating-w']) host.style.removeProperty(name);
         }
     };
 }

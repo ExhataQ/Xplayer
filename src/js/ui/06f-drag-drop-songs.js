@@ -31,6 +31,14 @@ export function initSongDragToLeftPanel() {
         let hasMoved = false;
         let startX = e.clientX;
         let startY = e.clientY;
+        // The rows being dragged are dimmed while the drag runs, as the dragged item is in the left panel (ui/06g).
+        let dragSourceRows = [];
+        const restoreSourceRows = () => {
+            dragSourceRows.forEach((row) => {
+                row.style.opacity = '';
+            });
+            dragSourceRows = [];
+        };
 
         const onMouseMove = (e) => {
             if (!hasMoved && (Math.abs(e.clientX - startX) > 5 || Math.abs(e.clientY - startY) > 5)) {
@@ -59,6 +67,10 @@ export function initSongDragToLeftPanel() {
                 dragGhost.style.left = e.clientX + 14 + 'px';
                 dragGhost.style.top = e.clientY + 14 + 'px';
                 document.body.appendChild(dragGhost);
+                dragSourceRows = isMultiDrag ? Array.from(songList.querySelectorAll('.song-item.selected')) : [songItem];
+                dragSourceRows.forEach((row) => {
+                    row.style.opacity = '0.4';
+                });
                 document.body.classList.add('no-select');
                 document.body.classList.add('dragging-song');
                 document.body.style.cursor = 'not-allowed';
@@ -66,12 +78,7 @@ export function initSongDragToLeftPanel() {
                 document.querySelectorAll('.left-panel-main-item').forEach((item) => {
                     const targetView = item.getAttribute('data-view');
                     const targetPinId = item.getAttribute('data-pin-id');
-                    const isValid =
-                        targetView === VIEWS.FAVORITES ||
-                        targetPinId === 'favorites' ||
-                        (targetView && targetView.startsWith('playlist-')) ||
-                        (targetPinId && targetPinId.startsWith('playlist-'));
-                    if (!isValid) {
+                    if (!acceptsDrop('song', targetView, targetPinId)) {
                         item.classList.add('drag-invalid');
                     }
                 });
@@ -297,6 +304,7 @@ export function initSongDragToLeftPanel() {
                 dragSongId = null;
             }
 
+            restoreSourceRows();
             document.body.classList.remove('no-select');
             document.body.classList.remove('dragging-song');
             document.body.style.cursor = '';
@@ -325,6 +333,7 @@ export function initSongDragToLeftPanel() {
             });
             leftPanelElement.classList.remove('drag-panel-hover');
             getLeftPanelDropZone()?.classList.remove('drag-panel-hover');
+            restoreSourceRows();
             document.body.classList.remove('no-select');
             document.body.classList.remove('dragging-song');
             document.body.style.cursor = '';

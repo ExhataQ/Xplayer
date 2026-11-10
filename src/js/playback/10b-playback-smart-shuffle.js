@@ -185,7 +185,9 @@ function shuffleBuildGroup(anchorArtist, graph, profiles, availableSongIds, conf
         let tookAny = false;
         if (artistSongs.length > 0) {
             const takeCount = Math.min(1 + Math.floor(Math.random() * 3), artistSongs.length);
-            const shuffled = [...artistSongs].sort(() => Math.random() - 0.5);
+            const shuffled = typeof songsInShuffleOrder === 'function'
+                ? songsInShuffleOrder(artistSongs) // random, or leaning to higher ratings when the rating system is on (library/03h-ratings.js)
+                : [...artistSongs].sort(() => Math.random() - 0.5);
             for (let i = 0; i < takeCount; i++) {
                 const s = shuffled[i];
                 if (

@@ -73,7 +73,7 @@ function buildApp(songCount) {
     const playerJs = tpl.replace('{{SONGS_DATA}}', () => JSON.stringify(songs)).replace('{{PLACEHOLDER_IMAGE}}', () => PH.replace(/'/g, "\\'"));
     fs.writeFileSync(path.join(out, 'player.js'), playerJs);
 
-    let html = fs.readFileSync(path.join(ROOT, 'build', 'music_player.html'), 'utf8');
+    let html = fs.readFileSync(path.join(ROOT, 'src', 'old-ui', 'music_player.template.html'), 'utf8');
     html = renderTemplate(html, ROOT);
     html = html.replace('{{SONGS_COUNT}}', String(songCount)).split('{{PLACEHOLDER_IMAGE}}').join(PH);
     const stub = `<script>window.electronAPI = new Proxy({}, {get:(t,k)=> (k==='then')?undefined:(...a)=>{ if(/^on[A-Z]/.test(String(k))) return ()=>{}; return Promise.resolve(null);} });</script>\n`;

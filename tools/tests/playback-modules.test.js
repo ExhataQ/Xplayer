@@ -132,7 +132,7 @@ window.electronAPI = new Proxy({}, { get: (t, k) => (k === 'then') ? undefined :
             const log = {};
             log.format = formatTime(125);
             updateVolume(0.4);
-            log.volume = Math.round(audioElement.volume * 100);
+            log.volume = Math.round(audioElement.volume * 10000); // the gain, not the slider: 0.4 on the slider is -30 dB
             toggleMute();
             log.muted = audioElement.volume;
             toggleMute();
@@ -147,7 +147,7 @@ window.electronAPI = new Proxy({}, { get: (t, k) => (k === 'then') ? undefined :
             return log;
         });
         assert.equal(out.format, '2:05');
-        assert.equal(out.volume, 40);
+        assert.equal(out.volume, 316); // 10 ^ (-30 / 20) = 0.0316
         assert.equal(out.muted, 0);
         assert.equal(out.unmuted, true);
         assert.equal(out.elapsed, '0:20');

@@ -67,7 +67,7 @@ Classic scripts run while the page is parsed, then the module scripts, then the 
 
 ## The guard test
 
-`tools/tests/legacy-bridge.test.js` reads every `src/js` file and `build/music_player.html` and fails if:
+`tools/tests/legacy-bridge.test.js` reads every `src/js` file and `src/old-ui/music_player.template.html` and fails if:
 
 - a `data-action...="name"` or `actionAttrs('name')` refers to a name that no `registerActions({...})` call in `src/js` registers, or
 - an action name is not a fixed string.

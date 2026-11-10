@@ -616,3 +616,45 @@ test('service: the mode is a saved setting (low, medium or high), and the plan g
     const none = await svc.plan({ request: 'hi', songs: SONGS, context: 'not an object' });
     assert.equal(none.ok, true, 'a bad context is ignored, not an error');
 });
+
+// ---- the chat in a window of its own: the relay to the main window ------------------------------------
+
+function relayWorld(timeoutMs = 50) {
+    const handlers = new Map();
+    const listeners = new Map();
+    const sent = [];
+    const mainContents = { send: (channel, message) => sent.push({ channel, message }) };
+    const main = { webContents: mainContents, isDestroyed: () => false, isMinimized: () => false, restore() {}, focus() { main.focused = true; } };
+    const ipcMain = { handle: (c, fn) => handlers.set(c, fn), on: (c, fn) => listeners.set(c, fn) };
+    const { registerHostRelay } = require('../../electron/ai/host-relay');
+    const relay = registerHostRelay(ipcMain, { getMainWindow: () => main, timeoutMs });
+    const chatWindow = { webContents: {} };
+    return { call: (...args) => handlers.get('ai:host-call')({ sender: chatWindow.webContents }, ...args), respond: (message, from = mainContents) => listeners.get('ai:host-response')({ sender: from }, message), sent, main, relay, handlers };
+}
+
+test('host relay: a call from the chat window reaches the main window and its answer comes back', async () => {
+    const w = relayWorld();
+    const pending = w.call('collect', [{ a: 1 }], true);
+    assert.equal(w.sent.length, 1);
+    assert.equal(w.sent[0].channel, 'ai:host-request');
+    assert.deepEqual([w.sent[0].message.name, w.sent[0].message.args], ['collect', [{ a: 1 }]]);
+    assert.equal(w.main.focused, true, 'focus was asked for');
+    w.respond({ id: w.sent[0].message.id, ok: true, value: { songs: [] } });
+    assert.deepEqual(await pending, { ok: true, value: { songs: [] } });
+    assert.equal(w.relay.pendingCount(), 0);
+});
+
+test('host relay: only the main window can answer, bad calls are refused, an unanswered call times out, the main window cannot call itself', async () => {
+    const w = relayWorld(30);
+    const pending = w.call('x', []);
+    w.respond({ id: w.sent[0].message.id, ok: true, value: 1 }, { not: 'main' });
+    assert.equal(w.relay.pendingCount(), 1, 'an answer from another window is ignored');
+    assert.deepEqual(await pending, { ok: false, error: 'timeout' });
+    assert.deepEqual(await w.call('', []), { ok: false, error: 'bad-call' });
+    assert.deepEqual(await w.call('y'.repeat(61), []), { ok: false, error: 'bad-call' });
+    const fromMain = await w.handlers.get('ai:host-call')({ sender: w.main.webContents }, 'x', []);
+    assert.deepEqual(fromMain, { ok: false, error: 'same-window' });
+    const failing = w.call('z', []);
+    w.respond({ id: w.sent[w.sent.length - 1].message.id, ok: false, error: 'not-allowed' });
+    assert.deepEqual(await failing, { ok: false, error: 'not-allowed' });
+});

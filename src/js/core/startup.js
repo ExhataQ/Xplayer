@@ -126,11 +126,8 @@ document.addEventListener('DOMContentLoaded', function () {
     setRepeatVisualState(repeatMode);
     setRepeatFunctionalityActive((repeatMode > 0 && !isShuffled) || repeatMode === 2);
 
-    // Set initial volume
-    window.lastVolume = 0.5;
-    window.lastMutedVolume = 0.5;
-    audioElement.volume = 0.5;
-    updateVolume(0.5);
+    // Set initial volume: the one saved last time, or the default on a first run
+    restoreSavedVolume();
 
     initHistoryGhostSlots();
 
@@ -187,6 +184,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize drag and drop
     initLeftPanelDragAndDrop();
     initSongDragToLeftPanel();
+    initFileDropTargets();
 
     // Ensure we're showing all songs on launch
     setCurrentView(VIEWS.ALL_SONGS);

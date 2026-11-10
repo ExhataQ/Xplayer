@@ -7,9 +7,10 @@
 //   openInWindow(tool)          the button: opens (or brings forward) the tool's window for the song that plays
 
 import { iconButton } from '../components/index.js';
+import { AI_VIEW_ID } from './ai-slots.js';
 import { engineAction, librarySong, lyricsEditors, nowPlaying, onToolWindowSong, openToolWindow, pauseWhenPlaying } from '../adapter/engine-api.js';
 
-const TOOLS = ['metadata', 'sync'];
+const TOOLS = ['metadata', 'sync', 'ai']; // 'ai' is the chat (views/ai); it does not start a song
 
 export function toolWindowParams(search = typeof location === 'undefined' ? '' : location.search) {
     const query = new URLSearchParams(search);
@@ -39,6 +40,10 @@ export function startToolWindow(showView) {
     const params = toolWindowParams();
     if (!params) return false;
     document.documentElement.dataset.toolWindow = params.tool;
+    if (params.tool === 'ai') {
+        showView(AI_VIEW_ID, { chosen: true }); // only the chat; the library, queue and playlists stay the main window's
+        return true;
+    }
     const startSong = (id) => {
         const song = id ? librarySong(id) : null;
         if (!song) return false;

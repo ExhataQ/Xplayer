@@ -34,7 +34,8 @@ describe('D-09c: module shape', () => {
     for (const [file, name] of Object.entries(FILES)) {
         test(`${file} only exports ${name}; nothing runs at load time except the registration`, () => {
             const ast = acorn.parse(fs.readFileSync(path.join(SRC, 'js', file), 'utf8'), { ecmaVersion: 'latest', sourceType: 'module' });
-            const kinds = ast.body.map((n) => n.type + (n.declaration ? ':' + n.declaration.type + ':' + n.declaration.id.name : ''));
+            // private helper functions are fine: they run nothing at load time
+            const kinds = ast.body.filter((n) => n.type !== 'FunctionDeclaration').map((n) => n.type + (n.declaration ? ':' + n.declaration.type + ':' + n.declaration.id.name : ''));
             assert.deepEqual(kinds, [`ExportNamedDeclaration:FunctionDeclaration:${name}`, 'IfStatement']);
         });
     }

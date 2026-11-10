@@ -211,7 +211,7 @@
 }
 /* Lyrics only: the same width, no cover and no track info. Full: the panel covers the whole app between the title bar and the player,
    lyrics only, in a centered column (shell/right-panel.js). */
-.right-host:is([data-mode='lyrics'], [data-mode='full']) :is(.rp-now__cover-frame, .rp-now__info) {
+.right-host:is([data-mode='lyrics'], [data-mode='full']) :is(.rp-now__cover-frame, .rp-now__cover-empty, .rp-now__info) {
     display: none;
 }
 .right-host[data-mode='full'] {
@@ -225,28 +225,43 @@
     border-left: 0;
 }
 .right-host[data-mode='full'] .rp-now__lyrics {
-    padding-inline: max(var(--space-6), calc((100% - 820px) / 2));
+    --lyrics-pad-x: max(var(--space-6), calc((100% - 820px) / 2));
 }
-.right-host[data-mode='full'] .rp-line,
-.right-host[data-mode='full'] .rp-plain {
+.right-host[data-mode='full'] .rp-line {
     font-size: var(--text-2xl);
-}
-.right-host[data-mode='full'] .rp-now__follow {
-    position: absolute;
-    right: var(--space-8);
-    bottom: var(--space-8);
 }
 /* The lyrics header: the title on the left, the two size buttons on the right. It stays in every mode (the buttons are how the person gets back). */
 .rp-now__header {
+    position: relative;
+    z-index: 2; /* above the lyrics, so the shadow below falls over them */
     flex: none;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-2);
-    min-height: 40px;
-    margin-top: var(--space-1);
+    min-height: 48px; /* its items are centered in it: as much room above as below, with a cover over it or the panel's edge */
     padding: 0 var(--space-3) 0 var(--space-4);
     border-bottom: 1px solid var(--border-subtle);
+}
+/* The shadow of the scrolled lyrics: right under the header's line, across the whole panel width (the scroll bar's place too). */
+.rp-now__header::after {
+    content: '';
+    position: absolute;
+    top: calc(100% + 1px); /* below the line */
+    right: 0;
+    left: 0;
+    height: 14px;
+    background: linear-gradient(to bottom, var(--scroll-shadow-color), transparent);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--motion-fast) var(--motion-ease);
+}
+.rp-now:has(.rp-now__lyrics[data-scrolled='true']) .rp-now__header::after {
+    opacity: 1;
+}
+
+:where(:root[data-motion='reduced']) .rp-now__header::after {
+    transition: none;
 }
 .rp-now__header-title {
     color: var(--text-primary);
@@ -258,12 +273,18 @@
     align-items: center;
     gap: var(--space-1);
 }
-.rp-now__ai {
+/* The lyrics buttons (translation, then Find) and, after a divider, the two size buttons. */
+.rp-now__lyric-tools {
     display: flex;
+    align-items: center;
     gap: var(--space-1);
     margin-inline-end: var(--space-1);
     padding-inline-end: var(--space-1);
     border-inline-end: 1px solid var(--border-subtle);
+}
+.rp-now__ai {
+    display: flex;
+    gap: var(--space-1);
 }
 .rp-now__ai:not(:has(.ai-lyrics-tools:not([hidden]))) {
     display: none;
@@ -371,6 +392,7 @@
 /* ---------- player host ---------- */
 
 .player-host {
+    position: relative; /* the visualizer's canvas sits behind the controls, inside this box */
     grid-area: player;
     background: var(--surface-panel);
     border-top: 1px solid var(--border-subtle);
@@ -409,7 +431,7 @@
     cursor: pointer;
 }
 .player-host .player-text-info {
-    flex: 1 1 auto;
+    flex: 0 1 auto; /* as wide as the longer of the title and artist (not the whole column), so the heart and info buttons follow where the text ends; a longer text still shrinks to the column and scrolls (the marquee) */
     min-width: 0;
 }
 .player-host #player-title,
@@ -602,11 +624,12 @@
 
 /* ---------- Windows High Contrast (forced-colors) ---------- */
 /* The system replaces our colors; what is left is shape. Mark the selected rail item and pressed toggles with a border,
-   because their background and accent color are not shown. */
+   because their background and accent color are not shown. An outline drawn inside the box, so the box never changes size. */
 @media (forced-colors: active) {
     .rail-btn[aria-current='page'],
     .icon-btn[aria-pressed='true'] {
-        border: 2px solid Highlight;
+        outline: 2px solid Highlight; /* an inset outline, not a border: a border would take 2px from the box when the state turns on (B8) */
+        outline-offset: -2px;
     }
     .rail-btn[aria-current='page']::before {
         background: Highlight;

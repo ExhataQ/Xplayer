@@ -105,6 +105,11 @@ function removeFromFolderFromMenu(folderId, itemId, itemType) {
     }
 }
 
+// The songs a song menu acts on: the whole selection when the clicked song is part of a multi-selection, else just that song.
+function songIdsForMenu(songId) {
+    return typeof selectedSongIds !== 'undefined' && selectedSongIds.size > 1 && selectedSongIds.has(songId) ? [...selectedSongIds] : [songId];
+}
+
 function buildContextMenu(songId, options = {}) {
     const {
         showAddToPlaylist = true,
@@ -117,17 +122,24 @@ function buildContextMenu(songId, options = {}) {
         showDeleteFromHistory = false
     } = options;
 
-    const relevantIds =
-        typeof selectedSongIds !== 'undefined' && selectedSongIds.size > 1 && selectedSongIds.has(songId)
-            ? [...selectedSongIds]
-            : [songId];
+    const relevantIds = songIdsForMenu(songId);
     const isFav = relevantIds.every((id) => isFavorite(id));
     const favoriteIcon = isFav ? 'fas fa-heart liked' : 'fas fa-heart unliked';
     const favoriteText = isFav ? 'Remove from favorites' : 'Add to favorites';
 
     let menuHTML = '';
 
-    if (showAddToPlaylist) {
+    if (showAddToPlaylist && hasPlaylistPicker()) {
+        // The new interface fills this submenu (search field and playlists) right after the menu is on the page (showContextMenu).
+        menuHTML += `
+        <div class="context-menu-item submenu-parent" style="position: relative;">
+                <i class="fas fa-plus"></i>
+                <span>Add to playlist</span>
+                <i class="fas fa-chevron-right"></i>
+                <div class="context-submenu playlist-picker-submenu"></div>
+        </div>
+        `;
+    } else if (showAddToPlaylist) {
         menuHTML += `
         <div class="context-menu-item submenu-parent" style="position: relative;">
                 <i class="fas fa-plus"></i>
@@ -135,7 +147,7 @@ function buildContextMenu(songId, options = {}) {
                 <i class="fas fa-chevron-right"></i>
                 <div class="context-submenu">
                         ${(() => {
-                            const playlists = getPlaylists();
+                            const playlists = getPlaylists().filter((p) => !p.smart); // Top rated and Not rated follow the ratings: nothing is added to them
                             if (playlists.length === 0) {
                                 return '<div class="context-menu-item" style="cursor: default;"><span>No playlists</span></div>';
                             }
@@ -169,7 +181,7 @@ function buildContextMenu(songId, options = {}) {
         `;
     }
 
-    if (showRemoveFromCurrentPlaylist && currentPlaylistName) {
+    if (showRemoveFromCurrentPlaylist && currentPlaylistName && !(getPlaylists().find((p) => p.id == currentPlaylistId) || {}).smart) {
         menuHTML += `
         <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['removeSongFromPlaylistAndRefresh', songId, String(currentPlaylistId)])}>
                 <i class="fas fa-trash-alt"></i>
@@ -183,6 +195,34 @@ function buildContextMenu(songId, options = {}) {
         <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['toggleFavoriteFromMenu'])}>
                 <i class="${favoriteIcon}"></i>
                 <span>${favoriteText}</span>
+        </div>
+        `;
+    }
+
+    // Rate (task B3): only while the rating system is on. The check marks the rating all the chosen songs share; Remove rating shows when any has one.
+    if (showFavorite && typeof isRatingSystemOn === 'function' && isRatingSystemOn()) {
+        const now = relevantIds.map((id) => ratingOf(SONGS_DATA.find((s) => s.id === id)));
+        const shared = now.every((r) => r === now[0]) ? now[0] : -1;
+        const starRow = (n) => `
+                    <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['setRatingFromMenu', songId, String(n)], { stop: true })}>
+                        <i class="${shared === n ? 'fas fa-check' : 'far fa-star'}"></i>
+                        <span>${ratingLabel(n)}</span>
+                    </div>`;
+        menuHTML += `
+        <div class="context-menu-item submenu-parent" style="position: relative;">
+                <i class="far fa-star"></i>
+                <span>Rate</span>
+                <i class="fas fa-chevron-right"></i>
+                <div class="context-submenu">${RATING_CHOICES.map(starRow).join('')}${
+                    now.some((r) => r > 0)
+                        ? `
+                    <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['setRatingFromMenu', songId, '0'], { stop: true })}>
+                        <i class="fas fa-times"></i>
+                        <span>Remove rating</span>
+                    </div>`
+                        : ''
+                }
+                </div>
         </div>
         `;
     }
@@ -267,6 +307,7 @@ const CONTEXT_MENU_ACTIONS = {
     addToFolderFromMenu: (...a) => addToFolderFromMenu(...a),
     moveToFolderFromMenu: (...a) => moveToFolderFromMenu(...a),
     toggleFavoriteFromMenu: (...a) => toggleFavoriteFromMenu(...a),
+    setRatingFromMenu: (...a) => setRatingFromMenu(...a),
     addToQueueNextFromMenu: (...a) => addToQueueNextFromMenu(...a),
     openLyricsEditorForSong: (...a) => openLyricsEditorForSong(...a),
     showSongMetadataModal: (...a) => showSongMetadataModal(...a),
@@ -390,6 +431,7 @@ export function showContextMenu(event, songId, options = {}) {
     menu.innerHTML = menuHTML;
 
     document.body.appendChild(menu);
+    mountPlaylistPickerInto(menu.querySelector('.playlist-picker-submenu'), songIdsForMenu(songId), closeContextMenu);
 
     const menuWidth = menu.offsetWidth;
     const menuHeight = menu.offsetHeight;

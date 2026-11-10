@@ -99,45 +99,43 @@
 
 /* ---------- motion ---------- */
 
-@media (prefers-reduced-motion: no-preference) {
-    /* on hover (after a short pause, see playOnHover in shell.js): one movement, then back to the start, finished even if the pointer leaves */
-    .rail-btn[data-view='home'][data-play] > svg {
-        animation: rail-hop 560ms ease-in-out;
-    }
-    .rail-btn[data-view='library'][data-play] > svg {
-        animation: rail-tilt 640ms ease-in-out;
-    }
-    .rail-btn[data-view='search'][data-play] > svg {
-        animation: rail-nudge 560ms ease-in-out;
-    }
-    .rail-btn[data-view='recent'][data-play] > svg path:last-child {
-        transform-origin: 12px 12px; /* the clock turns its hands, not the whole icon */
-        animation: rail-tick 800ms ease-in-out;
-    }
+/* on hover (after a short pause, see playOnHover in shell.js): one movement, then back to the start, finished even if the pointer leaves */
+:where(:root:not([data-motion='reduced'])) .rail-btn[data-view='home'][data-play] > svg {
+    animation: rail-hop 560ms ease-in-out;
+}
+:where(:root:not([data-motion='reduced'])) .rail-btn[data-view='library'][data-play] > svg {
+    animation: rail-tilt 640ms ease-in-out;
+}
+:where(:root:not([data-motion='reduced'])) .rail-btn[data-view='search'][data-play] > svg {
+    animation: rail-nudge 560ms ease-in-out;
+}
+:where(:root:not([data-motion='reduced'])) .rail-btn[data-view='recent'][data-play] > svg path:last-child {
+    transform-origin: 12px 12px; /* the clock turns its hands, not the whole icon */
+    animation: rail-tick 800ms ease-in-out;
+}
 
-    /* on click (the page opens): Settings, Lyrics, Metadata */
-    .rail-btn[data-view='settings'][aria-current='page'] > svg {
-        animation: rail-turn 700ms var(--motion-ease);
-    }
-    .rail-btn[data-view='lyrics'][aria-current='page'] > svg path {
-        animation: rail-bounce 640ms ease-in-out;
-    }
-    .rail-btn[data-view='lyrics'][aria-current='page'] > svg path:nth-child(2) {
-        animation-delay: 60ms;
-    }
-    .rail-btn[data-view='lyrics'][aria-current='page'] > svg path:nth-child(3) {
-        animation-delay: 120ms;
-    }
-    .rail-btn[data-view='lyrics'][aria-current='page'] > svg path:nth-child(4) {
-        animation-delay: 180ms;
-    }
-    .rail-btn[data-view='lyrics'][aria-current='page'] > svg path:nth-child(5) {
-        animation-delay: 240ms;
-    }
-    .rail-btn[data-view='metadata'][aria-current='page'] > svg {
-        transform-origin: 50% 20%;
-        animation: rail-swing 640ms ease-in-out;
-    }
+/* on click (the page opens): Settings, Lyrics, Metadata */
+:where(:root:not([data-motion='reduced'])) .rail-btn[data-view='settings'][aria-current='page'] > svg {
+    animation: rail-turn 700ms var(--motion-ease);
+}
+:where(:root:not([data-motion='reduced'])) .rail-btn[data-view='lyrics'][aria-current='page'] > svg path {
+    animation: rail-bounce 640ms ease-in-out;
+}
+:where(:root:not([data-motion='reduced'])) .rail-btn[data-view='lyrics'][aria-current='page'] > svg path:nth-child(2) {
+    animation-delay: 60ms;
+}
+:where(:root:not([data-motion='reduced'])) .rail-btn[data-view='lyrics'][aria-current='page'] > svg path:nth-child(3) {
+    animation-delay: 120ms;
+}
+:where(:root:not([data-motion='reduced'])) .rail-btn[data-view='lyrics'][aria-current='page'] > svg path:nth-child(4) {
+    animation-delay: 180ms;
+}
+:where(:root:not([data-motion='reduced'])) .rail-btn[data-view='lyrics'][aria-current='page'] > svg path:nth-child(5) {
+    animation-delay: 240ms;
+}
+:where(:root:not([data-motion='reduced'])) .rail-btn[data-view='metadata'][aria-current='page'] > svg {
+    transform-origin: 50% 20%;
+    animation: rail-swing 640ms ease-in-out;
 }
 
 @keyframes rail-hop {
@@ -213,12 +211,18 @@
 
 /* ---------- less motion ---------- */
 
-@media (prefers-reduced-motion: reduce) {
-    .rail-btn::before,
-    .rail-btn > svg,
-    .rail-btn[data-view='home'] .rail-fill,
-    .rail-btn[data-view='home'] .rail-door,
-    .rail-btn[data-view='metadata'] > svg path {
-        transition: none;
-    }
+:where(:root[data-motion='reduced']) .rail-btn::before,
+:where(:root[data-motion='reduced']) .rail-btn > svg,
+:where(:root[data-motion='reduced']) .rail-btn[data-view='home'] .rail-fill,
+:where(:root[data-motion='reduced']) .rail-btn[data-view='home'] .rail-door,
+:where(:root[data-motion='reduced']) .rail-btn[data-view='metadata'] > svg path {
+    transition: none;
+}
+
+/* ---------- a dragged item rests on it (polish A6): the item opens after a moment ---------- */
+
+.rail-btn.drag-over {
+    background: var(--surface-selected);
+    color: var(--text-primary);
+    box-shadow: inset 0 0 0 2px var(--accent);
 }

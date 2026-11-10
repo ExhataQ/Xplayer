@@ -368,6 +368,71 @@
     opacity: 1;
 }
 
+/* ---------- volume feedback (15g): the icon follows the level (and stays still), the fill gets brighter the louder it is, a number follows the knob ---------- */
+#volume-slider[data-level='whisper'] #volume-fill {
+    opacity: 0.55;
+}
+
+#volume-slider[data-level='low'] #volume-fill {
+    opacity: 0.8;
+}
+
+#volume-slider.dragging #volume-knob {
+    scale: 1.3;
+}
+
+.volume-bubble {
+    position: absolute;
+    bottom: calc(100% - 3px);
+    transform: translate(-50%, 4px);
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: rgba(24, 24, 24, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #fff;
+    font-size: 11px;
+    line-height: 1.4;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 3;
+}
+
+.volume-bubble.show,
+#volume-slider.dragging .volume-bubble {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    #volume-fill {
+        transition: opacity 0.2s;
+    }
+
+    #volume-knob {
+        transition: opacity 0.15s, scale 0.15s;
+    }
+
+    .volume-bubble {
+        transition: opacity 0.15s, transform 0.15s;
+    }
+
+    /* The icon itself never moves; a new shape only fades in. */
+    .volume-icon .vol-fade {
+        animation: volume-fade 0.2s ease-out;
+    }
+}
+
+@keyframes volume-fade {
+    from {
+        opacity: 0.3;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
 .repeat-one {
     font-size: 11px;
     position: absolute;

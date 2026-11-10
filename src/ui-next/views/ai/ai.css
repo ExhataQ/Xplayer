@@ -38,10 +38,16 @@
 /* ---------- chat ---------- */
 .ai-chat { height: 100%; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6); box-sizing: border-box; min-height: 0; }
 .ai-chat__head { display: flex; align-items: baseline; gap: var(--space-3); }
+/* The chat keeps a usable size (C5). The conversation never gets shorter than 160px; when the window is too short for everything (the
+   "Set up AI first" card above the box at the smallest window), the chat scrolls inside itself, so nothing is squeezed to a sliver or pushed
+   out of sight below the player bar. */
+.ai-chat { overflow-y: auto; overscroll-behavior: contain; }
+.ai-chat > * { flex-shrink: 0; }
+.ai-chat > .ai-chat__thread { flex: 1 0 160px; }
 .ai-chat__title { margin: 0; font-family: var(--font-serif); font-size: var(--text-2xl); font-weight: var(--weight-regular); color: var(--text-primary); }
 .ai-chat__status { margin: 0; flex: 1; font-size: var(--text-sm); color: var(--text-secondary); }
 .ai-chat__setup[hidden] { display: none; }
-.ai-chat__thread { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-1); }
+.ai-chat__thread { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-3); box-sizing: border-box; border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--border-subtle); }
 
 .ai-msg { display: flex; }
 .ai-msg--user { justify-content: flex-end; }
@@ -95,8 +101,6 @@
 /* ---------- the box to type in: ready-made messages on top, the text, then model, mode, options and Send ---------- */
 .ai-composer { position: relative; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--border-subtle); }
 .ai-composer:focus-within { border-color: var(--accent); }
-.ai-composer__prompts { display: flex; gap: var(--space-2); overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
-.ai-composer__prompts::-webkit-scrollbar { display: none; }
 .ai-quick { flex: none; display: inline-flex; align-items: center; gap: var(--space-1); min-height: 26px; padding: 0 var(--space-3); border-radius: 999px; border: 1px solid var(--border-subtle); background: transparent; color: var(--text-secondary); font: inherit; font-size: var(--text-xs); white-space: nowrap; cursor: pointer; }
 .ai-quick:hover:not(:disabled) { background: var(--surface-selected); color: var(--text-primary); }
 .ai-quick:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
@@ -104,8 +108,6 @@
 .ai-composer__input { width: 100%; box-sizing: border-box; min-height: 24px; max-height: 140px; resize: none; padding: var(--space-1) 0; border: 0; outline: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: var(--text-md); line-height: 1.5; }
 .ai-composer__input::placeholder { color: var(--text-secondary); }
 .ai-composer__input:disabled { opacity: 0.6; }
-.ai-composer__note { margin: 0; font-size: var(--text-xs); color: var(--text-secondary); }
-.ai-composer__note[hidden] { display: none; }
 .ai-composer__bar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
 .ai-composer__tools { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
 .ai-composer__go { display: flex; align-items: center; gap: var(--space-1); flex: none; }
@@ -138,6 +140,20 @@
 .ai-modelwin__note { margin: 0; padding: 0 var(--space-3) var(--space-2); font-size: var(--text-xs); color: var(--text-secondary); }
 .ai-modelwin__note:empty { display: none; }
 
-@media (prefers-reduced-motion: no-preference) {
-    .ai-quick, .ai-pill { transition: background-color 0.12s, color 0.12s; }
-}
+
+:where(:root:not([data-motion='reduced'])) .ai-quick, :where(:root:not([data-motion='reduced'])) .ai-pill { transition: background-color 0.12s, color 0.12s; }
+
+/* The conversation is a box of its own; the ready-made messages sit between it and the box to type in. */
+.ai-chat__hint { margin: auto; max-width: 30ch; text-align: center; font-size: var(--text-sm); line-height: 1.5; color: var(--text-secondary); }
+/* The row sits in the left panel's chip strip (library/chip-strip.js, library-panel.css), which scrolls it, fades the side that has more and draws
+   the arrows. Here it only lays the buttons out in one line and lets a drag move the row. */
+.ai-quickstrip { flex: none; }
+.ai-quickstrip .chip-strip__row { cursor: grab; touch-action: pan-x; }
+.ai-quickstrip .chip-strip__row[data-dragging='true'] { cursor: grabbing; user-select: none; }
+.ai-quickstrip .chip-strip__row[data-dragging='true'] .ai-quick { pointer-events: none; }
+.ai-quickrow { display: flex; gap: var(--space-2); width: max-content; }
+.ai-quickrow .ai-quick { flex: none; white-space: nowrap; }
+.ai-chat--standalone { padding: var(--space-4); }
+
+/* The chat in a window of its own is a narrow window: the page's usual minimum size (800 by 600) does not apply to it. */
+html[data-tool-window='ai'] { --window-min-width: 0px; --window-min-height: 0px; }

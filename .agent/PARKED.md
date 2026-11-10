@@ -1,0 +1,13 @@
+# Parked (decided to leave for now, remembered here)
+
+Owner's decisions to wait. Each line says what is waiting and for what. Newest first.
+
+| Parked | Waiting for | Where it is |
+|---|---|---|
+| **Retiring the old interface** (dev plan 6.6) | The owner says the new interface's polish is done (`POLISH-PLAN.md` is the list that decides). Then, in this order: the new interface becomes the only choice (Settings loses the switch, `ui-entry.js` loses `current`), `music_player.html` stops being generated and its template goes, then `src/css` and the old-interface-only tests. `src/js` stays: the new interface runs on it. | `.agent/archive/dev-plan/DEV-PLAN.md`, 6.6 |
+| **Release work, and the checks that need a first Windows build** (dev plan phase 5 and 6.3) | A release being planned (none is). Then 5.2 a release workflow on a `v*` tag, 5.3 an update notice, 5.4 signing (SignPath to be looked at). Also waiting for the first `npm run dist` and the first run of the build job on GitHub: the exe and taskbar icons, the size of `dist/Xplayer` and the first start time (they decide whether asar packing is worth revisiting), and moving the scan to `utilityProcess.fork` so the `runAsNode` fuse can be turned off (its own task, with the scan tests). | `.agent/archive/dev-plan/DEV-PLAN.md`, phases 5 and 6.3 |
+| **The measuring tools** (`node tools/dev/measure-states.js --write`, and the size scan) | The owner: "ignore for now but remember". When B8 is picked up again, run the measurement and send `.agent/STATE-SIZE-MEASURED.md`; its list is B8's work list. The right-panel lyrics bug it found is fixed (`.rp-line--active` weight). | `.agent/archive/polish-2/reports/P2-B8-step1-state-size-scan.md` |
+| **Rating in the right panel** | The owner removed it for now (the stars row under the cover and the stars control are deleted). It can come back with the song details, as a control with half stars. | `P2-B3d-rating-halves-resizer.md` |
+| **Rating: song details, Home playlists Top rated / Not rated, sort by Rating, keyboard in the list, tag writing** | Next slices of B3. Tag writing needs the format check with real files (a script to run on the owner's machine; `node-taglib-sharp` is not in the sandbox). | `P2-B3a`, `B3b`, `B3c` reports |
+| **Engine tooltip rows that are not in the real app** | The owner's answer: remove them from the table and the code as a separate package, or leave. | `.agent/archive/polish-2/TOOLTIP-TABLE.md` |
+| **The list columns plan** (reorder, resize every column, more columns, more rows) | The owner reads `LIST-COLUMNS-PLAN.md` and answers its questions. | `.agent/LIST-COLUMNS-PLAN.md` |

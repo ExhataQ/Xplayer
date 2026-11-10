@@ -6,6 +6,7 @@
 
 import { attachTooltip } from '../../components/index.js';
 import { playerPart, onTime } from '../../adapter/player-parts.js';
+import { reducedMotion } from '../../components/motion.js';
 
 export const formatTime = (seconds) => {
     const whole = Math.max(0, Math.floor(Number(seconds) || 0));
@@ -24,6 +25,14 @@ function repeatState(node) {
 }
 
 /** The engine's old tooltip system (ui/06d) shows any element that has a title. These elements have their own tooltip. */
+// The play button's icon swaps with a short scale and fade (shell/motion.css), and not at all when Reduce animations is on (C8).
+function swapPlayIcon(button) {
+    if (!button || reducedMotion()) return;
+    button.dataset.swap = '';
+    clearTimeout(button._swapTimer);
+    button._swapTimer = setTimeout(() => delete button.dataset.swap, 200);
+}
+
 function dropTitles(node) {
     const strip = () => {
         node.removeAttribute('title');
@@ -47,11 +56,11 @@ export function enhanceTransport() {
 
     // ---- buttons: name, state, shortcut ----
     const buttons = [
-        ['shuffle', () => ({ name: 'Shuffle', state: isOn(parts.shuffle) ? 'On' : 'Off', shortcut: 'S' }), true],
-        ['prev', () => (idle() ? null : { name: 'Previous song' }), false],
+        ['shuffle', () => ({ name: 'Shuffle', shortcut: 'S' }), false],
+        ['prev', () => (idle() ? null : { name: 'Previous' }), false],
         ['play', () => ({ name: state.playing ? 'Pause' : 'Play', shortcut: 'Space' }), true],
-        ['next', () => (idle() ? null : { name: 'Next song' }), false],
-        ['repeat', () => ({ name: 'Repeat', state: repeatState(parts.repeat), shortcut: 'R' }), true],
+        ['next', () => (idle() ? null : { name: 'Next' }), false],
+        ['repeat', () => ({ name: 'Repeat', shortcut: 'R' }), false],
         ['volume-icon', () => ({ name: parts['volume-icon'].getAttribute('aria-label') || 'Mute', shortcut: 'M' }), true]
     ];
     const tips = {};
@@ -107,7 +116,10 @@ export function enhanceTransport() {
             seek.setAttribute('aria-valuenow', String(second));
             seek.setAttribute('aria-valuetext', time.duration ? `${formatTime(time.currentTime)} of ${formatTime(time.duration)}` : 'No song');
         }
-        if (playingChanged) syncLabels();
+        if (playingChanged) {
+            syncLabels();
+            swapPlayIcon(parts.play);
+        }
     });
 
     // ---- volume slider ----
@@ -118,18 +130,15 @@ export function enhanceTransport() {
     volume.setAttribute('aria-keyshortcuts', 'Control+ArrowUp Control+ArrowDown');
     volume.setAttribute('aria-valuemin', '0');
     volume.setAttribute('aria-valuemax', '100');
-    const volumeTip = attachTooltip(volume, () => ({ name: 'Volume', state: `${percentOf(parts['volume-fill'])}%`, shortcut: 'Ctrl+Up / Down' }), { stayOnPress: true });
+    // No tooltip on the slider: the engine's number above the knob (#volume-bubble, 15g, shown while the volume changes) is its readout.
+    // Screen readers get the same from aria-valuenow / aria-valuetext below, and the shortcuts from aria-keyshortcuts above.
     const syncVolume = () => {
         const value = percentOf(parts['volume-fill']);
         volume.setAttribute('aria-valuenow', String(value));
         volume.setAttribute('aria-valuetext', value === 0 ? 'Muted' : `${value}%`);
-        volumeTip.refresh();
     };
     if (parts['volume-fill']) watch(parts['volume-fill'], syncVolume, { attributes: true, attributeFilter: ['style'] });
     syncVolume();
-
-    // ---- the elapsed-time label switches to remaining time on click (engine); say so ----
-    if (parts['time-current']) attachTooltip(parts['time-current'], { name: 'Time', description: 'Click to switch between elapsed and remaining time' });
 
     syncLabels();
     return () => stopTime();

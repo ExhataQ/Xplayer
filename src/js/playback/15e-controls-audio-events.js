@@ -106,7 +106,13 @@ function updateAudioProgress(audio) {
 }
 
 function bindPlaybackAudioEvents(audio) {
-    audio.ontimeupdate = () => updateAudioProgress(audio);
+    audio.ontimeupdate = () => {
+        updateAudioProgress(audio);
+        armGaplessLead(audio); // the early start of the next track (10c-playback-queue.js)
+    };
+    audio.onplaying = () => armGaplessLead(audio);
+    audio.onseeked = () => armGaplessLead(audio);
+    audio.onratechange = () => armGaplessLead(audio);
     audio.onloadedmetadata = () => {
         if (audio !== audioElement || !audio.duration || !Number.isFinite(audio.duration)) return;
         totalTimeDisplay.textContent = formatTime(audio.duration);
@@ -126,6 +132,8 @@ function bindPlaybackAudioEvents(audio) {
 
     audio.onpause = () => {
         if (audio !== audioElement) return;
+
+        cancelGaplessLead();
 
         cancelActiveAudioFade();
 

@@ -1,6 +1,8 @@
 // ==============================================================================
 // PLAYBACK - SONG PLAYBACK
 // ==============================================================================
+import { assignAudioSource } from './15h-equalizer.js';
+
 export function playSongFromQueue(queueIndex) {
     if (queueIndex < 0 || queueIndex >= playbackQueue.length) return;
 
@@ -35,18 +37,19 @@ export function playSongFromQueue(queueIndex) {
         const usedPreloadedTrack = usePreloadedGaplessTrack(song);
 
         if (!usedPreloadedTrack) {
-            audioElement.src = song.url;
+            assignAudioSource(audioElement, song.url);
             audioElement.currentTime = 0;
             audioElement.volume = getTargetTrackVolume(song);
             audioElement.play().catch(() => {});
         } else {
             audioElement.volume = getTargetTrackVolume(song);
+            noteGaplessPlayRequested(song);
             audioElement.play().catch(() => {});
         }
     } else if (playbackSettings.crossfadeEnabled && canCrossfade) {
         scheduleCrossfadeTransition(song);
     } else {
-        audioElement.src = song.url;
+        assignAudioSource(audioElement, song.url);
         audioElement.currentTime = 0;
         audioElement.play().catch(() => {});
         startFadeIn(song, (Number(playbackSettings.fadeInDuration) || 1) * 1000);
@@ -110,7 +113,7 @@ export function playSongFromQueue(queueIndex) {
     }
 
     if (playbackSettings.gaplessEnabled) {
-        prepareGaplessNextTrack();
+        prepareGaplessNextTrackSoon(); // not while this track is starting: see 10c-playback-queue.js
     }
 }
 

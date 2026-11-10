@@ -1,0 +1,88 @@
+name: build
+
+# Proves the portable app still builds: gen-web.js, electron-builder, make-portable.js, then check-dist.js looks inside the result.
+# Not a release: the zip and the installer are kept for 7 days as workflow artifacts so a build can be tried on a real Windows machine.
+# (The release itself is .github/workflows/release.yml; the plan is .agent/PRERELEASE-PLAN.md.)
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'electron/**'
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tools/dev/gen-web.js'
+      - 'tools/dev/make-portable.js'
+      - 'tools/dev/check-dist.js'
+      - 'tools/dev/check-fuses.js'
+      - 'tools/dev/release-tools.js'
+      - 'LICENSE'
+      - 'THIRD-PARTY-NOTICES.txt'
+      - '.github/workflows/build.yml'
+  pull_request:
+    paths:
+      - 'electron/**'
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tools/dev/gen-web.js'
+      - 'tools/dev/make-portable.js'
+      - 'tools/dev/check-dist.js'
+      - 'tools/dev/check-fuses.js'
+      - 'tools/dev/release-tools.js'
+      - 'LICENSE'
+      - 'THIRD-PARTY-NOTICES.txt'
+      - '.github/workflows/build.yml'
+  workflow_dispatch:
+
+jobs:
+  portable-windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false' # no code signing certificate: do not go looking for one
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build the portable app
+        run: npm run dist
+      - name: Check what is inside
+        run: node tools/dev/check-dist.js
+      - name: Check the fuses
+        run: node tools/dev/check-fuses.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Xplayer-portable
+          path: dist/Xplayer.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  installer-windows:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build the installer
+        run: npm run dist:installer
+      - name: Check the installer
+        run: node tools/dev/release-tools.js installer
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Xplayer-installer
+          path: dist/Xplayer-Setup-*.exe
+          if-no-files-found: error
+          retention-days: 7

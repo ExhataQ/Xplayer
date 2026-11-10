@@ -67,6 +67,18 @@ export function toggleFavorite(songId) {
     return engineFunction('toggleFavorite')(songId);
 }
 
+/** Opens the song's context menu (the engine's own) at the pointer of `event`, for a song that is not a row in a list: the right panel's cover. */
+export function showSongMenu(event, songId) {
+    requireId(songId, 'songId');
+    return engineFunction('showContextMenu')(event, songId);
+}
+
+/** Opens the song's metadata window ("Show metadata" in the song menu). */
+export function showSongMetadata(songId) {
+    requireId(songId, 'songId');
+    return engineFunction('showSongMetadataModal')(songId);
+}
+
 export function addSongToQueueNext(songId) {
     requireId(songId, 'songId');
     return engineFunction('addSongToQueueNext')(songId);

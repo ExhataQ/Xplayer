@@ -16,10 +16,15 @@ import { mountSearchPanel } from '../views/library/search-panel.js';
 import { mountSongPage } from '../views/library/song-page.js';
 import { openSong, registerSongOpeners } from '../adapter/song-open.js';
 import { installShuffleMenu } from '../adapter/shuffle-menu.js';
+import { registerPlaylistPicker } from '../adapter/playlist-picker-bridge.js';
+import { mountPlaylistPicker } from '../views/library/playlist-picker.js';
 import { mountRecentsPanel } from '../views/library/recents-panel.js';
+import { setPanelActive, installPanelActive } from '../views/library/panel-active.js';
 import { registerPanel, showPanel } from './panels.js';
 import { mountRightPanelSlot } from './right-panel.js';
 import { openLeft } from './panel-layout.js';
+import { slidePanel } from './panel-motion.js';
+import { installSmallMotions } from './small-motions.js';
 import { mountAiChrome } from './ai-chrome.js';
 import { appMenuGroups, toMenuItems, installMenuHotkeys } from './app-menu.js';
 import { AI_VIEW_ID, mountAiChat, leaveAiChat, hasAiChat, openAiChat } from './ai-slots.js';
@@ -30,6 +35,7 @@ import { viewsReady, whenViewsReady } from '../adapter/songlist-bridge.js';
 import { mountHome } from '../views/home/home.js';
 import { showPlayFromUrl, showNewPlaylist } from '../adapter/menu-bridge.js';
 import { openHomeItem } from '../adapter/home-bridge.js';
+import { startSessionMemory } from '../adapter/last-session.js';
 import { mountLyricsModes, leaveLyrics } from '../views/tools/lyrics.js';
 import { mountMetadata, leaveMetadata } from '../views/tools/metadata.js';
 import { engineAction, engineEvent, engineView as currentEngineViewName, watchLyricsEditors } from '../adapter/engine-api.js';
@@ -43,7 +49,8 @@ import { startBoot } from '../startup/boot.js';
 import { installTooltips } from './tooltips.js';
 import { installSpaceRule } from './space-key.js';
 import { installCatScrollbar } from './cat-scrollbar.js';
-import { createNavHistory, installMouseNavigation } from './nav-history.js';
+import { createNavHistory, installMouseNavigation, installNavButtons } from './nav-history.js';
+import { installRailDragHover } from './rail-drag-hover.js';
 import { createViewRegistry, showsEnginePage } from './view-registry.js';
 import { createRouter } from './view-router.js';
 
@@ -126,7 +133,6 @@ function buildTitlebar() {
     logo.setAttribute('aria-label', 'Application menu');
     logo.setAttribute('aria-haspopup', 'menu');
     logo.setAttribute('aria-expanded', 'false');
-    attachTooltip(logo, { name: 'Application menu' });
 
     logo.addEventListener('click', () => {
         const open = openMenu({ anchor: logo, items: toMenuItems(menuGroups()), onClose: () => logo.setAttribute('aria-expanded', 'false') });
@@ -150,11 +156,11 @@ function buildTitlebar() {
     aiChrome = mountAiChrome({ bell, goTo: goToMainView, current: () => $('.view-host').dataset.view });
 }
 
-// The left panel's button, between the X logo and Back / Forward (the right panel has its own at the other end). It shows the panel's state the same
+// The left panel's button, right after Back and Forward (the right panel has its own at the other end). It shows the panel's state the same
 // way: the left window is filled while the panel is open. In a narrow window where the right panel took the place, a click brings it back.
 function mountLeftPanelToggle(bar) {
     const toggle = iconButton({ icon: 'panel-left', label: 'Left panel', size: 'sm', pressed: false, className: 'left-panel-btn' });
-    bar.querySelector('.titlebar__nav').before(toggle); // between the X logo and Back / Forward
+    bar.querySelector('.titlebar__nav').after(toggle); // right after Back and Forward
     const panel = $('.panel-host');
     const root = document.documentElement;
     const shown = () => panel.dataset.closed === undefined && !root.hasAttribute('data-left-disabled');
@@ -310,6 +316,15 @@ function enterView(view, options = {}) {
     return false;
 }
 
+// Tells the left panel what the main view shows, so a row is lit only while its page is on screen (not after Home, Settings, Sync or Metadata
+// took over) and the Search and Recents rows light up like the Library's. Only the Library view shows a page of the list.
+function updatePanelActive() {
+    const host = $('.view-host');
+    if (!host) return;
+    const id = host.dataset.view;
+    setPanelActive({ page: id === 'library' && engineReady ? getCurrentView() || null : null, song: id === 'song' ? host.dataset.song || null : null });
+}
+
 function emptyView(view, text, title = view.label) {
     const section = el('section', 'empty-view');
     section.setAttribute('aria-label', view.label);
@@ -351,6 +366,7 @@ const router = createRouter({
             leaving = false;
         },
         committed: (view, options) => {
+            updatePanelActive(); // the rows of the left panel follow the view that is on screen now
             if (!options.fromHistory) navHistory.record(true); // history restores must not add entries
         },
         report: (phase, view, error) => console.error(`[views] ${phase} failed for "${view && view.id}"`, error)
@@ -372,7 +388,9 @@ function openEnginePlace(name) {
     else switchView(name);
 }
 
+let paintNavButtons = null; // set once the title bar exists
 const navHistory = createNavHistory({
+    onChange: () => paintNavButtons && paintNavButtons(),
     read: () => {
         const id = $('.view-host').dataset.view;
         return { view: id, song: id === 'song' ? $('.view-host').dataset.song || null : null, engine: engineReady && VIEWS.find((v) => v.id === id)?.songlist ? getCurrentView() : null };
@@ -407,9 +425,12 @@ function showPanelFor(view) {
 
 function setPanelClosed(closed) {
     const panel = $('.panel-host');
-    if (closed) panel.dataset.closed = '';
-    else delete panel.dataset.closed;
-    markRail();
+    // Opening slides the panel in (C8); closing is instant. The rail follows at once. Nothing moves when the state does not change.
+    slidePanel(panel, 'left', !closed, (on) => {
+        if (on) delete panel.dataset.closed;
+        else panel.dataset.closed = '';
+        markRail();
+    });
 }
 
 // The rail marks what is really showing (PB-22): the main view's item, and the open panel's item (DP2, so Home and Search can both
@@ -432,6 +453,13 @@ function markRail() {
 function goToMainView(id) {
     if (VIEWS.find((v) => v.id === id)?.panelOnly) showView(id, { keepPanel: true });
     else selectView(id);
+}
+
+// What choosing the item would not change: a panel item whose panel is open, or a page that is showing (choosing either again closes or keeps it).
+function railItemShowing(id) {
+    const button = document.querySelector(`.rail-btn[data-view="${id}"]`);
+    if (!button) return false;
+    return button.dataset.dynamic !== undefined ? button.dataset.panelCurrent !== undefined : button.getAttribute('aria-current') === 'page';
 }
 
 function selectView(id) {
@@ -491,6 +519,7 @@ function followEngine(name) {
         showView(owner.id, { keepPanel: true, followEngine: true, enginePage: name });
     }
     syncRailSelection(name);
+    updatePanelActive();
     navHistory.change(); // after the follow above, so a page the engine opened for another view is not recorded as a place of this one
 }
 
@@ -506,21 +535,27 @@ function showPageOfPanelRow(event) {
         const owner = registry.hostFor(page);
         const current = registry.get($('.view-host').dataset.view);
         if (owner && current && owner.id !== current.id) showView(owner.id, { keepPanel: true, followEngine: true, enginePage: page });
+        updatePanelActive();
     }, 0);
 }
 
 function init() {
     startBoot(); // the startup view, until the app is ready (task A-09)
     installTooltips(); // before the engine runs, so its titles never reach its own tooltip (A-08)
+    installSmallMotions(); // the playlist pulse and the drop settle (C8)
     installSpaceRule();
+    startSessionMemory(); // remembers the song and its position, for the Home hero's "pick up where you left off"
     installCatScrollbar(); // the optional cat scroll thumb (Settings > Appearance > Cat scrollbar)
     installMouseNavigation(navHistory);
     const panel = $('.panel-host');
+    installPanelActive(panel);
     buildTitlebar();
+    paintNavButtons = installNavButtons(navHistory); // Back and Forward walk every place, not only the lists (A7)
     tooltipTitlebarButtons();
     setNotificationNavigator((view) => showView(view)); // a notification can point at a rail view (PA-06)
     syncAccentFromEngine();
     buildRail(selectView);
+    installRailDragHover({ select: selectView, isCurrent: railItemShowing }); // a dragged item rests on a rail item (A6)
     panel.addEventListener('click', showPageOfPanelRow);
     panelActions = buildPanelActions();
     buildPanelResizer(panel); // drag the panel's edge, or use the arrow keys (task A-10)
@@ -543,8 +578,10 @@ function init() {
     whenLibraryReady(() => {
         engineReady = true;
         engineAction('applyStoredInstrumentalFlags'); // songs the finder found to be instrumental are marked again after a restart
+        registerPlaylistPicker(mountPlaylistPicker); // the song menu's "Add to playlist" submenu gets a search field (B2)
         installShuffleMenu(); // the shuffle button opens a floating menu, not the engine's dialog (PB-07)
         navHistory.refresh();
+        updatePanelActive(); // the engine is there now: the row of the page it shows can be lit
         if (pendingEngineView) {
             const pending = pendingEngineView;
             pendingEngineView = null;

@@ -12,6 +12,7 @@ registerActions({
     handleOnlineLyricsPickerInput,
     handleSmartLyricsFinderSearch,
     nextOnlineLyricsPage,
+    openLrclibSite,
     openOnlineLyricsPicker,
     openOnlineLyricsResult,
     openSmartLyricsFinder,
@@ -778,6 +779,58 @@ export function applyOnlineLyricsToSong(songId, text, type, isInstrumental = fal
     return true;
 }
 
+// One call for one song, for the "Find lyrics online" button in the right panel (no page, no picking): search LRCLIB for the song, and save the
+// best answer. Synced lyrics (LRC) first; a song only found as plain text gets the plain text, and synced lyrics the song already has are never
+// replaced by plain text. Of several synced answers the one whose length is within 3 seconds of the song's wins, so the timing fits.
+// Answers { status, type?, error? } and says nothing itself when it fails: the caller shows the message. It does not emit lyrics:changed: the
+// engine answers that event by redrawing its own Lyrics page, which is only right while that page is open (applyOnlineLyricsToSong emits it then);
+// the caller redraws what it shows itself.
+//   status: 'saved' | 'instrumental' (LRCLIB says the song has no words) | 'kept' (only plain text found, synced lyrics kept)
+//           | 'none' (nothing found) | 'error' (the search or the save failed; error says why)
+// No cache: pressing the button again asks again, so a song that was added to LRCLIB since is found.
+export async function findLyricsForSong(songId) {
+    const song = SONGS_DATA.find((s) => s.id === songId);
+    if (!song) return { status: 'error', error: 'The song is not in the library' };
+
+    let raw;
+    try {
+        raw = await desktopApi.lyrics.searchOnlineLyrics({
+            artist: String(song.artist || ''),
+            title: String(song.title || ''),
+            album: String(song.album || ''),
+            duration: parseSongDurationSeconds(song.duration)
+        });
+    } catch (error) {
+        return { status: 'error', error: (error && error.message) || 'Search failed' };
+    }
+    if (!raw || raw.success === false) return { status: 'error', error: (raw && raw.error) || 'Search failed' };
+
+    const results = Array.isArray(raw.results) ? raw.results : [];
+    const has = (item, field) => String((item && item[field]) || '').trim() !== '';
+    const wanted = parseSongDurationSeconds(song.duration);
+    const fits = (item) => !wanted || !Number.isFinite(item.duration) || Math.abs(item.duration - wanted) <= 3;
+    const synced = results.find((item) => has(item, 'syncedLyrics') && fits(item)) || results.find((item) => has(item, 'syncedLyrics'));
+    const plain = synced ? null : results.find((item) => has(item, 'plainLyrics'));
+    const match = synced || plain;
+
+    if (!match) {
+        // LRCLIB marks a track with no words as instrumental: that is an answer, not a miss.
+        if (results.some((item) => item.instrumental)) {
+            markSongInstrumental(song.id);
+            return { status: 'instrumental' };
+        }
+        return { status: 'none' };
+    }
+
+    const type = synced ? 'lrc' : 'lyrics';
+    if (type === 'lyrics' && typeof getSyncedLyricsForSong === 'function' && String(getSyncedLyricsForSong(song) || '').trim() !== '') {
+        return { status: 'kept', type };
+    }
+    const saved = applyOnlineLyricsToSong(song.id, getOnlineLyricsText(match, type), type, Boolean(match.instrumental));
+    if (!saved) return { status: 'error', type, error: 'The lyrics could not be saved' };
+    return { status: 'saved', type };
+}
+
 export function openOnlineLyricsPicker(index, type, anchorEvent) {
     const result = onlineLyricsState.results[index];
     if (!result) return;
@@ -1129,6 +1182,17 @@ export function renderOnlineLyricsResult(result, index) {
     `;
 }
 
+// Opens the LRCLIB site in the normal browser, never inside the app (C6). The address lives in the main process.
+export function openLrclibSite() {
+    if (!desktopApi.supports('lyrics.openLrclibSite')) return;
+    desktopApi.lyrics.openLrclibSite().then(
+        (result) => {
+            if (result && result.success === false) showNotification('Could not open the browser', 'error');
+        },
+        () => showNotification('Could not open the browser', 'error')
+    );
+}
+
 export function clearOnlineLyricsSearchInputs() {
     const artistInput = document.getElementById('online-lyrics-artist');
     const titleInput = document.getElementById('online-lyrics-title');
@@ -1185,6 +1249,14 @@ export function renderOnlineLyricsView() {
                 <span class="material-symbols-outlined">library_music</span>
                 Search many songs
             </button>
+            ${
+                desktopApi.supports('lyrics.openLrclibSite')
+                    ? `<button class="lyrics-view-edit-btn" data-action="openLrclibSite" title="Opens lrclib.net in your browser">
+                            <span class="material-symbols-outlined">open_in_new</span>
+                            LRCLIB website
+                        </button>`
+                    : ''
+            }
         </div>
     `;
 
@@ -1267,6 +1339,7 @@ export function updateOnlineLyricsResultsSection() {
 
 if (typeof registerLegacyGlobals === 'function') {
     registerLegacyGlobals({
+        findLyricsForSong,
         openSmartLyricsFinder,
         stopSmartLyricsFinder,
         toggleSmartLyricsSkipExisting,

@@ -65,7 +65,7 @@ export function createModeButton() {
     };
 }
 
-/** The options button: a menu of two switches. `state` is { useWeb, readLyrics }; `onChange(state)` is called after a switch. */
+/** The options button: a menu of two switches. `state` is { useWeb, readLyrics }; `onChange(name)` is called after a switch with the name of the one that changed. */
 export function createOptionsButton(state, onChange) {
     const button = el('button', { type: 'button', class: 'ai-pill ai-pill--icon', 'aria-haspopup': 'menu', 'aria-label': 'Options' }, iconEl('sliders-horizontal', { size: 14 }));
     const paint = () => {
@@ -79,8 +79,8 @@ export function createOptionsButton(state, onChange) {
             above: true,
             items: [
                 { type: 'heading', label: 'Options' },
-                { label: 'Look up tags online', checked: state.useWeb, keepOpen: true, onSelect: (item) => ((state.useWeb = item.checked), paint(), onChange(state)) },
-                { label: 'AI may read lyrics', checked: state.readLyrics, keepOpen: true, onSelect: (item) => ((state.readLyrics = item.checked), paint(), onChange(state)) }
+                { label: 'Look up tags online', checked: state.useWeb, keepOpen: true, onSelect: (item) => ((state.useWeb = item.checked), paint(), onChange('useWeb')) },
+                { label: 'AI may read lyrics', checked: state.readLyrics, keepOpen: true, onSelect: (item) => ((state.readLyrics = item.checked), paint(), onChange('readLyrics')) }
             ]
         });
     });

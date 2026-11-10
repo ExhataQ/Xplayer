@@ -19,6 +19,8 @@ export const STORAGE_KEYS = {
     CUSTOM_SYNCED_LYRICS: 'customSyncedLyrics',
     CUSTOM_LYRICS: 'customLyrics',
     SMART_SHUFFLE_SETTINGS: 'smartShuffleSettings',
+    RATINGS: 'ratings',
+    RATING_SETTINGS: 'ratingSettings',
     PLAYLISTS: 'playlists',
     PLAYED_ITEM_ORDER: 'playedItemOrder',
     PINNED_ITEMS: 'pinnedItems',
@@ -26,7 +28,9 @@ export const STORAGE_KEYS = {
     FOLDERS: 'folders',
     EXPANDED_FOLDERS: 'expandedFolders',
     AUDIO_PLAYBACK_SETTINGS: 'audioPlaybackSettings',
-    STARTUP_BACKGROUND: 'startupBackground'
+    EQUALIZER_SETTINGS: 'equalizerSettings',
+    STARTUP_BACKGROUND: 'startupBackground',
+    VOLUME: 'volume'
 };
 
 export function getSongById(id) {

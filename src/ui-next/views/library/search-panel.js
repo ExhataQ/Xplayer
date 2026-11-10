@@ -7,6 +7,7 @@ import { el, textField, chipGroup, autoLoad, emptyState } from '../../components
 import { searchLibrary } from '../../adapter/panel-lists-bridge.js';
 import { recentSearches } from '../../adapter/search-bridge.js';
 import { songRow, itemRow } from './panel-rows.js';
+import { scrollShadow } from '../../components/scroll-shadow.js';
 
 export const FILTERS = [
     { value: 'all', label: 'Everything', plural: 'Everything' },
@@ -46,7 +47,9 @@ export function mountSearchPanel(body, ctx) {
         }
     });
     const results = el('div', { class: 'plist-results', 'aria-live': 'polite' });
-    const root = el('div', { class: 'plist-panel', 'data-panel-kind': 'search' }, el('div', { class: 'plist-panel__controls' }, chips.el, field.el), results);
+    const scroller = el('div', { class: 'plist-results-wrap scroll-shadow--overlay' }, results); // the shadow is drawn over the wrapper, so it also covers the scroll bar's place
+    scrollShadow(scroller, '.plist-results');
+    const root = el('div', { class: 'plist-panel', 'data-panel-kind': 'search' }, el('div', { class: 'plist-panel__controls' }, chips.el, field.el), scroller);
     body.classList.add('panel-host__body--lists');
     body.append(root);
 

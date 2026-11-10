@@ -38,6 +38,6 @@ await a.requestApply();                  // the person reviews and applies
 - An unsure match waits in a review queue. `getFindings()` lists it (song, release, confidence, before and after). `acceptFindings(ids)` stages the ones the person wants, `skipFindings(ids)` drops them. Without ids they mean all of them. Do not accept for the person unless they asked you to.
 - It is slow on purpose: about 3 to 4 seconds a song, at most 2000 songs, one search at a time. Tell the person before you start a long one. The person sees progress in the notifications and can cancel there; `cancelFind()` does the same.
 - `mode` is `add` (default: keeps genres and other multi-value tags, replaces album and year) or `replace`.
-- If it answers with a message about Python or mutagen, tags cannot be read on this computer yet. Say that plainly; do not retry in a loop.
+- If it answers with a message that the tag library is not installed, or that tags in a file type cannot be edited, say that plainly; do not retry in a loop.
 - Everything staged still goes through `requestApply()` and the person's review, and Undo covers it.
 - Every apply is also written to the durable undo journal (PD-06), so `undoLast()` still works after a restart and the person gets an Undo button on the "Saved" notification. If it answers "already undone", the person (or Edit > Undo) did it; do not try again.

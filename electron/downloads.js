@@ -226,6 +226,56 @@ function downloadFile(url, filePath, onProgress, redirectsLeft = MAX_REDIRECTS) 
     });
 }
 
+const PROBE_TIMEOUT_MS = 5000;
+
+// What a link would download, asked with a light HEAD request (C2). Nothing is written. The answer holds only what the server
+// told: { success: true, name, size?, type? }, or { success: false } when it did not answer, refused HEAD or is not a plain http(s) link.
+// The name is the one a download would save under (the last part of the link after redirects), so the preview does not promise another.
+function probeUrl(url, redirectsLeft = MAX_REDIRECTS) {
+    return new Promise((resolve) => {
+        let parsed;
+        try {
+            parsed = new URL(url);
+        } catch (e) {
+            resolve({ success: false });
+            return;
+        }
+        if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+            resolve({ success: false });
+            return;
+        }
+        const protocol = parsed.protocol === 'https:' ? https : http;
+        const request = protocol.request(parsed, { method: 'HEAD', timeout: PROBE_TIMEOUT_MS }, (response) => {
+            response.resume();
+            const status = response.statusCode || 0;
+            if (status >= 300 && status < 400 && response.headers.location) {
+                let next;
+                try {
+                    next = new URL(response.headers.location, parsed).toString();
+                } catch (e) {
+                    resolve({ success: false });
+                    return;
+                }
+                resolve(redirectsLeft > 0 ? probeUrl(next, redirectsLeft - 1) : { success: false });
+                return;
+            }
+            if (status < 200 || status >= 300) {
+                resolve({ success: false });
+                return;
+            }
+            const result = { success: true, name: safeDownloadFileName(parsed.toString()) };
+            const size = Number(response.headers['content-length']);
+            if (Number.isFinite(size) && size > 0) result.size = size;
+            const type = String(response.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+            if (type.length <= 100 && /^[a-z0-9.+-]+\/[a-z0-9.+-]+$/.test(type)) result.type = type;
+            resolve(result);
+        });
+        request.on('timeout', () => request.destroy());
+        request.on('error', () => resolve({ success: false }));
+        request.end();
+    });
+}
+
 async function download(url, isTemp, onProgress) {
     const downloadFolder = getDownloadTargetFolder(isTemp);
 
@@ -243,6 +293,7 @@ module.exports = {
     saveDownloadFolder,
     resetDownloadFolder,
     download,
+    probeUrl,
     cancelDownload,
     safeDownloadFileName,
     getUniqueFilePath

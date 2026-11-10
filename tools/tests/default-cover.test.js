@@ -50,8 +50,8 @@ test('every placeholder SVG in the engine carries a cover-ph--<kind> class', () 
     assert.ok(found >= 18, `found ${found} placeholders`);
 });
 
-test('the build copies every default cover into <output>/assets, where ui-next reaches them', () => {
-    const script = fs.readFileSync(path.resolve(SRC, '..', 'build', 'music_player.py'), 'utf8');
-    assert.match(script, /startswith\("default-cover"\)/);
-    assert.match(script, /os\.path\.join\(output_dir, "assets"\)/);
+test('every default cover is in src/assets, which is where the pages (base href "../") ask for assets/<name>', () => {
+    const covers = fs.readdirSync(path.join(SRC, 'assets')).filter((name) => name.startsWith('default-cover'));
+    assert.ok(covers.length >= 1, 'no default-cover files in src/assets');
+    assert.ok(covers.includes('default-cover.svg'), 'tools/dev/gen-web.js reads default-cover.svg');
 });

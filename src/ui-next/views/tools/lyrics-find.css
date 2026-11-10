@@ -39,10 +39,9 @@
         transform: rotate(360deg);
     }
 }
-@media (prefers-reduced-motion: reduce) {
-    .view-host[data-engine='lyrics'] .online-lyrics-spinner {
-        animation: none;
-    }
+
+:where(:root[data-motion='reduced']) .view-host[data-engine='lyrics'] .online-lyrics-spinner {
+    animation: none;
 }
 .view-host[data-engine='lyrics'] .online-lyrics-expand {
     color: var(--text-secondary);

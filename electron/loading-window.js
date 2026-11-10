@@ -1,5 +1,4 @@
 const { BrowserWindow } = require('electron');
-const path = require('path');
 const { activeEntry, NEXT_ENTRY } = require('./ui-entry');
 const { loadingPageHtml, loadingBackground } = require('./loading-page');
 
@@ -18,7 +17,7 @@ function showLoadingWindow(mainWindow) {
         resizable: false,
         parent: mainWindow,
         modal: true,
-        icon: path.join(__dirname, 'icon.png'),
+        icon: require('./app-paths').getAppIcon(),
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true

@@ -1,11 +1,92 @@
 // ==============================================================================
 // NOTIFICATION SYSTEM
 // ==============================================================================
-export function showNotification(message, type = 'success', duration) {
+// ----- one entry for one action -----
+// Every call used to leave a new entry, so one action filled the bell with its steps ("Importing 3 file(s)...", then "Imported 3 song(s)"), and a quick
+// run of the same toggle (liked, unliked, liked) with copies. A message that belongs to a group now changes the group's latest entry in place when that
+// entry is still open (its action has begun and not ended) or is recent: the toast and the bell row change with it, and a repeat of the same message
+// counts up (x2). `begin` marks the message that opens an action. The list does not move entries: the progress rows below find theirs by position.
+const GROUP_WINDOW_MS = 8000;
+const NOTIFICATION_GROUPS = [
+    { key: 'import-files', begin: /^Importing \d/, match: /^(Importing \d|Imported \d+ song|Already in your library$|Added back \d|Could not import|No new songs to import$|Failed to import files$)/ },
+    { key: 'change-folder', begin: /^Selecting folder/, match: /^(Selecting folder|Loaded \d+ songs from new folder$|Failed to change folder$|Error changing folder$)/ },
+    { key: 'rebuild-library', begin: /^(Scanning \d|Clearing the music library)/, match: /^(Scanning \d|Clearing the music library|Loaded \d+ songs from \d+ folder|Music library cleared$|Failed to rebuild library)/ },
+    { key: 'favorites', window: 6000, match: /^(Added to favorites|Removed from favorites|(Added|Removed) \d+ songs? (to|from) favorites)$/ },
+    { key: 'liked-songs', window: 6000, match: /^Added \d+ item\(s\) to Liked Songs$/ },
+    { key: 'queue', window: 6000, match: /^Added \d+ (song|item)\(s\) to queue$/ },
+    { key: 'pin', window: 6000, match: /^".*" (pinned|unpinned)$/ },
+    { key: 'metadata-save', match: /^(Metadata saved$|No changes to save$|Failed to save metadata|Not supported for this file type)/ },
+    { key: 'lyrics-save', match: /^(Saved$|Saved as |Saved \d+ synced lines$|Lyrics saved$|LRC saved to song$|Lyrics saved to song$|Failed to save$|Nothing to save$)/ },
+    { key: 'lyrics-copy', window: 4000, match: /^(Copied |LRC copied$|Lyrics copied$)/ }
+];
+
+// ----- each message in one place -----
+// Most messages only confirm what the person just did, so one popup is enough and the bell list would only fill up with them. What is worth reading
+// again (every failure, and the results of an import, a rebuild or a save with skipped files) is not on these lists, so it stays in both places.
+//   DROP: not shown at all (the screen already says it, or nothing was asked for).  TOAST_ONLY: a popup, no row in the bell list.
+const DROP_NOTIFICATIONS = /^((Import )?[Nn]ot available( in browser mode)?|No song playing|Nothing to (undo|redo)|Please enter a (playlist name|folder name|URL)|Enter an artist or title|Smart Shuffle setting saved|Delete function not available|Line has no time to shift|Copied .*|(Lyrics|LRC) copied)$/;
+const TOAST_ONLY_NOTIFICATIONS = [
+    /^(Added to|Removed from) favorites$/,
+    /^(Added|Removed) \d+ songs? (to|from) favorites$/,
+    /^Added \d+ (song|item)\(s\) to /,
+    /^Added ".*" to /,
+    /^".*" (pinned|unpinned)$/,
+    /^(Added|Moved) .+ to "/,
+    /^(Removed .+ shortcut from folder|Moved .+ back to library root)$/,
+    /^(Playlist ".*" (created|deleted)|Playlist updated|Folder ".*" (created|deleted.*|and all contents deleted)|Folder renamed|Folder deleted)$/,
+    /^(Search history cleared|Recently played list cleared|Play history cleared|Search removed from history|Entry deleted from history)$/,
+    /^(Saved|Saved as .+|Saved \d+ synced lines|Lyrics saved|Lyrics cleared|Synced lyrics cleared|Variant deleted|Removed \d+ saved lyrics)$/,
+    /^(Metadata saved|Download folder updated|Reset to default Downloads folder|Data exported successfully|Data imported successfully|Download cancelled)$/,
+    /^(Streaming|Saved): /,
+    /^(Already in playlist|Song already in .+|Already in folder|Item already in that folder|Item is not in this folder|No changes to save)$/,
+    /^(Playlist is empty|Album is empty|Artist has no songs|No songs to play|No lyrics available|No (LRC|plain lyrics) available|Nothing to save)$/,
+    /^(Importing \d|Selecting folder|Scanning \d|Clearing the music library)/ // the first step of an action: the result that follows is the one worth keeping
+];
+
+function notificationModeOf(message) {
+    if (typeof message !== 'string') return 'both';
+    if (DROP_NOTIFICATIONS.test(message)) return 'drop';
+    return TOAST_ONLY_NOTIFICATIONS.some((rule) => rule.test(message)) ? 'toast' : 'both';
+}
+
+function notificationGroupOf(message) {
+    if (typeof message !== 'string') return null;
+    return NOTIFICATION_GROUPS.find((group) => group.match.test(message)) || null;
+}
+
+// `options.file` is the full path of a file the message is about (a download that was saved): the entry is kept in the bell list with an
+// "Open file location" button (shell/notification-center.js, through adapter/notifications-bridge.js). A popup alone would be gone before it is clicked.
+export function showNotification(message, type = 'success', duration, options) {
+    const file = options && typeof options.file === 'string' && options.file ? options.file : '';
+    const mode = file ? 'both' : notificationModeOf(message);
+    if (mode === 'drop') return;
+    const toastOnly = mode === 'toast';
+    const group = notificationGroupOf(message);
+    const open = Boolean(group && group.begin && group.begin.test(message));
+    const now = Date.now();
+    const latest = group ? notificationHistory.find((n) => n._group === group.key) : null;
+    if (latest && (latest._open || now - latest.timestamp <= (group.window || GROUP_WINDOW_MS))) {
+        const same = latest.message === message && latest.type === type;
+        latest.message = message;
+        latest.type = type;
+        latest.timestamp = now;
+        latest._viewed = false;
+        latest._open = open;
+        latest._toastOnly = toastOnly; // "Importing..." was popup only; "Imported 3 songs" is kept in the bell list, so the same entry joins it
+        latest._rev = (latest._rev || 0) + 1; // the shell shows a changed entry again (adapter/notifications-bridge.js)
+        latest._count = same ? (latest._count || 1) + 1 : 1;
+        renderNotificationPanel();
+        updateNotificationBadge();
+        return;
+    }
+
     notificationHistory.unshift({
         message: message,
         type: type,
-        timestamp: Date.now()
+        timestamp: now,
+        ...(toastOnly ? { _toastOnly: true } : {}),
+        ...(file ? { _file: file } : {}),
+        ...(group ? { _group: group.key, _open: open, _rev: 0, _count: 1 } : {})
     });
 
     if (notificationHistory.length > 50) {

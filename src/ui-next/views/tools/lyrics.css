@@ -104,17 +104,56 @@
 
 /* Synced: the line being sung is full strength, the rest recede. Clicking a line seeks (the engine does that). */
 .view-host[data-engine='lyrics'] .lyrics-view-synced .lyrics-line:not(.lyrics-line-empty) {
-    color: var(--text-secondary);
+    color: color-mix(in srgb, var(--text-secondary) 65%, transparent);
     cursor: pointer;
 }
 .view-host[data-engine='lyrics'] .lyrics-view-synced .lyrics-line.synced-past {
-    color: var(--text-tertiary);
+    color: color-mix(in srgb, var(--text-tertiary) 48%, transparent);
 }
 .view-host[data-engine='lyrics'] .lyrics-view-synced .lyrics-line.synced-active {
     color: var(--text-primary);
 }
 .view-host[data-engine='lyrics'] .lyrics-view-synced .lyrics-line:not(.lyrics-line-empty):hover {
     color: var(--text-primary);
+}
+/* B8: a line's state (playing, past, hovered) changes colour and brightness only. Never its size, weight, spacing or scale, so no line
+   grows or wraps onto another row when it becomes the one being sung. This pins what the state rules above and the engine's must not touch. */
+.view-host[data-engine='lyrics'] .lyrics-view-synced .lyrics-line,
+.view-host[data-engine='lyrics'] .lyrics-view-synced .lyrics-line.synced-active,
+.view-host[data-engine='lyrics'] .lyrics-view-synced .lyrics-line.synced-past,
+.view-host[data-engine='lyrics'] .lyrics-view-synced .lyrics-line:hover {
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    transform: none;
+    zoom: 1;
+    opacity: 1; /* dimming is done with the colour (above), never with opacity: see the next block */
+}
+
+/* B8: dim by colour, not by opacity. A line drawn at less than full opacity is rendered by the browser in its own layer, with a lighter kind of
+   text smoothing (no ClearType on Windows). When the playing line goes back to full opacity the same letters are drawn fuller, so they look
+   bigger and bolder although nothing changed in size. The engine's own sheets dim with opacity (0.65, 0.48, 0.6, 0.9); these rules win over
+   them (the `body` in front raises their weight) and give the same brightness by colour. The right panel's lyrics get the same. */
+body .track-lyrics-synced .track-lyrics-line {
+    opacity: 1;
+    color: color-mix(in srgb, var(--text-secondary) 65%, transparent);
+}
+body .track-lyrics-synced .track-lyrics-line.synced-active {
+    opacity: 1;
+    color: var(--text-primary);
+}
+body .track-lyrics-synced .track-lyrics-line:hover:not(.synced-active):not(.track-lyrics-line-empty):not(.track-lyrics-line-instrumental) {
+    opacity: 1;
+    color: color-mix(in srgb, var(--text-primary) 90%, transparent);
+}
+body .track-lyrics-synced .track-lyrics-line,
+body .track-lyrics-synced .track-lyrics-line.synced-active,
+body .track-lyrics-synced .track-lyrics-line:hover {
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    transform: none;
+    zoom: 1;
 }
 
 /* ---------- empty state: no song playing ---------- */

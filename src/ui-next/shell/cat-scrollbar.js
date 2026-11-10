@@ -13,11 +13,17 @@ const CAT_H = 58;
 const INSET = 4; // px kept free above and below the travel of the cat
 const MIN_HEIGHT = 140; // a scroller shorter than this keeps its normal bar
 const MIN_RANGE = 3; // px of overflow before there is anything to scroll
+import { reducedMotion } from '../components/index.js';
+import { isPlaying } from '../adapter/store.js';
+import { on as onEngineEvent } from '../adapter/events.js';
+
 const WAKE_MS = 900; // how long the cat stays out of hiding after the last scroll
 const DIR_MS = 180; // how long "climbing" lasts after the last scroll event
 const SCAN_MS = 500;
-const WANDER_MIN_MS = 4000; // every 4 to 10 seconds the cat walks a little way up or down by itself (the list scrolls with it) or looks about
-const WANDER_MAX_MS = 10000;
+const WANDER_MIN_MS = 20000; // every 20 to 50 seconds the cat walks a little way up or down by itself (the list scrolls with it) or looks about
+const WANDER_MAX_MS = 50000;
+// Things that sit on a list's edge without covering it: the panels' resize handles. They never hide the cat.
+const EDGE_HANDLES = '.panel-resizer, .right-resizer';
 const SKIP_TAGS = new Set(['TEXTAREA', 'INPUT', 'SELECT']);
 
 // One cat, drawn once and copied per scroller. Front view, hugging the wall on its right. Colors are the cat's own (cat-scrollbar.css).
@@ -70,8 +76,20 @@ const CAT_SVG = `
         <g class="cat-eye"><g class="cat-look"><ellipse class="cat-pupil" cx="30" cy="21" rx="2.4" ry="3" /><circle class="cat-shine" cx="29.2" cy="19.8" r="0.9" /></g></g>
       </g>
       <path class="cat-happy" d="M15.4 22.2 Q18 18.2 20.6 22.2 M27.4 22.2 Q30 18.2 32.6 22.2" />
+      <path class="cat-sleepy" d="M15.2 21.4 Q18 24 20.8 21.4 M27.2 21.4 Q30 24 32.8 21.4" />
       <path class="cat-nose" d="M22.7 25 H25.3 L24 26.7 Z" />
       <path class="cat-mouth" d="M24 26.7 V27.7 M24 27.7 Q22.2 29.6 20.4 27.9 M24 27.7 Q25.8 29.6 27.6 27.9" />
+      <ellipse class="cat-yawn" cx="24" cy="27.4" rx="3.4" ry="0.4" />
+    </g>
+    <g class="cat-zzz">
+      <text class="cat-z cat-z--a" x="6" y="11">z</text>
+      <text class="cat-z cat-z--b" x="1" y="6">z</text>
+      <text class="cat-z cat-z--c" x="-4" y="1.5">Z</text>
+    </g>
+    <g class="cat-notes">
+      <text class="cat-note cat-note--a" x="4" y="12">♪</text>
+      <text class="cat-note cat-note--b" x="-2" y="7">♫</text>
+      <text class="cat-note cat-note--c" x="-7" y="2">♪</text>
     </g>
   </g>
 </svg>`;
@@ -109,6 +127,18 @@ const CAT_MINI_SVG = `
         <g class="cat-eye"><g class="cat-look"><ellipse class="cat-m-eye" cx="30" cy="21" rx="2" ry="2.7" /></g></g>
       </g>
       <path class="cat-happy" d="M15.4 22.2 Q18 18.2 20.6 22.2 M27.4 22.2 Q30 18.2 32.6 22.2" />
+      <path class="cat-sleepy" d="M15.2 21.4 Q18 24 20.8 21.4 M27.2 21.4 Q30 24 32.8 21.4" />
+      <ellipse class="cat-yawn" cx="24" cy="27" rx="3" ry="0.4" />
+    </g>
+    <g class="cat-zzz">
+      <text class="cat-z cat-z--a" x="6" y="11">z</text>
+      <text class="cat-z cat-z--b" x="1" y="6">z</text>
+      <text class="cat-z cat-z--c" x="-4" y="1.5">Z</text>
+    </g>
+    <g class="cat-notes">
+      <text class="cat-note cat-note--a" x="4" y="12">♪</text>
+      <text class="cat-note cat-note--b" x="-2" y="7">♫</text>
+      <text class="cat-note cat-note--c" x="-7" y="2">♪</text>
     </g>
   </g>
 </svg>`;
@@ -119,12 +149,18 @@ let shownSkin = '';
 let observer = null; // MutationObserver on <body>: new lists appear
 let attrObserver = null; // MutationObserver on <html>: the option is switched
 let scanTimer = 0;
+let coverTimer = 0;
+let engineWatch = []; // the engine events the cats listen to (playing or paused, the next song)
+let playing = false;
 let lastScroll = 0;
 const pointer = { x: -1, y: -1, t: 0 }; // where the pointer last was, for the idle walks (they keep away from a pointer that is busy over the list)
 const cats = new Map(); // scroller -> cat
-const reduceMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const reduceMotion = reducedMotion;
 
 const isOn = () => document.documentElement.dataset.scrollbarCat === 'on';
+const reactsToMusic = () => document.documentElement.dataset.scrollbarCatMusic !== 'off'; // Settings: the cat moves to the music and glances at a new song
+const roams = () => document.documentElement.dataset.scrollbarCatRoam !== 'off'; // Settings: the cat may walk up and down by itself (the list scrolls)
+const acts = () => document.documentElement.dataset.scrollbarCatActs !== 'off'; // Settings: the cat may do things by itself: look about, yawn, stretch, fall asleep
 
 function visible(node) {
     if (typeof node.checkVisibility === 'function') return node.checkVisibility({ visibilityProperty: true });
@@ -147,14 +183,22 @@ function createCat(scroller) {
     let frame = 0;
     let drag = null;
     let hover = false;
-    let offset = 0; // px the cat has wandered from where the scroll position puts it (the cat walks about by itself now and then)
-    let tween = 0;
+    let tween = 0; // the cat's own walk: it scrolls the list by itself, a little way, now and then
+    let glideEnd = 0; // when that walk last ended (scroll events just after it are still its own)
+    let lastUser = 0; // the last scroll that was not the cat's own
     let wanderTimer = 0;
+    let lookTimers = [];
+    let lastInput = 0; // the last wheel, touch or key on this list
+    let pressed = false; // a pointer is down on this list (a click, a drag of its own scroll bar)
+    let lastActive = performance.now(); // the last time anyone touched this list or the cat: a long quiet and the cat falls asleep
+    let sleepAfter = 70000 + Math.random() * 50000;
+    let musicOnCat = false;
+    let purrTimer = 0;
 
     const sleepSoon = () => {
         clearTimeout(wakeTimer);
         wakeTimer = setTimeout(() => {
-            if (!hover && !drag) delete root.dataset.awake;
+            if (!hover && !drag && root.dataset.looking === undefined) delete root.dataset.awake; // out looking about: it stays out until it is done
         }, WAKE_MS);
     };
     const wake = () => {
@@ -172,31 +216,52 @@ function createCat(scroller) {
             root.hidden = true;
             return;
         }
-        // Something on top of the list (a dialog, the startup view) hides the cat with it.
-        const hit = document.elementFromPoint(Math.min(rect.left + rect.width / 2, window.innerWidth - 1), Math.min(Math.max(rect.top + rect.height / 2, 0), window.innerHeight - 1));
-        if (hit && !scroller.contains(hit) && !hit.closest(`.${LAYER_CLASS}`)) {
-            root.hidden = true;
-            return;
-        }
         const travel = Math.max(0, rect.height - CAT_H - INSET * 2);
         const progress = Math.min(1, Math.max(0, scroller.scrollTop / range));
-        const y = INSET + Math.min(travel, Math.max(0, progress * travel + offset));
-        root.style.transform = `translate(${Math.round(rect.right - CAT_W)}px, ${Math.round(rect.top + y)}px)`;
+        // Something on top of the list or of the cat itself (a dialog, a menu, the notifications, an AI popup, the startup view) hides the
+        // cat with it: the cat is on a layer above everything, so it checks what is really at the list's middle and at five points on
+        // its own box, and stays out of sight if any of them belongs to something else.
+        const x1 = rect.right - 9; // clear of a panel's resize handle on the edge
+        const x0 = rect.right - CAT_W + 8;
+        const y0 = rect.top + INSET + progress * travel;
+        const points = [
+            [rect.left + rect.width / 2, rect.top + rect.height / 2],
+            [x1, y0 + 6],
+            [x1, y0 + CAT_H / 2],
+            [x1, y0 + CAT_H - 6],
+            [x0, y0 + CAT_H / 2],
+            [x0, y0 + 8]
+        ];
+        for (const [px, py] of points) {
+            const hit = document.elementFromPoint(Math.min(Math.max(px, 0), window.innerWidth - 1), Math.min(Math.max(py, 0), window.innerHeight - 1));
+            if (hit && !scroller.contains(hit) && !hit.closest(`.${LAYER_CLASS}`) && !hit.closest(EDGE_HANDLES)) {
+                root.hidden = true;
+                return;
+            }
+        }
+        root.style.transform = `translate(${Math.round(rect.right - CAT_W)}px, ${Math.round(y0)}px)`;
         root.hidden = false;
     }
     const schedule = () => {
         if (!frame) frame = requestAnimationFrame(place);
     };
 
+    // Who is scrolling? The person (a wheel, a touch, a key, a press on the list or a drag of the cat, just now), the cat itself (its walks),
+    // or the app (the lyrics following the song, the list scrolling to the playing row, a jump after a search). The app's scrolling is
+    // followed in silence: the cat's place moves with the list, but it does not come out, climb or count as someone being there.
     function onScroll() {
-        lastScroll = performance.now();
-        if (offset || tween) {
-            // the list moved (the person scrolled): the cat goes back to where the scroll position puts it
-            cancelAnimationFrame(tween);
-            tween = 0;
-            offset = 0;
-        }
+        const now = performance.now();
+        lastScroll = now;
         const top = scroller.scrollTop;
+        const own = tween !== 0 || now - glideEnd <= 150;
+        const person = !own && (pressed || drag !== null || now - lastInput < 400);
+        if (!own && !person) {
+            lastTop = top;
+            schedule();
+            return;
+        }
+        if (person) lastUser = now;
+        rouse();
         if (top !== lastTop) {
             root.dataset.dir = top > lastTop ? 'down' : 'up';
             lastTop = top;
@@ -288,23 +353,79 @@ function createCat(scroller) {
         }
         lookTimers.push(setTimeout(endLook, at));
     }
+    // A yawn or a stretch: the cat comes out, does it where it is, and goes back.
+    function act(kind, ms) {
+        root.dataset.looking = '';
+        root.dataset.act = kind;
+        wake();
+        lookTimers.push(setTimeout(endLook, ms + 400));
+    }
+    // A new song: the cat glances down toward the player bar for a moment.
+    function glance() {
+        if (!reactsToMusic() || root.hidden || hover || drag || tween || lookTimers.length || sleeping() || reduceMotion() || document.hidden) return;
+        root.dataset.looking = '';
+        wake();
+        const side = aim(window.innerWidth * 0.45, window.innerHeight);
+        root.style.setProperty('--tilt', side * 4);
+        root.style.setProperty('--hx', side * 0.8);
+        lookTimers.push(setTimeout(endLook, 1700));
+    }
+    // Sleeping: after a long quiet the cat shuts its eyes where it is (peeking), breathes slowly and snores a few z's. Any touch wakes it.
+    const sleeping = () => root.dataset.sleeping !== undefined;
+    function rouse() {
+        lastActive = performance.now();
+        if (sleeping()) delete root.dataset.sleeping;
+    }
+    const sleepTimer = setInterval(() => {
+        if (sleeping() || !acts() || musicOnCat || root.hidden || hover || drag || tween || lookTimers.length || document.hidden || reduceMotion()) return;
+        if (root.dataset.dir !== undefined || root.dataset.awake !== undefined) return;
+        if (performance.now() - lastActive > sleepAfter) {
+            root.dataset.sleeping = '';
+            sleepAfter = 70000 + Math.random() * 50000;
+        }
+    }, 5000);
+    function setMusic(on) {
+        const was = musicOnCat;
+        musicOnCat = on;
+        if (on) {
+            rouse();
+            root.dataset.music = '';
+        } else {
+            delete root.dataset.music;
+            // The music stopped (paused or ended): the quiet is counted from now, so the cat dozes off after its usual 70 to 120 seconds
+            // (without this it would count from before the song and fall asleep at once after a long one). Playing again wakes it.
+            if (was) lastActive = performance.now();
+        }
+    }
     function endLook() {
         for (const t of lookTimers) clearTimeout(t);
         lookTimers = [];
         if (root.dataset.looking === undefined) return;
         delete root.dataset.looking;
+        delete root.dataset.act;
         for (const name of ['--lx', '--ly', '--tilt', '--hx']) root.style.removeProperty(name);
         wake();
     }
+    // The right panel never gets it: its lyrics scroll by themselves (synced lines), and a cat moving the list would fight them.
+    const inRightPanel = scroller.closest('.right-host') !== null;
     function idle() {
         if (root.hidden || hover || drag || tween || lookTimers.length || document.hidden || reduceMotion() || root.dataset.dir !== undefined) return;
         const now = performance.now();
-        if (now - lastUser < 4000) return;
-        if (Math.random() < 0.45) return lookAbout();
+        if (now - lastUser < 4000 || sleeping()) return;
         const rect = scroller.getBoundingClientRect();
         const near = pointer.x >= rect.left && pointer.x <= rect.right && pointer.y >= rect.top && pointer.y <= rect.bottom;
-        if (near && now - pointer.t < 8000) return lookAbout(); // the pointer is busy over this list: only look, do not move it
-        walk();
+        const busy = inRightPanel || (near && now - pointer.t < 8000); // the pointer is busy over this list, or its lyrics move by themselves: do not scroll it
+        // Walking (the list scrolls) and doing things (no scrolling: looking about, yawning, stretching) are two separate settings, so a cat
+        // that may not walk, or has no room to, can still do the rest.
+        const canWalk = roams() && !busy;
+        const canAct = acts();
+        if (!canWalk && !canAct) return;
+        const r = Math.random();
+        if (canWalk && (!canAct || r < 0.4)) return walk();
+        const q = canWalk ? (r - 0.4) / 0.6 : r; // 0..1 among the things it can do
+        if (q < 0.42) return lookAbout();
+        if (q < 0.72) return act('yawn', 1900);
+        act('stretch', 1700);
     }
     const planWander = () => {
         wanderTimer = setTimeout(() => {
@@ -314,7 +435,22 @@ function createCat(scroller) {
     };
     planWander();
     // The person takes over: a wheel, a touch, a key or a click on the list stops the walk and the looking at once.
-    for (const type of ['wheel', 'touchstart', 'pointerdown', 'keydown']) scroller.addEventListener(type, () => (stopWalk(), endLook()), { passive: true });
+    for (const type of ['wheel', 'touchstart', 'touchmove', 'pointerdown', 'keydown']) {
+        scroller.addEventListener(
+            type,
+            () => {
+                lastInput = performance.now();
+                if (type === 'pointerdown') pressed = true;
+                stopWalk();
+                endLook();
+                rouse();
+            },
+            { passive: true }
+        );
+    }
+    const unpress = () => (pressed = false);
+    window.addEventListener('pointerup', unpress, true);
+    window.addEventListener('pointercancel', unpress, true);
 
     // Dragging the cat: its travel is the track, so a pointer move scales to a scroll distance.
     function range() {
@@ -325,6 +461,9 @@ function createCat(scroller) {
         if (event.button !== 0) return;
         stopWalk();
         endLook();
+        rouse();
+        clearTimeout(purrTimer);
+        delete root.dataset.purr;
         drag = { y: event.clientY, top: scroller.scrollTop, moved: false };
         svg.setPointerCapture(event.pointerId);
         root.dataset.drag = '';
@@ -354,14 +493,28 @@ function createCat(scroller) {
     svg.addEventListener('pointerenter', () => {
         stopWalk();
         endLook();
+        rouse();
         hover = true;
         root.dataset.hover = '';
         wake();
+        // petted for a couple of seconds: it purrs (eyes shut happily, a fine tremble)
+        purrTimer = setTimeout(() => {
+            if (hover && !drag && !reduceMotion()) root.dataset.purr = '';
+        }, 2500);
     });
     svg.addEventListener('pointerleave', () => {
         hover = false;
         delete root.dataset.hover;
+        clearTimeout(purrTimer);
+        delete root.dataset.purr;
         sleepSoon();
+    });
+    // A quick double click startles it: it hops, eyes wide.
+    svg.addEventListener('dblclick', () => {
+        if (reduceMotion()) return;
+        root.dataset.jump = '';
+        wake();
+        setTimeout(() => delete root.dataset.jump, 620);
     });
 
     // The eyes follow the pointer while the cat is out (not while it is scrolling, dragged or when motion is reduced).
@@ -371,12 +524,17 @@ function createCat(scroller) {
         lookFrame = 0;
         const e = lookEvent;
         if (!e || root.hidden || root.dataset.awake === undefined || root.dataset.drag !== undefined || root.dataset.looking !== undefined || reduceMotion()) return;
+        aim(e.clientX, e.clientY);
+    }
+    // The eyes turn toward a point of the window (--lx, --ly); gives back which side that is (-1 left, 1 right).
+    function aim(x, y) {
         const box = svg.getBoundingClientRect();
-        const dx = e.clientX - (box.left + box.width * 0.5);
-        const dy = e.clientY - (box.top + box.height * 0.36);
+        const dx = x - (box.left + box.width * 0.5);
+        const dy = y - (box.top + box.height * 0.36);
         const k = Math.min(1, Math.hypot(dx, dy) / 90) / (Math.hypot(dx, dy) || 1);
         root.style.setProperty('--lx', (dx * k * 1.5).toFixed(2));
         root.style.setProperty('--ly', (dy * k * 1.1).toFixed(2));
+        return dx < 0 ? -1 : 1;
     }
     const onPointer = (event) => {
         if (root.dataset.awake === undefined) return;
@@ -392,14 +550,20 @@ function createCat(scroller) {
 
     const cat = {
         place: schedule,
+        setMusic,
+        glance,
         destroy() {
             clearTimeout(dirTimer);
             clearTimeout(wakeTimer);
             clearTimeout(wanderTimer);
+            clearTimeout(purrTimer);
+            clearInterval(sleepTimer);
             if (tween) cancelAnimationFrame(tween);
             for (const t of lookTimers) clearTimeout(t);
             if (frame) cancelAnimationFrame(frame);
             scroller.removeEventListener('scroll', onScroll);
+            window.removeEventListener('pointerup', unpress, true);
+            window.removeEventListener('pointercancel', unpress, true);
             window.removeEventListener('pointermove', onPointer);
             if (lookFrame) cancelAnimationFrame(lookFrame);
             resize.disconnect();
@@ -408,6 +572,7 @@ function createCat(scroller) {
             cats.delete(scroller);
         }
     };
+    cat.setMusic(playing && reactsToMusic()); // a new cat starts in the current state of the music
     return cat;
 }
 
@@ -434,9 +599,62 @@ function scan() {
     for (const cat of cats.values()) cat.place();
 }
 
+// A new panel or dialog: its lists get their cat (and so lose the native bar) in the same task that added them, before anything is painted,
+// instead of after the slower scan below (a regular scrollbar would show for a moment). Only what was added, and the lists around it, is looked at.
+function fastScan(records) {
+    if (!isOn() || !layer || performance.now() - lastScroll < 300) return false;
+    const candidates = new Set();
+    for (const r of records) {
+        if (r.target === layer || layer.contains(r.target)) continue;
+        for (const node of r.addedNodes) {
+            if (node.nodeType !== 1 || !node.isConnected || candidates.size > 3000) continue;
+            candidates.add(node);
+            for (const child of node.querySelectorAll('*')) {
+                if (candidates.size > 3000) break;
+                candidates.add(child);
+            }
+        }
+        for (let up = r.target; up && up !== document.body && up.nodeType === 1; up = up.parentElement) candidates.add(up);
+    }
+    let added = false;
+    for (const node of candidates) {
+        if (cats.has(node) || layer.contains(node) || !isScroller(node)) continue;
+        cats.set(node, createCat(node));
+        added = true;
+    }
+    return added;
+}
+
+let coverFrame = 0;
+function placeAll() {
+    coverFrame = 0;
+    for (const cat of cats.values()) cat.place();
+}
+
 function queueScan() {
     if (scanTimer || !isOn()) return;
     scanTimer = setTimeout(() => (window.requestIdleCallback ? window.requestIdleCallback(scan, { timeout: 600 }) : scan()), SCAN_MS);
+}
+
+// Playing or paused, and a new song: the cats dance a little while music plays and glance at the player bar when the song changes.
+function syncMusic() {
+    try {
+        playing = isPlaying();
+    } catch {
+        playing = false; // the engine is not ready yet
+    }
+    for (const cat of cats.values()) cat.setMusic(playing && reactsToMusic());
+}
+function glanceAll() {
+    for (const cat of cats.values()) cat.glance();
+}
+function watchEngine(retry = true) {
+    try {
+        engineWatch = [onEngineEvent('playback:stateChanged', syncMusic), onEngineEvent('queue:indexChanged', glanceAll)];
+        syncMusic();
+    } catch {
+        if (retry) setTimeout(() => layer && !engineWatch.length && watchEngine(false), 3000); // the engine's event bus can come a little later
+    }
 }
 
 function trackPointer(event) {
@@ -454,19 +672,33 @@ function start() {
     document.body.append(layer);
     // Only added or removed elements matter (a clock or a title changing text does not), so text and attribute changes are not watched.
     observer = new MutationObserver((records) => {
-        if (records.some((r) => r.target !== layer && !layer.contains(r.target))) queueScan();
+        if (!records.some((r) => r.target !== layer && !layer.contains(r.target))) return;
+        fastScan(records);
+        if (!coverFrame) coverFrame = requestAnimationFrame(placeAll); // before the next paint: a popup that just opened covers the cats under it
+        queueScan();
     });
     observer.observe(document.body, { childList: true, subtree: true });
     window.addEventListener('resize', queueScan);
     window.addEventListener('pointermove', trackPointer, { passive: true });
     document.addEventListener('xplayer:appearance', queueScan);
+    // Popups that open without adding elements (shown by a class or an attribute) are caught by this light check.
+    coverTimer = setInterval(() => {
+        if (!document.hidden && cats.size) placeAll();
+    }, 300);
     scan();
+    watchEngine();
 }
 
 function stop() {
     if (!layer) return;
     clearTimeout(scanTimer);
     scanTimer = 0;
+    clearInterval(coverTimer);
+    coverTimer = 0;
+    for (const off of engineWatch) if (typeof off === 'function') off();
+    engineWatch = [];
+    if (coverFrame) cancelAnimationFrame(coverFrame);
+    coverFrame = 0;
     if (observer) observer.disconnect();
     observer = null;
     window.removeEventListener('resize', queueScan);
@@ -484,8 +716,9 @@ export function installCatScrollbar() {
         if (!isOn()) return stop();
         if (layer && skin() !== shownSkin) stop(); // another skin: the cats are drawn again
         start();
+        syncMusic(); // the music setting may have changed
     };
     attrObserver = new MutationObserver(sync);
-    attrObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-scrollbar-cat', 'data-scrollbar-cat-skin'] });
+    attrObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-scrollbar-cat', 'data-scrollbar-cat-skin', 'data-scrollbar-cat-roam', 'data-scrollbar-cat-acts', 'data-scrollbar-cat-music'] });
     sync();
 }

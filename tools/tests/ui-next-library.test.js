@@ -19,6 +19,7 @@ const NEXT_SRC = path.join(ROOT, 'src', 'ui-next');
 function buildNextApp() {
     const dir = buildApp(30);
     fs.cpSync(NEXT_SRC, path.join(dir, 'ui-next'), { recursive: true });
+    fs.cpSync(path.join(path.dirname(NEXT_SRC), 'assets'), path.join(dir, 'assets'), { recursive: true }); // the default covers: without them every default cover is a failed request
     const file = path.join(dir, 'ui-next', 'index.html');
     const stub = `<script>window.electronAPI = new Proxy({}, {get:(t,k)=> (k==='then')?undefined:(...a)=>{ if(/^on[A-Z]/.test(String(k))) return ()=>{}; return Promise.resolve(null);} });</script>\n`;
     const html = fs.readFileSync(file, 'utf8');
@@ -221,7 +222,7 @@ describe('library panel in the new shell', { concurrency: false }, () => {
             inPanel: !!document.querySelector('.library-panel__list #left-panel-main-content'),
             inHiddenHost: !!document.querySelector('[data-legacy-slot="host"] #left-panel-main-content')
         }));
-        assert.deepEqual(r.chips, ['All', 'Playlists', 'Folders', 'Albums', 'Artists']);
+        assert.deepEqual(r.chips, ['All', 'Playlists', 'Albums', 'Artists']);
         assert.deepEqual(r.pressed, ['All']);
         assert.equal(r.inPanel, true);
         assert.equal(r.inHiddenHost, false);
@@ -247,6 +248,7 @@ describe('library panel in the new shell', { concurrency: false }, () => {
     test('typing in Find finds a row far below the window; clearing brings the list back', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await openShell();
+        await page.click('.library-panel .panel-search__button'); // the find field is a button until it is opened
         await page.fill('.library-panel input[type="search"]', 'Mix 250');
         await page.waitForFunction(() => document.querySelectorAll('.library-panel .left-panel-main-item').length === 1);
         assert.deepEqual(await titles(page), ['Mix 250']);
@@ -263,9 +265,8 @@ describe('library panel in the new shell', { concurrency: false }, () => {
     test('chips filter by type and only one is on; the choice is remembered', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await openShell();
-        await page.click('.library-panel .chip:has-text("Folders")');
-        await page.waitForSelector('.library-panel__empty:not([hidden])');
-        assert.deepEqual(await page.$$eval('.library-panel .chip[aria-pressed="true"]', (c) => c.map((x) => x.textContent)), ['Folders']);
+        await page.click('.library-panel .chip:has-text("Albums")');
+        await page.waitForFunction(() => [...document.querySelectorAll('.library-panel .chip[aria-pressed="true"]')].map((x) => x.textContent).join() === 'Albums');
         await page.click('.library-panel .chip:has-text("Playlists")');
         await page.waitForFunction(() => [...document.querySelectorAll('.library-panel .main-item-title')].some((e) => e.textContent === 'All Songs'));
         const kinds = await page.$$eval('.library-panel .main-item-subtitle', (els) => [...new Set(els.map((e) => e.firstElementChild.textContent.trim()))]);
@@ -278,11 +279,139 @@ describe('library panel in the new shell', { concurrency: false }, () => {
     test('sort A to Z reorders the rows', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await openShell();
-        await page.click('.library-panel .segmented__item:has-text("A to Z")');
-        await page.waitForFunction(() => document.querySelector('.library-panel .segmented__item[aria-checked="true"]').textContent === 'A to Z');
+        await page.click('.library-panel .library-sort');
+        await page.click('.menu__item:has-text("A to Z")');
+        await page.waitForFunction(() => document.querySelector('.library-panel .library-sort').dataset.sort === 'name');
+        await page.click('.library-panel .panel-search__button');
         await page.fill('.library-panel input[type="search"]', 'Mix 00');
         await page.waitForFunction(() => document.querySelectorAll('.library-panel .left-panel-main-item').length === 10);
         assert.deepEqual(await titles(page), Array.from({ length: 10 }, (_, i) => `Mix 00${i}`));
+        await page.close();
+    });
+
+    test('Hide generated albums and artists is in the sort menu, is remembered, and leaves the made playlists', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await openShell();
+        await page.click('.library-panel .library-sort');
+        assert.equal(await page.getAttribute('.menu__item:has-text("Hide generated")', 'aria-checked'), 'false');
+        await page.click('.menu__item:has-text("Hide generated")');
+        await page.waitForFunction(() => document.querySelector('.library-panel .library-sort').dataset.filtered === 'true');
+        const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('xplayer.ui-next.library')));
+        assert.equal(saved.hideGenerated, true);
+        const kinds = await page.$$eval('.library-panel .main-item-subtitle', (els) => [...new Set(els.map((e) => e.firstElementChild.textContent.trim()))]);
+        assert.ok(!kinds.includes('Album') && !kinds.includes('Artist'), `kinds ${kinds}`);
+        await page.click('.library-panel .library-sort');
+        await page.click('.menu__item:has-text("Hide generated")');
+        await page.waitForFunction(() => document.querySelector('.library-panel .library-sort').dataset.filtered === 'false');
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('a selected Library row goes dark when the main view becomes Home, Settings, Sync or Metadata', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await openShell();
+        await page.click('.library-panel .left-panel-main-item[data-view="favorites"]');
+        await page.waitForSelector('.library-panel .left-panel-main-item.active');
+        for (const view of ['home', 'settings', 'lyrics', 'metadata']) {
+            await page.click(`.rail-btn[data-view="${view}"]`);
+            await page.waitForFunction((v) => document.querySelector('.view-host').dataset.view === v, view);
+            assert.equal(await page.locator('.library-panel .left-panel-main-item.active').count(), 0, `no row stays selected over ${view}`);
+        }
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('Search and Recents rows are selected by what they stand for: a playlist, an album, an artist or a song', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await openShell();
+        const r = await page.evaluate(async () => {
+            const { setPanelActive } = await import('./views/library/panel-active.js');
+            const { itemRow, songRow } = await import('./views/library/panel-rows.js');
+            const host = document.createElement('div');
+            host.append(itemRow({ kind: 'playlist', id: 'p1', viewId: 'playlist-p1', title: 'P', cover: '' }), itemRow({ kind: 'album', id: 'a1234567890123', title: 'A', cover: '' }), songRow({ kind: 'song', id: 's1', title: 'S', cover: '' }));
+            document.body.append(host);
+            const lit = () => [...host.querySelectorAll('.plist-row')].map((b) => b.getAttribute('aria-current') === 'page');
+            const out = {};
+            setPanelActive({ page: 'playlist-p1' });
+            out.playlist = lit();
+            setPanelActive({ page: 'a1234567890123' });
+            out.album = lit();
+            setPanelActive({ song: 's1' });
+            out.song = lit();
+            setPanelActive({});
+            out.none = lit();
+            host.remove();
+            return out;
+        });
+        assert.deepEqual(r, { playlist: [true, false, false], album: [false, true, false], song: [false, false, true], none: [false, false, false] });
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('the hero tint continues across the scroll bar, as wide as the bar and as tall as the hero\'s gradient (the hero and its extension)', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await openShell();
+        await page.setViewportSize({ width: 1300, height: 560 });
+        await page.waitForFunction(() => {
+            const c = document.querySelector('.view-host .content');
+            const e = document.querySelector('.songlist-hero-edge');
+            return c && e && c.scrollHeight > c.clientHeight + 20 && !e.hidden;
+        });
+        // The window was just made shorter, which changes the hero's size (the compact hero), and the strip follows on the next frame: wait for it.
+        await page.waitForFunction(() => {
+            const edge = document.querySelector('.songlist-hero-edge');
+            const b = document.querySelector('.songlist-bar').getBoundingClientRect();
+            const w = edge.parentElement.getBoundingClientRect();
+            const extend = parseFloat(document.querySelector('.view-host').style.getPropertyValue('--hero-extend')) || 0;
+            const e = edge.getBoundingClientRect();
+            return Math.abs(e.height - Math.min(b.height + extend, w.height - (e.top - w.top))) <= 1;
+        });
+        const r = await page.evaluate(() => {
+            const c = document.querySelector('.view-host .content');
+            const edge = document.querySelector('.songlist-hero-edge');
+            const e = edge.getBoundingClientRect();
+            const b = document.querySelector('.songlist-bar').getBoundingClientRect();
+            const w = edge.parentElement.getBoundingClientRect();
+            // the gradient goes on below the hero by --hero-extend (song-list.js), as far as the wrapper reaches
+            const extend = parseFloat(document.querySelector('.view-host').style.getPropertyValue('--hero-extend')) || 0;
+            return { width: Math.round(e.width), bar: c.offsetWidth - c.clientWidth, top: Math.round(e.top - b.top), height: Math.round(e.height - Math.min(b.height + extend, w.height - (e.top - w.top))), extend };
+        });
+        assert.equal(r.width, r.bar, 'as wide as the scroll bar');
+        assert.ok(r.extend > 0, 'the gradient goes on below the hero');
+        assert.ok(Math.abs(r.top) <= 1 && Math.abs(r.height) <= 1, `level with the hero, as tall as the hero and its extension ${JSON.stringify(r)}`);
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('the filter chips stay on one line and scroll sideways with arrows when the panel is narrow', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await openShell();
+        const r = await page.evaluate(() => {
+            const chips = [...document.querySelectorAll('.library-panel .chip')];
+            return { oneLine: new Set(chips.map((c) => Math.round(c.getBoundingClientRect().top))).size === 1, strip: document.querySelector('.library-panel .chip-strip').dataset.overflow };
+        });
+        assert.equal(r.oneLine, true, 'the chips share one line');
+        await page.evaluate(() => (document.querySelector('.library-panel .chip-strip').style.width = '150px'));
+        await page.waitForFunction(() => document.querySelector('.library-panel .chip-strip').dataset.overflow === 'true');
+        await page.click('.library-panel .chip-strip__arrow[aria-label*="forward"]');
+        await page.waitForFunction(() => document.querySelector('.library-panel .chip-strip__row').scrollLeft > 0);
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('Find opens from its button, grows, clears with Escape, and shuts when empty and left', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page } = await openShell();
+        assert.equal(await page.getAttribute('.library-panel .panel-search', 'data-open'), 'false');
+        await page.click('.library-panel .panel-search__button');
+        await page.waitForFunction(() => document.activeElement && document.activeElement.matches('.library-panel .panel-search__input'));
+        assert.equal(await page.getAttribute('.library-panel .panel-search', 'data-open'), 'true');
+        await page.keyboard.type('Mix 25');
+        await page.keyboard.press('Escape');
+        assert.equal(await page.inputValue('.library-panel input[type="search"]'), '');
+        assert.equal(await page.getAttribute('.library-panel .panel-search', 'data-open'), 'true', 'the first Escape only clears');
+        await page.keyboard.press('Escape');
+        assert.equal(await page.getAttribute('.library-panel .panel-search', 'data-open'), 'false');
         await page.close();
     });
 

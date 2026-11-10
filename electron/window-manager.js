@@ -2,9 +2,10 @@ const { BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-const { configPath: settingsFile, getOutputDir } = require('./storage-paths');
+const { configPath: settingsFile } = require('./storage-paths');
 const { activeEntry, setActiveChoice, NEXT_ENTRY } = require('./ui-entry');
-const thumbarIconPath = path.join(getOutputDir(), 'icons');
+const appPaths = require('./app-paths');
+const thumbarIconPath = appPaths.getIconsDir();
 
 function loadWindowState() {
     try {
@@ -69,16 +70,17 @@ function createWindow() {
         backgroundColor: windowBackground,
         frame: false,
         autoHideMenuBar: true,
-        icon: path.join(__dirname, 'icon.png'),
+        icon: appPaths.getAppIcon(),
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
             sandbox: false,
+            backgroundThrottling: false, // a music player keeps its timers (the early start of the next track) while minimised
             preload: path.join(__dirname, 'preload.js')
         }
     });
 
-    mainWindow.loadFile(path.join(getOutputDir(), ...uiEntry.split('/')));
+    mainWindow.loadFile(appPaths.entryPath(uiEntry));
 
     mainWindow.setThumbarButtons([
         {
@@ -191,14 +193,16 @@ function switchUi(choice) {
     if (mainWindow && !mainWindow.isDestroyed()) {
         const entry = activeEntry();
         mainWindow.setBackgroundColor(entry === NEXT_ENTRY ? '#0e1013' : '#000000');
-        mainWindow.loadFile(path.join(getOutputDir(), ...entry.split('/')));
+        mainWindow.loadFile(appPaths.entryPath(entry));
     }
     return { ok: true, ui: chosen };
 }
 
 // A tool window (Metadata or Sync) is the same page started with ?tool=<name>&song=<id>: it shows only that tool, in its own big window,
 // so the tool can sit next to the player. One window per tool: asking again brings the open one forward (and sends it the new song).
-const TOOLS = { metadata: 'Metadata editor', sync: 'Sync lyrics' };
+const TOOLS = { metadata: 'Metadata editor', sync: 'Sync lyrics', ai: 'AI assistant' };
+// The AI chat is a narrow window, like a chat app; the editors are big.
+const TOOL_SIZES = { ai: { width: 560, height: 820, minWidth: 380, minHeight: 480 } };
 const toolWindows = new Map();
 
 function openToolWindow(tool, songId) {
@@ -215,18 +219,18 @@ function openToolWindow(tool, songId) {
     if (!entry.includes('ui-next')) return { ok: false, error: 'Tool windows need the new interface' };
     const work = require('electron').screen.getPrimaryDisplay().workAreaSize;
     const win = new BrowserWindow({
-        width: Math.min(1400, Math.round(work.width * 0.85)),
-        height: Math.min(940, Math.round(work.height * 0.9)),
-        minWidth: 800,
-        minHeight: 600,
+        width: Math.min(TOOL_SIZES[tool] ? TOOL_SIZES[tool].width : 1400, Math.round(work.width * 0.85)),
+        height: Math.min(TOOL_SIZES[tool] ? TOOL_SIZES[tool].height : 940, Math.round(work.height * 0.9)),
+        minWidth: TOOL_SIZES[tool] ? TOOL_SIZES[tool].minWidth : 800,
+        minHeight: TOOL_SIZES[tool] ? TOOL_SIZES[tool].minHeight : 600,
         title: TOOLS[tool],
         backgroundColor: '#0e1013',
         autoHideMenuBar: true,
-        icon: path.join(__dirname, 'icon.png'),
+        icon: appPaths.getAppIcon(),
         webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: false, preload: path.join(__dirname, 'preload.js') }
     });
     win.setMenuBarVisibility(false);
-    win.loadFile(path.join(getOutputDir(), ...entry.split('/')), { query: { tool, song } });
+    win.loadFile(appPaths.entryPath(entry), { query: { tool, song } });
     win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     win.webContents.on('will-navigate', (event, url) => {
         if (url !== win.webContents.getURL()) event.preventDefault();

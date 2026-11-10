@@ -247,13 +247,13 @@ describe('AI screens', { concurrency: false }, () => {
         const { page, errors } = await open(ON);
         await chatButton(page).click();
         const chat = page.locator('.ai-chat');
-        await chat.getByRole('button', { name: 'Translate the song playing' }).click();
+        await chat.locator('.ai-quickrow').getByRole('button', { name: 'Translate the song playing' }).click();
         await chat.getByText(/Play a song with lyrics first|no lyrics to translate/).waitFor({ timeout: 3000 });
         assert.deepEqual(errors, []);
         await page.close();
     });
 
-    test('Pop-up: the chat opens over the current view, expands to the big view and shrinks back with the conversation kept, Escape closes it', TEST_OPTIONS, async (t) => {
+    test('Pop-up: the chat opens over the current view, Pop out falls back to the big view when no separate window can open (here), Make smaller brings it back with the conversation kept, Escape closes it', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open(ON);
         await chatButton(page).click();
@@ -264,7 +264,7 @@ describe('AI screens', { concurrency: false }, () => {
         await popup.getByLabel('Message', { exact: true }).fill('calm');
         await popup.getByRole('button', { name: 'Send' }).click();
         await popup.getByText('Create the playlist').waitFor({ timeout: 4000 });
-        await popup.getByRole('button', { name: 'Expand to the big view' }).click();
+        await popup.getByRole('button', { name: 'Pop out the chat' }).click();
         await page.locator('.view-host .ai-chat--view').waitFor({ timeout: 3000 });
         assert.equal(await page.locator('.ai-popup').count(), 0);
         assert.equal(await view(page), 'ai-chat');
@@ -305,13 +305,14 @@ describe('AI screens', { concurrency: false }, () => {
         const box = popup.locator('.ai-composer');
         await box.getByLabel('Message', { exact: true }).waitFor({ timeout: 3000 });
         assert.equal(await box.getByRole('button', { name: 'Send' }).count(), 1, 'Send is inside the box');
-        await box.getByRole('button', { name: 'Translate the song playing' }).waitFor({ timeout: 3000 });
+        await popup.locator('.ai-quickrow').getByRole('button', { name: 'Translate the song playing' }).waitFor({ timeout: 3000 });
+        assert.equal(await box.locator('.ai-quick').count(), 0, 'the ready-made messages are above the box, not in it');
         await box.getByRole('button', { name: /^Mode: Medium/ }).click();
         await page.getByRole('menuitemradio', { name: /^High/ }).click();
         await box.getByRole('button', { name: /^Mode: High/ }).waitFor({ timeout: 3000 });
         assert.equal(await page.evaluate(() => window.__ai.state.mode), 'high');
         // A ready-made message is sent at once, with the library, the queue and the playlists.
-        await box.getByRole('button', { name: 'Make playlists by mood' }).click();
+        await popup.locator('.ai-quickrow').getByRole('button', { name: 'Make playlists by mood' }).click();
         await popup.getByText('Create the playlist').waitFor({ timeout: 4000 });
         const sent = (await calls(page, 'plan'))[0];
         assert.equal(sent.request, 'Make playlists by mood from my library');

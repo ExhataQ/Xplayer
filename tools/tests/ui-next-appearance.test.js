@@ -32,12 +32,15 @@ describe('A-10 static rules', () => {
 
     test('preview tokens equal the real theme values', () => {
         const preview = block(':root');
-        for (const theme of ['warm-graphite', 'deep-forest', 'espresso-copper', 'pure-black', 'graphite-gold', 'carbon-honey', 'high-contrast', 'midnight-blue', 'aubergine-rose', 'ocean-teal', 'crimson-noir', 'violet-night']) {
+        for (const theme of ['warm-graphite', 'deep-forest', 'espresso-copper', 'pure-black', 'graphite-gold', 'carbon-honey', 'high-contrast', 'midnight-blue', 'aubergine-rose', 'ocean-teal', 'crimson-noir', 'violet-night', 'light']) {
             const t = theme === 'warm-graphite' ? block(":root,\n:root[data-theme='warm-graphite']") : block(`:root[data-theme='${theme}']`);
             assert.equal(t['--c-accent-own'], t['--c-accent'], `${theme}: own accent`);
             assert.equal(preview[`--preview-${theme}-ground`], t['--c-ground'], `${theme} ground`);
             assert.equal(preview[`--preview-${theme}-surface`], t['--c-surface'], `${theme} surface`);
             assert.equal(preview[`--preview-${theme}-accent`], t['--c-accent'], `${theme} accent`);
+            assert.equal(preview[`--preview-${theme}-ink`], t['--c-ink'], `${theme} ink`);
+            assert.equal(preview[`--preview-${theme}-raised`], t['--c-raised'], `${theme} raised`);
+            assert.equal(preview[`--preview-${theme}-line`], t['--c-line'], `${theme} line`);
         }
     });
 
@@ -132,7 +135,7 @@ describe('A-10 appearance and resizing with the real engine', { concurrency: fal
         assert.equal(await section(page).count(), 1);
         assert.equal(await section(page).isVisible(), true);
         assert.equal(await page.locator('.view-host #settings-theme-selector').isVisible(), false);
-        assert.deepEqual(await section(page).locator('[role="radiogroup"]').evaluateAll((n) => n.map((g) => g.getAttribute('aria-label'))), ['Theme', 'Density']);
+        assert.deepEqual(await section(page).locator('[role="radiogroup"]').evaluateAll((n) => n.map((g) => g.getAttribute('aria-label'))), ['Theme', 'Density', 'Reduce animations']);
         // each choice is one radio, exactly one on
         for (const label of ['Theme', 'Density']) assert.equal(await section(page).locator(`[aria-label="${label}"] [aria-checked="true"]`).count(), 1);
         await page.close();

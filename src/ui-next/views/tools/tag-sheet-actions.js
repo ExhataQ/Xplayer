@@ -10,7 +10,7 @@
 //   api.listColumns()                      -> [{ key, label, multi, shown }]
 //   api.loadSongs(sourceId)                -> { ok, added, total }
 //   api.setColumns(keys)                   -> { ok, columns }
-//   api.readTags()                         -> Promise<{ ok, unreadable, problem? }>   reads tags the library does not hold, for the shown columns; problem says why a file could not be read (for example Python or mutagen is missing)
+//   api.readTags()                         -> Promise<{ ok, unreadable, problem? }>   reads tags the library does not hold, for the shown columns; problem says why a file could not be read (for example the tag library did not load)
 //   api.getSheet({ offset, limit })        -> { columns, total, checked, changes, rows: [{ id, values, changedKeys }] }  values: null = not read yet
 //   api.findRows({ column, text })         -> { ok, ids }   rows whose value contains the text (not case sensitive)
 //   api.checkRows(ids) / checkAll() / uncheckAll()   -> { ok, checked }

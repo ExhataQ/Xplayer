@@ -17,7 +17,8 @@ test('a rail or menu choice tells the view it was chosen; the engine opening its
 test('the Lyrics page opens Sync only for a chosen visit, with a song playing and no editor already open', () => {
     const js = read('views', 'tools', 'lyrics.js');
     assert.match(js, /export function mountLyricsModes\(host, options = \{\}\)/);
-    assert.match(js, /if \(options\.chosen && nowPlaying\(\) && !lyricsEditors\(\)\.sync && !lyricsEditors\(\)\.write\) go\('sync'\);/);
+    assert.match(js, /const idle = !lyricsEditors\(\)\.sync && !lyricsEditors\(\)\.write;/);
+    assert.match(js, /if \(idle && options\.chosen && nowPlaying\(\)\) go\('sync'\);/);
 });
 
 test('the rail tooltip describes what the item now does', () => {

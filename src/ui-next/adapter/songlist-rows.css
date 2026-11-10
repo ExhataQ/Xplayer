@@ -414,11 +414,9 @@ html[data-select='on'] .view-host[data-songlist] :is(.song-artist-name, .song-al
     display: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .view-host[data-songlist] .now-playing-indicator span {
-        animation: none;
-        height: 8px;
-    }
+:where(:root[data-motion='reduced']) .view-host[data-songlist] .now-playing-indicator span {
+    animation: none;
+    height: 8px;
 }
 
 /* Right-to-left titles (Persian, Arabic, Hebrew): each text block still takes the direction of its own first letter (so the

@@ -21,6 +21,8 @@ import { playerPart, onTime } from '../../adapter/player-parts.js';
 import { readAudioBytes, loadSavedPeaks, saveSavedPeaks, nextSongForWaveform } from '../../adapter/playback-bridge.js';
 import { getPeaks, prefetchPeaks, drawWaveform, setBytesReader, setPeaksStore, readWithXhr, MAX_SECONDS, DESIGN } from './waveform.js';
 import { isWaveformOn, watchWaveform } from './waveform-setting.js';
+import { createSmoothClock } from './smooth-clock.js';
+import { reducedMotion } from '../../components/motion.js';
 
 const LOAD_DELAY = 150; // ms before a track with no saved peaks is decoded (was 300; the decode itself is the slow part)
 const PREFETCH_DELAY = 1500; // ms after the current waveform is settled before the next song is decoded ahead, so it never competes with a start
@@ -46,7 +48,8 @@ export function mountSeekWaveform() {
     let parts = null; // what is alive while the waveform is on: { stopTime, resize, theme }
     let peaks = null;
     let src = '';
-    let sample = { currentTime: 0, duration: 0, playing: false, at: 0 };
+    const clock = createSmoothClock({ reduced: reducedMotion }); // the position between the element's time events: the waveform sweeps instead of stepping
+    let playing = false;
     let frame = 0;
     let loadTimer = 0;
     let prefetchTimer = 0;
@@ -62,21 +65,20 @@ export function mountSeekWaveform() {
 
     const fraction = () => {
         if (seek.classList.contains('dragging') && fill) return Math.max(0, Math.min(1, (parseFloat(fill.style.width) || 0) / 100));
-        if (!sample.duration) return 0;
-        const elapsed = sample.playing ? (performance.now() - sample.at) / 1000 : 0;
-        return Math.max(0, Math.min(1, (sample.currentTime + elapsed) / sample.duration));
+        return clock.fraction(performance.now());
     };
 
     const draw = (force = false) => {
         frame = 0;
         if (!peaks || !canvas) return;
         const progress = held ? 0 : fraction();
-        const key = `${held ? 'held' : ''}${Math.round(progress * canvas.clientWidth)}|${canvas.clientWidth}`;
+        const device = canvas.clientWidth * (window.devicePixelRatio || 1);
+        const key = `${held ? 'held' : ''}${Math.round(progress * device)}|${canvas.clientWidth}`; // a device pixel is the finest step the sweep can show
         if (force || key !== lastKey) {
             lastKey = key;
             drawWaveform(canvas, peaks, { progress, ...DESIGN, ...(held ? { unplayedAlpha: DESIGN.unplayedAlpha * HOLD_ALPHA } : {}), ...colors() });
         }
-        if (!held && (sample.playing || seek.classList.contains('dragging'))) frame = requestAnimationFrame(() => draw());
+        if (!held && (playing || seek.classList.contains('dragging'))) frame = requestAnimationFrame(() => draw());
     };
     const schedule = (force = false) => {
         if (canvas && !frame) frame = requestAnimationFrame(() => draw(force));
@@ -149,7 +151,8 @@ export function mountSeekWaveform() {
 
     // Called for every time event while the waveform is on.
     const onSample = (time) => {
-        sample = { currentTime: time.currentTime, duration: time.duration, playing: time.playing, at: performance.now() };
+        clock.sample(time, performance.now());
+        playing = time.playing;
         if (time.src !== src) {
             src = time.src;
             triedSrc = ''; // every visit to a track may try again; the guard only stops a failed one retrying on each time event

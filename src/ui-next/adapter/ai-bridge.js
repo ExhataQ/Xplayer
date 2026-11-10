@@ -103,8 +103,44 @@ export const cancel = () => ai().aiCancel();
 export const journalList = () => ai().aiJournalList();
 export const translate = (lyrics, targetLanguage) => ai().aiTranslateLyrics({ lyrics, targetLanguage });
 
+// In the chat's own window there is no engine worth reading: the library, queue and playlists are the main window's, and the chat must
+// never edit a copy. views/ai/chat-host.js turns this on there; then the calls below go to the main window (electron/ai/host-relay.js).
+let remote = null;
+const known = new Map(); // id -> { id, title, artist } of the songs the main window sent with the last request
+export const setRemoteEngine = (fn) => {
+    remote = fn;
+};
+export const isRemote = () => remote !== null;
+/** Calls a function of the main window by name (only in the chat window). */
+export const remoteCall = (name, ...args) => remote(name, ...args);
+/** Calls `name` in the main window; `focus` brings that window forward. Throws with `code` when it cannot be reached. */
+export async function hostCall(name, args = [], focus = false) {
+    const answer = await ai().aiHostCall(name, args, focus);
+    if (!answer || !answer.ok) throw Object.assign(new Error((answer && answer.error) || 'no-main-window'), { code: (answer && answer.error) || 'no-main-window' });
+    return answer.value;
+}
+/**
+ * The main window: answers the chat window's calls with `run(name, args)`. Start-up calls this before the desktop API exists, so it waits
+ * for it; with no desktop API (a browser, an old preload) there is no chat window to answer and it quietly does nothing. Resolves true
+ * when it is listening.
+ */
+export const serveHost = (run) =>
+    whenBridgeReady().then(() => {
+        const api = window.desktopApi && window.desktopApi.ai;
+        if (!api || typeof api.onAiHostRequest !== 'function') return false;
+        api.onAiHostRequest(async ({ id, name, args }) => {
+            try {
+                api.aiHostRespond({ id, ok: true, value: await run(name, args) });
+            } catch (error) {
+                api.aiHostRespond({ id, ok: false, error: String(error && error.message) });
+            }
+        });
+        return true;
+    });
+
 /** Title and artist for song ids, in the order given (ids not in the library are skipped). */
 export function describeSongs(ids) {
+    if (remote) return ids.filter((id) => known.has(id)).map((id) => ({ id, title: String(known.get(id).title || 'Untitled'), artist: String(known.get(id).artist || '') }));
     const library = new Map((engine().SONGS_DATA || []).map((s) => [s.id, s]));
     return ids.filter((id) => library.has(id)).map((id) => ({ id, title: String(library.get(id).title || 'Untitled'), artist: String(library.get(id).artist || '') }));
 }
@@ -116,13 +152,21 @@ export const libraryCount = () => (engine().SONGS_DATA || []).length;
 /** Asks for a plan. Only the fields the main process allows are copied out of the library. */
 export async function plan({ request, useWeb = false, includeLyrics = false, history = [], focus = null }) {
     const status = await getStatus();
-    const songs = collectSongs(status.songFields || [], { includeLyrics, focus });
-    const result = await ai().aiPlan({ request, useWeb, includeLyrics, history, songs, context: collectContext() });
+    let picture;
+    try {
+        picture = remote ? await remote('collect', status.songFields || [], { includeLyrics, focus }) : { songs: collectSongs(status.songFields || [], { includeLyrics, focus }), context: collectContext() };
+    } catch (error) {
+        return { ok: false, error: 'no-player' };
+    }
+    const { songs, context } = picture;
+    if (remote) for (const s of songs) known.set(s.id, s);
+    const result = await ai().aiPlan({ request, useWeb, includeLyrics, history, songs, context });
     return { ...result, libraryTotal: songs.length };
 }
 
 /** The song now playing and its lyrics (synced first), or null. */
 export function currentLyrics() {
+    if (remote) return remote('currentLyrics').catch(() => null);
     const song = playingSong();
     if (!song) return null;
     return { id: song.id, title: String(song.title || ''), artist: String(song.artist || ''), lyrics: lyricsFor(song) };
@@ -263,6 +307,7 @@ const UNDO = {
 export const canRun = (type) => typeof HANDLERS[type] === 'function';
 
 export async function runPlan(plan, summary) {
+    if (remote) return remote('runPlan', plan, summary).catch(() => ({ ok: false, applied: 0, failure: { index: 0, type: '', message: 'The main player window is not available.' }, warnings: [], entryId: null }));
     const done = [];
     const warnings = [];
     let failure = null;
@@ -279,14 +324,19 @@ export async function runPlan(plan, summary) {
         }
     }
     let entryId = null;
+    let journalSaved = true;
     if (done.length) {
         const recorded = await ai().aiJournalRecord({ kind: 'ai-plan', summary: summary || plan.summary, changes: done });
-        entryId = recorded && recorded.ok ? recorded.entry.id : null;
+        // 'not-saved': the changes stand and the main process holds the entry in memory, so Undo still works until the app closes.
+        const entry = recorded && recorded.entry;
+        entryId = entry && (recorded.ok || recorded.error === 'not-saved') ? entry.id : null;
+        journalSaved = !(recorded && recorded.ok === false);
     }
-    return { ok: !failure, applied: done.length, failure, warnings, entryId };
+    return { ok: !failure, applied: done.length, failure, warnings, entryId, ...(journalSaved ? {} : { journalSaved: false }) };
 }
 
 export async function undoEntry(id) {
+    if (remote) return remote('undoEntry', id).catch(() => ({ ok: false, failures: [{ message: 'The main player window is not available.' }] }));
     const entry = await ai().aiJournalGet(id);
     if (!entry) return { ok: false, failures: [{ message: 'That entry no longer exists' }] };
     if (entry.status === 'undone') return { ok: false, failures: [{ message: 'Already undone' }] };

@@ -2,6 +2,7 @@
 // These are the engine's old sub-header actions; each button calls the engine's own function through adapter/listbar-bridge.js.
 
 import { el, iconEl, iconButton, textField } from '../../components/index.js';
+import { growWidth } from '../../components/reveal.js';
 import { openShuffleMenu } from '../../adapter/shuffle-menu.js';
 import { isListPlaying, isShuffleOn, togglePlayAll, showListMenu, findInList, onListStateChange } from '../../adapter/listbar-bridge.js';
 
@@ -36,10 +37,13 @@ export function createListToolbar() {
     });
 
     function setFind(open) {
+        const wasHidden = findBox.hidden;
         findBox.hidden = !open;
         findButton.setAttribute('aria-pressed', String(open));
-        if (open) field.input.focus();
-        else {
+        if (open) {
+            if (wasHidden) growWidth(findBox, 0, { fade: true }); // opens by growing out of the search button; closing stays instant
+            field.input.focus();
+        } else {
             clearTimeout(timer);
             field.setValue('');
             findInList('');

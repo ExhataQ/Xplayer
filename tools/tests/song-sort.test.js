@@ -28,6 +28,17 @@ test('a key that is not sortable changes nothing', () => {
     assert.equal(nextSort(null, 'artist'), null);
 });
 
-test('the three sortable columns', () => {
-    assert.deepEqual(SORT_KEYS, ['title', 'album', 'time']);
+test('the sortable columns: Title, Album, Time and Rating', () => {
+    assert.deepEqual(SORT_KEYS, ['title', 'album', 'time', 'rating']);
+});
+
+test('the rating sorts the best first (top to bottom), then the other way, then back to the list\'s own order', () => {
+    let state = nextSort(null, 'rating');
+    assert.deepEqual(state, { key: 'rating', dir: 'desc' });
+    state = nextSort(state, 'rating');
+    assert.deepEqual(state, { key: 'rating', dir: 'asc' });
+    state = nextSort(state, 'rating');
+    assert.equal(state, null);
+    assert.deepEqual(nextSort({ key: 'title', dir: 'desc' }, 'rating'), { key: 'rating', dir: 'desc' }, 'from another column it starts with the best');
+    assert.deepEqual(nextSort({ key: 'rating', dir: 'desc' }, 'title'), { key: 'title', dir: 'asc' }, 'the others still start ascending');
 });

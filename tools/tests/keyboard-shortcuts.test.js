@@ -83,17 +83,19 @@ describe('keyboard shortcuts and mouse navigation (real page)', { concurrency: f
         }
     });
 
-    test('Ctrl+Up and Ctrl+Down change the volume by a tenth, and plain arrows without a track do nothing', async (t) => {
+    test('Ctrl+Up and Ctrl+Down move the slider by 5 %, through the same curve as a drag, and plain arrows without a track do nothing', async (t) => {
         if (skip) return void t.skip(skip);
         const { page, errors } = await open();
         try {
             await page.evaluate(() => updateVolume(0.5));
             assert.equal(await press(page, 'ArrowDown', { ctrlKey: true }), true);
-            const down = await page.evaluate(() => audioElement.volume);
-            assert.ok(Math.abs(down - 0.4) < 0.001, `volume ${down}`);
+            const down = await page.evaluate(() => ({ position: window.lastVolume, gain: audioElement.volume }));
+            assert.ok(Math.abs(down.position - 0.45) < 1e-9, `slider ${down.position}`);
+            assert.ok(Math.abs(down.gain - Math.pow(10, -27.5 / 20)) < 1e-6, `gain ${down.gain} should be -27.5 dB`); // -50 dB * (1 - 0.45)
             assert.equal(await press(page, 'ArrowUp', { ctrlKey: true }), true);
-            const up = await page.evaluate(() => audioElement.volume);
-            assert.ok(Math.abs(up - 0.5) < 0.001, `volume ${up}`);
+            const up = await page.evaluate(() => ({ position: window.lastVolume, gain: audioElement.volume }));
+            assert.ok(Math.abs(up.position - 0.5) < 1e-9, `slider ${up.position}`);
+            assert.ok(Math.abs(up.gain - Math.pow(10, -25 / 20)) < 1e-6, `gain ${up.gain} should be -25 dB`);
             // no track loaded: seek keys are left alone
             assert.equal(await press(page, 'ArrowLeft'), false);
             assert.equal(await press(page, 'ArrowRight'), false);

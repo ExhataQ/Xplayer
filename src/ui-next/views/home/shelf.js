@@ -1,10 +1,8 @@
 // Shelf (task PB-15): one titled, horizontally scrolling row of cards. The row fades out on each side that still has more
 // to scroll to (the fade is a CSS mask driven by data-fade-start and data-fade-end), and the two arrows page the row for
 // people without a horizontal wheel. Cards are plain data ({ kind, title, subtitle, cover }), so any list can be a shelf.
-import { el, iconButton } from '../../components/index.js';
+import { el, iconButton, reducedMotion as reduced } from '../../components/index.js';
 import { defaultCover } from '../../adapter/default-cover.js';
-
-const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function card(item, onOpen) {
     const cover = el('span', { class: 'shelf-card__cover', 'aria-hidden': 'true' });
@@ -21,8 +19,12 @@ function card(item, onOpen) {
             'button',
             { type: 'button', class: `shelf-card shelf-card--${item.kind}`, onclick: () => onOpen(item) },
             cover,
-            el('span', { class: 'shelf-card__title', dir: 'auto' }, item.title),
-            item.subtitle ? el('span', { class: 'shelf-card__sub', dir: 'auto' }, item.subtitle) : ''
+            el(
+                'span',
+                { class: 'shelf-card__text' },
+                el('span', { class: 'shelf-card__title', dir: 'auto' }, item.title),
+                item.subtitle ? el('span', { class: 'shelf-card__sub', dir: 'auto' }, item.subtitle) : ''
+            )
         )
     );
 }

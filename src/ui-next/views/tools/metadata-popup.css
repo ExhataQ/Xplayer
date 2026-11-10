@@ -1,0 +1,256 @@
+/* The song metadata window: "Show metadata" in a song's menu and the info button in the player bar. The ENGINE builds it
+ * (js/ui/06b-modals.js, showSongMetadataModal); this skins it, with tokens only. Load after tokens.css and components.css.
+ *
+ * A header with the close button, a hero (cover, title, artist) over a soft accent glow, then the details as rows of label and value.
+ * A value the song does not have shows a dash in the faint text color. The header stays in view while a long list scrolls.
+ */
+
+.song-metadata-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--layer-menu);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: var(--space-4);
+    background: var(--surface-scrim);
+    font-family: var(--font-ui);
+    animation: song-metadata-fade var(--motion-fast) var(--motion-ease);
+}
+
+.song-metadata-modal {
+    position: relative;
+    box-sizing: border-box;
+    width: min(var(--dialog-width), 100%);
+    max-height: 100%;
+    overflow-y: auto;
+    padding-bottom: var(--space-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-raised);
+    color: var(--text-primary);
+    font-size: var(--text-md);
+    animation: song-metadata-rise calc(var(--motion-fast) * 1.5) var(--motion-ease);
+}
+
+/* ---------- header ---------- */
+.song-metadata-modal-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-3) var(--space-2) var(--space-6);
+    background: var(--surface-raised);
+}
+
+.song-metadata-modal-header h3 {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.02em;
+}
+
+.song-metadata-modal-close {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+}
+
+.song-metadata-modal-close:hover {
+    background: var(--control-hover-bg);
+    color: var(--text-primary);
+}
+
+.song-metadata-modal-close:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
+}
+
+/* ---------- hero ---------- */
+.song-metadata-hero {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-2) var(--space-6) var(--space-6);
+    background: radial-gradient(circle at 15% 0%, var(--accent-soft), transparent 65%);
+}
+
+.song-metadata-cover {
+    flex: none;
+    width: 88px;
+    height: 88px;
+    box-sizing: border-box;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    object-fit: cover;
+    background: var(--surface-ground);
+}
+
+.song-metadata-cover--empty {
+    display: grid;
+    place-items: center;
+    color: var(--text-tertiary);
+    font-size: 36px;
+    line-height: 1;
+}
+
+.song-metadata-heading {
+    min-width: 0;
+}
+
+.song-metadata-title {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-semibold);
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.song-metadata-artist {
+    margin-top: var(--space-1);
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+}
+
+/* ---------- details ---------- */
+.song-metadata-list {
+    display: flex;
+    flex-direction: column;
+    padding: 0 var(--space-3);
+}
+
+.song-metadata-row {
+    position: relative; /* the Copy button sits inside the row without taking a grid cell, so the row stays two columns */
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    align-items: baseline;
+    gap: var(--space-4);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.song-metadata-row + .song-metadata-row {
+    box-shadow: 0 -1px 0 var(--border-subtle); /* a line between rows that takes no room, so a hovered row keeps its size */
+}
+
+.song-metadata-row:hover {
+    background: var(--control-hover-bg);
+}
+
+.song-metadata-label {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+
+.song-metadata-value {
+    min-width: 0;
+    padding-inline-end: var(--button-height-sm); /* room for the Copy button, also in rows that have none, so every value wraps alike */
+    color: var(--text-primary);
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.song-metadata-value--empty {
+    color: var(--text-tertiary);
+}
+
+/* ---------- select and copy (task B5) ---------- */
+/* base.css makes everything unselectable. The text of this window is there to be read and taken away, so it can be selected
+ * (the engine ignores a drag that ends outside the window; js/ui/06b-modals.js). The Copy buttons stay unselectable. */
+.song-metadata-title,
+.song-metadata-artist,
+.song-metadata-label,
+.song-metadata-value {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* One Copy button per value that has text. It is as tall as the value's first line (em of the row's text), is always there
+ * (only its opacity changes) and is out of the layout, so hovering a row never moves anything. */
+.song-metadata-copy {
+    position: absolute;
+    inset-block-start: var(--space-2);
+    inset-inline-end: var(--space-2);
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    width: 1.6em;
+    height: 1.4em;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: inherit;
+    cursor: pointer;
+    opacity: 0;
+}
+
+.song-metadata-row:is(:hover, :focus-within) .song-metadata-copy,
+.song-metadata-copy[data-copied] {
+    opacity: 1;
+}
+
+.song-metadata-copy:hover {
+    background: var(--accent-soft);
+    color: var(--text-primary);
+}
+
+.song-metadata-copy:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
+}
+
+.song-metadata-copy-done,
+.song-metadata-copy[data-copied] .song-metadata-copy-icon {
+    display: none;
+}
+
+.song-metadata-copy[data-copied] {
+    color: var(--accent);
+}
+
+.song-metadata-copy[data-copied] .song-metadata-copy-done {
+    display: block;
+}
+
+@keyframes song-metadata-fade {
+    from {
+        opacity: 0;
+    }
+}
+
+@keyframes song-metadata-rise {
+    from {
+        opacity: 0;
+        transform: translateY(var(--space-2));
+    }
+}
+
+:where(:root[data-motion='reduced']) .song-metadata-modal-overlay,
+:where(:root[data-motion='reduced']) .song-metadata-modal {
+    animation: none;
+}

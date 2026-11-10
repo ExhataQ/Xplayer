@@ -65,7 +65,7 @@ async function withVirtualTime(promise) {
     return result;
 }
 
-const { getOnlineMetadata } = require('../../electron/online-metadata.js');
+const { getOnlineMetadata, searchOnlineMetadata } = require('../../electron/online-metadata.js');
 
 const REC = '11111111-1111-1111-1111-111111111111';
 const REL = '22222222-2222-2222-2222-222222222222';
@@ -265,5 +265,20 @@ test('release-only import refuses to fall back to track 1 when no track title ma
         { position: 1, title: 'Wrong Song', recording: { id: '33333333-3333-3333-3333-333333333333' } },
         { position: 2, title: 'Also Wrong', recording: { id: '44444444-4444-4444-4444-444444444444' } }
     ]);
-    await assert.rejects(() => runReleaseOnly('Song That Is Not In This Release'), /no track in that release matches/i);
+    // The code lets the multi tag finder tell "this release names the song differently" from a dead connection.
+    await assert.rejects(() => runReleaseOnly('Song That Is Not In This Release'), (error) => error.code === 'NO_MATCHING_TRACK' && /no track in that release matches/i.test(error.message));
+});
+
+test('a release search looks through 8 recordings by default and as many as the caller asks for (the multi tag finder asks for 25)', async () => {
+    const recordingUrl = () => calls.find((url) => url.includes('/ws/2/recording?'));
+    routes = {};
+    calls = [];
+    await withVirtualTime(searchOnlineMetadata({ title: 'Song', artist: 'Artist', scope: 'release' })).catch(() => {});
+    assert.match(recordingUrl(), /limit=8(&|$)/);
+    calls = [];
+    await withVirtualTime(searchOnlineMetadata({ title: 'Song', artist: 'Artist', scope: 'release', recordingLimit: 25 })).catch(() => {});
+    assert.match(recordingUrl(), /limit=25(&|$)/);
+    calls = [];
+    await withVirtualTime(searchOnlineMetadata({ title: 'Song', artist: 'Artist', scope: 'release', recordingLimit: 5000 })).catch(() => {});
+    assert.match(recordingUrl(), /limit=100(&|$)/, 'MusicBrainz allows 100 at most');
 });

@@ -35,7 +35,12 @@ export function createToaster({ host = document.body, max = 3, onDismiss } = {})
         if (!title) throw new Error('toast needs a title');
         const id = data.id || `toast-${(seq += 1)}`;
         const duration = data.duration ?? (action ? Math.max(DURATION[kind], 8000) : DURATION[kind]);
-        if (live.has(id)) remove(id, 'replaced');
+        const before = live.get(id);
+        if (before) {
+            // The same toast again (one action's next step): the new text takes its place without the entrance, and the toast keeps its position.
+            clearTimeout(before.timer);
+            live.delete(id);
+        }
 
         const close = iconButton({ icon: 'x', label: 'Dismiss', size: 'sm', tooltip: false, onClick: () => remove(id, 'user') });
         const actionButton = action
@@ -57,6 +62,7 @@ export function createToaster({ host = document.body, max = 3, onDismiss } = {})
             close
         );
 
+        if (before) node.style.animation = 'none';
         const entry = { node, data: { id, kind, title, message }, timer: 0, remaining: duration, started: 0 };
         const arm = () => {
             clearTimeout(entry.timer);
@@ -76,7 +82,8 @@ export function createToaster({ host = document.body, max = 3, onDismiss } = {})
         node.addEventListener('focusout', arm);
 
         live.set(id, entry);
-        region.append(node);
+        if (before) before.node.replaceWith(node);
+        else region.append(node);
         while (live.size > max) remove(live.keys().next().value, 'replaced');
         arm();
         return id;

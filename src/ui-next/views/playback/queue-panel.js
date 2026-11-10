@@ -9,7 +9,9 @@
 import { iconButton, el } from '../../components/index.js';
 import { playerPart } from '../../adapter/player-parts.js';
 import { mountQueueList, refreshQueue } from '../../adapter/playback-bridge.js';
-import { isNearRect } from './queue-drag-open.js';
+import { isNearRect, isInZone, queueOpenZone, QUEUE_DWELL_MS } from './queue-drag-open.js';
+import { scrollShadow } from '../../components/scroll-shadow.js';
+import { slidePanel } from '../../shell/panel-motion.js';
 
 const ROW = '.queue-item';
 
@@ -18,12 +20,16 @@ export function mountQueuePanel() {
     if (!anchor) return () => {};
 
     const body = el('div', { class: 'queue-panel__body' });
+    // The body scrolls; its wrapper does not, so the shadows can sit over the wrapper's top and bottom edges (under the header, over the
+    // rounded bottom) and stay put while the rows move: the top one while the list is scrolled down, the bottom one while more is below.
+    const scroll = el('div', { class: 'queue-panel__scroll scroll-shadow--overlay scroll-shadow--bottom' }, body);
+    scrollShadow(scroll, '.queue-panel__body', { bottom: true });
     const closeButton = iconButton({ icon: 'x', label: 'Close queue', size: 'sm', tooltip: false, onClick: () => setOpen(false) });
     const panel = el(
         'section',
         { class: 'queue-panel', id: 'queue-panel', 'aria-label': 'Queue', hidden: true },
         el('header', { class: 'queue-panel__header' }, el('h2', { class: 'queue-panel__title' }, 'Queue'), closeButton),
-        body
+        scroll
     );
     document.body.append(panel);
 
@@ -53,7 +59,7 @@ export function mountQueuePanel() {
     let openedByDrag = false;
     function setOpen(open) {
         if (!open) openedByDrag = false;
-        panel.hidden = !open;
+        slidePanel(panel, 'up', open, (on) => (panel.hidden = !on)); // rises from the player when it opens; closing is instant (C8)
         toggle.setAttribute('aria-expanded', String(open));
         toggle.setAttribute('aria-pressed', String(open));
         if (!open) return;
@@ -104,18 +110,49 @@ export function mountQueuePanel() {
 
     // PC-11: while a song is dragged (the engine puts `dragging-song` on the body) the drawer opens when the pointer comes near
     // the queue button, so the song can be dropped into it (the engine's drop code looks for #queue-list under the pointer).
+    // Polish A1: it also opens when the pointer rests for a moment in a zone above the button, on the side where the drawer
+    // appears. The zone is taller for a longer queue (queue-drag-open.js), so a song does not have to be dragged all the way down.
     // A drawer opened this way closes again when the drag ends; one the person opened themselves stays open.
-    const onDragMove = (event) => {
-        if (!panel.hidden || !isNearRect(event, toggle.getBoundingClientRect())) return;
+    // Files dragged in from Windows (`dragging-files`, ui/06m) open it the same way. A native drag sends `dragover` instead of `mousemove`, and the list stops that event, so it is heard in the capture phase.
+    const isDragging = () => document.body.classList.contains('dragging-song') || document.body.classList.contains('dragging-files');
+    let dwellTimer = null;
+    const clearDwell = () => {
+        if (dwellTimer === null) return;
+        clearTimeout(dwellTimer);
+        dwellTimer = null;
+    };
+    const openForDrag = () => {
+        if (!panel.hidden || !isDragging()) return;
         setOpen(true);
         openedByDrag = true;
     };
+    const onDragMove = (event) => {
+        if (!panel.hidden) return clearDwell();
+        const buttonRect = toggle.getBoundingClientRect();
+        if (isNearRect(event, buttonRect)) {
+            clearDwell();
+            openForDrag();
+            return;
+        }
+        // The queue's size is read from the rows the engine list holds (zero until the drawer was opened once: the smallest zone).
+        const zone = queueOpenZone(buttonRect, body.querySelectorAll(ROW).length, window.innerWidth);
+        if (!isInZone(event, zone)) return clearDwell();
+        if (dwellTimer === null) {
+            dwellTimer = setTimeout(() => {
+                dwellTimer = null;
+                openForDrag();
+            }, QUEUE_DWELL_MS);
+        }
+    };
     const dragWatcher = new MutationObserver(() => {
-        if (document.body.classList.contains('dragging-song')) {
+        if (isDragging()) {
             document.addEventListener('mousemove', onDragMove);
+            document.addEventListener('dragover', onDragMove, true);
             return;
         }
         document.removeEventListener('mousemove', onDragMove);
+        document.removeEventListener('dragover', onDragMove, true);
+        clearDwell();
         if (openedByDrag) setOpen(false);
     });
     dragWatcher.observe(document.body, { attributes: true, attributeFilter: ['class'] });
@@ -152,7 +189,9 @@ export function mountQueuePanel() {
 
     return () => {
         dragWatcher.disconnect();
+        clearDwell();
         document.removeEventListener('mousemove', onDragMove);
+        document.removeEventListener('dragover', onDragMove, true);
         panel.remove();
         toggle.remove();
     };

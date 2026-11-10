@@ -14,15 +14,9 @@ const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fix
 
 const ROOT = process.env.SOURCE_ROOT || path.resolve(__dirname, '..', '..');
 
-// Inline handlers (on...="...") that are still written in the source, with how many each file
-// has. A file that is not listed must have none, and a listed file may not gain any; lower or
-// remove an entry when its handlers are converted to data-action.
-const INLINE_EXCEPTIONS = {
-    'src/js/library/03l-import-export.js': 2,
-    'src/js/library/03m-library-folder-render.js': 1,
-    'src/js/ui/08d-panel-right-tabs.js': 1,
-    'src/js/playlists/09-folders-playlists.js': 6
-};
+// Inline handlers (on...="...") that are still written in the source, with how many each file has. There are none: the pages'
+// Content-Security-Policy (see tools/tests/csp.test.js) would block them, so use data-action. Do not add an entry here.
+const INLINE_EXCEPTIONS = {};
 const INLINE = /(?<![\w.])on(?:click|dblclick|contextmenu|mousedown|mouseup|mouseover|mouseout|change|input|focus|blur|submit|keydown|keyup|keypress|error|load|drag\w*|drop|wheel|scroll)\s*=\s*\\?["'`]|setAttribute\(\s*['"]on/g;
 
 function listFiles(dir) {
@@ -55,13 +49,13 @@ function inlineHandlerLines(file) {
 describe('inline event handlers', () => {
     const files = [
         ...listFiles(path.join(ROOT, 'src')).filter((f) => /\.(js|html)$/.test(f)),
-        path.join(ROOT, 'build', 'music_player.html')
+        path.join(ROOT, 'src', 'old-ui', 'music_player.template.html')
     ];
     const rel = (f) => path.relative(ROOT, f).split(path.sep).join('/');
 
     test('renderer source and the page template have no inline handlers beyond the listed exceptions', () => {
         const names = files.map(rel);
-        assert.ok(names.includes('src/js/main.js') && names.includes('build/music_player.html'), 'the scan did not reach the renderer files');
+        assert.ok(names.includes('src/js/main.js') && names.includes('src/old-ui/music_player.template.html'), 'the scan did not reach the renderer files');
         for (const name of Object.keys(INLINE_EXCEPTIONS)) assert.ok(names.includes(name), `${name} is listed as an exception but does not exist; update INLINE_EXCEPTIONS`);
         const problems = [];
         for (const file of files) {

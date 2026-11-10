@@ -6,13 +6,13 @@
  * Each one gets its real design in its owning task (A-05 menu, D-03 lyrics editors, D-04 metadata modal, D-06 dialogs);
  * when that task replaces an overlay, delete its block here. The lyrics and sync editors were taken out in D-03 (they are
  * modes of the Lyrics page now, views/tools/lyrics-editors.css). Not styled: the
- * metadata form insides and extended info, which keep the engine's own markup until D-03 and D-04.
+ * metadata form insides and extended info, which keep the engine's own markup until D-03 and D-04. The song metadata window has its own
+ * file now (views/tools/metadata-popup.css).
  */
 
 /* Overlay shells: cover the window, center the box, sit above the shell and below tooltips. */
 .playlist-modal-overlay,
-.extended-info-overlay,
-.song-metadata-modal-overlay {
+.extended-info-overlay {
     position: fixed;
     inset: 0;
     z-index: var(--layer-menu);
@@ -25,8 +25,7 @@
 }
 
 /* Dialog box and its parts (shuffle mode, create and edit playlist and folder, import choice). */
-.playlist-modal,
-.song-metadata-modal {
+.playlist-modal {
     box-sizing: border-box;
     width: min(var(--dialog-width), 100%);
     max-height: 100%;
@@ -39,10 +38,6 @@
     color: var(--text-primary);
     font-family: var(--font-ui);
     font-size: var(--text-md);
-}
-
-.song-metadata-modal {
-    width: min(var(--dialog-width-wide), 100%);
 }
 
 .playlist-modal-title {
@@ -201,4 +196,29 @@
 .context-submenu.bottom-right-aligned {
     top: auto;
     bottom: calc(-1 * var(--space-1));
+}
+
+/* The "Add to playlist" submenu holds a picker (picker.js): it brings its own padding, rows and scrolling. */
+.context-submenu.playlist-picker-submenu {
+    overflow: visible;
+    box-sizing: border-box;
+    width: 220px;
+    min-width: 0;
+    padding: 0;
+}
+.playlist-picker-submenu .picker {
+    box-sizing: border-box;
+    padding: var(--space-1);
+}
+/* The picker sits inside the "Add to playlist" menu item, and the engine's `.context-menu-item span { flex: 1 }` would stretch every span in it
+   (the search icon, the check column, the labels). Put them back: icons and the check column keep their size, the label takes the rest. */
+.playlist-picker-submenu .picker span {
+    flex: none;
+}
+.playlist-picker-submenu .picker .picker__label {
+    flex: 1;
+    min-width: 0;
+}
+.playlist-picker-submenu .picker input {
+    cursor: text;
 }

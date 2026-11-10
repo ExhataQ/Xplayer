@@ -1,5 +1,5 @@
 /* Startup view (task A-09). Tokens only: no raw colors, no primitive names.
- * Animation budget: transform and opacity only, one slow loop per background. prefers-reduced-motion stops them (base.css). */
+ * Animation budget: transform and opacity only, one slow loop per background. Reduce animations (root attribute data-motion="reduced", base.css) stops them. */
 
 .startup {
     position: absolute;
@@ -255,7 +255,8 @@
         transform: translateY(-100%);
     }
 }
-/* The real title bar floats over the startup view (D8): its logo menu and the window buttons stay, the rest waits. */
+/* The real title bar floats over the startup view (D8): the window buttons stay, the rest waits. The logo menu waits too: the shell builds it
+   a moment after the startup view is up, and it used to pop in alone at the corner. */
 body[data-starting] .titlebar {
     z-index: calc(var(--layer-startup) + 1);
     border-bottom-color: transparent;
@@ -265,6 +266,6 @@ body[data-starting] .titlebar {
 body[data-starting] .titlebar::after {
     background: transparent;
 }
-body[data-starting] .titlebar :is(.nav-btn, .icon-btn) {
+body[data-starting] .titlebar :is(.nav-btn, .icon-btn, .logo-btn) {
     visibility: hidden;
 }

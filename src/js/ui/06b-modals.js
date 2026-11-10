@@ -100,6 +100,12 @@ function closeSongMetadataModal() {
     }
 }
 
+// The Copy button of a row (new interface only: the old interface's style sheet hides it). The two drawings swap by CSS while the
+// button has data-copied; Lucide's copy and check (ISC), drawn like the new interface's icons.
+const SONG_METADATA_COPY_ICONS =
+    '<svg class="song-metadata-copy-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>' +
+    '<svg class="song-metadata-copy-done" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+
 export function showSongMetadataModal(songId) {
     const song = typeof SONGS_DATA !== 'undefined' ? SONGS_DATA.find((item) => item.id === songId) : null;
     if (!song) {
@@ -110,10 +116,9 @@ export function showSongMetadataModal(songId) {
     closeSongMetadataModal();
 
     const fields = [
-        ['Title', song.title],
-        ['Artist', song.artist],
         ['Album', song.album],
         ['Genre', song.genre],
+        ...(typeof isRatingSystemOn === 'function' && isRatingSystemOn() ? [['Rating', ratingOf(song) ? ratingLabel(ratingOf(song)) : '']] : []), // while the Rating system is on: "3.5 stars", or a dash
         ['Year', song.year],
         ['Track number', song.trackNumber ?? song.track],
         ['Language', song.language || song._detectedLanguage],
@@ -124,33 +129,74 @@ export function showSongMetadataModal(songId) {
 
     const overlay = document.createElement('div');
     overlay.className = 'song-metadata-modal-overlay';
-    overlay.onclick = closeOnOverlayClick(overlay, closeSongMetadataModal);
+    // The text can be selected, and a drag that starts in the window and ends outside it makes the browser report a click on the
+    // overlay. Only a press that also began on the overlay closes the window.
+    let pressedOnOverlay = true;
+    overlay.onmousedown = (event) => {
+        pressedOnOverlay = event.target === overlay;
+    };
+    overlay.onclick = (event) => {
+        if (pressedOnOverlay) closeOnOverlayClick(overlay, closeSongMetadataModal)(event);
+    };
 
     const modal = document.createElement('div');
     modal.className = 'song-metadata-modal';
     modal.setAttribute('data-stop', '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'song-metadata-heading');
+    // The title and artist lead the window (with the cover); the other fields are rows. A field the song does not have shows a dash.
+    const cover = song.cover
+        ? `<img class="song-metadata-cover" src="${escapeHtmlAttr(song.cover)}" alt="">`
+        : '<div class="song-metadata-cover song-metadata-cover--empty" aria-hidden="true">&#9834;</div>';
     modal.innerHTML = `
         <div class="song-metadata-modal-header">
-            <h3>Song metadata</h3>
+            <h3 id="song-metadata-heading">Song metadata</h3>
             <button type="button" class="song-metadata-modal-close" aria-label="Close" title="Close">&times;</button>
         </div>
-        <div class="song-metadata-list">
+        <div class="song-metadata-hero">
+            ${cover}
+            <div class="song-metadata-heading">
+                <div class="song-metadata-title">${escapeHtml(String(song.title || 'Unknown title'))}</div>
+                <div class="song-metadata-artist">${escapeHtml(String(song.artist || 'Unknown artist'))}</div>
+            </div>
+        </div>
+        <div class="song-metadata-list" role="list">
             ${fields
-                .map(
-                    ([label, value]) => `
-                        <div class="song-metadata-row">
+                .map(([label, value]) => {
+                    const text = String(value ?? '').trim();
+                    return `
+                        <div class="song-metadata-row" role="listitem">
                             <span class="song-metadata-label">${escapeHtml(label)}</span>
-                            <span class="song-metadata-value">${escapeHtml(String(value ?? '—')) || '—'}</span>
+                            <span class="song-metadata-value${text ? '' : ' song-metadata-value--empty'}">${escapeHtml(text) || '—'}</span>
+                            ${text ? `<button type="button" class="song-metadata-copy" aria-label="Copy ${escapeHtmlAttr(label)}" title="Copy">${SONG_METADATA_COPY_ICONS}</button>` : ''}
                         </div>
-                    `
-                )
+                    `;
+                })
                 .join('')}
         </div>
     `;
 
-    modal.querySelector('.song-metadata-modal-close').onclick = closeSongMetadataModal;
+    const closeButton = modal.querySelector('.song-metadata-modal-close');
+    closeButton.onclick = closeSongMetadataModal;
+    // One handler for every row. The copied text is what the row shows; the button says so for a moment (data-copied).
+    modal.querySelector('.song-metadata-list').addEventListener('click', async (event) => {
+        const button = event.target.closest('.song-metadata-copy');
+        if (!button) return;
+        const value = button.closest('.song-metadata-row')?.querySelector('.song-metadata-value');
+        try {
+            await navigator.clipboard.writeText(value ? value.textContent : '');
+        } catch (error) {
+            showNotification('Could not copy to clipboard', 'error', 2000);
+            return;
+        }
+        button.setAttribute('data-copied', '');
+        clearTimeout(button._copiedTimer);
+        button._copiedTimer = setTimeout(() => button.removeAttribute('data-copied'), 1500);
+    });
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
+    closeButton.focus({ preventScroll: true }); // the keys work at once: Escape closes, Tab walks the close button and the Copy buttons
 
     const handleKeydown = (event) => {
         if (event.key === 'Escape') {
@@ -622,7 +668,8 @@ export function showAddLinkDialog() {
 
     modal.innerHTML = `
         <h3 class="playlist-modal-title">Play from URL</h3>
-        <input type="text" id="link-url-input" class="playlist-modal-input" placeholder="Paste URL (e.g. https://example.com/song.mp3)">
+        <input type="text" id="link-url-input" class="playlist-modal-input" placeholder="Paste URL (e.g. https://example.com/song.mp3)" aria-describedby="link-preview">
+        <div id="link-preview" class="link-preview" role="status" aria-live="polite"></div>
         <div class="playlist-modal-buttons" id="link-modal-buttons">
                 <button data-action="closeAddLinkModal" class="playlist-modal-cancel-btn">
                         Cancel
@@ -667,6 +714,7 @@ export function showAddLinkDialog() {
     }
 
     focusInput();
+    setupLinkHelpers(modal);
 
     modal.addEventListener('click', function (e) {
         if (e.target === modal || e.target.closest('.playlist-modal-buttons')) {
@@ -681,6 +729,85 @@ export function showAddLinkDialog() {
     });
 
     setTimeout(focusInput, 50);
+}
+
+// ----- Play from URL: a pasted link and what it would fetch (C1, C2) -----
+const LINK_PREVIEW_DELAY_MS = 500;
+
+function isHttpLink(text) {
+    if (typeof text !== 'string' || !text || text.length > 2048 || /\s/.test(text)) return false;
+    try {
+        const { protocol } = new URL(text);
+        return protocol === 'http:' || protocol === 'https:';
+    } catch (e) {
+        return false;
+    }
+}
+
+function linkSizeText(bytes) {
+    if (!(bytes > 0)) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    const units = ['KB', 'MB', 'GB'];
+    let value = bytes / 1024;
+    let unit = 0;
+    while (value >= 1024 && unit < units.length - 1) {
+        value /= 1024;
+        unit++;
+    }
+    return `${value >= 100 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
+}
+
+// "name · size · type", only the parts the server told. Nothing is said when it told nothing.
+function linkPreviewText(info) {
+    if (!info || !info.success) return '';
+    return [info.name, linkSizeText(info.size), info.type].filter(Boolean).join(' · ');
+}
+
+function setupLinkHelpers(modal) {
+    const input = modal.querySelector('#link-url-input');
+    const preview = modal.querySelector('#link-preview');
+    if (!input || !preview) return;
+    let sequence = 0;
+    let timer = null;
+
+    // A light HEAD request once the person stops typing, and only for a real http(s) link; an answer for an older value is dropped.
+    function schedulePreview() {
+        clearTimeout(timer);
+        const mine = ++sequence;
+        preview.textContent = '';
+        const value = input.value.trim();
+        if (!isHttpLink(value) || !desktopApi.supports('library.probeUrl')) return;
+        timer = setTimeout(() => {
+            desktopApi.library
+                .probeUrl(value)
+                .then((info) => {
+                    if (mine === sequence) preview.textContent = linkPreviewText(info);
+                })
+                .catch(() => {});
+        }, LINK_PREVIEW_DELAY_MS);
+    }
+
+    input.addEventListener('input', schedulePreview);
+    addLinkModalCleanups.push(function () {
+        clearTimeout(timer);
+        sequence++;
+    });
+
+    // The clipboard is read once, when the dialog opens, and used only when it holds a link and the box is still empty.
+    // Only in the desktop app: a browser would ask for permission here.
+    if (desktopApi.available() && navigator.clipboard && navigator.clipboard.readText) {
+        navigator.clipboard
+            .readText()
+            .then((text) => {
+                const link = typeof text === 'string' ? text.trim() : '';
+                if (input.isConnected && !input.value && isHttpLink(link)) {
+                    input.value = link;
+                    input.select();
+                    schedulePreview();
+                }
+            })
+            .catch(() => {});
+    }
 }
 
 export function playFromUrl(saveToFolder) {
@@ -748,7 +875,9 @@ export function playFromUrl(saveToFolder) {
                         showNotification(
                             isTemp ? `Streaming: ${songToPlay.title}` : `Saved: ${songToPlay.title}`,
                             'success',
-                            2000
+                            2000,
+                            // A saved file can be shown in the folder; a stream is a temporary file, so it gets no such button (C3).
+                            isTemp ? undefined : { file: result.filePath }
                         );
                     } else {
                         showNotification('Failed to process audio file', 'error', 2000);

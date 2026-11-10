@@ -72,7 +72,7 @@ export function openExtendedInfoPanel() {
     content.innerHTML = `
         <div class="extended-info-header">
             <div class="extended-info-title">Track Information</div>
-            <button class="extended-info-close" onclick="closeExtendedInfoPanel()" aria-label="Close">
+            <button class="extended-info-close" data-action="closeExtendedInfoPanel" aria-label="Close">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>

@@ -474,6 +474,35 @@ describe('ui-next components in a real page', { concurrency: false }, () => {
             assert.equal(await page.evaluate(() => document.getElementById('opener').getAttribute('aria-expanded')), 'true');
         });
 
+        t('a menu opened with the mouse does not paint its first item as selected until a key is pressed', async () => {
+            await page.evaluate(() => {
+                const a = document.getElementById('opener');
+                a.addEventListener('click', () => (window.menu = ui.openMenu({ anchor: a, items: [{ label: 'Alpha' }, { label: 'Beta' }] })), { once: true });
+            });
+            await page.click('#opener');
+            const bg = () => page.evaluate(() => getComputedStyle(document.querySelector('.menu__item')).backgroundColor);
+            assert.equal(await focused(), 'Alpha', 'the keyboard still has the first item');
+            assert.equal(await bg(), 'rgba(0, 0, 0, 0)');
+            await page.keyboard.press('ArrowDown');
+            assert.equal(await focused(), 'Alpha', 'the first Down lands on the first item');
+            assert.notEqual(await bg(), 'rgba(0, 0, 0, 0)');
+            await page.evaluate(() => window.menu.close());
+        });
+
+        t('hovering moves the single lit item with the pointer, and the one left behind goes dark at once', async () => {
+            await page.evaluate(() => {
+                const a = document.getElementById('opener');
+                a.addEventListener('click', () => (window.menu = ui.openMenu({ anchor: a, items: [{ label: 'Alpha' }, { label: 'Beta' }] })), { once: true });
+            });
+            await page.click('#opener');
+            await page.locator('.menu__item', { hasText: 'Beta' }).hover();
+            assert.equal(await focused(), 'Beta');
+            const bgs = await page.$$eval('.menu__item', (n) => n.map((x) => getComputedStyle(x).backgroundColor));
+            assert.equal(bgs[0], 'rgba(0, 0, 0, 0)', 'Alpha is no longer lit');
+            assert.notEqual(bgs[1], 'rgba(0, 0, 0, 0)', 'Beta is lit');
+            await page.evaluate(() => window.menu.close());
+        });
+
         t('Up, Down, Home and End move focus, wrap, and skip disabled items', async () => {
             await open(ITEMS);
             await page.keyboard.press('ArrowDown');

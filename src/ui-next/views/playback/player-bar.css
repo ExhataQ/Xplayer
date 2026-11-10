@@ -77,10 +77,9 @@
     opacity: 1;
     transition: opacity var(--motion-fast) var(--motion-ease); /* the picture fades in when its peaks arrive instead of popping */
 }
-@media (prefers-reduced-motion: reduce) {
-    .player-host .progress-container.has-waveform .waveform-canvas {
-        transition: none;
-    }
+
+:where(:root[data-motion='reduced']) .player-host .progress-container.has-waveform .waveform-canvas {
+    transition: none;
 }
 .player-host .progress-container.has-waveform {
     height: 32px;
@@ -113,23 +112,19 @@
 .player-host .queue-btn[aria-pressed='true'] {
     color: var(--accent);
 }
-.player-host .player-song-info {
-    position: relative;
+/* the heart and the info button after the title and artist (song-actions.js) */
+.player-host .player-song-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-1);
+    margin-inline-start: var(--space-1);
 }
-.player-host .cover-expand {
-    position: absolute;
-    left: var(--space-1);
-    top: var(--space-1);
-    background: var(--surface-scrim);
-    color: var(--text-primary);
-    opacity: 0;
-}
-.player-host .cover-expand[hidden] {
+.player-host .player-song-actions[hidden] {
     display: none;
 }
-.player-host .player-song-info:hover .cover-expand,
-.player-host .cover-expand:focus-visible {
-    opacity: 1;
+.player-host .player-like[aria-pressed='true'] {
+    color: var(--accent);
 }
 
 /* ---------- queue drawer (C-03) ----------
@@ -165,10 +160,19 @@
     font-size: var(--text-md);
     font-weight: var(--weight-semibold);
 }
+.queue-panel__scroll {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg); /* the bottom shadow follows the drawer's rounded corners */
+    overflow: hidden;
+}
 .queue-panel__body {
+    flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
-    padding: var(--space-2);
+    padding: var(--space-3) max(0px, calc(var(--space-4) - var(--scroll-gutter))); /* 16px shows on each side, and a little air above and below */
 }
 .queue-panel .queue-lables {
     padding: var(--space-3) var(--space-2) var(--space-1);
@@ -315,7 +319,7 @@
     max-height: var(--cover-size);
     object-fit: contain;
     border-radius: var(--radius-sm);
-    cursor: zoom-in;
+    cursor: pointer; /* a click on the picture turns the magnifier on */
 }
 .cover-overlay__image--lens {
     cursor: none;
@@ -359,34 +363,50 @@
     inset: 0;
     background-repeat: no-repeat;
 }
-@media (prefers-reduced-motion: reduce) {
-    .cover-overlay::backdrop,
-    .cover-overlay__content {
-        transition: none;
-    }
+
+:where(:root[data-motion='reduced']) .cover-overlay::backdrop,
+:where(:root[data-motion='reduced']) .cover-overlay__content {
+    transition: none;
 }
 
 /* ---------- right panel content (PC-13): the cover, the track info and the lyrics ---------- */
 .rp-now {
+    position: relative; /* the "Follow lyrics" button floats over the lyrics' bottom edge, placed from here */
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
+    --rp-gap: var(--space-4);
+    gap: var(--rp-gap);
     height: 100%;
     min-height: 0;
-    padding: var(--space-2) 0 var(--space-4); /* no side padding here: the lyrics scrollbar sits at the panel's right edge */
+    padding: 0; /* no padding at all: the lyrics scrollbar runs to the panel's bottom edge (the lyrics list has its own room below the last line), and the header is centered in its box with or without a cover */
     box-sizing: border-box;
 }
-.rp-now > :is(.rp-now__cover-frame, .rp-now__info) {
+.rp-now > :is(.rp-now__cover-frame, .rp-now__cover-empty, .rp-now__info) {
     margin-inline: var(--space-4);
 }
-.rp-now > .rp-now__cover-frame {
-    margin-top: var(--space-6); /* the big cover gets more air above it; its sides stay as they were */
+.rp-now > :is(.rp-now__cover-frame, .rp-now__cover-empty) {
+    margin-top: calc(var(--space-6) + var(--space-2)); /* the big cover gets more air above it; its sides stay as they were */
+    margin-bottom: calc(-1 * var(--rp-gap)); /* the header's box starts right under the cover, so its items are centered between the cover and the line below */
 }
 .rp-now [hidden] {
     display: none;
 }
-.rp-now__cover-frame {
+.rp-now__cover-frame,
+.rp-now__cover-empty {
     flex: none;
+}
+/* The blank cover shown with nothing playing: a tile in the theme's colors with a soft accent glow and a music note. */
+.rp-now__cover-empty {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: radial-gradient(circle at 28% 22%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 62%), linear-gradient(145deg, var(--surface-raised), var(--surface-panel));
+}
+.rp-now__cover-note {
+    width: 34%;
+    color: color-mix(in srgb, var(--text-tertiary) 80%, transparent);
 }
 .rp-now__cover-button {
     display: block;
@@ -396,7 +416,7 @@
     border-radius: var(--radius-md);
     background: var(--surface-ground);
     overflow: hidden;
-    cursor: zoom-in;
+    cursor: pointer;
 }
 .rp-now__cover-frame[data-default] .rp-now__cover-button {
     cursor: default; /* the default cover has no larger picture to open */
@@ -435,12 +455,57 @@
 .rp-now__note:empty {
     display: none;
 }
+.rp-now__info:not(:has(.rp-now__note:not(:empty))) {
+    display: none; /* with no note the empty box would still take a gap on each side */
+}
 .rp-now__lyrics {
     position: relative;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: var(--space-2) var(--space-4);
+    --lyrics-pad-x: max(0px, calc(var(--space-4) - var(--scroll-gutter))); /* 16px shows on each side: the bar's room is reserved on both (scrollbar.css) */
+    margin-top: calc(-1 * var(--rp-gap)); /* the box starts right under the header's line (or the note), so the scrollbar runs up to it... */
+    padding: calc(var(--space-2) + var(--space-1)) var(--lyrics-pad-x) var(--space-2); /* ...and the room above the first line is inside the box */
+}
+/* The lyrics placeholder: faint bars shaped like lyric lines, one lit like the playing line, fading out toward the bottom. */
+.rp-skel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding-top: var(--space-2);
+    -webkit-mask-image: linear-gradient(to bottom, #000 35%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 35%, transparent 100%);
+    pointer-events: none;
+}
+.rp-skel__line {
+    display: block;
+    height: 0.9em;
+    max-width: 100%;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--text-tertiary) 30%, transparent);
+    font-size: var(--text-lg);
+}
+.rp-skel__line--on {
+    background: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+/* The placeholder for an instrumental song: one large note in a soft accent color, and a line of words. */
+.rp-instr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    padding-top: var(--space-6);
+    text-align: center;
+}
+.rp-instr__note {
+    font-size: 3.4rem;
+    line-height: 1;
+    color: color-mix(in srgb, var(--accent) 70%, var(--text-tertiary));
+}
+.rp-instr__hint {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--text-tertiary);
 }
 .rp-line {
     padding: var(--space-1) 0;
@@ -458,8 +523,7 @@
     color: var(--text-secondary);
 }
 .rp-line--active {
-    color: var(--text-primary);
-    font-weight: 600;
+    color: var(--text-primary); /* colour only: a heavier weight makes the letters wider, so a line near the edge wrapped onto another row when it started playing (B8) */
 }
 .rp-line--empty {
     min-height: 1em;
@@ -479,22 +543,26 @@
 .rp-line--active .rp-line__tr {
     color: var(--accent);
 }
-.rp-plain {
-    white-space: pre-wrap;
-    font-size: var(--text-md);
-    line-height: 1.6;
-    color: var(--text-primary);
-    overflow-wrap: anywhere;
+.rp-line--plain {
+    color: var(--text-primary); /* plain lyrics: the line style of synced lyrics, all lines in the main colour, nothing to click */
+    cursor: default;
 }
+/* "Follow lyrics": a pill that floats over the bottom of the lyrics, centered. It takes no room of its own (it used to be a row under the lyrics,
+   which made them shorter while it showed), so the lyrics do not jump when it comes and goes. */
 .rp-now__follow {
-    flex: none;
-    align-self: center;
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--space-4) + var(--space-3)); /* above the panel's bottom padding, over the last lines */
+    z-index: 3;
+    translate: -50% 0;
     padding: var(--space-1) var(--space-4);
     border: 0;
     border-radius: var(--radius-pill);
     background: var(--accent);
+    box-shadow: var(--shadow-raised);
     color: var(--text-on-accent);
     font-size: var(--text-sm);
+    white-space: nowrap;
     cursor: pointer;
 }
 .rp-now__follow:hover {
@@ -522,4 +590,89 @@
 #player-artist .player-artist-sep,
 #tag-artist .player-artist-sep {
     color: var(--text-secondary);
+}
+
+/* ---------- volume feedback (15g, PE-volume): the icon follows the level, the fill is brighter the louder it is, a number follows the knob ----------
+ * The engine sets data-level on #volume-slider (mute, whisper, low, high), swaps the icon only when its shape changes (the new glyph fades
+ * in, class vol-fade; it never moves) and writes the percentage into #volume-bubble. Motion only without reduced-motion. */
+.player-host #volume-slider[data-level='whisper'] #volume-fill {
+    opacity: 0.55;
+}
+.player-host #volume-slider[data-level='low'] #volume-fill {
+    opacity: 0.8;
+}
+.player-host #volume-slider.dragging #volume-knob {
+    scale: 1.3;
+}
+.player-host .volume-bubble {
+    position: absolute;
+    bottom: calc(100% + var(--space-1));
+    transform: translate(-50%, 4px);
+    padding: 1px var(--space-2);
+    border-radius: var(--radius-pill);
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.5;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 3;
+}
+.player-host .volume-bubble.show,
+.player-host #volume-slider.dragging .volume-bubble {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+:where(:root:not([data-motion='reduced'])) .player-host #volume-fill {
+    transition: opacity 0.2s;
+}
+:where(:root:not([data-motion='reduced'])) .player-host #volume-knob {
+    transition: opacity var(--motion-fast) var(--motion-ease), scale var(--motion-fast) var(--motion-ease);
+}
+:where(:root:not([data-motion='reduced'])) .player-host .volume-bubble {
+    transition: opacity var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
+}
+/* The icon itself never moves; a new shape only fades in. */
+:where(:root:not([data-motion='reduced'])) .player-host #volume-icon .vol-fade {
+    animation: volume-fade 0.2s ease-out;
+}
+@keyframes volume-fade {
+    from {
+        opacity: 0.3;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* ---------- audio visualizer (visualizer.js) ----------
+ * A passive picture across the whole player section, behind the controls: bars rise from the bottom edge. It never takes a click. */
+.visualizer-canvas {
+    position: absolute;
+    inset: 0 auto 0 0; /* anchored at the left edge; the width is 100%, or the left-side strip's (set by visualizer.js) */
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+.player-host:has(.visualizer-canvas) .player-container {
+    position: relative;
+    z-index: 1;
+}
+
+/* While the bars are on screen and the pointer is away from the player section, the song info (cover, title, artist, buttons) slides out to the
+ * left and fades, so the bars have the room. Coming back is instant (hover, or keyboard focus on something inside); going away is animated and
+ * waits a moment so a passing pointer does not make it flicker. Only keyboard focus (:focus-visible) keeps it shown: a mouse click that leaves a
+ * button focused must not hold it open. Less animation: it stays where it is. */
+.player-host .player-left {
+    transition: none; /* leaving the hidden state is instant */
+}
+:root:not([data-motion='reduced']) .player-host[data-viz-playing]:not(:hover):not(:has(:focus-visible)) .player-left {
+    opacity: 0;
+    transform: translateX(-48px);
+    transition: opacity 320ms var(--motion-ease) 900ms, transform 320ms var(--motion-ease) 900ms; /* entering the hidden state is animated */
 }

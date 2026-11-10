@@ -73,14 +73,12 @@ describe('the loading page', () => {
         assert.match(src, /backgroundColor: loadingBackground\(next\)/);
     });
 
-    test('the build copies loading-page.js next to loading-window.js (a missing file would crash the packaged app at start)', () => {
-        const build = read('build', 'music_player.py');
-        // The build copies every .js file in electron/ (it used to keep a list by hand, which fell behind main.js).
-        assert.match(build, /os\.listdir\(electron_dir\)/);
-        assert.match(build, /name\.endswith\("\.js"\)/);
+    test('loading-window.js requires files that are in electron/, which the packaged app ships whole (package.json build.files)', () => {
+        const files = JSON.parse(read('package.json')).build.files;
+        assert.ok(files.includes('electron/**/*'));
         const required = [...read('electron', 'loading-window.js').matchAll(/require\('\.\/([a-z-]+)'\)/g)].map((m) => `${m[1]}.js`);
         assert.ok(required.includes('loading-page.js'));
-        for (const file of required) assert.ok(fs.existsSync(path.join(ROOT, 'electron', file)), `${file} is in electron/, so the build copies it`);
+        for (const file of required) assert.ok(fs.existsSync(path.join(ROOT, 'electron', file)), `${file} is in electron/`);
     });
 
     test('the page contains no template placeholders and no stray interpolation', () => {

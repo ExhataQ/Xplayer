@@ -1,8 +1,33 @@
-const { app, ipcMain, shell, dialog } = require('electron');
+const { app, ipcMain, shell, dialog, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-app.disableHardwareAcceleration();
+// First: point Electron's user-data folder at the data folder (before anything asks for it), see app-paths.js.
+const appPaths = require('./app-paths');
+appPaths.init(app);
+// The same id as build.appId in package.json: Windows groups the taskbar button and keeps its pin and icon under it.
+if (process.platform === 'win32' && typeof app.setAppUserModelId === 'function') app.setAppUserModelId('com.exhataq.xplayer');
+
+// A log in the data folder, and one running copy per data folder (the second start only brings the first window forward).
+const singleInstance = require('./single-instance');
+const { createLogger, hookProcess } = require('./logger');
+const appInfo = require('./app-info');
+const memoryReport = require('./memory-report');
+const { createRecorder } = require('./perf-recorder');
+const logger = createLogger({ dir: path.join(appPaths.getDataDir(), 'logs') });
+hookProcess(logger, { app });
+logger.info(`start ${app.getVersion ? app.getVersion() : ''} mode=${appPaths.getMode()}`);
+const gotInstanceLock = singleInstance.acquire(app, () => singleInstance.bringToFront(mainWindow));
+if (!gotInstanceLock) {
+    logger.info('another copy is already running on this data folder; quitting');
+    app.quit();
+}
+
+// Hardware acceleration is off, as the app has always run. XPLAYER_GPU=on turns it on for one run: tools/dev/bench-gpu.js uses it to
+// measure both ways (phase 6.5 of .agent/archive/dev-plan/DEV-PLAN.md). It is not a setting; the choice waits for those numbers.
+const gpuOn = process.env.XPLAYER_GPU === 'on';
+if (!gpuOn) app.disableHardwareAcceleration();
+logger.info(`hardware acceleration ${gpuOn ? 'on (XPLAYER_GPU=on)' : 'off'}`);
 
 let mainWindow = null;
 let minimizeOnClose = false;
@@ -25,7 +50,7 @@ const {
     getFolderStats,
     updateFolderSongCounts
 } = require('./music-folders');
-const { getDownloadFolder, saveDownloadFolder, resetDownloadFolder, download, cancelDownload } = require('./downloads');
+const { getDownloadFolder, saveDownloadFolder, resetDownloadFolder, download, probeUrl, cancelDownload } = require('./downloads');
 const { saveLyricsFile, readLyricsFile } = require('./file-operations');
 const { searchLyrics, downloadLyricsFile } = require('./online-lyrics');
 const { getAudioMetadata, saveAudioMetadata, saveAudioCover, warmUpTagBackend } = require('./metadata-editor');
@@ -35,14 +60,19 @@ const { searchOnlineMetadata, getOnlineMetadata } = require('./online-metadata')
 const { annotateSearch } = require('./release-rank');
 const songsStore = require('./songs-store');
 const { refreshMissingTags } = require('./tag-builder');
-const { configPath: settingsFile, getOutputDir } = require('./storage-paths');
+const { configPath: settingsFile, getLibraryDir } = require('./storage-paths');
 const checks = require('./ipc-checks');
 const { readAudioBytes } = require('./audio-bytes');
+const mediaProtocol = require('./media-protocol');
+// The equalizer needs the music served with a CORS header (electron/media-protocol.js). A scheme must be declared before the app is ready.
+mediaProtocol.registerScheme(require('electron').protocol);
+const { readCoverThumb } = require('./cover-thumb');
 const { readPeaks, writePeaks } = require('./waveform-peaks');
 const { createAiService, registerAiIpc } = require('./ai/ipc');
+const { registerHostRelay } = require('./ai/host-relay');
 
-const thumbarIconPath = path.join(getOutputDir(), 'icons');
-const OUTPUT_DIR = getOutputDir();
+const thumbarIconPath = appPaths.getIconsDir();
+const LIBRARY_DIR = getLibraryDir();
 
 
 function updateDeployedSongMetadata(fileUrl, metadata) {
@@ -50,7 +80,7 @@ function updateDeployedSongMetadata(fileUrl, metadata) {
     const target = String(fileUrl || '').replace(/\\/g, '/');
     let found = false;
     try {
-        songsStore.updateSongs(OUTPUT_DIR, (songs) => {
+        songsStore.updateSongs(LIBRARY_DIR, (songs) => {
             const song = songs.find((x) => String(x.url || '').replace(/\\/g, '/') === target);
             if (!song) return undefined;
             fields.forEach((key) => { if (metadata[key] !== undefined) song[key] = metadata[key]; });
@@ -62,6 +92,9 @@ function updateDeployedSongMetadata(fileUrl, metadata) {
     return found;
 }
 
+// The chat in a window of its own asks the main window for the library, queue and playlists through this relay.
+registerHostRelay(ipcMain, { getMainWindow: () => mainWindow });
+
 // AI assistant: settings, key, planning and the undo journal (electron/ai/). Off until the person adds a key.
 registerAiIpc(ipcMain, createAiService({
     configDir: require('./storage-paths').getConfigDir(),
@@ -72,7 +105,7 @@ registerAiIpc(ipcMain, createAiService({
 
 // The page asks for the song list once, while it is being set up (see preload.js).
 ipcMain.on('songs-store:load', (event) => {
-    try { event.returnValue = songsStore.readSongs(OUTPUT_DIR); }
+    try { event.returnValue = songsStore.readSongs(LIBRARY_DIR); }
     catch (e) { event.returnValue = []; }
 });
 
@@ -116,6 +149,8 @@ ipcMain.handle('get-audio-metadata', async (event, fileUrl) => {
 
 // The waveform decodes audio in the page, which cannot read files itself (electron/audio-bytes.js).
 ipcMain.handle('read-audio-bytes', async (event, fileUrl) => readAudioBytes(fileUrl));
+// A list's header takes its colors from the cover; the page cannot read a file:// image's pixels, so it gets a small PNG (electron/cover-thumb.js).
+ipcMain.handle('read-cover-thumb', async (event, fileUrl) => readCoverThumb(fileUrl, { layout: appPaths.getLayout() }));
 // Saved peaks, so a track's waveform is not decoded again (electron/waveform-peaks.js). The key is hashed, never used as a path.
 ipcMain.handle('waveform-peaks:get', async (event, key) => readPeaks(key));
 ipcMain.handle('waveform-peaks:set', async (event, key, bytes) => writePeaks(key, bytes));
@@ -215,7 +250,7 @@ ipcMain.handle('import-audio-metadata-json', async () => {
 });
 
 ipcMain.handle('import-dropped-files', async (event, filePaths, targetView) => {
-    const outputDir = getOutputDir();
+    const outputDir = getLibraryDir();
     const audioPaths = checks.stringList(filePaths).filter(checks.isAudioPath);
     if (audioPaths.length === 0) return { success: false, error: 'No supported audio files' };
     return scanDroppedFiles(audioPaths, outputDir);
@@ -238,9 +273,15 @@ ipcMain.handle('download-and-scan', async (event, url, isTemp) => {
 
     if (!result.success) return result;
 
-    const outputDir = getOutputDir();
+    const outputDir = getLibraryDir();
     const scanResult = await scanDownloadedFile(downloadFolder, outputDir, result.filePath, isTemp);
     return scanResult;
+});
+
+// The name, size and type a link would give, asked with a HEAD request (C2). Never throws: no answer is { success: false }.
+ipcMain.handle('probe-url', async (event, url) => {
+    if (!checks.isHttpUrl(url)) return { success: false };
+    return probeUrl(url);
 });
 
 // Real cancel for running work (D41). Both answer whether something was running.
@@ -310,7 +351,7 @@ ipcMain.handle('rebuild-from-folders', async () => {
     const configPath = settingsFile('foldersConfig');
     const folders = getMusicFolders(configPath);
 
-    const outputDir = getOutputDir();
+    const outputDir = getLibraryDir();
     showLoadingWindow(mainWindow);
     updateLoadingProgress(0, 'Starting scan...', '');
 
@@ -355,7 +396,7 @@ ipcMain.handle('change-folder', async () => {
     }
 
     const selectedFolder = result.filePaths[0];
-    const outputDir = getOutputDir();
+    const outputDir = getLibraryDir();
 
     showLoadingWindow(mainWindow);
     updateLoadingProgress(0, 'Starting scan...', '');
@@ -426,6 +467,64 @@ ipcMain.handle('change-folder', async () => {
 });
 
 app.whenReady().then(async () => {
+    mediaProtocol.install(require('electron').protocol, require('electron').net);
+    if (!gotInstanceLock) return;
+    ipcMain.handle('app-info', () => appInfo.getInfo({ app, appPaths }));
+    // The LRCLIB site in the normal browser (C6). The address is fixed here, so the page cannot ask for any other one.
+    ipcMain.handle('open-lrclib-site', async () => {
+        try {
+            await shell.openExternal('https://lrclib.net');
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: (error && error.message) || 'Could not open the browser' };
+        }
+    });
+    ipcMain.handle('open-data-folder', async () => {
+        const error = await shell.openPath(appInfo.dataFolder(appPaths));
+        return error ? { success: false, error } : { success: true };
+    });
+    // The numbers behind the memory read-out (X1) and the recording (X2). Read-only. A window is named by its file name only, never its title
+    // (a title can hold a song name).
+    const readMemoryData = () => {
+        const { BrowserWindow } = require('electron');
+        const pages = BrowserWindow.getAllWindows().filter((w) => !w.isDestroyed()).map((w) => ({
+            pid: w.webContents.getOSProcessId(),
+            file: path.basename((w.webContents.getURL() || '').split(/[?#]/)[0]),
+            ask: (code) => w.webContents.executeJavaScript(code)
+        }));
+        return memoryReport.collect({ app, pages, dirs: { library: appPaths.getLibraryDir(), data: appPaths.getDataDir() }, startedAt: Date.now() - process.uptime() * 1000 });
+    };
+    const perfRecorder = createRecorder({ read: readMemoryData, dir: path.join(appPaths.getDataDir(), 'logs'), log: (m) => logger.info(m) });
+    if (process.env.XPLAYER_PERF === '1') perfRecorder.start();
+    // true starts the recording, false stops it, anything else only asks. It is off at every start unless XPLAYER_PERF=1.
+    ipcMain.handle('perf-record', (event, enable) => {
+        if (enable === true) perfRecorder.start();
+        else if (enable === false) perfRecorder.stop();
+        return { success: true, recording: perfRecorder.isRunning() };
+    });
+    ipcMain.handle('perf-summary', async () => {
+        const text = await perfRecorder.summary();
+        clipboard.writeText(text);
+        return { success: true, recording: perfRecorder.isRunning() };
+    });
+    ipcMain.handle('copy-diagnostics', async () => {
+        // Memory and disk numbers (X1). Read-only; a failure here must never stop the diagnostics text itself.
+        let memory = '';
+        try {
+            memory = memoryReport.formatMemoryReport(await readMemoryData());
+        } catch (error) {
+            logger.info('diagnostics: the memory read-out failed: ' + ((error && error.message) || error));
+        }
+        clipboard.writeText(appInfo.buildDiagnostics({ info: appInfo.getInfo({ app, appPaths }), tail: logger.tail(50), memory }));
+        return { success: true };
+    });
+    // Pages ask for covers/<file>; when the library is not the web root they are served from the library's covers folder.
+    const { session } = require('electron');
+    if (session && session.defaultSession) appPaths.installCoverRoute(session.defaultSession);
+
+    // Running from Source: DevTools, reload on change and the sample seed, when asked for (electron/dev-tools.js). Nothing happens in a packaged build.
+    require('./dev-tools').init({ app, BrowserWindow: require('electron').BrowserWindow, root: appPaths.SOURCE_ROOT, userDataDir: app.getPath('userData'), log: (m) => logger.info(m) });
+
     ipcMain.handle('get-window-maximized', () => {
         return mainWindow ? mainWindow.isMaximized() : false;
     });
@@ -575,7 +674,7 @@ app.whenReady().then(async () => {
         showLoadingWindow(mainWindow);
         updateLoadingProgress(0, 'Starting scan...', '');
 
-        const outputDir = getOutputDir();
+        const outputDir = getLibraryDir();
         try {
         await scanFolder(selectedFolder, outputDir, {
             onStdoutProgress: (percent) => updateLoadingProgress(percent, 'Scanning...', ''),
@@ -609,7 +708,7 @@ app.whenReady().then(async () => {
     let hasSongs = false;
 
     try {
-        hasSongs = songsStore.readSongs(OUTPUT_DIR).length > 0;
+        hasSongs = songsStore.readSongs(LIBRARY_DIR).length > 0;
     } catch (e) {
         // Intentionally silent: this is only a peek at the saved library to decide whether to
         // show the empty-library state; if it cannot be read, hasSongs stays false.

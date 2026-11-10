@@ -8,15 +8,14 @@ All commands are PowerShell, run from the repository root (the folder with `pack
 
 | Group | What it is | Files |
 | --- | --- | --- |
-| **unit** | Pure Node: no browser. Fast (most files finish in under a second; `online-metadata` about 0.3 s). | `drag-drop-modules`, `event-bus`, `language-detect`, `lint`, `lrc-parser`, `main-process-safety`, `manifest`, `metadata-backend`, `music-folders`, `online-metadata`, `output-dir`, `recents`, `run-shards`, `scan-folder-tags`, `scanner`, `search-engine`, `setters`, `shuffle`, `storage-core`, `storage` (`*.test.js`; 20 files) |
+| **unit** | Pure Node: no browser. Fast (most files finish in under a second; `online-metadata` about 0.3 s). | `drag-drop-modules`, `event-bus`, `language-detect`, `lint`, `lrc-parser`, `main-process-safety`, `manifest`, `music-folders`, `online-metadata`, `output-dir`, `recents`, `run-shards`, `scan-folder-tags`, `scanner`, `search-engine`, `setters`, `shuffle`, `storage-core`, `storage` (`*.test.js`; 20 files) |
 | **browser** | Builds a throwaway copy of the real app, opens it in headless Chromium with a stubbed Electron API, and drives it. Each test file launches its own browser. | everything else in `tools/tests/*.test.js` (38 files). `window-contract.test.js` is in this group because of its one page load; most of its tests are static (acorn) and need no browser. `songs-store.test.js` is in this group because it imports the fixture. |
 | **sequence suites** | A kind of browser test: runs scenarios and compares the recorded order of UI calls with `tools/tests/expected/*.json`. | `events-a`, `events-b`, `events-c`, `events-d` (scenarios live in `helpers/scenarios-*.js`; `events-wiring` checks the event wiring itself) |
-| **Python logic test** | `metadata_backend_logic.py`, started by `metadata-backend.test.js`. Uses a stand-in for `mutagen` (`helpers/fake_mutagen.py`). | |
 
 **Why the test files stay flat:** `tools/tests/run.js` discovers only top-level
 `*.test.js` files and classifies them by the runtime they need. The unit and
 browser groups below are execution groups, not directories. Sequence suites
-are a browser-test subtype; the Python logic check is launched by its Node test.
+are a browser-test subtype.
 Keeping tests in this one flat directory preserves focused name-based selection
 and existing CI sharding without adding path-specific discovery rules. Shared
 helpers and expected sequence data already live in their own support folders.
@@ -30,9 +29,9 @@ Not covered by any automated test: a real Electron window. See "Real Electron sm
 ## 2. Prerequisites
 
 * **Node.js.** The repository does not pin a version (no `engines` field). The tests use the built-in `node:test` runner and were run on Node v22.22.2 (where this guide was verified) and on the maintainer's Windows machine with Node v24.13.1.
-* **npm packages.** `npm install` at the repository root. Test-relevant packages from `package.json`: `playwright` (browser tests), `acorn` and `acorn-walk` (`setters.test.js`, `tools/dep-map.js`, lint), `sharp`, `jimp`, `music-metadata` (the app's scanner and image code), and `eslint` + `globals` (lint only). If `acorn` is missing, `setters.test.js` fails with `Cannot find module 'acorn'`: that is a setup problem, not a code bug.
+* **npm packages.** `npm install` at the repository root. Test-relevant packages from `package.json`: `playwright` (browser tests), `acorn` and `acorn-walk` (`setters.test.js`, `tools/checks/dep-map.js`, lint), `sharp`, `jimp`, `music-metadata` (the app's scanner and image code), and `eslint` + `globals` (lint only). If `acorn` is missing, `setters.test.js` fails with `Cannot find module 'acorn'`: that is a setup problem, not a code bug.
 * **A browser for the browser tests.** Either `npx playwright install chromium`, or Microsoft Edge / Google Chrome installed (the fixture falls back to them). If none can start, browser test files are **skipped, not failed** (the summary shows `skipped`).
-* **Python** (only for `metadata-backend.test.js`): `python`, `python3` or `py` on PATH. It needs only the standard library; real `mutagen` is **not** needed. Without Python that one test is skipped.
+* **Python:** not needed.
 
 Check that your setup is ready:
 
@@ -40,7 +39,6 @@ Check that your setup is ready:
 node --version                                   # prints your Node version
 node -e "require('playwright'); console.log('playwright ok')"
 npx playwright --version                         # the browser tool is installed
-python --version                                 # optional, for the metadata backend test
 npm run test:list                                # lists the test files the runner finds
 npm run test:unit                                # quick end-to-end check of the Node side
 ```
@@ -52,7 +50,7 @@ npm run test:unit                                # quick end-to-end check of the
 | `npm test` | Every test file, one file at a time. Run before committing. |
 | `npm run test:unit` | Only the no-browser files. Use while developing. |
 | `npm run test:browser` | Only the files that start a browser. |
-| `npm run test:quick` | The unit files, then lint (`node tools/tests/run.js unit && node tools/lint.js`). The check to run while you work, and what the first CI job runs. Needs `npm install` (ESLint); without it the lint half exits 2. |
+| `npm run test:quick` | The unit files, then lint (`node tools/tests/run.js unit && node tools/checks/lint.js`). The check to run while you work, and what the first CI job runs. Needs `npm install` (ESLint); without it the lint half exits 2. |
 | `npm run test:fast` | Only the browser files, up to 4 at once (`node tools/tests/run.js browser --concurrency=4`). Meant for a machine with several cores: the runner never starts more files than the machine has cores and prints a line when it lowers the number, so on one core this is the same as `npm run test:browser`. |
 | `npm run test:list` | Shows which files would run and their group. Changes nothing. |
 | `npm test -- shuffle` | Files whose name contains `shuffle`. Several words are allowed: `npm test -- shuffle scroll`. |
@@ -155,7 +153,7 @@ Rules that keep tests honest:
 * **Don't use a browser for logic.** A browser test costs about a second of page load plus the start-up settle. If a function can be `require()`d, test it in Node.
 * **Reading results.**
   * *fail* with an assertion message: the behavior changed; read the diff between expected and actual first.
-  * *skipped*: the test chose not to run. Expected today: 1 hard-coded skip (`scroll.test.js`, "a tiny thumb nudge shows real rows only", marked timing-sensitive). More skips than that usually means a missing browser or Python. Two more are expected when ESLint is not installed: the two real-ESLint tests in `lint.test.js` skip themselves.
+  * *skipped*: the test chose not to run. Expected today: 1 hard-coded skip (`scroll.test.js`, "a tiny thumb nudge shows real rows only", marked timing-sensitive). More skips than that usually means a missing browser. Two more are expected when ESLint is not installed: the two real-ESLint tests in `lint.test.js` skip themselves.
   * *timeout* (`--test-timeout=120000` per test file run by the runner): something never became true, or the machine is overloaded. Re-run alone before changing anything.
   * *browser setup error / everything skipped*: install a browser (`npx playwright install chromium`).
   * `Cannot find module '...'`: run `npm install`.
@@ -185,42 +183,42 @@ Mandatory:
 
 Optional diagnostics: `npm run test:timing` (what got slower), `--test-reporter=spec` (per-test lines), `npm run lint` (missing imports and typos), repeated runs of a flaky test.
 
-When a change touches how renderer files load, register names or order their listeners, the gate files are `window-contract`, `manifest`, `listener-order`, `event-subscribers-modules`, `converted-modules`, `ui-handlers`, `scroll`, `search-ui` and `view-switch-song-list-cleanup`, plus the manual page `tools/placeholder-test/test-placeholders.html`; run them 5 times in a row after each patch.
+When a change touches how renderer files load, register names or order their listeners, the gate files are `window-contract`, `manifest`, `listener-order`, `event-subscribers-modules`, `converted-modules`, `ui-handlers`, `scroll`, `search-ui` and `view-switch-song-list-cleanup`, plus the manual pass in `docs/SMOKE-CHECKLIST.md`; run them 5 times in a row after each patch.
 
 ## 7. Maintenance
 
 * **Adding a test file:** create `tools/tests/<name>.test.js`. Nothing else to register: the runner discovers it. Check with `npm run test:list` that it appears in the group you expect.
 * **Discovery and groups:** `tools/tests/run.js` lists `*.test.js` in `tools/tests/` and puts a file in the *browser* group if its text matches `app-fixture`, `sequence-suite` or `require('playwright')`. Change `BROWSER_MARKER` in `run.js` if you add another browser helper.
 * **Shards and the weight table.** `run.js --shard=i/n` spreads the selected files over `n` parts by `SHARD_SECONDS`, an approximate run time per file taken from `npm run test:timing` (files not in the table count as `DEFAULT_SECONDS`, 3 s). When a file gets much slower or a slow file is added, update the table. A wrong number only makes the parts uneven; it never drops a file, because every file is in exactly one part whatever the numbers are.
-* **Scripts live in** the root `package.json` (`test*`, `lint*`). `electron/package.json` keeps its older `test` script for compatibility.
+* **Scripts live in** the root `package.json` (`test*`, `lint*`).
 * **Browser launch.** `helpers/app-fixture.js` `launch()` tries bundled Chromium, then Edge, then Chrome. `node --test` runs every file in its own process, so nothing in memory is shared between files. When started through `npm test`, the runner sets `XPLAYER_TEST_RUN_ID` and the files of that run share a small file in the temp folder that records which option worked, so later files try it first. A total failure is never recorded. When you run a single file by hand, nothing is cached.
 * **Which test owns which fact (so a fact is checked in one place):**
   * `manifest.test.js`: the static facts about `src/js/main.js` (`core/legacy.js` first, each file imported once, every file imported) and about the rendered page template (one module entry, no hand-written script or stylesheet tags).
   * `window-contract.test.js`: every name that must be on `window`. The name lists are read from the sources, so adding an exported function to a module needs no edit there; only `REQUIRED_SHARED` and the table of constant values are written by hand. Do not add "is a function on window" checks to other files.
   * `event-subscribers-modules.test.js` and `listener-order.test.js`: the subscribers' order and registration, and the order the document and window listeners run in. Each loads the page once.
   * `ui-handlers.test.js`: one static rule over `src/` and the page template that no inline `on...=` handler or `setAttribute('on...')` exists, except the entries in `INLINE_EXCEPTIONS` (the list may only get shorter), plus the browser tests of handler behavior.
-  * `lint.test.js`: the exit codes of `tools/lint.js` with a stand-in ESLint, `tools/lint-globals.js`, and two tests with the real ESLint and the real `eslint.config.js` (an undefined name fails with `no-undef`; a registered global and a browser built-in pass). The real-ESLint tests skip when `eslint` or `globals` is not installed.
+  * `lint.test.js`: the exit codes of `tools/checks/lint.js` with a stand-in ESLint, `tools/checks/lint-globals.js`, and two tests with the real ESLint and the real `eslint.config.js` (an undefined name fails with `no-undef`; a registered global and a browser built-in pass). The real-ESLint tests skip when `eslint` or `globals` is not installed.
   * `run-shards.test.js`: that for 1, 2, 3, 4 and 7 shards the parts are disjoint and together are every file, that the split does not depend on the order of the file list, that `--shard` is validated, and that the CI workflow agrees with the code: the matrix is `1..N` and the command says `/N`, and `test:quick` and `test:fast` are the commands this guide describes. If you add or remove a shard, change the workflow matrix and the `/N` together.
 * **`scroll.test.js`** still has its own copy of `loadPlaywright` and `buildApp` (different fake song data); only `launch` and `gotoApp` come from the shared fixture.
-* **Docs:** when you change scripts, discovery, helpers or prerequisites, update this file in the same change. Record detailed task evidence in a unique `.agent/reports/` file; only the integration owner updates `tools/CHANGELOG.md`.
+* **Docs:** when you change scripts, discovery, helpers or prerequisites, update this file in the same change. Record detailed task evidence in a unique `.agent/reports/` file; only the integration owner updates `CHANGELOG.md`.
 
 ## 8. Lint (errors fail, warnings are reported)
 
 ESLint exists to catch missing imports and typos in the renderer, which is now one ES-module graph started from `src/js/main.js`.
 
 * Config: `eslint.config.js` (flat config, root). Rules: `no-undef`, `no-unused-vars` (warning), `no-unreachable`, `no-dupe-keys`, `no-self-assign`.
-* The app's globals are **generated**, not listed: `tools/lint-globals.js` reads the entry named in `src/manifest.json` (`tools/lib/manifest.js` follows the `import` lines of `main.js`) and adds every key of a `registerLegacyGlobals({...})` call plus the names registered by `registerLegacyState`. Run `node tools/lint-globals.js` for the counts (measured with the final flip: 1 classic file (`99-player.js`, build data only), 115 modules, 721 names: 720 from `registerLegacyGlobals`, 1 from a window publication). A name that exists only inside a module and is not registered is *not* a global, so using it in another file without an import is reported.
-* **One name is published on `window` instead of registered:** `updateExternalScrollbar`. `initExternalScrollbar('main-content', ...)` in `src/js/ui/06c-scrollbar-widget.js` assigns `window.updateExternalScrollbar` during start-up and other files use it as a bare global. `WINDOW_PUBLISHED_GLOBALS` in `tools/lint-globals.js` lists it together with the one file allowed to publish it, and every lint run checks that file's syntax tree for a plain `window.updateExternalScrollbar = ...`; the run fails (exit 2, with a message) if the assignment is gone or the file is not in the manifest. A `window.x = ...` anywhere else does **not** become a global. Add a name there only for a real run-time publication, and update `tools/tests/lint.test.js`, which pins the list. Behavior of the published function (start-up order, which scrollbar it updates) is covered by `scrollbar-publication.test.js`.
+* The app's globals are **generated**, not listed: `tools/checks/lint-globals.js` reads the entry named in `src/manifest.json` (`tools/lib/manifest.js` follows the `import` lines of `main.js`) and adds every key of a `registerLegacyGlobals({...})` call plus the names registered by `registerLegacyState`. Run `node tools/checks/lint-globals.js` for the counts (measured with the final flip: 1 classic file (`99-player.js`, build data only), 115 modules, 721 names: 720 from `registerLegacyGlobals`, 1 from a window publication). A name that exists only inside a module and is not registered is *not* a global, so using it in another file without an import is reported.
+* **One name is published on `window` instead of registered:** `updateExternalScrollbar`. `initExternalScrollbar('main-content', ...)` in `src/js/ui/06c-scrollbar-widget.js` assigns `window.updateExternalScrollbar` during start-up and other files use it as a bare global. `WINDOW_PUBLISHED_GLOBALS` in `tools/checks/lint-globals.js` lists it together with the one file allowed to publish it, and every lint run checks that file's syntax tree for a plain `window.updateExternalScrollbar = ...`; the run fails (exit 2, with a message) if the assignment is gone or the file is not in the manifest. A `window.x = ...` anywhere else does **not** become a global. Add a name there only for a real run-time publication, and update `tools/tests/lint.test.js`, which pins the list. Behavior of the published function (start-up order, which scrollbar it updates) is covered by `scrollbar-publication.test.js`.
 * Every file `main.js` imports is linted as an ES module, `electron/` as CommonJS with Node globals (`electron/preload.js` also gets browser globals).
 * Skipped: `src/js/99-player.js` (it contains the build token `{{SONGS_DATA}}`, which is not valid JavaScript), `tools/` and `tools/tests/`.
-* Exit codes of `tools/lint.js`: `npm run lint` exits **1 if there is any error** (a parse error counts as one) and 0 otherwise, so warnings are only reported; `npm run lint:strict` exits 1 on any error **or warning**; 2 means ESLint could not run (not installed, or it threw). It prints every problem and a count per rule. Nothing is ever fixed automatically. `tools/tests/lint.test.js` runs the real script against a stand-in ESLint to check these codes, so those tests need no ESLint install. Two more tests there run the real ESLint with the real `eslint.config.js` on a small copy of the layout and check that an undefined name exits 1 with `no-undef`; they skip when `eslint` is not installed.
+* Exit codes of `tools/checks/lint.js`: `npm run lint` exits **1 if there is any error** (a parse error counts as one) and 0 otherwise, so warnings are only reported; `npm run lint:strict` exits 1 on any error **or warning**; 2 means ESLint could not run (not installed, or it threw). It prints every problem and a count per rule. Nothing is ever fixed automatically. `tools/tests/lint.test.js` runs the real script against a stand-in ESLint to check these codes, so those tests need no ESLint install. Two more tests there run the real ESLint with the real `eslint.config.js` on a small copy of the layout and check that an undefined name exits 1 with `no-undef`; they skip when `eslint` is not installed.
 * Needs `npm install` (adds `eslint` and `globals`; `globals` supplies the browser and Node built-in names, which ESLint does not include).
 
-**Baseline:** when this section was written, `node tools/lint.js --summary` reported 136 files, 0 errors and 1 warning (`no-unused-vars`), the same as before the flip; a later run reports 0 warnings (section 12). The older "21 errors" figure (20 for `updateExternalScrollbar`, 1 for `lyricsSavedView`) was fixed earlier and could not be reproduced. ESLint ran here with a `globals` package generated from Chromium's window properties, because the registry was unreachable; run it once with the real package. To check:
+**Baseline:** when this section was written, `node tools/checks/lint.js --summary` reported 136 files, 0 errors and 1 warning (`no-unused-vars`), the same as before the flip; a later run reports 0 warnings (section 12). The older "21 errors" figure (20 for `updateExternalScrollbar`, 1 for `lyricsSavedView`) was fixed earlier and could not be reproduced. ESLint ran here with a `globals` package generated from Chromium's window properties, because the registry was unreachable; run it once with the real package. To check:
 
 ```powershell
 npm install
-node tools/lint.js --summary
+node tools/checks/lint.js --summary
 ```
 
 and paste the per-rule counts here:
@@ -233,14 +231,11 @@ and paste the per-rule counts here:
 | `no-dupe-keys` | not measured | n/a |
 | `no-self-assign` | not measured | n/a |
 
-## 9. Real Electron smoke test: not available yet
+## 9. Real Electron smoke test
 
-A test that launches the real Electron app (Playwright `_electron`) could not be added without changing main-process code, so it was **not** added. The reasons, from `electron/`:
+`npm run smoke` (`tools/dev/smoke-electron.js`) starts the real app from `node_modules/electron` on a throwaway data folder (`XPLAYER_DATA`, in the system temp folder, removed at the end) and drives it through Electron's debugging port with Playwright. It checks that the new interface is the page (`-- --ui=current` checks the old one), that a cover in the data folder loads as `covers/<file>`, that the About calls answer, that a second copy on the same data folder quits and one on another folder keeps running, and that the log was written. It needs a display (on Linux `xvfb-run -a npm run smoke`) and about 20 seconds, so it is not part of `npm test`. `XPLAYER_ELECTRON=<path>` uses another Electron executable.
 
-* The song library, `songs.json` and the page the window loads (`music_player.html`) all live in `electron/MusicPlayerOutput`, a path built from `__dirname` in `main.js` (`OUTPUT_DIR` and five repeated `path.join(__dirname, 'MusicPlayerOutput')` calls) and in `window-manager.js` (two uses). No environment variable or command-line option changes it, and the folder is produced by `build/music_player.py`, not committed. A smoke test would therefore read and write the developer's real library.
-* Only the small settings files can be redirected today (`MUSIC_PLAYER_CONFIG_DIR`, honored by `storage-paths.js`), plus Electron's own `--user-data-dir`.
-
-Minimal hook needed (main-process change, not made): one constant, for example `const OUTPUT_DIR = process.env.MUSIC_PLAYER_OUTPUT_DIR || path.join(__dirname, 'MusicPlayerOutput')`, used in every place above (including `thumbarIconPath` and `window-manager.js`), plus a way to run the build into that folder. The Electron binary is also not a dependency of this repository, so the test would read its location from an environment variable and skip with a reason when absent. There are also no audio fixture files in the repository (`scanner.test.js` uses in-memory objects), so tiny audio files would have to be generated by the test.
+What the unit tests cover without Electron: `app-paths.test.js` (every mode and the cover route), `single-instance.test.js`, `logger.test.js`, `library-dir.test.js` and `songs-store.test.js` (main.js and window-manager.js run against a fake `electron` module in a temporary copy of `electron/`; `XPLAYER_DATA` points their library at a temp folder). There are still no audio files in the repository: `tools/dev/make-tag-fixtures.js` makes the tiny ones the tag tests use.
 
 ## 10. Continuous integration
 
@@ -248,6 +243,10 @@ Minimal hook needed (main-process change, not made): one constant, for example `
 
 * **`unit-and-lint`** (`ubuntu-latest`): checkout, Node 24 with the npm cache, `npm ci`, `npm run test:quick`. That is the 20 unit files and then lint (errors fail the job, warnings do not). No browser is installed.
 * **`browser`** (`windows-latest`, matrix `shard: [1, 2, 3]`, `fail-fast: false`): checkout, Node 24, `npm ci`, a cache of the Playwright browser folder (`~\AppData\Local\ms-playwright`, keyed by the OS and `package-lock.json`), `npx playwright install chromium`, then `node tools/tests/run.js browser --shard=<n>/3`. The three parts run at the same time on separate machines.
+
+`csp.test.js` (the policy words and that the pages hold nothing it blocks) and `csp-browser.test.js` (a real browser with the policy enforced: nothing is reported at start-up, inline script, handlers, eval and web requests are refused, and the converted controls work) cover the Content-Security-Policy. The shared browser helpers start Chromium with the policy off; see `docs/DEVELOPMENT.md`.
+
+`.github/workflows/build.yml` is a separate, smaller workflow: on pushes to the main branch and on pull requests that touch `electron/`, `src/`, `package.json`, the lock file or the build tools (and by hand), a `windows-latest` job runs `npm ci`, `npm run dist`, `node tools/dev/check-dist.js` (the files the portable folder must and must not contain) and keeps `dist/Xplayer.zip` as an artifact for 7 days. It is not a release.
 
 Every test file runs exactly once: the unit files in the first job, each browser file in exactly one of the three parts. `run-shards.test.js` fails if the matrix and the `/3` in the command disagree. No job starts the real Electron application.
 
@@ -299,7 +298,7 @@ Remaining bottlenecks (at the time): page load per test (about 1 s each), the 28
 
 ## 12. Plan 3 results (test content and maintenance, Agent C)
 
-Environment of the numbers below (measured for step C-05, on the tree with the Phase 1 patches applied so far): Linux sandbox, 1 CPU core, Node v22.22.2, Playwright 1.56.0 with Chromium 141. npm's registry was not reachable: `acorn` and `acorn-walk` came from other local packages, and ESLint, `globals`, `jimp` and `music-metadata` were not installed (`sharp` was). So lint and the two real-ESLint tests could not run here (`node tools/lint.js` exits 2), and `scan-folder-tags` and `scanner` run without `jimp` and `music-metadata`. Each number is one run. Earlier runs of this suite in similar one-core sandboxes took 472 s (report C 0005, 57 files) and 414.8 s (report B 0006, 57 files), so expect the total to move by more than ten percent with the load of the machine. Not measured at all: Windows, a machine with several cores, GitHub Actions. Run `npm install` and repeat `npm run test:timing` once on your machine.
+Environment of the numbers below (measured for step C-05, on the tree with the Phase 1 patches applied so far): Linux sandbox, 1 CPU core, Node v22.22.2, Playwright 1.56.0 with Chromium 141. npm's registry was not reachable: `acorn` and `acorn-walk` came from other local packages, and ESLint, `globals`, `jimp` and `music-metadata` were not installed (`sharp` was). So lint and the two real-ESLint tests could not run here (`node tools/checks/lint.js` exits 2), and `scan-folder-tags` and `scanner` run without `jimp` and `music-metadata`. Each number is one run. Earlier runs of this suite in similar one-core sandboxes took 472 s (report C 0005, 57 files) and 414.8 s (report B 0006, 57 files), so expect the total to move by more than ten percent with the load of the machine. Not measured at all: Windows, a machine with several cores, GitHub Actions. Run `npm install` and repeat `npm run test:timing` once on your machine.
 
 | | Value |
 | --- | --- |
@@ -309,8 +308,8 @@ Environment of the numbers below (measured for step C-05, on the tree with the P
 | Unit group, `node tools/tests/run.js unit` | 20 files, 165 tests (163 passed, 2 skipped: the real-ESLint tests), 2.7 s |
 | Browser files in 3 shards (`--shard=i/3`) | 13, 13 and 12 files; measured seconds per part 117.5, 123.1 and 114.5 (355 s in all) |
 | `waitForTimeout` in `tools/tests` (not counting comments) | `scroll.test.js` (8 calls, each with a comment saying it is the input or the observed window) and one 150 ms wait in `search-clear.test.js` (not reviewed by C) |
-| `node tools/lint.js --strict --summary` | 136 files, 0 errors, 0 warnings (report C 0005; not repeated here, see the environment) |
-| `node tools/event-audit.js --strict` | exit 0, total 0 (plus 70 allowed by `fileExceptions`) |
-| `node tools/dep-map.js` | 115 files; mutable globals assigned from other files 58; file-level cycles 2 + 69; load-time cross-file references 148, forward 0 |
+| `node tools/checks/lint.js --strict --summary` | 136 files, 0 errors, 0 warnings (report C 0005; not repeated here, see the environment) |
+| `node tools/checks/event-audit.js --strict` | exit 0, total 0 (plus 70 allowed by `fileExceptions`) |
+| `node tools/checks/dep-map.js` | 115 files; mutable globals assigned from other files 58; file-level cycles 2 + 69; load-time cross-file references 148, forward 0 |
 
 `npm run test:fast` was run three times by Agent B (report 0006): exit 0 each time, 287 tests, 1 skipped, in about 460 s. On that one-core machine the runner lowered the number of files at once to 1, so those runs show that the command works and the whole browser set passes with it, not how parallel runs behave. Four files at once on one core, forced before the cap existed, made `events-b`, `events-c` and `scroll` fail. Not measured: four files at once on a machine with four or more cores, and whether `npm run test:quick` finishes in under 10 s (the unit half takes 2.7 to 3.6 s; lint was not run).

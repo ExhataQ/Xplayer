@@ -24,8 +24,8 @@ const jsFiles = fs.readdirSync(COMPONENTS).filter((f) => f.endsWith('.js'));
 describe('components.css uses tokens only', () => {
     const defined = new Set([...tokens.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]));
 
-    // set per instance by a component's own script, not a design token (progress.set in status.js)
-    const instanceVariables = new Set(['--progress-value']);
+    // set per instance by a component's own script, not a design token (progress.set in status.js, the tooltip arrow in tooltip.js)
+    const instanceVariables = new Set(['--progress-value', '--tooltip-arrow']);
 
     test('every var() refers to a defined token', () => {
         const missing = [...components.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1]).filter((n) => !defined.has(n) && !instanceVariables.has(n));
@@ -75,15 +75,15 @@ describe('every state has a style', () => {
 
     test('keyboard focus: base.css has the global ring and components do not remove it', () => {
         assert.match(base, /:focus-visible\s*\{[^}]*outline:/);
-        // outline: 0 is allowed only where another visible focus style replaces it (menu item has its own :focus-visible, the input sits in .field__control)
+        // outline: 0 is allowed only where another visible focus style replaces it (menu item has its own :focus-visible, the input sits in .field__control, the picker's search row draws an accent underline on :focus-within)
         for (const m of components.matchAll(/([^{}]+)\{[^}]*outline:\s*0\s*;[^}]*\}/g)) {
             const selector = m[1].trim();
-            assert.ok(/\.menu__item:focus$|\.field__input$/.test(selector), `${selector} removes the outline`);
+            assert.ok(/\.menu__item:focus$|\.field__input$|\.picker__input$/.test(selector), `${selector} removes the outline`);
         }
     });
 
-    test('animations are all covered by the reduced-motion rule in base.css', () => {
-        assert.match(base, /prefers-reduced-motion: reduce[\s\S]*animation-duration[\s\S]*transition-duration/);
+    test('animations are all covered by the reduce-animations rule in base.css', () => {
+        assert.match(base, /data-motion='reduced'[\s\S]*animation-duration[\s\S]*transition-duration/);
         assert.ok(!/animation:[^;]*\binfinite\b/.test(components) || /spinner|progress/.test(components));
     });
 });
@@ -130,10 +130,10 @@ describe('index.js', () => {
     });
 });
 
-describe('build', () => {
-    test('the build copies the whole ui-next folder, so components/ ships', () => {
-        const py = fs.readFileSync(path.join(ROOT, 'build', 'music_player.py'), 'utf8');
-        assert.match(py, /ui-next/);
-        assert.match(py, /copytree|shutil\.copy/);
+describe('the packaged app', () => {
+    test('ships the whole src/ folder, so ui-next/components/ is in it', () => {
+        const files = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).build.files;
+        assert.ok(files.includes('src/**/*'));
+        assert.ok(fs.existsSync(COMPONENTS));
     });
 });

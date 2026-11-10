@@ -35,6 +35,12 @@ export async function applyPlan(plan, summary, { quiet = false } = {}) {
     entry.detail = result.ok
         ? `${count(result.applied, 'change')} made.${warnings}`
         : `Stopped after ${result.applied} of ${total} steps: ${result.failure.message}.${warnings} What ran can be undone.`;
+    if (!result.entryId) {
+        // Changes were made but nothing can undo them: say so instead of showing an Undo button that does nothing.
+        notify({ ...entry, kind: 'warning', important: true, detail: `${entry.detail} It could not be recorded, so it cannot be undone here.` });
+        return result;
+    }
+    if (result.journalSaved === false) entry.detail += ' The undo history could not be saved, so Undo works only until the app is closed.';
     const notification = notify({ ...entry, action: { label: 'Undo', onClick: () => undoAndReport(result.entryId, notification) } });
     return result;
 }

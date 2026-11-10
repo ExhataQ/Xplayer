@@ -2,7 +2,7 @@
 // Synced lyrics are saved as a lyrics version ("AI translation (French)") that the lyrics view can switch to; plain lyrics have no
 // timing to attach a version to, so they come back as text to copy.
 
-import { translate, currentLyrics } from '../../adapter/ai-bridge.js';
+import { translate, currentLyrics, isRemote, remoteCall } from '../../adapter/ai-bridge.js';
 import { saveTranslation } from '../../adapter/ai-lyrics.js';
 
 const running = new Set();
@@ -20,7 +20,8 @@ export async function translateSong(song, language) {
     try {
         const result = await translate(song.lyrics, language);
         if (!result.ok) return result;
-        const saved = result.synced ? saveTranslation(song.id, result.translation, result.targetLanguage) : false;
+        // In the chat window the lyrics store is the main window's.
+        const saved = result.synced ? (isRemote() ? await remoteCall('saveTranslation', song.id, result.translation, result.targetLanguage).catch(() => false) : saveTranslation(song.id, result.translation, result.targetLanguage)) : false;
         return { ...result, saved };
     } catch (error) {
         return { ok: false, error: 'unexpected' };

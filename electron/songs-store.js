@@ -10,6 +10,10 @@
 // Writes go to a temporary file that is then renamed over songs.json, so a crash cannot leave half a
 // file, and the previous version is kept as songs.json.bak. A lock file makes two writers (for example
 // a tag save and a scan) take turns instead of overwriting each other.
+//
+// songs.json.bak is replaced by every write, so a bad save followed by one more save leaves no good copy. For that there is also
+// a history: at most one dated copy an hour in backups/ (songs-YYYYMMDD-HHMMSS.json), the last five kept. A damaged songs.json
+// falls back to songs.json.bak, then to the newest of those.
 
 const fs = require('fs');
 const path = require('path');
@@ -20,6 +24,11 @@ const FORMAT_VERSION = 1;
 const LOCK_WAIT_MS = 8000;
 const LOCK_STALE_MS = 30000;
 const LOCK_EPERM_RETRIES = 5;
+const HISTORY_DIR = 'backups';
+const HISTORY_EVERY_MS = 60 * 60 * 1000;
+const HISTORY_KEEP = 5;
+const HISTORY_NAME = /^songs-\d{8}-\d{6}\.json$/;
+const EMPTY_LIST_BYTES = 64; // {"version":1,"songs":[]} is 26: an empty library is not worth a copy
 
 function storePath(outputDir) {
     return path.join(outputDir, FILE_NAME);
@@ -52,6 +61,33 @@ function readLegacySongs(outputDir) {
     }
 }
 
+// The dated copies, newest first (full paths).
+function historyFiles(file) {
+    const dir = path.join(path.dirname(file), HISTORY_DIR);
+    try {
+        return fs.readdirSync(dir).filter((n) => HISTORY_NAME.test(n)).sort().reverse().map((n) => path.join(dir, n));
+    } catch (e) {
+        return [];
+    }
+}
+
+// Before a write replaces `file`: keep a dated copy of it when the newest copy is over an hour old, and drop the oldest beyond five.
+function keepHistory(file, now = Date.now()) {
+    try {
+        const size = fs.statSync(file).size;
+        if (size < EMPTY_LIST_BYTES) return;
+        const copies = historyFiles(file);
+        if (copies.length && now - fs.statSync(copies[0]).mtimeMs < HISTORY_EVERY_MS) return;
+        const stamp = new Date(now).toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
+        const dir = path.join(path.dirname(file), HISTORY_DIR);
+        fs.mkdirSync(dir, { recursive: true });
+        fs.copyFileSync(file, path.join(dir, `songs-${stamp}.json`));
+        for (const old of historyFiles(file).slice(HISTORY_KEEP)) fs.unlinkSync(old);
+    } catch (e) {
+        // Intentionally silent: no history is better than no save.
+    }
+}
+
 function readSongs(outputDir) {
     const file = storePath(outputDir);
     if (fs.existsSync(file)) {
@@ -64,7 +100,12 @@ function readSongs(outputDir) {
             // Intentionally silent: the fallback below still gives a usable list.
         }
         const backup = readFileSongs(file + '.bak');
-        return backup || [];
+        if (backup) return backup;
+        for (const copy of historyFiles(file)) {
+            const older = readFileSongs(copy);
+            if (older) return older;
+        }
+        return [];
     }
     const legacy = readLegacySongs(outputDir);
     if (legacy) {
@@ -89,7 +130,10 @@ function writeFileAtomic(file, songs) {
     const temp = `${file}.${process.pid}.tmp`;
     fs.writeFileSync(temp, serialize(songs), 'utf8');
     try {
-        if (fs.existsSync(file)) fs.copyFileSync(file, file + '.bak');
+        if (fs.existsSync(file)) {
+            keepHistory(file);
+            fs.copyFileSync(file, file + '.bak');
+        }
     } catch (e) {
         // Intentionally silent: no backup is better than no save.
     }
@@ -175,4 +219,4 @@ function updateSongs(outputDir, fn) {
     });
 }
 
-module.exports = { FILE_NAME, storePath, readSongs, writeSongs, updateSongs };
+module.exports = { FILE_NAME, HISTORY_DIR, storePath, readSongs, writeSongs, updateSongs, keepHistory, historyFiles };

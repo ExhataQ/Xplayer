@@ -1,14 +1,14 @@
 // The one place that reads and writes audio tags. Callers use read, write and writeMany; the backend behind them can change
-// (today the Python/mutagen script in metadata-editor.js) without touching the UI or the callers.
+// (today the Node writer in metadata-editor.js) without touching the UI or the callers.
 //
 // writeMany returns, for every file, the values that were in the file before the write ("previous"), so a journal can undo it.
 // A file whose tags cannot be read is not written: saving over tags we could not read could lose them.
-// A failed file says why in `error`; when the backend itself is not available (no Python, no mutagen) it also sets `reason`
-// ('no-python' | 'no-mutagen' | 'failed', see electron/metadata-editor.js) so the screen can tell that apart from one bad file.
+// A failed file says why in `error`; when the backend cannot do the job it also sets `reason`
+// ('no-library' | 'unsupported' | 'verify-failed' | 'failed', see electron/metadata-editor.js) so the screen can tell that apart from one bad file.
 
-const pythonBackend = require('./metadata-editor');
+const nodeBackend = require('./metadata-editor');
 
-function createTagService(backend = pythonBackend) {
+function createTagService(backend = nodeBackend) {
     const read = (fileUrl) => backend.getAudioMetadata(fileUrl);
 
     const write = (fileUrl, metadata, coverPath = '') => backend.saveAudioMetadata(fileUrl, metadata, coverPath);

@@ -22,6 +22,8 @@ const { pickRelease, AUTO_THRESHOLD } = require('./release-rank');
 const DEFAULT_FIELDS = ['album', 'albumArtist', 'year', 'genre', 'label', 'musicBrainzTrackId', 'musicBrainzAlbumId', 'musicBrainzOriginalAlbumId'];
 const MULTI_VALUE = new Set(['artist', 'albumArtist', 'genre', 'composer', 'conductor', 'remixer']); // ";" separates values; a comma never does
 const MAX_CONSECUTIVE_ERRORS = 5; // a dead connection must not spend minutes of retries on every remaining song
+const RECORDING_LIMIT = 25; // recordings looked through per song (the editor's single search uses 8): a famous song has many, mostly compilation copies
+const NO_MATCHING_TRACK = 'NO_MATCHING_TRACK'; // code of the error electron/online-metadata.js throws when the picked release has no track with the song's title
 
 const text = (value) => String(value ?? '').trim();
 
@@ -55,6 +57,23 @@ function compareTags(current = {}, found = {}, fields = DEFAULT_FIELDS) {
     return { patch, changes };
 }
 
+// A note a store or a reissue adds to a title that does not make it another song: "(Remastered 2009)", "(2011 Remaster)", "- Remastered 2009",
+// "(Mono Version)", "(Deluxe Edition)", "[Bonus Track]". Live, acoustic, remix, demo, instrumental or radio edit are other recordings and stay.
+const NOTE = '(?:\\d{4}\\s+)?(?:digital\\s+)?re-?master(?:ed)?(?:\\s+\\d{4})?(?:\\s+version)?|(?:\\d{4}\\s+)?(?:mono|stereo)(?:\\s+(?:version|mix|remaster(?:ed)?))?|(?:deluxe|expanded|bonus track)(?:\\s+(?:edition|version))?';
+const BRACKETED_NOTE = new RegExp(`\\s*[(\\[]\\s*(?:${NOTE})\\s*[)\\]]\\s*$`, 'i');
+const DASHED_NOTE = new RegExp(`\\s+[-\u2013\u2014]\\s+(?:${NOTE})\\s*$`, 'i');
+
+/** The title without a trailing remaster / mono / deluxe note; the same title when there is none. Pure. */
+function stripVersionNote(title) {
+    let result = text(title);
+    for (let i = 0; i < 3; i++) {
+        const next = result.replace(BRACKETED_NOTE, '').replace(DASHED_NOTE, '').trim();
+        if (next === result || !next) break;
+        result = next;
+    }
+    return result;
+}
+
 const asSong = (song) => {
     const tags = song.tags || song;
     const artists = toList('artist', tags.artist);
@@ -76,19 +95,45 @@ function createTagFinder(deps = {}) {
         const base = { id: song.id, fileUrl: song.fileUrl };
         if (!song.title) return { ...base, decision: 'none', confidence: 0, reasons: ['the song has no title'], release: null, patch: {}, changes: {} };
 
-        const found = await search({ fileUrl: song.fileUrl, title: song.title, artist: song.artist, album: song.album, duration: song.duration, scope: 'release' });
-        const candidates = (found && found.results) || [];
+        const ask = (title) => search({ fileUrl: song.fileUrl, title, artist: song.artist, album: song.album, duration: song.duration, scope: 'release', recordingLimit: RECORDING_LIMIT });
+        let queryTitle = song.title;
+        let found = await ask(queryTitle);
+        let candidates = (found && found.results) || [];
+        const notes = [];
+        // Nothing under the title as it is spelt in the file: a "(Remastered 2009)" the file carries may be why. Try once without it.
+        const plain = stripVersionNote(song.title);
+        if (candidates.length === 0 && plain && plain !== song.title) {
+            found = await ask(plain);
+            candidates = (found && found.results) || [];
+            if (candidates.length) {
+                queryTitle = plain;
+                notes.push(`found by searching for "${plain}", without the version note in the title`);
+            }
+        }
         // "Most popular" needs listener counts; without them (offline, nothing known) the answer is the original release, and says so.
         const scores = rule === 'popular' && !popularity ? await getPopularity(candidates.map((candidate) => candidate.releaseGroupId)) : popularity;
         const pick = pickRelease(candidates, { file: { title: song.title, album: song.album }, rule, popularity: scores, autoThreshold });
         if (rule === 'popular' && !(scores && Object.keys(scores).length) && pick.best) pick.reasons = [...pick.reasons, 'no popularity data, used the original rule'];
-        if (pick.decision === 'none' || !pick.best) return { ...base, decision: 'none', confidence: pick.confidence, reasons: pick.reasons, release: null, patch: {}, changes: {} };
+        if (pick.decision === 'none' || !pick.best) return { ...base, decision: 'none', confidence: pick.confidence, reasons: [...pick.reasons, ...notes], release: null, patch: {}, changes: {} };
 
         const release = { id: pick.best.id, title: pick.best.title, date: pick.best.date, releaseGroupId: pick.best.releaseGroupId };
-        const loaded = await getMetadata({ fileUrl: song.fileUrl, releaseId: release.id, title: song.title, skipCover: true });
+        // The release is asked for its track by title: the searched title first, then the file's own, since a remaster names its tracks with the note.
+        let loaded = null;
+        for (const title of [...new Set([queryTitle, song.title])]) {
+            try {
+                loaded = await getMetadata({ fileUrl: song.fileUrl, releaseId: release.id, title, skipCover: true });
+                break;
+            } catch (error) {
+                if (!(error && error.code === NO_MATCHING_TRACK)) throw error;
+            }
+        }
+        if (!loaded) {
+            // Not a failure of the connection (it must not count toward "the connection is dead"): this release names the song differently.
+            return { ...base, decision: 'none', confidence: pick.confidence, reasons: [...pick.reasons, ...notes, `"${release.title}" has no track with this title (a different spelling?)`], release, patch: {}, changes: {} };
+        }
         const { patch, changes } = compareTags(song.tags, (loaded && loaded.metadata) || {}, fields);
         const decision = Object.keys(patch).length === 0 ? 'unchanged' : pick.decision;
-        return { ...base, decision, confidence: pick.confidence, reasons: pick.reasons, release, patch, changes };
+        return { ...base, decision, confidence: pick.confidence, reasons: [...pick.reasons, ...notes], release, patch, changes };
     }
 
     /**
@@ -139,4 +184,4 @@ function createTagFinder(deps = {}) {
     return { findOne, findMany };
 }
 
-module.exports = { createTagFinder, compareTags, DEFAULT_FIELDS, MAX_CONSECUTIVE_ERRORS };
+module.exports = { createTagFinder, compareTags, stripVersionNote, DEFAULT_FIELDS, MAX_CONSECUTIVE_ERRORS, RECORDING_LIMIT };

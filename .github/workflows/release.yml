@@ -1,0 +1,75 @@
+name: release
+
+# Builds the portable zip and the installer and puts them on a GitHub Release, as a DRAFT and marked Pre-release (a person looks at it, then presses Publish).
+#   git tag v1.0.0-beta.1 && git push origin v1.0.0-beta.1      -> a draft Release with the files
+#   Run workflow (no tag)                                        -> a dry run: the files are kept as an artifact for 7 days, no Release
+# The steps by hand, and what to check on a clean Windows profile first: docs/RELEASING.md and .agent/PRERELEASE-PLAN.md.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false' # not signed: see docs/RELEASING.md
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Notices are current
+        run: node tools/dev/make-notices.js --check
+      - name: Build the installer
+        run: npm run dist:installer
+      - name: Check the installer
+        run: node tools/dev/release-tools.js installer
+      - name: Build the portable app
+        run: npm run dist
+      - name: Check what is inside
+        run: node tools/dev/check-dist.js
+      - name: Check the fuses
+        run: node tools/dev/check-fuses.js
+      - name: Check the release (version, tag, changelog, licences, no personal data)
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            node tools/dev/release-tools.js check --tag "${GITHUB_REF_NAME}"
+          else
+            node tools/dev/release-tools.js check
+          fi
+      - name: Name the files, write the checksums and the notes
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          mkdir out
+          cp dist/Xplayer.zip "out/Xplayer-${VERSION}-win-x64.zip"
+          cp dist/Xplayer-Setup-*.exe out/
+          (cd out && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          node tools/dev/release-tools.js notes "${VERSION}" > out-notes.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Xplayer-release-files
+          path: |
+            out/*
+            out-notes.md
+          if-no-files-found: error
+          retention-days: 7
+      - name: Create the draft Release
+        if: github.ref_type == 'tag'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          FLAGS="--draft"
+          case "${GITHUB_REF_NAME}" in *-*) FLAGS="$FLAGS --prerelease";; esac
+          gh release create "${GITHUB_REF_NAME}" out/* --title "Xplayer ${GITHUB_REF_NAME#v}" --notes-file out-notes.md $FLAGS

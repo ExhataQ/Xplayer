@@ -32,6 +32,11 @@ export function getCurrentSong() {
     return item ? copySong(item.song || item) : null;
 }
 
+/** True when the song is one of the favorites. */
+export function isFavorite(songId) {
+    return typeof window.getFavorites === 'function' && window.getFavorites().includes(songId);
+}
+
 export function isPlaying() {
     const audio = engineValue('audioElement');
     return !audio.paused && !audio.ended;

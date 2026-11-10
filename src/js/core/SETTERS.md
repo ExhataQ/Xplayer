@@ -8,7 +8,7 @@ One setter per global that another file used to assign directly. The variable st
 2. The setter is the only place that may announce the change. Do not `emit` the same event next to the call.
 3. State that changes on every mouse move or frame (`state-ui.js`) never emits.
 4. A setter replaces the whole value. In-place changes (`playbackQueue.push(x)`) are not writes and stay as they are; if they need to be announced, call `setPlaybackQueue(playbackQueue)` afterwards.
-5. Writing the variable directly from a file that does not declare it is now a bug. `node tools/dep-map.js writers <name>` lists the offenders.
+5. Writing the variable directly from a file that does not declare it is now a bug. `node tools/checks/dep-map.js writers <name>` lists the offenders.
 
 `tools/tests/setters.test.js` fails if a setter wraps a variable that is not a top-level `let`, or if the three emitting setters stop emitting.
 

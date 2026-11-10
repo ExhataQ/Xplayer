@@ -26,11 +26,9 @@ export async function renderLibraryLocations() {
     const foldersWithStats = await Promise.all(folders.map(async (folder) => {
         const stats = await getFolderStats(folder);
         const folderName = folder.split('\\').pop() || folder;
-        const escapedFolderForClick = folder.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         return {
             folder,
             folderName,
-            escapedFolderForClick,
             songCount: Number(stats.songCount) || 0
         };
     }));
@@ -40,7 +38,7 @@ export async function renderLibraryLocations() {
             (item) => `
         <div class="library-location-item" data-folder="${escapeHtml(
             item.folder
-        )}" onclick="selectLibraryFolder(this, '${item.escapedFolderForClick}', event)">
+        )}" ${actionAttrs('selectLibraryFolder', ['$this', item.folder, '$event'])}>
             <div class="library-location-name">
                 <i class="fas fa-folder"></i>
                 <span>${escapeHtml(item.folderName)}</span>
@@ -57,7 +55,9 @@ export async function renderLibraryLocations() {
     if (!document.body.dataset.librarySelectionOutsideHook) {
         document.addEventListener('pointerdown', (event) => {
             const list = document.getElementById('library-locations-list');
-            const section = document.querySelector('.library-locations-section');
+            // The section that holds THIS list. (The page has a second .library-locations-section, Saved Lyrics, and the first one in the page is
+            // not always the folders: a click on Remove Folder was then "outside", cleared the selection, and removed nothing.)
+            const section = list && list.closest('.library-locations-section');
             if (!list || selectedLibraryFolders.length === 0) return;
             if (list.contains(event.target) || (section && section.contains(event.target))) return;
             clearLibraryFolderSelection();
@@ -120,8 +120,10 @@ export async function removeSelectedLibraryFolder() {
         showNotification('No folder selected', 'warning', 2000);
         return;
     }
+    return removeLibraryFolders([...selectedLibraryFolders]);
+}
 
-    const foldersToRemove = [...selectedLibraryFolders];
+async function removeLibraryFolders(foldersToRemove) {
     const folderNames = foldersToRemove.map((folderPath) => folderPath.split('\\').pop() || folderPath);
 
     const confirmed = await showConfirmDialog({

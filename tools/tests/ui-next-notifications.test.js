@@ -111,16 +111,16 @@ describe('A-07 notification center with the real engine', { concurrency: false }
     test('only wording that says a failure is shown as an error; removals the engine calls errors are plain information', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page } = await open();
-        await notify(page, 'Playlist "Road" deleted', 'error');
-        await notify(page, 'No song playing', 'warning');
+        await notify(page, 'Playlist "Road" removed', 'error');
+        await notify(page, 'Nothing is selected', 'warning');
         const role = async (text) => page.locator('.toast', { hasText: text }).getAttribute('role');
-        assert.equal(await role('Playlist "Road" deleted'), 'status');
-        assert.equal(await page.locator('.toast', { hasText: 'No song playing' }).getAttribute('data-kind'), 'info');
+        assert.equal(await role('Playlist "Road" removed'), 'status');
+        assert.equal(await page.locator('.toast', { hasText: 'Nothing is selected' }).getAttribute('data-kind'), 'info');
         await notify(page, 'Failed to save', 'error'); // the first failure opens the center by itself (PA-06), so it has no toast
         assert.equal(await center(page).isVisible(), true, 'a failure opens the center');
         assert.equal(await page.locator('.toast', { hasText: 'Failed to save' }).count(), 0);
         const kinds = await center(page).locator('.notif').evaluateAll((rows) => rows.map((r) => [r.querySelector('.notif__title').textContent, r.dataset.kind]));
-        assert.deepEqual(kinds, [['Failed to save', 'error'], ['No song playing', 'warning'], ['Playlist "Road" deleted', 'info']]);
+        assert.deepEqual(kinds, [['Failed to save', 'error'], ['Nothing is selected', 'warning'], ['Playlist "Road" removed', 'info']]);
         await page.close();
     });
 
@@ -385,6 +385,91 @@ describe('A-07 notification center with the real engine', { concurrency: false }
         assert.equal(await center(page).locator('.notif-center__body').evaluate((n) => n.scrollWidth <= n.clientWidth), true, 'no sideways scroll');
         assert.equal(await center(page).evaluate((n) => getComputedStyle(n).zIndex), '60');
         assert.equal(await page.evaluate(() => scrollX === 0 && document.documentElement.scrollWidth <= innerWidth), true);
+        await page.close();
+    });
+
+    test('one action, one entry: "Importing" turns into "Imported" in the same toast and the same bell row', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open();
+        await notify(page, 'Importing 3 file(s)...', 'info');
+        await page.locator('.toast', { hasText: 'Importing 3 file(s)' }).waitFor({ timeout: 2000 });
+        await notify(page, 'Imported 3 song(s)', 'success');
+        await page.locator('.toast', { hasText: 'Imported 3 song(s)' }).waitFor({ timeout: 2000 });
+        assert.equal(await page.locator('.toast').count(), 1, 'one toast, changed in place');
+        assert.equal(await page.locator('.toast', { hasText: 'Importing' }).count(), 0);
+        await bell(page).click();
+        assert.equal(await page.locator('.notif').count(), 1, 'one row in the center');
+        assert.equal(await page.locator('.notif__title').textContent(), 'Imported 3 song(s)');
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('a quick run of the same toggle is one entry that counts up, not a copy each time', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open();
+        for (const message of ['Added to favorites', 'Removed from favorites', 'Added to favorites', 'Added to favorites']) await notify(page, message, 'heart');
+        await page.locator('.toast', { hasText: 'Added to favorites ×2' }).waitFor({ timeout: 2000 });
+        assert.equal(await page.locator('.toast').count(), 1, 'one popup');
+        await bell(page).click();
+        assert.equal(await page.locator('.notif').count(), 0, 'a confirmation is a popup only: nothing in the bell list');
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('each message in one place: a confirmation is a popup only, a failure is in the bell list, and noise is not shown at all', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open();
+        await notify(page, 'Playlist \"Mix\" created', 'success');
+        await notify(page, 'No song playing', 'warning');
+        await notify(page, 'Could not import: disk full', 'warning');
+        await page.locator('.toast', { hasText: 'Playlist \"Mix\" created' }).waitFor({ timeout: 2000 });
+        assert.equal(await page.locator('.toast', { hasText: 'No song playing' }).count(), 0, 'dropped: no popup');
+        await bell(page).click();
+        const rows = await center(page).locator('.notif__title').allTextContents();
+        assert.deepEqual(rows, ['Could not import: disk full'], 'only what is worth reading again is in the list');
+        assert.equal(await page.locator('.toast', { hasText: 'Playlist \"Mix\" created' }).count(), 1, 'a popup shows even while the center is open');
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('a popup of one line has its icon, text and close button on one middle line', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page } = await open();
+        await notify(page, 'Added to favorites', 'heart');
+        await page.locator('.toast', { hasText: 'Added to favorites' }).waitFor({ timeout: 2000 });
+        await page.waitForTimeout(250); // the entrance moves it a few pixels
+        const r = await page.evaluate(() => {
+            const middle = (node) => {
+                const b = node.getBoundingClientRect();
+                return b.top + b.height / 2;
+            };
+            const toast = document.querySelector('.toast');
+            return [middle(toast.querySelector('.toast__icon')), middle(toast.querySelector('.toast__title')), middle(toast.querySelector('.icon-btn')), middle(toast)];
+        });
+        for (const m of r) assert.ok(Math.abs(m - r[3]) <= 1.5, `all on the middle line ${JSON.stringify(r)}`);
+        await page.close();
+    });
+
+    test('a message that belongs to no action still gets its own entry each time', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page } = await open();
+        await notify(page, 'Playlist saved', 'success');
+        await notify(page, 'Playlist saved', 'success');
+        await bell(page).click();
+        assert.equal(await page.locator('.notif').count(), 2);
+        await page.close();
+    });
+
+    test('the toasts sit in the middle of the window', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page } = await open();
+        await notify(page, 'In the middle', 'success');
+        await page.locator('.toast', { hasText: 'In the middle' }).waitFor({ timeout: 2000 });
+        const { middle, width } = await page.evaluate(() => {
+            const box = document.querySelector('.toaster').getBoundingClientRect();
+            return { middle: box.left + box.width / 2, width: window.innerWidth };
+        });
+        assert.ok(Math.abs(middle - width / 2) <= 2, `the toasts are centered (${middle} of ${width})`);
         await page.close();
     });
 

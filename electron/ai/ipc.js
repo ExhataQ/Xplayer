@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { createKeyStore } = require('./key-store');
-const { createJournal } = require('./journal');
+const { createJournal, recordSafely } = require('./journal');
 const { createOpenRouterProvider, AiError } = require('./provider');
 const { planFromPrompt, MODES, normalizeMode } = require('./planner');
 const { translateLyrics } = require('./translate');
@@ -153,14 +153,7 @@ function registerAiIpc(ipcMain, service) {
     ipcMain.handle('ai:cancel', () => service.cancel());
     ipcMain.handle('ai:journal-list', () => service.journal.list());
     ipcMain.handle('ai:journal-get', (event, id) => (typeof id === 'string' ? service.journal.get(id) : null));
-    ipcMain.handle('ai:journal-record', (event, entry) => {
-        try {
-            const e = entry && typeof entry === 'object' ? entry : {};
-            return { ok: true, entry: service.journal.record({ kind: e.kind, summary: e.summary, changes: e.changes }) };
-        } catch (error) {
-            return { ok: false, error: 'bad-entry', message: error.message };
-        }
-    });
+    ipcMain.handle('ai:journal-record', (event, entry) => recordSafely(service.journal, entry));
     ipcMain.handle('ai:journal-mark-undone', (event, id) => ({ ok: typeof id === 'string' && service.journal.markUndone(id) }));
 }
 

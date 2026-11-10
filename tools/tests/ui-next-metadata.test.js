@@ -56,6 +56,17 @@ describe('metadata.css, metadata.js and the bridge', () => {
         const missing = [...used].filter((c) => !css.includes('.' + c) && !layoutOnly.has(c));
         assert.deepEqual(missing, []);
     });
+
+    test('B4: the new interface says so on <html>, the engine writes the tags inside one box only then, and the box is one framed flex row that wraps', () => {
+        assert.match(read('index.html'), /<html[^>]*data-ui="next"/);
+        const engine = fs.readFileSync(path.join(ROOT, 'src', 'js', 'library', '20-metadata-editor.js'), 'utf8');
+        assert.match(engine, /dataset\.ui === 'next'/);
+        assert.match(engine, /<span class="metadata-multi-chip">/, 'the old chips are still written');
+        const old = fs.readFileSync(path.join(ROOT, 'src', 'old-ui', 'music_player.template.html'), 'utf8');
+        assert.doesNotMatch(old, /data-ui/);
+        assert.match(css, /\.metadata-multi-values\s*\{\s*display:\s*contents/);
+        assert.match(css, /\.metadata-multi\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*wrap[^}]*border:\s*1px solid/);
+    });
 });
 
 describe('Metadata in the new shell', { concurrency: false }, () => {
@@ -151,7 +162,7 @@ describe('Metadata in the new shell', { concurrency: false }, () => {
         await page.waitForSelector('input[data-metadata-key="title"]');
         const r = await page.evaluate(() => ({
             title: document.querySelector('input[data-metadata-key="title"]').value,
-            artists: [...document.querySelectorAll('.metadata-multi[data-metadata-key="artist"] .metadata-multi-chip')].map((c) => c.firstChild.textContent),
+            artists: [...document.querySelectorAll('.metadata-multi[data-metadata-key="artist"] .metadata-multi-chip')].map((c) => c.querySelector('input').value),
             year: document.querySelector('input[data-metadata-key="year"]').value,
             saveDisabled: document.getElementById('metadata-editor-save').disabled,
             iconWordsVisible: [...document.querySelectorAll('.view-host .material-symbols-outlined')].filter((e) => e.offsetParent !== null).length,
@@ -292,7 +303,7 @@ describe('Metadata in the new shell', { concurrency: false }, () => {
         const input = '.metadata-multi[data-metadata-key="genre"] .metadata-multi-input';
         await page.fill(input, 'Indie');
         await page.press(input, 'Enter');
-        const chips = () => page.evaluate(() => [...document.querySelectorAll('.metadata-multi[data-metadata-key="genre"] .metadata-multi-chip')].map((c) => c.firstChild.textContent));
+        const chips = () => page.evaluate(() => [...document.querySelectorAll('.metadata-multi[data-metadata-key="genre"] .metadata-multi-chip')].map((c) => c.querySelector('input').value));
         assert.deepEqual(await chips(), ['Rock', 'Indie']);
         assert.equal(await page.evaluate(() => document.getElementById('metadata-editor-save').disabled), false);
         await page.click('.metadata-multi[data-metadata-key="genre"] .metadata-multi-chip:first-child button');
@@ -407,6 +418,116 @@ describe('Metadata in the new shell', { concurrency: false }, () => {
             );
         }
         assert.deepEqual(bad, []);
+        await page.close();
+    });
+
+    // ---- B4: one song, the space used better ----
+    const openEditor = async (page) => {
+        await play(page);
+        await toMetadata(page);
+        await page.waitForSelector('input[data-metadata-key="title"]');
+    };
+
+    test('B4: all the values of a field sit in one text box as tags: edited in place, removed with their x, added at the end of the same box', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open();
+        await openEditor(page);
+        const artist = '.metadata-multi[data-metadata-key="artist"]';
+        const r = await page.evaluate((sel) => {
+            const multi = document.querySelector(sel);
+            const box = multi.getBoundingClientRect();
+            const inside = (el) => {
+                const b = el.getBoundingClientRect();
+                return b.left >= box.left - 1 && b.right <= box.right + 1 && b.top >= box.top - 1 && b.bottom <= box.bottom + 1;
+            };
+            const tags = [...multi.querySelectorAll('.metadata-multi-chip')];
+            const add = multi.querySelector('.metadata-multi-input');
+            const style = getComputedStyle(multi);
+            return {
+                values: tags.map((tag) => tag.querySelector('input.metadata-multi-value').value),
+                keyed: multi.querySelectorAll('.metadata-multi-value[data-metadata-key]').length,
+                framed: parseFloat(style.borderTopWidth) >= 1 && style.display === 'flex',
+                wrapper: getComputedStyle(multi.querySelector('.metadata-multi-values')).display,
+                allInside: [...tags, add].every(inside),
+                innerFrames: [add, tags[0].querySelector('input')].map((el) => getComputedStyle(el).borderTopWidth),
+                addOnTagRow: Math.abs(tags[tags.length - 1].getBoundingClientRect().top - add.getBoundingClientRect().top) < 10,
+                saveDisabled: document.getElementById('metadata-editor-save').disabled
+            };
+        }, artist);
+        assert.deepEqual(r, { values: ['Artist 0', 'Guest Artist'], keyed: 0, framed: true, wrapper: 'contents', allInside: true, innerFrames: ['0px', '0px'], addOnTagRow: true, saveDisabled: true });
+
+        // typing in the add spot alone is not an edit
+        await page.fill(`${artist} .metadata-multi-input`, 'half typed');
+        assert.equal(await page.evaluate(() => document.getElementById('metadata-editor-save').disabled), true);
+        await page.fill(`${artist} .metadata-multi-input`, '');
+        // editing a tag in place is an edit, and the tag follows its text
+        await page.fill(`${artist} .metadata-multi-chip:nth-child(2) input`, 'Guest Artist II');
+        assert.equal(await page.evaluate(() => document.getElementById('metadata-editor-save').disabled), false);
+        assert.equal(await page.evaluate((s) => document.querySelector(`${s} .metadata-multi-chip:nth-child(2) input`).size, artist), 'Guest Artist II'.length + 1);
+        // add one at the end of the same box, then remove one with its x
+        await page.fill(`${artist} .metadata-multi-input`, 'New One');
+        await page.press(`${artist} .metadata-multi-input`, 'Enter');
+        const tags = () => page.evaluate((s) => [...document.querySelectorAll(`${s} .metadata-multi-chip`)].map((c) => c.querySelector('input').value), artist);
+        assert.deepEqual(await tags(), ['Artist 0', 'Guest Artist II', 'New One']);
+        await page.click(`${artist} .metadata-multi-chip:nth-child(2) button`);
+        assert.deepEqual(await tags(), ['Artist 0', 'New One']);
+        // Backspace in an emptied tag removes it and goes to the add spot
+        await page.fill(`${artist} .metadata-multi-chip:nth-child(1) input`, '');
+        await page.press(`${artist} .metadata-multi-chip:nth-child(1) input`, 'Backspace');
+        assert.deepEqual(await tags(), ['New One']);
+        assert.equal(await page.evaluate(() => document.activeElement.className), 'metadata-multi-input');
+        // Enter in a tag ends the edit and goes to the add spot
+        const genre = '.metadata-multi[data-metadata-key="genre"]';
+        await page.click(`${genre} .metadata-multi-chip:nth-child(1) input`);
+        await page.press(`${genre} .metadata-multi-chip:nth-child(1) input`, 'Enter');
+        assert.equal(await page.evaluate(() => document.activeElement.className), 'metadata-multi-input');
+        // an emptied tag that is just left is dropped as well; what is saved is what is in the boxes
+        await page.fill(`${genre} .metadata-multi-chip:nth-child(1) input`, '');
+        await page.click('input[data-metadata-key="title"]');
+        await page.click('#metadata-editor-save');
+        await page.waitForFunction(() => window.__calls.some((c) => c[0] === 'save'));
+        assert.deepEqual((await calls(page, 'save'))[0].metadata, { artist: ['New One'], genre: [] });
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('B4: short fields share a row, long ones keep the whole row, and nothing overflows sideways', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open();
+        await openEditor(page);
+        const r = await page.evaluate(() => {
+            const box = (key) => document.querySelector(`[data-metadata-key="${key}"]`).closest('.metadata-editor-field').getBoundingClientRect();
+            const fields = document.querySelector('.metadata-editor-fields');
+            return {
+                trackSameRow: Math.abs(box('track').top - box('trackTotal').top) < 2 && box('track').left < box('trackTotal').left,
+                titleWider: box('title').width > box('track').width * 1.8,
+                noSideScroll: fields.scrollWidth <= fields.clientWidth + 1
+            };
+        });
+        assert.deepEqual(r, { trackSameRow: true, titleWider: true, noSideScroll: true });
+        assert.deepEqual(errors, []);
+        await page.close();
+    });
+
+    test('B4: without the marker the engine still writes the old chips, and reads their values', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open();
+        await openEditor(page);
+        await page.evaluate(() => document.documentElement.removeAttribute('data-ui'));
+        await play(page, 1); // a new song: the engine builds the form again
+        await page.waitForFunction(() => document.querySelector('input[data-metadata-key="title"]')?.value === 'Song title number 2');
+        const genre = '.metadata-multi[data-metadata-key="genre"]';
+        await page.fill(`${genre} .metadata-multi-input`, 'Zed');
+        await page.press(`${genre} .metadata-multi-input`, 'Enter');
+        const r = await page.evaluate((sel) => ({
+            chips: [...document.querySelectorAll(`${sel} span.metadata-multi-chip`)].map((c) => c.firstChild.textContent),
+            boxes: document.querySelectorAll('.metadata-multi-value').length
+        }), genre);
+        assert.deepEqual(r, { chips: ['Rock', 'Zed'], boxes: 0 });
+        await page.click('#metadata-editor-save');
+        await page.waitForFunction(() => window.__calls.some((c) => c[0] === 'save'));
+        assert.deepEqual((await calls(page, 'save'))[0].metadata, { genre: ['Rock', 'Zed'] });
+        assert.deepEqual(errors, []);
         await page.close();
     });
 });

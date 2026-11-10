@@ -4,6 +4,8 @@
 
 Before modifying, creating, deleting, renaming, or moving any project file, create a complete snapshot of the current project.
 
+The quick way to make one: `python tools/backup_source.py` (a zip of Source next to it, without `node_modules`, `.git`, `dist`, the data folders and generated files; `--stamp` keeps older zips, `--out DIR` chooses the folder, `--share` leaves out `.agent/archive` for sending the project to someone). The snapshot rules below still decide where the owner keeps them.
+
 The project is located at:
 
 `E:\Programming\Music Player`
@@ -74,17 +76,17 @@ Important source locations:
 * `Source/electron/scan-folder.js` — runtime music scanner and metadata/cover extraction.
 * `Source/src/js/` — renderer JavaScript.
 * `Source/src/css/` — renderer CSS.
-* `Source/build/music_player.py` — build-time application assembly.
-* `Source/build/music_player.html` — build template.
+* `Source/electron/app-paths.js` — where pages, library and settings are in each mode (read its header first).
+* `Source/tools/dev/gen-web.js` — writes the generated page files; `npm run dist` builds the portable folder.
+* `Source/src/old-ui/music_player.template.html` — template of the old interface; `gen-web.js` renders it.
 * `Source/tools/tests/` — the canonical automated test suite.
-* `Source/tools/CHANGELOG.md` — concise integrated change history. Detailed task evidence belongs in unique reports under `.agent/reports/`.
-* `Source/.agent/` — agent workflow documents: this file, `PLAN.md` (the current plan), `BOARD.md` (status), `reports/` (one report per patch, plus `TEMPLATE.md`), `archive/` (finished plans with their boards and reports; the refactor is in `archive/refactor/`).
-* `Source/tools/` — development tools, test pages, playgrounds, and supporting files.
-* `App/` — generated/deployed application output.
+* `Source/CHANGELOG.md` — concise integrated change history. Detailed task evidence belongs in unique reports under `.agent/reports/`.
+* `Source/.agent/` — agent workflow documents: this file, `CONTEXT.md`, `PARKED.md` (decided to wait, and for what), `E-D-REMAINING.md` (what agents D and E still have to do), the plans that are still open (`POLISH-PLAN.md`, `FORMATS-PLAN.md`, `LIST-COLUMNS-PLAN.md`, `REAL-APP-CHECK-PLAN.md`), `reports/` (one report per patch, plus `TEMPLATE.md`), `archive/` (finished plans with their boards and reports; `archive/README.md` says what is in each folder: the dev plan, the visualizer, `ui-redesign/`, `polish-1/`, `polish-2/`). A plan that is finished is moved there, with its reports, and what it left open goes to `PARKED.md`.
+* `Source/tools/` — `checks/` (lint, dependency map, event audit, adapter budget), `dev/` (gen-web, portable build, smoke test, sample library, launcher, fixtures), `fonts/`, `icons/`, `lib/`, `tests/`, and `backup_source.py`. `Source/docs/` — the development guide, architecture notes, the smoke checklist and the agent prompt.
 
 `Source/` is the source of truth.
 
-Do not make the primary implementation by editing generated files under `App/`.
+Do not make the primary implementation by editing generated files (`src/player.js`, `src/music_player.html`, `src/fonts/`, `src/icons/`, `dist/`) or anything under `App/`.
 
 The application uses Electron with:
 
@@ -113,13 +115,13 @@ Changes involving things such as:
 
 normally belong in `scan-folder.js`.
 
-`Source/build/music_player.py` is a build-time assembly script. It is not the runtime scanner.
-
-Do not move runtime scanning logic into the build script just because the build script is involved in generating the application.
+The runtime scanner is `scan-folder.js`. There is no build-time assembly script any more; `gen-web.js` only writes the generated page files.
 
 The project currently uses Sharp as the primary cover-thumbnail engine with Jimp as a fallback. Do not replace or restructure this system unless the requested change requires it.
 
 Existing online systems include MusicBrainz/Cover Art Archive metadata and LRCLIB lyrics. Preserve their existing caching, retry, fallback, and failure-handling behavior unless the task specifically changes it.
+
+The pages carry a Content-Security-Policy (`docs/DEVELOPMENT.md`, `tools/tests/csp.test.js`): no inline script, no inline `on...=` handler (use `data-action`), no `eval`, no requests from the page (go through the main process). Do not loosen the policy to make a change work; change the change.
 
 ---
 
@@ -250,11 +252,9 @@ Do not rebuild the entire application after every change.
 
 Build verification is required when the requested change affects:
 
-* the build system,
-* generated output,
-* source-to-output copying,
-* build-time data injection,
-* packaging/deployment,
+* packaging (`package.json` `build`, `tools/dev/make-portable.js`): run `npm run dist`,
+* start-up, the data folder, the main process or the preload: run `npm run smoke`,
+* the generated page files (`tools/dev/gen-web.js`, `src/old-ui/music_player.template.html`, `src/js/99-player.js`): run `node tools/dev/gen-web.js --check`,
 * or another behavior that specifically depends on the build process.
 
 For ordinary renderer, scanner, metadata, or CSS changes, focused tests and code inspection are normally sufficient.
@@ -299,7 +299,7 @@ Do not claim the entire task is verified until the required manual checks have a
 
 Every task or agent records its detailed evidence in a distinct report under `.agent/reports/`, using `.agent/reports/TEMPLATE.md`. Use a unique task identifier in the report filename and include changed files, exact checks and outcomes, environment, skipped or unrun checks, follow-ups, and commit or PR details when known.
 
-Task agents do not edit the shared `Source/tools/CHANGELOG.md`. Only the designated integration owner updates it after integration and verification, with a concise summary linking to the task report. Do not report unrun or skipped checks as passing. Preserve historical entries; resolve any conflict explicitly rather than dropping an entry.
+Task agents do not edit the shared `Source/CHANGELOG.md`. Only the designated integration owner updates it after integration and verification, with a concise summary linking to the task report. Do not report unrun or skipped checks as passing. Preserve historical entries; resolve any conflict explicitly rather than dropping an entry.
 
 The board tracks current plan status. Reports are the detailed evidence; the changelog is the integrated summary.
 

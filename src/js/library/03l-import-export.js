@@ -13,8 +13,8 @@
 //   - doImportMerge()/doImportReplace() are genuine core (merge/replace data in
 //     storage). finishImport() was their shared pure-UI tail; it had no other callers, so it
 //     was inlined into the 'data:imported' subscriber in 04n-import-export-events.js.
-//     Both keep their names: they're called from inline onclick="..." strings in the
-//     modal markup below.
+//     Both keep their names: the modal's buttons reach them through data-action (confirmImportMerge,
+//     confirmImportReplace below), because the page's Content-Security-Policy does not allow inline handlers.
 //   - exportAllData() keeps its name (called from 08e-panel-settings.js) but the
 //     data-gathering half is now buildExportData(), which is pure.
 
@@ -27,6 +27,7 @@ export function buildExportData() {
         recentlyPlayed: getRecentlyPlayed(),
         searchHistory: getSearchHistory(),
         pinnedItems: getPinnedItems(),
+        ...(Object.keys(getRatings()).length ? { ratings: getRatings() } : {}), // only when there are ratings, so older backups keep their shape
         exportDate: new Date().toISOString()
     };
 }
@@ -74,9 +75,16 @@ export function importAllData() {
 }
 
 
+// The file the person picked, while the choice dialog is open (an attribute is no place for a whole library).
+let pendingImport = null;
+
 export function showImportChoiceModal(data, filename) {
+    pendingImport = data;
     const { modal, overlay } = createModal('playlist-modal', 'playlist-modal-overlay', closeImportChoiceModal);
-    modal.onclick = (e) => e.stopPropagation();
+    // A click inside the dialog stays inside it, except on a button: the buttons are data-action elements, which run when the click reaches the document.
+    modal.onclick = (e) => {
+        if (!e.target.closest('[data-action]')) e.stopPropagation();
+    };
 
     modal.innerHTML = `
                         <h3 class="playlist-modal-title">Import Data</h3>
@@ -87,16 +95,10 @@ export function showImportChoiceModal(data, filename) {
                                 How would you like to import?
                         </p>
                         <div class="playlist-modal-buttons" style="flex-direction: column; gap: 8px;">
-                                <button onclick="doImportMerge(${JSON.stringify(data).replace(
-                                    /"/g,
-                                    '&quot;'
-                                )}); closeImportChoiceModal();" class="playlist-modal-create-btn" style="width: 100%;">
+                                <button data-action="confirmImportMerge" class="playlist-modal-create-btn" style="width: 100%;">
                                         <i class="fas fa-plus"></i> Merge with existing data
                                 </button>
-                                <button onclick="doImportReplace(${JSON.stringify(data).replace(
-                                    /"/g,
-                                    '&quot;'
-                                )}); closeImportChoiceModal();" class="playlist-modal-cancel-btn" style="width: 100%;">
+                                <button data-action="confirmImportReplace" class="playlist-modal-cancel-btn" style="width: 100%;">
                                         <i class="fas fa-sync-alt"></i> Replace all existing data
                                 </button>
                         </div>
@@ -107,7 +109,20 @@ export function showImportChoiceModal(data, filename) {
 }
 
 
+export function confirmImportMerge() {
+    const data = pendingImport;
+    if (data) doImportMerge(data);
+    closeImportChoiceModal();
+}
+
+export function confirmImportReplace() {
+    const data = pendingImport;
+    if (data) doImportReplace(data);
+    closeImportChoiceModal();
+}
+
 export function closeImportChoiceModal() {
+    pendingImport = null;
     const modal = document.querySelector('.playlist-modal');
     const overlay = document.querySelector('.playlist-modal-overlay');
     if (modal) modal.remove();
@@ -130,6 +145,10 @@ export function doImportMerge(data) {
         const existing = getFavorites();
         const merged = [...new Set([...existing, ...data.favorites])];
         storageWriteJson(STORAGE_KEYS.FAVORITES, merged);
+    }
+    if (data.ratings) {
+        storageWriteJson(STORAGE_KEYS.RATINGS, { ...parseRatings(data.ratings), ...getRatings() }); // what is rated here stays
+        bumpRatingsVersion();
     }
     if (data.pinnedItems) {
         const existing = getPinnedItems();
@@ -157,11 +176,17 @@ export function doImportReplace(data) {
     if (data.recentlyPlayed) storageWriteJson(STORAGE_KEYS.RECENTLY_PLAYED, data.recentlyPlayed);
     if (data.searchHistory) storageWriteJson(STORAGE_KEYS.SEARCH_HISTORY, data.searchHistory);
     if (data.pinnedItems) savePinnedItems(data.pinnedItems);
+    if (data.ratings) {
+        storageWriteJson(STORAGE_KEYS.RATINGS, parseRatings(data.ratings));
+        bumpRatingsVersion();
+    }
     if (data.folders) saveFolders(data.folders);
     emit('data:imported');
 }
 
-// Other files and inline handlers call these by name, so they are registered on window.
+registerActions({ confirmImportMerge, confirmImportReplace });
+
+// Other files call these by name, so they are registered on window.
 if (typeof registerLegacyGlobals === 'function') {
     registerLegacyGlobals({
         buildExportData,

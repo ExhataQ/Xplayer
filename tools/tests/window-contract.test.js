@@ -21,12 +21,12 @@ const walk = require('acorn-walk');
 const { ROOT, loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
 const { readManifest } = require('../lib/manifest');
 const { stripExports } = require('../lib/strip-exports');
-const { WINDOW_PUBLISHED_GLOBALS } = require('../lint-globals');
+const { WINDOW_PUBLISHED_GLOBALS } = require('../checks/lint-globals');
 
 const JS_DIR = path.join(ROOT, 'src', 'js');
 const modules = readManifest(ROOT).modules;
 const read = (file) => fs.readFileSync(path.join(JS_DIR, ...file.split('/')), 'utf8');
-const html = fs.readFileSync(path.join(ROOT, 'build', 'music_player.html'), 'utf8');
+const html = fs.readFileSync(path.join(ROOT, 'src', 'old-ui', 'music_player.template.html'), 'utf8');
 
 // Constants and state objects that other files read by bare name. They are not exported, so the sources cannot say
 // which of them other files use; they are listed here with the file that has to register each.
@@ -117,7 +117,7 @@ describe('window contract: the sources', () => {
             else used.push({ file, name: m[1] });
         }
     }
-    for (const m of html.matchAll(/data-action(?:-[a-z]+)?="([^"]*)"/g)) used.push({ file: path.join(ROOT, 'build', 'music_player.html'), name: m[1] });
+    for (const m of html.matchAll(/data-action(?:-[a-z]+)?="([^"]*)"/g)) used.push({ file: path.join(ROOT, 'src', 'old-ui', 'music_player.template.html'), name: m[1] });
 
     test('action names are literal, so this check can verify them', () => {
         assert.deepEqual(dynamic, [], 'use a fixed name in data-action; put the variable part in data-args');

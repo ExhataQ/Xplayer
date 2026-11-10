@@ -70,7 +70,7 @@ test('the workflow and the runner agree: the matrix is 1..N and every command sa
 test('the workflow runs the unit files and the browser files, and the quick script runs the unit files and lint', () => {
     assert.match(workflow, /run: npm run test:quick/, 'the unit job runs test:quick');
     assert.match(scripts['test:quick'], /run\.js unit\b/);
-    assert.match(scripts['test:quick'], /tools\/lint\.js/);
+    assert.match(scripts['test:quick'], /tools\/checks\/lint\.js/);
     assert.match(scripts['test:fast'], /run\.js browser --concurrency=4/);
 });
 

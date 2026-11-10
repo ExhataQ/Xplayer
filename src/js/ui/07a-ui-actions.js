@@ -1,7 +1,7 @@
 // ==============================================================================
 // UI SHELL ACTIONS (data-action handlers for markup the UI shell owns)
 // ==============================================================================
-// Names that the data-action attributes in build/music_player.html and in the 04e, 04f and
+// Names that the data-action attributes in src/old-ui/music_player.template.html and in the 04e, 04f and
 // 04g renderers may call (see core/LEGACY.md). Each entry calls the global function of the same
 // name when the event happens, as a plain call with the arguments the inline handler passed.
 // Like an inline handler that only called fn(), it calls fn without the element as `this` and

@@ -1,5 +1,5 @@
 // Real-browser regression test for the seek bar and the volume slider. Both are wired with
-// data-action-mousedown in build/music_player.html, so the handlers run from the delegated listener on
+// data-action-mousedown in src/old-ui/music_player.template.html, so the handlers run from the delegated listener on
 // document, where e.currentTarget is document, not the bar (core/LEGACY.md, point 2). The handlers used
 // to read e.currentTarget: a click on the seek bar threw, did not seek and left playback paused; a click
 // on the volume slider threw after the direct listener had already set the volume.
@@ -15,6 +15,9 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { loadPlaywright, launch, buildApp, gotoApp } = require('./helpers/app-fixture');
+
+// The one slider-to-gain conversion (src/js/playback/volume-curve.js): the audio gain is not the slider position any more.
+const loadCurve = () => import(require('url').pathToFileURL(path.join(__dirname, '..', '..', 'src', 'js', 'playback', 'volume-curve.js')).href);
 
 const pw = loadPlaywright();
 const TEST_OPTIONS = { timeout: 30000 };
@@ -125,8 +128,9 @@ describe('seek bar and volume slider (data-action, real mouse)', { concurrency: 
         await page.waitForTimeout(150);
         const v = await page.evaluate(() => ({ vol: audioElement.volume, chosen: window.lastVolume, fill: parseFloat(document.getElementById('volume-fill').style.width) }));
         assert.deepEqual(errors, [], 'no page error');
-        assert.ok(Math.abs(v.vol - 0.25) < 0.06, `audio volume ${v.vol} should be near 0.25`);
-        assert.ok(Math.abs(v.chosen - 0.25) < 0.06, `chosen volume ${v.chosen} should be near 0.25`);
+        const { positionToGain } = await loadCurve();
+        assert.ok(Math.abs(v.chosen - 0.25) < 0.06, `slider position ${v.chosen} should be near 0.25`);
+        assert.ok(Math.abs(v.vol - positionToGain(v.chosen)) < 0.0005, `audio gain ${v.vol} should be the curve's gain for ${v.chosen}`);
         assert.ok(Math.abs(v.fill - 25) < 6, `fill ${v.fill}% should be near 25%`);
         await page.close();
     });
@@ -139,8 +143,9 @@ describe('seek bar and volume slider (data-action, real mouse)', { concurrency: 
         await page.waitForFunction(() => audioElement.currentTime > 3.2, null, { timeout: 8000 }); // the fade has ended
         const v = await page.evaluate(() => ({ vol: audioElement.volume, chosen: window.lastVolume, fill: parseFloat(document.getElementById('volume-fill').style.width) }));
         assert.deepEqual(errors, []);
-        assert.ok(Math.abs(v.vol - 0.25) < 0.06, `audio volume ${v.vol} should stay near 0.25 (it was 0.5 before the fix)`);
-        assert.ok(Math.abs(v.chosen - 0.25) < 0.06, `chosen volume ${v.chosen}`);
+        const { positionToGain } = await loadCurve();
+        assert.ok(Math.abs(v.vol - positionToGain(v.chosen)) < 0.0005, `audio gain ${v.vol} should stay at the curve's gain for ${v.chosen} (it was the start volume before the fix)`);
+        assert.ok(Math.abs(v.chosen - 0.25) < 0.06, `slider position ${v.chosen}`);
         assert.ok(Math.abs(v.fill - 25) < 6, `fill ${v.fill}%`);
         await page.close();
     });

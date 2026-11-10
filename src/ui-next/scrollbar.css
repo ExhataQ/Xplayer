@@ -63,3 +63,48 @@
     border-radius: 999px;
     background-clip: padding-box;
 }
+
+/* ---------- Lists keep their place: the bar's room is always reserved ----------
+ *
+ * The bar takes room from the list it scrolls (it is not drawn over it). So a list that fits shows no bar and has all its width, a list
+ * that scrolls has the bar's width less, and the list moves sideways each time that changes: between two sections of Settings, between two
+ * views, when a list grows long. And a list with padding is not centered: the padding is the same on both sides, and the bar adds to one.
+ *
+ * scrollbar-gutter fixes both (it is not scrollbar-width: it does not switch the custom bar off, see the note at the top):
+ *   - "stable" reserves the room for the bar whether or not there is a bar, so nothing moves when the thumb comes and goes.
+ *   - "both-edges" reserves the same room on the other side too, so the list is centered. The thumb still sits flush against the wall.
+ *
+ * ONE PLACE: a list that should keep its place is added to the two lists of selectors below. Do not set scrollbar-gutter anywhere else.
+ *
+ * Padding: write the INSET you want to see between the wall and the content, and take the bar away from it, so the look is the same
+ * with the bar, with the standard (wider) bar and with the cat (which takes no room):
+ *     padding-inline: max(0px, calc(var(--the-inset) - var(--scroll-gutter)));
+ * --scroll-gutter is the room the bar reserves (0 while the cat scrollbar is on).
+ */
+:root {
+    --scroll-gutter: var(--scrollbar-size);
+}
+:root[data-scrollbar-cat='on'] {
+    --scroll-gutter: 0px; /* the cat is drawn over the list and takes no room */
+}
+
+/* Centered lists: the same room on both sides. */
+.library-panel .left-panel-main-list-content, /* Library */
+.plist-results, /* Search and Recents */
+.rp-now__lyrics, /* the right panel's lyrics */
+.queue-panel__body, /* the queue */
+.view-host[data-engine='settings'] .content /* Settings: a centered column whose sections differ in length. The scroller is the engine's .content INSIDE the view host: never put the room on the host itself, or the thumb sits that far off the wall */ {
+    scrollbar-gutter: stable both-edges;
+}
+
+/* Full-bleed lists (their rows, hero and header lines run wall to wall): the room on the bar's side only, so they still reach the left wall. */
+.view-host[data-engine]:not([data-engine='settings']) .content, /* the song lists (the hero and the header line fill the bar's place themselves: song-list.js) */
+.home,
+.song-page,
+.view-host[data-engine-panel='metadata'] {
+    scrollbar-gutter: stable;
+}
+
+:root[data-scrollbar-cat='on'] :is(.library-panel .left-panel-main-list-content, .plist-results, .rp-now__lyrics, .queue-panel__body, .view-host[data-engine] .content, .home, .song-page, .view-host[data-engine-panel='metadata']) {
+    scrollbar-gutter: auto; /* nothing to reserve: the cat takes no room, and a list that turns long must not move */
+}

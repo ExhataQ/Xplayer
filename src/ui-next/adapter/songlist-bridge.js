@@ -56,11 +56,11 @@ export function onListTitleChange(host, callback) {
     return () => observer.disconnect();
 }
 
-/** How many songs the current view lists. */
-export function listSongCount(view) {
+/** The songs the view lists (an empty list when the engine cannot say). */
+export function listSongs(view) {
     try {
-        return engine().getSongsForList(view).length;
+        return engine().getSongsForList(view);
     } catch (_) {
-        return 0;
+        return [];
     }
 }

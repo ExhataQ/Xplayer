@@ -19,6 +19,22 @@ let metadataEditorSongUrl = null,
 let metadataEditorBaseline = null,
     metadataEditorLoaded = false;
 const ME_MULTI = new Set(['artist', 'albumArtist', 'composer', 'genre', 'conductor', 'remixer', 'musicBrainzArtistId']);
+// One value of a multi-value tag. The new interface (it sets data-ui="next" on <html>) shows all the values of a field inside one text
+// box, each as a tag whose text can be edited in place, with the box that adds a new one at the end; the old interface keeps its chips
+// exactly as they were.
+const metadataValueBoxes = () => document.documentElement.dataset.ui === 'next';
+function metadataChipHtml(value, label) {
+    const text = escapeHtml(String(value));
+    if (!metadataValueBoxes())
+        return `<span class="metadata-multi-chip">${text}<button type="button" data-action="removeMetadataValue" data-args='["$this"]'>×</button></span>`;
+    const name = escapeHtml(label || 'Value');
+    return `<span class="metadata-multi-chip"><input class="metadata-multi-value" type="text" size="${metadataValueSize(value)}" value="${text}" aria-label="${name}"><button type="button" data-action="removeMetadataValue" data-args='["$this"]' aria-label="Remove ${name}">×</button></span>`;
+}
+const metadataValueSize = (value) => Math.max(1, String(value).length + 1); // the tag is as wide as its text, no script styling needed
+const metadataChipValue = (chip) => {
+    const box = chip.querySelector('.metadata-multi-value');
+    return (box ? box.value : chip.childNodes[0]?.textContent || '').trim();
+};
 const ME_SECTIONS = [
     [
         'Basic',
@@ -186,12 +202,7 @@ export function markMetadataDirty() {
 export function renderMultiField(key, label, value) {
     const values = Array.isArray(value) ? value : value ? [value] : [];
     return `<div class="metadata-editor-field"><span>${label}</span><div class="metadata-multi" data-metadata-key="${key}"><div class="metadata-multi-values">${values
-        .map(
-            (v) =>
-                `<span class="metadata-multi-chip">${escapeHtml(
-                    String(v)
-                )}<button type="button" data-action="removeMetadataValue" data-args='["$this"]'>×</button></span>`
-        )
+        .map((v) => metadataChipHtml(v, label))
         .join('')}</div><input class="metadata-multi-input" type="text" placeholder="Add ${escapeHtml(
         label.toLowerCase()
     )}…" data-action-keydown="metadataMultiKeydown" data-args-keydown='["$event","$this"]'></div></div>`;
@@ -226,6 +237,32 @@ export function renderMetadataEditor(m) {
     root.querySelectorAll('[data-metadata-key]:not(.metadata-multi)').forEach((x) =>
         x.addEventListener('input', markMetadataDirty)
     );
+    // typing in a tag is an edit (and the tag grows or shrinks with its text); typing in the box that adds a value is not, until Enter adds it
+    root.querySelectorAll('.metadata-multi').forEach((x) => {
+        x.addEventListener('input', (e) => {
+            if (!e.target.classList.contains('metadata-multi-value')) return;
+            e.target.size = metadataValueSize(e.target.value);
+            markMetadataDirty();
+        });
+        if (!metadataValueBoxes()) return;
+        const adder = () => x.querySelector('.metadata-multi-input');
+        x.addEventListener('click', (e) => {
+            if (e.target === x) adder().focus(); // a press on the empty part of the box goes to the add spot
+        });
+        x.addEventListener('keydown', (e) => {
+            if (!e.target.classList.contains('metadata-multi-value')) return;
+            // Enter ends editing a tag; Backspace in an emptied tag removes it (it is removed as focus leaves, below)
+            if (e.key === 'Enter' || (e.key === 'Backspace' && !e.target.value)) {
+                e.preventDefault();
+                adder().focus();
+            }
+        });
+        x.addEventListener('focusout', (e) => {
+            if (!e.target.classList.contains('metadata-multi-value') || e.target.value.trim()) return;
+            e.target.parentElement?.remove();
+            markMetadataDirty();
+        });
+    });
     applyCoverPreview(m.cover);
 }
 export async function openMetadataEditor() {
@@ -316,22 +353,16 @@ export function metadataMultiKeydown(e, input) {
 }
 export function addMetadataValue(container, value) {
     const values = container.querySelector('.metadata-multi-values');
-    if ([...values.querySelectorAll('.metadata-multi-chip')].some((x) => x.firstChild?.textContent === value)) return;
-    values.insertAdjacentHTML(
-        'beforeend',
-        `<span class="metadata-multi-chip">${escapeHtml(
-            value
-        )}<button type="button" data-action="removeMetadataValue" data-args='["$this"]'>×</button></span>`
-    );
+    if ([...values.querySelectorAll('.metadata-multi-chip')].some((x) => metadataChipValue(x) === value)) return;
+    const label = container.closest('.metadata-editor-field')?.querySelector(':scope > span')?.textContent;
+    values.insertAdjacentHTML('beforeend', metadataChipHtml(value, label));
 }
 export function removeMetadataValue(btn) {
     btn.parentElement.remove();
     markMetadataDirty();
 }
 export function getMultiValues(container) {
-    return [...container.querySelectorAll('.metadata-multi-chip')]
-        .map((x) => x.childNodes[0]?.textContent?.trim())
-        .filter(Boolean);
+    return [...container.querySelectorAll('.metadata-multi-chip')].map(metadataChipValue).filter(Boolean);
 }
 export function collectMetadataEditorValues() {
     const r = {};

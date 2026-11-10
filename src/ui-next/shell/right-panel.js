@@ -9,11 +9,12 @@
 //   lyrics only  same width, the provider hides its cover and track info (remembered)
 //   full         the panel covers the whole app below the title bar and above the player, lyrics only (not remembered)
 //   controls = { state() -> { lyricsOnly, full }, setLyricsOnly(on), setFull(on), onChange(callback) -> stop }
-// Behavior: width 280 to 420 (default 320), dragged by its left edge or with the arrow keys, saved. The list always keeps
+// Behavior: open by default (then it remembers), width 280 to 420 (default 320), dragged by its left edge or with the arrow keys, saved. The list always keeps
 // Its width and whether it shows are decided in shell/panel-layout.js (PA-19): when the window is narrow, the left panel steps aside
 // for it by default; opening the left panel puts it in the right panel's place, and opening the right one takes it back.
 import { iconButton, iconEl } from '../components/index.js';
 import { RIGHT, setSaved, setWanted, noteOpened, shownWidth, onLayout } from './panel-layout.js';
+import { slidePanel } from './panel-motion.js';
 
 const KEY_OPEN = 'xplayer.ui-next.right-open';
 const KEY_WIDTH = 'xplayer.ui-next.right-width';
@@ -50,7 +51,7 @@ const write = (key, value) => {
 
 export function mountRightPanelSlot({ host, button: anchor, leftPanel }) {
     const body = host.querySelector('.right-host__body');
-    let savedOpen = read(KEY_OPEN, 'false') === 'true';
+    let savedOpen = read(KEY_OPEN, 'true') === 'true'; // open the first time; after that, whatever the person last chose
     let savedWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Number(read(KEY_WIDTH, DEFAULT_WIDTH)) || DEFAULT_WIDTH));
     let lyricsOnly = read(KEY_LYRICS_ONLY, 'false') === 'true';
     let full = false;
@@ -75,9 +76,15 @@ export function mountRightPanelSlot({ host, button: anchor, leftPanel }) {
     host.append(handle);
 
     // Draws what the layout decided. It does not change the layout, so the layout can call it.
+    // The panel slides in (C8) only for the person's own open: open() and close() raise `slideNext`, and the first draw that follows
+    // (the layout's, which runs inside setWanted) takes it. Closing and a resize that decides it are instant.
+    let slideNext = false;
     function syncRight() {
         const show = visible();
-        host.hidden = !show;
+        const slide = slideNext;
+        slideNext = false;
+        if (slide) slidePanel(host, 'right', show, (on) => (host.hidden = !on));
+        else host.hidden = !show;
         if (!show) full = false;
         host.dataset.mode = full ? 'full' : lyricsOnly ? 'lyrics' : 'normal';
         handle.hidden = full;
@@ -103,11 +110,13 @@ export function mountRightPanelSlot({ host, button: anchor, leftPanel }) {
             savedOpen = true;
             write(KEY_OPEN, true);
             noteOpened('right'); // in a narrow window the right panel takes the left one's place
+            slideNext = true;
             paint();
         },
         close() {
             savedOpen = false;
             write(KEY_OPEN, false);
+            slideNext = true;
             paint();
         },
         toggle() {
@@ -173,7 +182,7 @@ export function mountRightPanelSlot({ host, button: anchor, leftPanel }) {
         }
     });
 
-    onLayout(syncRight); // the layout changes with the window and with the left panel: draw the right panel again
+    onLayout(() => syncRight()); // the layout changes with the window and with the left panel: draw the right panel again
     listeners.add(paint);
     setSaved('right', savedWidth);
     paint();

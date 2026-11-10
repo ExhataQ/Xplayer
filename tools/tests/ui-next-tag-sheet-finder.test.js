@@ -12,7 +12,7 @@ const { ROOT, loadPlaywright, launch, buildApp, waitForAppSettled } = require('.
 
 const NEXT_SRC = path.join(ROOT, 'src', 'ui-next');
 const OPTIONS = { timeout: 60000 };
-const MISSING = 'Tags cannot be read or saved yet: the Python package "mutagen" is not installed. Install it with: python -m pip install mutagen';
+const MISSING = 'The tag library (node-taglib-sharp) is not installed. Run: npm install node-taglib-sharp';
 
 describe('Find tags online in the tag sheet', { concurrency: false }, () => {
     const pw = loadPlaywright();
@@ -40,7 +40,7 @@ describe('Find tags online in the tag sheet', { concurrency: false }, () => {
         const log = (name, fn) => async (arg) => (calls.push([name, JSON.parse(JSON.stringify(arg === undefined ? null : arg))]), fn(arg));
         const found = (id, decision, patch) => ({ id, fileUrl: '', decision, confidence: decision === 'auto' ? 0.9 : 0.68, reasons: [], release: { id: 'r', title: 'The Album', date: '1999-04-01', releaseGroupId: 'g' }, patch, changes: Object.fromEntries(Object.entries(patch).map(([k, v]) => [k, { from: '', to: v }])) });
         window.__api = {
-            getAudioMetadata: log('get', async () => (backendMissing ? { success: false, reason: 'no-mutagen', error: window.__missing } : { success: true, metadata: { title: 'T', artist: ['A'], album: '', albumArtist: [], genre: [], year: '', label: '' } })),
+            getAudioMetadata: log('get', async () => (backendMissing ? { success: false, reason: 'no-library', error: window.__missing } : { success: true, metadata: { title: 'T', artist: ['A'], album: '', albumArtist: [], genre: [], year: '', label: '' } })),
             saveAudioMetadata: log('save', async (o) => ({ success: true, metadata: o.metadata })),
             saveAudioMetadataMany: log('saveMany', async () => []),
             cancelFindTags: log('cancel', async () => ({ cancelled: true })),
@@ -146,8 +146,8 @@ describe('Find tags online in the tag sheet', { concurrency: false }, () => {
         const { page, errors } = await open(true);
         await checkFirst(page, 2);
         await page.click('.tag-sheet__finder button:has-text("Find tags online")');
-        await page.waitForFunction((m) => document.querySelector('.tag-sheet__footer .tag-sheet__status')?.textContent.includes(m), 'mutagen');
-        assert.match(await status(page), /None of those songs could be read: Tags cannot be read or saved yet: the Python package "mutagen" is not installed\. Install it with: python -m pip install mutagen/);
+        await page.waitForFunction((m) => document.querySelector('.tag-sheet__footer .tag-sheet__status')?.textContent.includes(m), 'node-taglib-sharp');
+        assert.match(await status(page), /None of those songs could be read: The tag library \(node-taglib-sharp\) is not installed\. Run: npm install node-taglib-sharp/);
         assert.equal((await calls(page, 'find')).length, 0, 'no lookup was started without tags to compare');
         assert.deepEqual(errors, []);
         await page.close();

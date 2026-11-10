@@ -96,6 +96,29 @@ describe('drag and drop in the real page', { concurrency: false }, () => {
             }
         });
 
+        test('the dragged row is dimmed during the drag, like a dragged left-panel item, and is restored on drop', async (t) => {
+            if (skip) return void t.skip(skip);
+            const { page, errors } = await open();
+            try {
+                const dimmed = () => page.evaluate(() => [...document.querySelectorAll('#song-list .song-item')].filter((r) => r.style.opacity === '0.4').map((r) => r.getAttribute('data-song-id')));
+                assert.deepEqual(await dimmed(), []);
+                await dragOver(page, await point(page, SONG_GRAB(1)), await point(page, LEFT('favorites')));
+                assert.deepEqual(await dimmed(), ['1'], 'only the dragged row');
+                await drop(page);
+                assert.deepEqual(await dimmed(), [], 'restored after the drop');
+                // a multi-selection: every selected row is dimmed
+                for (const id of [1, 2, 3]) await page.click(SONG_GRAB(id), { modifiers: ['Control'] });
+                await dragOver(page, await point(page, SONG_GRAB(2)), await point(page, LEFT('favorites')));
+                assert.deepEqual((await dimmed()).sort(), ['1', '2', '3']);
+                await page.keyboard.press('Escape');
+                await drop(page);
+                assert.deepEqual(await dimmed(), []);
+                assert.deepEqual(errors, []);
+            } finally {
+                await page.close();
+            }
+        });
+
         test('a song dropped on a playlist is added once; dropping it again adds nothing', async (t) => {
             if (skip) return void t.skip(skip);
             const { page, errors } = await open();

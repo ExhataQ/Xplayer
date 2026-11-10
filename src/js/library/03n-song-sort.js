@@ -1,13 +1,13 @@
 // ==============================================================================
 // SONG SORT (task PB-08, decision DP13 option A)
-// The order of a song list when the person clicks Title, Album or Time in the track list header.
+// The order of a song list when the person clicks Title, Album, Rating or Time in the track list header.
 // One sort per list id ('all-songs', 'playlist-<id>', an album id, ...), kept in memory for this session. Nothing is stored on disk.
 // getSongsForList (ui/07-views.js) and renderSongsList (ui/04a-ui-render-core.js) both call applyListSort, so the rows on screen, the
 // positions a click reports, shift-select, the ghost lists and the play queue all read the same order.
 // Pure functions (no DOM, no storage) so they can be tested on their own. This file is an ES module (see src/js/main.js).
 // ==============================================================================
 
-export const SORT_KEYS = ['title', 'album', 'time'];
+export const SORT_KEYS = ['title', 'album', 'time', 'rating'];
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
@@ -22,7 +22,16 @@ export function parseDuration(value) {
     return parts.reduce((total, part) => total * 60 + Number(part), 0);
 }
 
+// The ratings are saved apart from the songs (library/03h-ratings.js, loaded before this file is used): one lookup for the whole list, never one
+// per comparison. A song with no rating is missing, so it sorts after every rated one whatever the direction. Without the rating system's
+// functions (a test on its own) nothing has a rating.
+function ratingValues(songs) {
+    if (typeof ratingsForSongIds !== 'function') return songs.map(() => null);
+    return ratingsForSongIds(songs.map((song) => song.id)).map((stars) => (stars > 0 ? stars : null));
+}
+
 function sortValue(song, key) {
+    if (key === 'rating') return ratingValues([song])[0];
     if (key === 'time') return parseDuration(song.duration);
     const text = (key === 'album' ? song.album : song.title) || '';
     return typeof text === 'string' && text.trim() ? text.trim() : null;
@@ -30,8 +39,10 @@ function sortValue(song, key) {
 
 /** Compares two songs for one key. Missing values sort after every present value, whatever the direction. */
 export function compareSongs(a, b, key, dir = 'asc') {
-    const x = sortValue(a, key);
-    const y = sortValue(b, key);
+    return compareValues(sortValue(a, key), sortValue(b, key), dir);
+}
+
+function compareValues(x, y, dir) {
     if (x === null && y === null) return 0;
     if (x === null) return 1;
     if (y === null) return -1;
@@ -42,9 +53,10 @@ export function compareSongs(a, b, key, dir = 'asc') {
 /** A new array in the requested order. The input is not changed. Equal songs keep their current order. */
 export function sortSongs(songs, key, dir = 'asc') {
     if (!SORT_KEYS.includes(key)) return [...songs];
+    const values = key === 'rating' ? ratingValues(songs) : songs.map((song) => sortValue(song, key)); // each value read once
     return songs
-        .map((song, index) => ({ song, index }))
-        .sort((a, b) => compareSongs(a.song, b.song, key, dir) || a.index - b.index)
+        .map((song, index) => ({ song, index, value: values[index] }))
+        .sort((a, b) => compareValues(a.value, b.value, dir) || a.index - b.index)
         .map(({ song }) => song);
 }
 
@@ -67,7 +79,7 @@ export function getSongListSort(listId) {
     return sort ? { ...sort } : null;
 }
 
-/** Sets a list's sort. A key that is not Title, Album or Time clears it. A list that cannot be sorted is never given one. Returns what is set now. */
+/** Sets a list's sort. A key that is not Title, Album, Rating or Time clears it. A list that cannot be sorted is never given one. Returns what is set now. */
 export function setSongListSort(listId, key, dir = 'asc') {
     if (!isSongListSortable(listId)) return null;
     sortedCache.delete(listId);
@@ -81,7 +93,8 @@ export function setSongListSort(listId, key, dir = 'asc') {
 }
 
 // The field a sort reads, as stored on the song (so an edit made in place is noticed).
-const rawField = (song, key) => (key === 'time' ? song.duration : key === 'album' ? song.album : song.title);
+// For the rating it is the version of the saved ratings (the same for every song), so a re-rated song makes the remembered result stale.
+const rawField = (song, key) => (key === 'rating' ? (typeof ratingsVersion === 'function' ? ratingsVersion() : 0) : key === 'time' ? song.duration : key === 'album' ? song.album : song.title);
 
 // One remembered result per list. A sorted list is asked for on every click and every song change, and sorting 20,000 songs takes
 // about 60 ms, so the last result is reused while the input is exactly what it was sorted from: the same songs, in the same order,

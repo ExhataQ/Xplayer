@@ -17,7 +17,7 @@ function load() {
     if (corpus) return corpus;
     const modules = readManifest(ROOT).modules;
     const source = Object.fromEntries(modules.map((f) => [f, fs.readFileSync(path.join(JS, ...f.split('/')), 'utf8')]));
-    const other = [fs.readFileSync(path.join(ROOT, 'build', 'music_player.html'), 'utf8'), fs.readFileSync(path.join(JS, '99-player.js'), 'utf8')];
+    const other = [fs.readFileSync(path.join(ROOT, 'src', 'old-ui', 'music_player.template.html'), 'utf8'), fs.readFileSync(path.join(JS, '99-player.js'), 'utf8')];
     (function walk(dir) {
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
             const full = path.join(dir, entry.name);

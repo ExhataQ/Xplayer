@@ -15,6 +15,11 @@
     --sl-album: var(--sl-album-w, 4fr);
     --sl-gap: var(--space-4);
     --sl-more-inset: var(--space-2); /* the more button and the columns button keep this far from the highlight's right edge */
+    /* The color of the list and of everything that fades into it (the hero's gradient): the main view's own color, as for every other view. */
+    --list-ground: var(--surface-ground);
+    /* The column header's color once it has stuck to the top and the rows go under it: the panels' color, so it reads as a bar over the list. */
+    --head-stuck: var(--surface-panel);
+    background: var(--list-ground);
 }
 .view-host[data-songlist] > .content-wrapper {
     height: auto;
@@ -47,7 +52,7 @@
     gap: var(--space-4);
     flex: none;
     padding: var(--space-4) var(--sl-side) var(--space-2);
-    background: var(--surface-ground);
+    background: var(--list-ground);
 }
 .songlist-bar[hidden] {
     display: none;
@@ -119,7 +124,7 @@
     gap: var(--space-4) var(--space-6);
     padding-top: var(--space-6);
     padding-bottom: var(--space-4);
-    background: var(--surface-ground);
+    background: var(--list-ground);
 }
 .songlist-bar[data-kind='album'] .songlist-bar__cover,
 .songlist-bar[data-kind='playlist'] .songlist-bar__cover,
@@ -185,6 +190,152 @@
     }
 }
 
+/* ---------- the header's colors: every list with a cover ----------
+   The gradient and the tint come from two colors, --hero-tint (top left, the cover's main color) and --hero-tint-2 (top right, its second color
+   or the main one turned a little). song-list.js sets both from the cover's own colors (cover-palette.js); until then, or for a list with no art
+   to read, they come from the list's name (--hero-hue). Liked Songs is always rose; All Songs follows the theme's accent. The gradient is its own
+   layer (::before) so it can fade in when a cover is read for the first time (data-tint="pending"). Colors are tokens and color-mix only. */
+.songlist-bar[data-kind='album'],
+.songlist-bar[data-kind='playlist'],
+.songlist-bar[data-kind='artist'],
+.songlist-bar[data-kind='favorites'],
+.songlist-bar[data-kind='all-songs'] {
+    position: relative;
+    isolation: isolate;
+    --hero-tint: hsl(var(--hero-hue) 55% 50%);
+    --hero-tint-2: var(--hero-tint);
+    --hero-glow: 30%;
+}
+.songlist-bar[data-kind='favorites'] {
+    --hero-tint: hsl(var(--hero-hue) 72% 52%);
+    --hero-tint-2: var(--hero-tint);
+    --hero-glow: 34%;
+}
+.songlist-bar[data-kind='all-songs'] {
+    --hero-tint: var(--accent);
+    --hero-tint-2: var(--accent);
+    --hero-glow: 22%; /* the accent is brighter than the rose, so it takes less */
+}
+/* --hero-extend (set by song-list.js on the host): the height of the column header. The hero's two layers go on that far below the hero, through the
+   header, so the gradient and the lines are not cut off at the hero's bottom edge. The header's own bottom line is where the hero now ends. */
+.songlist-bar[data-kind='album']::before,
+.songlist-bar[data-kind='playlist']::before,
+.songlist-bar[data-kind='artist']::before,
+.songlist-bar[data-kind='favorites']::before,
+.songlist-bar[data-kind='all-songs']::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 calc(-1 * var(--hero-extend, 0px)) 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(ellipse 70% 130% at 6% 0%, color-mix(in srgb, var(--hero-tint) var(--hero-glow), transparent), transparent 72%),
+        radial-gradient(ellipse 55% 120% at 100% 0%, color-mix(in srgb, var(--hero-tint-2) calc(var(--hero-glow) * 0.8), transparent), transparent 70%),
+        linear-gradient(to bottom, color-mix(in srgb, var(--hero-tint) 12%, var(--list-ground)), var(--list-ground));
+    transition: opacity calc(var(--motion-fast) * 2) var(--motion-ease);
+}
+.songlist-bar[data-tint='pending']::before {
+    opacity: 0;
+}
+.songlist-bar[data-kind='album']::after,
+.songlist-bar[data-kind='playlist']::after,
+.songlist-bar[data-kind='artist']::after,
+.songlist-bar[data-kind='favorites']::after,
+.songlist-bar[data-kind='all-songs']::after {
+    content: '';
+    position: absolute;
+    inset: 0 0 calc(-1 * var(--hero-extend, 0px)) auto;
+    z-index: -1;
+    width: min(58%, 560px);
+    pointer-events: none;
+    background: repeating-radial-gradient(circle at 100% 0%, transparent 0 15px, color-mix(in srgb, var(--hero-tint-2) 22%, transparent) 15px 16px);
+    mask-image: radial-gradient(circle at 100% 0%, black, transparent 72%);
+}
+.songlist-bar[data-kind='favorites']::after {
+    background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--hero-tint) 30%, transparent) 0 4px, transparent 4px 12px);
+    mask-image: radial-gradient(ellipse 90% 130% at 100% 0%, black, transparent 68%);
+}
+.songlist-bar[data-kind='album'] .songlist-bar__cover,
+.songlist-bar[data-kind='playlist'] .songlist-bar__cover,
+.songlist-bar[data-kind='artist'] .songlist-bar__cover,
+.songlist-bar[data-kind='favorites'] .songlist-bar__cover,
+.songlist-bar[data-kind='all-songs'] .songlist-bar__cover {
+    box-shadow: var(--shadow-raised), 0 24px 64px -16px color-mix(in srgb, var(--hero-tint) 60%, transparent);
+}
+.songlist-bar[data-kind='album'] .songlist-bar__label,
+.songlist-bar[data-kind='playlist'] .songlist-bar__label,
+.songlist-bar[data-kind='artist'] .songlist-bar__label,
+.songlist-bar[data-kind='favorites'] .songlist-bar__label,
+.songlist-bar[data-kind='all-songs'] .songlist-bar__label {
+    color: color-mix(in srgb, var(--hero-tint) 55%, var(--text-primary));
+}
+
+/* ---------- the main playlists: Liked Songs and All Songs ----------
+   A page of their own: a larger cover, a line under the name (Newsreader italic) and a stat line (songs, total time, artists). */
+.songlist-bar[data-kind='favorites'],
+.songlist-bar[data-kind='all-songs'] {
+    padding-top: var(--space-8);
+    padding-bottom: var(--space-6);
+}
+.songlist-bar[data-kind='favorites'] .songlist-bar__cover,
+.songlist-bar[data-kind='all-songs'] .songlist-bar__cover {
+    width: clamp(132px, 19vw, 208px);
+    height: clamp(132px, 19vw, 208px);
+}
+.songlist-bar__tagline {
+    margin: var(--space-1) 0 0;
+    color: var(--text-secondary);
+    font-family: var(--font-serif);
+    font-size: var(--text-xl);
+    font-style: italic;
+}
+.songlist-bar__tagline[hidden] {
+    display: none;
+}
+.songlist-bar[data-kind='favorites'] .songlist-bar__count,
+.songlist-bar[data-kind='all-songs'] .songlist-bar__count {
+    margin-top: var(--space-3);
+    color: var(--text-primary);
+    font-size: var(--text-md);
+    font-weight: var(--weight-medium);
+}
+.songlist-bar[data-kind='favorites'] .list-toolbar .icon-btn--solid,
+.songlist-bar[data-kind='all-songs'] .list-toolbar .icon-btn--solid {
+    width: 56px;
+    height: 56px;
+    background: var(--accent);
+    color: var(--text-on-accent);
+}
+@media (max-height: 720px) {
+    .songlist-bar[data-kind='favorites'],
+    .songlist-bar[data-kind='all-songs'] {
+        padding-top: var(--space-4);
+        padding-bottom: var(--space-3);
+    }
+    .songlist-bar[data-kind='favorites'] .songlist-bar__cover,
+    .songlist-bar[data-kind='all-songs'] .songlist-bar__cover {
+        width: 96px;
+        height: 96px;
+    }
+    .songlist-bar__tagline {
+        display: none;
+    }
+    .songlist-bar[data-kind='favorites'] .list-toolbar .icon-btn--solid,
+    .songlist-bar[data-kind='all-songs'] .list-toolbar .icon-btn--solid {
+        width: 48px;
+        height: 48px;
+    }
+}
+
+:where(:root[data-motion='reduced']) .songlist-bar[data-kind='album']::before,
+:where(:root[data-motion='reduced']) .songlist-bar[data-kind='playlist']::before,
+:where(:root[data-motion='reduced']) .songlist-bar[data-kind='artist']::before,
+:where(:root[data-motion='reduced']) .songlist-bar[data-kind='favorites']::before,
+:where(:root[data-motion='reduced']) .songlist-bar[data-kind='all-songs']::before,
+:where(:root[data-motion='reduced']) .songlist-hero-edge {
+    transition: none;
+}
+
 /* ---------- header row ---------- */
 .songlist-head {
     position: sticky;
@@ -203,10 +354,29 @@
     font-weight: var(--weight-medium);
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    background: var(--surface-ground);
+    background: var(--list-ground);
 }
 .songlist-head[hidden] {
     display: none;
+}
+/* A list with a hero: its gradient goes on through the column header (the hero's ::before and ::after are as much taller than the hero as the header is
+   high, --hero-extend), so at rest the header has no ground of its own and the gradient shows through it: the hero is not cut off above the header.
+   Once the list is scrolled and the header has stuck to the top it is solid, in the panels' color (--head-stuck, set on the host; --list-ground
+   if it is not set), so the rows go under it. Its piece beside the scrollbar (.songlist-head-edge) follows, so the header is solid to the wall too. */
+.songlist-head[data-kind='album'],
+.songlist-head[data-kind='playlist'],
+.songlist-head[data-kind='artist'],
+.songlist-head[data-kind='favorites'],
+.songlist-head[data-kind='all-songs'] {
+    background: transparent;
+}
+.songlist-head[data-stuck='true'] {
+    background: var(--head-stuck, var(--list-ground));
+}
+.songlist-head-edge[data-stuck='true'] {
+    box-sizing: border-box;
+    background: var(--head-stuck, var(--list-ground));
+    border-bottom: 1px solid var(--border-subtle);
 }
 /* The header's line runs on to the wall. The scrollbar sits beside the scrolled content, so the header (and its bottom line) stops
    where the bar starts, and a piece of it inside the scroller would be cut off there. This piece lives in the wrapper, behind the
@@ -220,6 +390,38 @@
 }
 .songlist-head-edge[hidden] {
     display: none;
+}
+.songlist-hero-edge {
+    position: absolute;
+    right: 0;
+    pointer-events: none;
+    background-image:
+        radial-gradient(ellipse 55% 120% at 100% 0%, color-mix(in srgb, var(--hero-tint-2) calc(var(--hero-glow) * 0.8), transparent), transparent 70%),
+        linear-gradient(to bottom, color-mix(in srgb, var(--hero-tint) 12%, var(--list-ground)), var(--list-ground));
+    background-repeat: no-repeat;
+    background-size: var(--hero-w) var(--hero-h);
+    background-position: 100% var(--hero-y, 0px);
+    transition: opacity calc(var(--motion-fast) * 2) var(--motion-ease);
+}
+.songlist-hero-edge[hidden] {
+    display: none;
+}
+/* The hero's corner lines go on across the scrollbar. They are centered on the hero's top right corner, so this strip, which starts there, has the
+   other half of the same rings (Liked Songs: the stripes, in step with the hero's). song-list.js gives the sizes (--hero-pw, --hero-ring-r, --hero-phase). */
+.songlist-hero-edge::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-radial-gradient(circle at 0 var(--hero-y, 0px), transparent 0 15px, color-mix(in srgb, var(--hero-tint-2) 22%, transparent) 15px 16px);
+    mask-image: radial-gradient(circle var(--hero-ring-r, 300px) at 0 var(--hero-y, 0px), black, transparent);
+}
+.songlist-hero-edge[data-kind='favorites']::after {
+    background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--hero-tint) 30%, transparent) 0 4px, transparent 4px 12px);
+    background-position-x: calc(-1 * var(--hero-phase, 0px));
+    mask-image: radial-gradient(ellipse calc(var(--hero-pw, 300px) * 0.9) calc(var(--hero-h, 300px) * 1.3) at 0 var(--hero-y, 0px), black, transparent 68%);
+}
+.songlist-hero-edge[data-tint='pending'] {
+    opacity: 0; /* the same fade-in as the hero's own gradient */
 }
 .songlist-head__cell {
     position: relative;
@@ -293,10 +495,9 @@
 .songlist-head__time .songlist-head__sort {
     margin-left: auto;
 }
-@media (prefers-reduced-motion: no-preference) {
-    .songlist-head__sort-arrow {
-        transition: opacity 120ms ease, transform 120ms ease;
-    }
+
+:where(:root:not([data-motion='reduced'])) .songlist-head__sort-arrow {
+    transition: opacity 120ms ease, transform 120ms ease;
 }
 .songlist-head__tail {
     display: flex;
@@ -410,4 +611,121 @@ body.songlist-resizing {
     background: var(--button-primary-bg);
     filter: brightness(1.1);
     color: var(--button-primary-fg);
+}
+
+/* ---------- the Rating column (song-rating-column.js, task B3) ---------- */
+/* Only while the Rating system is on and the column is chosen (the host gets data-rating-column='on'); otherwise the rows and the header have the four
+   columns they always had. The cell is always in the row while it is on (never display: none), as the hidden Album is: the grid counts its children. */
+.songlist-head__cell--rating {
+    display: none;
+}
+.view-host[data-songlist][data-rating-column='on'] {
+    --sl-rating: var(--sl-rating-w, 88px); /* the person may widen it (the handle in the header) */
+}
+.view-host[data-songlist][data-rating-column='on'] .songlist-head,
+.view-host[data-songlist][data-rating-column='on'] .song-item {
+    grid-template-columns: var(--sl-number) minmax(0, var(--sl-title)) minmax(0, var(--sl-album)) var(--sl-rating) var(--sl-right);
+}
+.view-host[data-songlist][data-rating-column='on'] .songlist-head__cell--rating {
+    display: block;
+}
+/* A narrow window drops the column, as it drops the Album (the saved choice stays). */
+@container songhost (max-width: 640px) {
+    .view-host[data-songlist][data-rating-column='on'] .songlist-head,
+    .view-host[data-songlist][data-rating-column='on'] .song-item {
+        --sl-rating: 0px;
+    }
+    .view-host[data-songlist][data-rating-column='on'] .songlist-head__cell--rating,
+    .view-host[data-songlist][data-rating-column='on'] .song-rating {
+        visibility: hidden;
+    }
+}
+.song-rating {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+}
+/* Five stars from one number: --stars is the rating, --preview what a click on the star under the pointer would set. The stars are a mask
+   (a filled star, five times side by side) over a colour that changes at the rating: only the colour moves, never the size (B8). */
+.song-rating__stars {
+    --rating-empty: color-mix(in srgb, var(--text-tertiary) 40%, transparent);
+    --star-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Cpolygon%20points='12%202%2015.09%208.26%2022%209.27%2017%2014.14%2018.18%2021.02%2012%2017.77%205.82%2021.02%207%2014.14%202%209.27%208.91%208.26%2012%202'%20fill='black'%20stroke='black'%20stroke-width='1.5'%20stroke-linejoin='round'/%3E%3C/svg%3E");
+    display: block;
+    flex: none;
+    width: 80px;
+    height: 16px;
+    cursor: pointer;
+    background: linear-gradient(90deg, var(--accent) calc(var(--preview, var(--stars, 0)) * 16px), var(--rating-empty) 0);
+    -webkit-mask: var(--star-mask) 0 0 / 16px 16px repeat-x;
+    mask: var(--star-mask) 0 0 / 16px 16px repeat-x;
+}
+/* An unrated row shows its empty stars faintly; the row under the pointer, the selected row and the focused row show them clearly. */
+.view-host[data-songlist] .song-item:is(.selected, .row-hover-active, :focus-visible) .song-rating__stars {
+    --rating-empty: var(--text-tertiary);
+}
+
+
+/* Every cell has its own place in the grid, so a cell that is missing or extra can never push the others sideways (a row that comes without the
+   Rating cell, or with a left-over one, keeps the time and buttons in the last column and the Album in the third). The last column is counted from the
+   end, so the same rule serves the four-column and the five-column grid. A Rating cell while the column is off is not drawn at all. */
+.view-host[data-songlist] .song-item > .right-song-item,
+.songlist-head > .songlist-head__tail {
+    grid-column: -2 / -1;
+}
+.view-host[data-songlist][data-rating-column='on'] .song-item > .song-rating,
+.view-host[data-songlist][data-rating-column='on'] .songlist-head > .songlist-head__cell--rating {
+    grid-column: 4;
+}
+.view-host[data-songlist]:not([data-rating-column='on']) .song-rating {
+    display: none;
+}
+
+/* The Rating column's handle (song-list.js): the look of the Title and Album handle, only while the column is on, and not in a narrow window. */
+.songlist-rating-resizer {
+    display: none;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: var(--space-4);
+    cursor: col-resize;
+    touch-action: none;
+    z-index: 2;
+}
+.view-host[data-songlist][data-rating-column='on'] .songlist-rating-resizer {
+    display: block;
+}
+.songlist-rating-resizer::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: var(--border-subtle);
+    transition: background var(--motion-fast) var(--motion-ease), top var(--motion-fast) var(--motion-ease), bottom var(--motion-fast) var(--motion-ease);
+}
+.songlist-rating-resizer:hover::after,
+.songlist-rating-resizer:focus-visible::after,
+.songlist-rating-resizer[data-dragging]::after {
+    background: var(--text-primary);
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    margin-left: -1px;
+}
+.songlist-rating-resizer:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+    border-radius: var(--radius-sm);
+}
+@container songhost (max-width: 640px) {
+    .view-host[data-songlist][data-rating-column='on'] .songlist-rating-resizer {
+        display: none;
+    }
+}
+/* The loading rows show a bar in the Rating cell, as they do in the Album cell. */
+.view-host[data-songlist] .song-rating .skeleton-bar {
+    height: 10px;
+    width: 70px;
 }

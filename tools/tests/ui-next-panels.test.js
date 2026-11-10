@@ -111,6 +111,7 @@ describe('panel slots', { concurrency: false }, () => {
         const { page } = await open();
         const closed = () => page.locator('.panel-host').evaluate((n) => n.hasAttribute('data-closed'));
         await rail(page, 'library').click();
+        await page.waitForFunction(() => document.querySelector('.panel-host').hasAttribute('data-closed')); // it slides out first (C8)
         assert.equal(await closed(), true);
         assert.equal(await page.locator('.panel-host').isVisible(), false);
         await rail(page, 'library').click();
@@ -118,6 +119,7 @@ describe('panel slots', { concurrency: false }, () => {
         assert.equal(await page.locator('.panel-host').isVisible(), true);
         await rail(page, 'recent').click(); // another panel item opens it too
         await rail(page, 'recent').click();
+        await page.waitForFunction(() => document.querySelector('.panel-host').hasAttribute('data-closed')); // it slides out first (C8)
         assert.equal(await closed(), true);
         await rail(page, 'library').click();
         assert.equal(await closed(), false);

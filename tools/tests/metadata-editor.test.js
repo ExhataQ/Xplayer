@@ -1,5 +1,5 @@
 // Browser tests for the metadata editor UI (right panel): what it sends on Save, and that it
-// can no longer overwrite, blank or mis-target tags. The Electron/Python side is stubbed and
+// can no longer overwrite, blank or mis-target tags. The Electron side is stubbed and
 // records what the UI asks it to do.
 // Needs playwright + a browser; skips itself if missing (see scroll.test.js for setup).
 
@@ -127,10 +127,10 @@ describe('metadata editor UI', { concurrency: false }, () => {
 
     test('if the tags cannot be read, editing is disabled instead of falling back to shortened data', async (t) => {
         if (!guard(t)) return;
-        const { page } = await openEditor({ success: false, error: 'Python runtime not found' });
+        const { page } = await openEditor({ success: false, error: 'The tag library is not installed' });
         await page.evaluate('openMetadataEditor()');
         assert.equal(await page.evaluate(`document.querySelector('[data-metadata-key="title"]')`), null, 'no editable form should be shown');
-        assert.match(await page.evaluate(`document.getElementById('metadata-editor-content').textContent`), /Python runtime not found/);
+        assert.match(await page.evaluate(`document.getElementById('metadata-editor-content').textContent`), /The tag library is not installed/);
         assert.equal(await page.evaluate('window.__saved.length'), 0);
         await page.close();
     });

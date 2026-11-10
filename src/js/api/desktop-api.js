@@ -45,6 +45,13 @@ export const desktopApi = (function () {
             onThumbarNext: 'on',
             onWindowMaximize: 'on'
         },
+        app: {
+            getAppInfo: 'invoke',
+            openDataFolder: 'invoke',
+            copyDiagnostics: 'invoke',
+            perfRecording: 'invoke',
+            copyPerfSummary: 'invoke'
+        },
         library: {
             changeMusicFolder: 'invoke',
             getMusicFolders: 'invoke',
@@ -55,6 +62,7 @@ export const desktopApi = (function () {
             getFolderStats: 'invoke',
             importDroppedFiles: 'invoke',
             downloadAndScan: 'invoke',
+            probeUrl: 'invoke',
             cancelDownload: 'invoke',
             cancelCoverSearch: 'invoke',
             welcomeSelectFolder: 'invoke',
@@ -83,6 +91,8 @@ export const desktopApi = (function () {
             showFileInExplorer: 'send',
             deleteFile: 'send',
             readAudioBytes: 'invoke',
+            mediaProtocolAvailable: 'sync',
+            readCoverThumb: 'invoke',
             getWaveformPeaks: 'invoke',
             setWaveformPeaks: 'invoke',
             getPathForFile: 'sync'
@@ -91,7 +101,8 @@ export const desktopApi = (function () {
             saveLyricsFile: 'invoke',
             readLyricsFile: 'invoke',
             searchOnlineLyrics: 'invoke',
-            downloadOnlineLyrics: 'invoke'
+            downloadOnlineLyrics: 'invoke',
+            openLrclibSite: 'invoke'
         },
         ai: {
             aiGetStatus: 'invoke',
@@ -107,7 +118,10 @@ export const desktopApi = (function () {
             aiJournalList: 'invoke',
             aiJournalGet: 'invoke',
             aiJournalRecord: 'invoke',
-            aiJournalMarkUndone: 'invoke'
+            aiJournalMarkUndone: 'invoke',
+            aiHostCall: 'invoke',
+            onAiHostRequest: 'on',
+            aiHostRespond: 'send'
         }
     };
 

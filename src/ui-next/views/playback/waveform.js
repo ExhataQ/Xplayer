@@ -253,9 +253,10 @@ export function drawWaveform(canvas, peaks, { progress = 0, played, unplayed, un
     const bar = Math.max(1, Math.round(barWidth * ratio));
     const pitch = bar + Math.max(1, Math.round(gap * ratio));
     const count = Math.max(1, Math.floor((width + pitch - bar) / pitch));
-    const split = Math.max(0, Math.min(1, progress)) * count;
+    const edge = Math.max(0, Math.min(1, progress)) * width; // where the played part ends, in device pixels: a bar is played from its left side up to here
     const room = Math.max(1, Math.round(height * heightShare));
     const least = Math.max(1, Math.round(minBar * ratio));
+    const bars = [];
     for (let index = 0; index < count; index++) {
         const from = Math.floor((index * peaks.length) / count);
         const to = Math.max(from + 1, Math.floor(((index + 1) * peaks.length) / count));
@@ -264,9 +265,22 @@ export function drawWaveform(canvas, peaks, { progress = 0, played, unplayed, un
         const value = total / (to - from); // the average of the bins in this bar; the maximum would push every bar toward full height
         let tall = Math.min(height, Math.max(least, Math.round((value / 255) * room)));
         if ((height - tall) % 2 !== 0 && tall < height) tall += 1; // an even gap above and below keeps the bar centered
-        ctx.globalAlpha = index < split ? 1 : unplayedAlpha;
-        ctx.fillStyle = index < split ? played : unplayed;
-        ctx.fillRect(index * pitch, (height - tall) / 2, bar, tall);
+        bars.push([index * pitch, (height - tall) / 2, tall]);
+    }
+    // Unplayed first, then the played colour over it, cut at the exact pixel: the edge moves smoothly instead of one bar at a time.
+    ctx.globalAlpha = unplayedAlpha;
+    ctx.fillStyle = unplayed;
+    for (const [x, y, tall] of bars) ctx.fillRect(x, y, bar, tall);
+    if (edge > 0) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, edge, height);
+        ctx.clip();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = played;
+        ctx.clearRect(0, 0, edge, height); // the unplayed bars under the played ones must not show through at partial alpha
+        for (const [x, y, tall] of bars) ctx.fillRect(x, y, bar, tall);
+        ctx.restore();
     }
     ctx.globalAlpha = 1;
     return count;

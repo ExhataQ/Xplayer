@@ -412,44 +412,35 @@ textarea.field__input {
     pointer-events: none;
     animation: tooltip-flash var(--motion-fast) var(--motion-ease);
 }
-/* A short flash when it opens: the border and a thin ring start in the accent and settle, and the box slides 3px in from the
-   side it is attached to. The animation restarts each time the hidden tooltip is shown (display none to block). */
+/* A short fade when it opens, and the box slides 3px in from the side it is attached to (no coloured border or ring: it read as a
+   yellow flash). The animation restarts each time the hidden tooltip is shown (display none to block). */
 @keyframes tooltip-flash {
     from {
         opacity: 0;
-        border-color: var(--accent);
-        box-shadow: 0 0 0 2px var(--accent-soft), 0 0 12px var(--accent-soft);
         translate: 0 3px;
     }
     to {
         opacity: 1;
-        box-shadow: 0 0 0 0 transparent;
         translate: 0 0;
     }
 }
 @keyframes tooltip-flash-top {
     from {
         opacity: 0;
-        border-color: var(--accent);
-        box-shadow: 0 0 0 2px var(--accent-soft), 0 0 12px var(--accent-soft);
         translate: 0 -3px;
     }
     to {
         opacity: 1;
-        box-shadow: 0 0 0 0 transparent;
         translate: 0 0;
     }
 }
 @keyframes tooltip-flash-side {
     from {
         opacity: 0;
-        border-color: var(--accent);
-        box-shadow: 0 0 0 2px var(--accent-soft), 0 0 12px var(--accent-soft);
         translate: -3px 0;
     }
     to {
         opacity: 1;
-        box-shadow: 0 0 0 0 transparent;
         translate: 0 0;
     }
 }
@@ -537,7 +528,9 @@ textarea.field__input {
 .toaster {
     position: fixed;
     z-index: var(--layer-toast);
-    right: var(--space-4);
+    left: 50%; /* in the middle of the window, above the player */
+    translate: -50% 0;
+    max-width: calc(100vw - var(--space-8));
     bottom: calc(var(--player-height) + var(--space-6)); /* a little room under the stack, so a hovered toast does not touch the player */
     display: flex;
     flex-direction: column;
@@ -548,7 +541,7 @@ textarea.field__input {
 .toast {
     transition: translate var(--motion-fast) var(--motion-ease);
     display: flex;
-    align-items: flex-start;
+    align-items: center; /* one line: the icon, the text and the close button share one middle */
     gap: var(--space-3);
     padding: var(--space-3);
     border: 1px solid var(--border-strong);
@@ -567,9 +560,18 @@ textarea.field__input {
 .toast:hover {
     translate: 0 -4px; /* lifts a little while the pointer is on it */
 }
+.toast:has(.toast__message, .toast__actions) {
+    align-items: flex-start; /* more than one line: the icon and the title stay at the top... */
+}
+.toast:has(.toast__message, .toast__actions) > .icon-btn {
+    margin-top: -4px; /* ...and the close button (28 px) is centered on the title's line (20 px) */
+}
 .toast__icon {
     margin-top: 1px;
     color: var(--text-secondary);
+}
+.toast:not(:has(.toast__message, .toast__actions)) .toast__icon {
+    margin-top: 0;
 }
 .toast[data-kind='success'] .toast__icon {
     color: var(--accent);
@@ -762,6 +764,10 @@ textarea.field__input {
 .menu__item[data-open='true'] {
     background: var(--control-hover-bg);
 }
+/* opened with the mouse: the first item holds focus for the keyboard but is not painted until a key is pressed (menu.js) */
+.menu[data-input='pointer'] .menu__item:focus:not(:hover, :active, [data-open='true'], .is-hover) {
+    background: transparent;
+}
 .menu__item:is(:active, .is-active):not([aria-disabled='true']) {
     background: var(--control-active-bg);
 }
@@ -861,4 +867,149 @@ textarea.field__input {
     justify-content: center;
     gap: var(--space-2);
     margin-top: var(--space-2);
+}
+
+/* A shadow under the top edge of a scrolling list, only while it is scrolled (components/scroll-shadow.js sets data-scrolled on the wrapper).
+   The wrapper carries .scroll-shadow--overlay and the shadow is drawn over its top, across its whole width, so the scroll bar's place has it too. */
+.scroll-shadow--overlay {
+    position: relative;
+}
+.scroll-shadow--overlay::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 3;
+    height: 14px;
+    background: linear-gradient(to bottom, var(--scroll-shadow-color), transparent);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--motion-fast) var(--motion-ease);
+}
+.scroll-shadow--overlay[data-scrolled='true']::before {
+    opacity: 1;
+}
+/* Opt-in (scrollShadow(..., { bottom: true })): the same shadow over the bottom edge while more of the list is below. */
+.scroll-shadow--overlay.scroll-shadow--bottom::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 3;
+    height: 14px;
+    background: linear-gradient(to top, var(--scroll-shadow-color, rgb(0 0 0 / 0.35)), transparent);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--motion-fast) var(--motion-ease);
+}
+.scroll-shadow--overlay.scroll-shadow--bottom[data-more='true']::after {
+    opacity: 1;
+}
+
+:where(:root[data-motion='reduced']) .scroll-shadow--overlay::before,
+:where(:root[data-motion='reduced']) .scroll-shadow--overlay.scroll-shadow--bottom::after {
+    transition: none;
+}
+
+/* Picker (picker.js): a search field over a list. Inline it fills a submenu (which brings its own box); floating it is a box of its own. */
+.picker {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+.picker--floating {
+    position: fixed;
+    z-index: var(--layer-menu);
+    width: 240px;
+    max-height: min(360px, calc(100vh - var(--space-4)));
+    padding: var(--space-1);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--menu-bg);
+    box-shadow: var(--shadow-raised);
+}
+.picker--inline {
+    width: 100%;
+}
+.picker__search {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-2);
+    height: var(--menu-item-height);
+    margin-bottom: var(--space-1);
+    padding: 0 var(--space-3);
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+}
+.picker__search:focus-within {
+    border-bottom-color: var(--accent);
+}
+.picker__input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+}
+.picker__list {
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+}
+/* Tall enough for about seven rows, so a short list does not make the box a thin strip, and never taller than the window. */
+.picker--inline .picker__list {
+    min-height: calc(var(--menu-item-height) * 7);
+    max-height: min(calc(var(--menu-item-height) * 10), calc(100vh - 6 * var(--space-4)));
+}
+.picker__row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    height: var(--menu-item-height);
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: var(--text-md);
+    cursor: pointer;
+}
+.picker__row.is-active {
+    background: var(--control-hover-bg);
+}
+.picker__row:active {
+    background: var(--control-active-bg);
+}
+.picker__row--last-action {
+    margin-bottom: var(--space-1);
+    border-bottom: 1px solid var(--border-subtle);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.picker__gutter {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+}
+.picker__row.is-marked .picker__gutter {
+    color: var(--accent);
+}
+.picker__label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.picker__empty {
+    padding: var(--space-3);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    text-align: center;
 }

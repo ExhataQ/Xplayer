@@ -95,8 +95,8 @@ describe('settings layout', { concurrency: false }, () => {
         const expected = {
             general: ['Appearance', 'Window', 'Startup screen'],
             playback: ['Player bar', 'Playback & Audio', 'Smart Shuffle'], // the engine's order
-            library: ['Music Library Folders', 'Play from URL — Save Location'],
-            data: ['Backup & Restore', 'Advanced']
+            library: ['Music Library Folders', 'Play from URL — Save Location', 'Rating system'],
+            data: ['Backup & Restore', 'Advanced', 'About']
         };
         await openSettings(page);
         for (const [id, list] of Object.entries(expected)) {
@@ -156,7 +156,7 @@ describe('settings layout', { concurrency: false }, () => {
         await page.click('.settings-advanced-back-btn');
         await page.waitForSelector('.settings-panel-content[data-settings-page]');
         assert.equal(await pageId(page), 'data');
-        assert.deepEqual(await titles(page), ['Backup & Restore', 'Advanced']);
+        assert.deepEqual(await titles(page), ['Backup & Restore', 'Advanced', 'About']);
         await page.locator('.rail-btn[data-view="library"]').click();
         await openSettings(page);
         assert.equal(await pageId(page), 'general');

@@ -93,7 +93,7 @@ function makeWorld({ failTagsFor = [] } = {}) {
                 return {
                     success: true,
                     results: items.map(({ fileUrl, metadata }) => {
-                        if (failTagsFor.includes(fileUrl)) return { fileUrl, success: false, error: 'Python is not installed' };
+                        if (failTagsFor.includes(fileUrl)) return { fileUrl, success: false, error: 'The tag library is not installed' };
                         const song = w.SONGS_DATA.find((x) => x.url === fileUrl);
                         const previous = {};
                         for (const key of Object.keys(metadata)) if (song[key] !== undefined) previous[key] = song[key];
@@ -285,12 +285,12 @@ test('bridge: when one song cannot be written the others keep their undo data; w
     const r = await bridge.runPlan({ summary: 'tags', actions: [{ type: 'set_tags', args: { songs: [1, 2], tags: { genre: 'Pop' } } }] });
     assert.equal(r.ok, true);
     assert.equal(r.warnings.length, 1);
-    assert.match(r.warnings[0], /Two: Python is not installed/);
+    assert.match(r.warnings[0], /Two: The tag library is not installed/);
     assert.deepEqual(journal.get(r.entryId).changes[0].undo.changed.map((c) => c.fileUrl), ['u1']);
     assert.equal(w.SONGS_DATA[1].genre, undefined, 'the song that failed is unchanged in memory');
     const none = await bridge.runPlan({ summary: 'tags', actions: [{ type: 'set_tags', args: { songs: [2], tags: { genre: 'Pop' } } }] });
     assert.equal(none.ok, false);
-    assert.match(none.failure.message, /Python is not installed/);
+    assert.match(none.failure.message, /The tag library is not installed/);
     assert.equal(none.entryId, null);
     const gone = await bridge.runPlan({ summary: 'tags', actions: [{ type: 'set_tags', args: { songs: [99], tags: { genre: 'Pop' } } }] });
     assert.match(gone.failure.message, /None of those songs/);
@@ -308,4 +308,33 @@ test('bridge: songs a contextual button is about count as selected for that requ
     await bridge.plan({ request: 'fill tags', focus: [2] });
     assert.equal(calls[0].songs[0].id, 2);
     assert.equal(calls[0].songs[0].selected, true);
+});
+
+test('bridge: serveHost at start-up never throws: no desktop API yet or at all means it waits or does nothing, and with one it answers the chat window', async () => {
+    // The shell calls it while the page is being set up, before window.desktopApi may exist (this was a start-up crash once).
+    const { w } = makeWorld();
+    delete w.desktopApi;
+    globalThis.document = { readyState: 'complete' };
+    const bridge = await load(w);
+    let threw = null;
+    let result;
+    try {
+        result = await bridge.serveHost(() => 1);
+    } catch (error) {
+        threw = error;
+    }
+    assert.equal(threw, null);
+    assert.equal(result, false, 'nothing to listen to');
+    // An old preload that has the ai group but not the host calls: also quiet.
+    w.desktopApi = { ai: {} };
+    assert.equal(await bridge.serveHost(() => 1), false);
+    // With the calls present it listens, runs the request and answers with the value or the error.
+    let listener = null;
+    const answers = [];
+    w.desktopApi = { ai: { onAiHostRequest: (cb) => { listener = cb; }, aiHostRespond: (m) => answers.push(m) } };
+    assert.equal(await bridge.serveHost((name) => { if (name === 'bad') throw new Error('nope'); return name.toUpperCase(); }), true);
+    await listener({ id: 1, name: 'ok', args: [] });
+    await listener({ id: 2, name: 'bad', args: [] });
+    assert.deepEqual(answers, [{ id: 1, ok: true, value: 'OK' }, { id: 2, ok: false, error: 'nope' }]);
+    delete globalThis.document;
 });

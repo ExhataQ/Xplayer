@@ -1,8 +1,8 @@
 'use strict';
 
-// The tag rules of electron/metadata-editor.py, in Node, with no audio library and no files (task PD-01, decision DP7).
+// The tag rules (task PD-01, decision DP7): which tags are read, written and cleared, with no audio library and no files.
 // They work on a small "model" of one file's tags, so they can be tested without a library and the library adapter
-// (tag-lib-adapter.js) stays thin. Keep this file and the Python script saying the same thing until the Python path is removed.
+// (tag-lib-adapter.js) stays thin.
 //
 // Model for an ID3 file (MP3, WAV, AIFF): keys are frame ids ('TIT2') or 'TXXX:<description>'.
 //   get(key) -> string[]      set(key, values) (empty list deletes)      del(key)
@@ -10,6 +10,9 @@
 //   entries() -> [{ key, values }]   every text or url frame except pictures
 // Model for a Vorbis-comment file (FLAC, OGG, Opus): keys are lower case.
 //   get(key) -> string[]      set(key, values) (empty list deletes)      del(key)      entries() -> [{ key, values }]
+// Model for an MP4 file (M4A, MP4, M4B): keys are the four-letter atom names ('\u00a9nam', 'aART'), '----:<NAME>' for the free-form
+// iTunes atoms (mean com.apple.iTunes), and the four numeric atoms as text: 'trkn' and 'disk' ("7/13"), 'tmpo' ("120"), 'cpil' ("1" or "").
+//   get, set, del and entries as for Vorbis.
 
 const MULTI = ['artist', 'albumArtist', 'composer', 'genre', 'conductor', 'remixer', 'musicBrainzArtistId'];
 const ALL_FIELDS = [
@@ -51,6 +54,22 @@ const VORBIS_MULTI = {
     conductor: 'conductor', remixer: 'remixer', musicBrainzArtistId: 'musicbrainz_artistid'
 };
 const VORBIS_NUMBERED = new Set(['track', 'trackTotal', 'discNumber', 'discTotal']);
+
+// MP4: the field -> the atom (as iTunes and Picard write it). '----:NAME' is a free-form atom.
+const MP4_TEXT = {
+    title: '\u00a9nam', album: '\u00a9alb', year: '\u00a9day', copyright: 'cprt', comment: '\u00a9cmt', grouping: '\u00a9grp',
+    description: 'desc', encodedBy: '\u00a9too', sortTitle: 'sonm', sortArtist: 'soar', sortAlbum: 'soal', sortComposer: 'soco',
+    label: '----:LABEL', isrc: '----:ISRC', producer: '----:PRODUCER', lyricist: '----:LYRICIST', writer: '----:WRITER',
+    mood: '----:MOOD', language: '----:LANGUAGE',
+    musicBrainzTrackId: '----:MusicBrainz Track Id', musicBrainzAlbumId: '----:MusicBrainz Album Id',
+    musicBrainzOriginalAlbumId: '----:MusicBrainz Original Album Id', musicBrainzReleaseGroupId: '----:MusicBrainz Release Group Id'
+};
+// Several values are written as one text joined with "; " (what iTunes and Windows show); reading splits on ";" again.
+const MP4_MULTI = {
+    artist: '\u00a9ART', albumArtist: 'aART', composer: '\u00a9wrt', genre: '\u00a9gen', conductor: '\u00a9con',
+    remixer: '----:REMIXER', musicBrainzArtistId: '----:MusicBrainz Artist Id'
+};
+const MP4_KNOWN = new Set([...Object.values(MP4_TEXT), ...Object.values(MP4_MULTI), 'trkn', 'disk', 'tmpo', 'cpil', 'covr', 'gnre', '----:PUBLISHER'].map((k) => k.toLowerCase()));
 
 // Values of a frame or field: no empty entries, and NUL separates values (some old taggers write several values in one string).
 function vals(list) {
@@ -95,6 +114,8 @@ function otherTags(kind, model) {
             if (kind === 'id3') {
                 const id = String(key).split(':')[0];
                 if (ID3_KNOWN.has(id) || ID3_KNOWN_TXXX.has(String(key)) || id === 'APIC') continue;
+            } else if (kind === 'mp4') {
+                if (MP4_KNOWN.has(String(key).toLowerCase())) continue;
             } else if (VORBIS_KNOWN.has(String(key).toLowerCase())) continue;
             const v = vals(values);
             if (v.length) result.push({ key: String(key), values: v });
@@ -132,6 +153,13 @@ function readMetadata(kind, model, cover = null) {
         [r.discNumber, r.discTotal] = splitNum(model, 'TPOS');
         const c = userComment(model.comments());
         r.comment = c && c.text ? String(c.text) : '';
+    } else if (kind === 'mp4') {
+        for (const [field, key] of Object.entries(MP4_TEXT)) r[field] = first(model, key);
+        for (const [field, key] of Object.entries(MP4_MULTI)) r[field] = frameValues(model, key);
+        r.bpm = first(model, 'tmpo');
+        r.compilation = first(model, 'cpil');
+        [r.track, r.trackTotal] = splitNum(model, 'trkn');
+        [r.discNumber, r.discTotal] = splitNum(model, 'disk');
     } else if (kind === 'vorbis') {
         const ev = (k) => multiTagValues(model.get(k));
         Object.assign(r, {
@@ -219,12 +247,32 @@ function writeVorbis(model, d) {
     return Object.keys(d).filter((k) => !supported.has(k)).sort();
 }
 
+function writeMp4(model, d) {
+    const put = (key, values) => { if (values.length) model.set(key, values); else model.del(key); };
+    for (const [src, key] of Object.entries(MP4_TEXT)) if (src in d) { const v = clean(d[src]); put(key, v ? [v] : []); }
+    for (const [src, key] of Object.entries(MP4_MULTI)) if (src in d) { const v = multiValues(d[src]); put(key, v.length ? [v.join('; ')] : []); }
+    // Label and Publisher are one atom; the editor reads it as "label".
+    if (!('label' in d) && 'publisher' in d) { const v = clean(d.publisher); put(MP4_TEXT.label, v ? [v] : []); }
+    if ('bpm' in d) { const v = clean(d.bpm); put('tmpo', v ? [v] : []); }
+    if ('compilation' in d) { const v = clean(d.compilation); put('cpil', v && !/^(0|false|no)$/i.test(v) ? ['1'] : []); }
+    for (const [key, numKey, totKey] of [['trkn', 'track', 'trackTotal'], ['disk', 'discNumber', 'discTotal']]) {
+        if (!(numKey in d) && !(totKey in d)) continue;
+        const [curNum, curTot] = splitNum(model, key);
+        const num = numKey in d ? clean(d[numKey]) : curNum;
+        const tot = totKey in d ? clean(d[totKey]) : curTot;
+        put(key, num || tot ? [`${num}${tot ? '/' + tot : ''}`] : []);
+    }
+    const supported = new Set([...Object.keys(MP4_TEXT), ...Object.keys(MP4_MULTI), 'publisher', 'bpm', 'compilation', ...VORBIS_NUMBERED]);
+    return Object.keys(d).filter((k) => !supported.has(k)).sort();
+}
+
 // `patch` is a PATCH: a key that is absent is left alone; a key that is present is written, and an empty value clears it.
 // Returns the keys that could not be saved for this kind of file.
 function applyPatch(kind, model, patch) {
     const d = {};
     for (const k of Object.keys(patch || {})) if (!k.startsWith('__')) d[k] = patch[k];
-    return kind === 'id3' ? writeId3(model, d) : writeVorbis(model, d);
+    if (kind === 'id3') return writeId3(model, d);
+    return kind === 'mp4' ? writeMp4(model, d) : writeVorbis(model, d);
 }
 
 module.exports = { readMetadata, applyPatch, vals, multiTagValues, userComment, clean, multiValues, ALL_FIELDS, MULTI };

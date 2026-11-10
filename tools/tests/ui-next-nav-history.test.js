@@ -86,6 +86,36 @@ describe('createNavHistory (the matrix of back and forward sequences)', () => {
         assert.equal(state.now.view, 'metadata');
     });
 
+    test('onChange runs after every move of the position, so the title-bar buttons can repaint', () => {
+        let calls = 0;
+        const state = { now: { view: 'library', engine: null } };
+        const nav = createNavHistory({ read: () => ({ ...state.now }), restore: (e) => { state.now = { ...e }; return true; }, onChange: () => { calls++; } });
+        nav.record();
+        const first = calls;
+        assert.ok(first >= 1);
+        state.now = { view: 'lyrics', engine: null };
+        nav.record();
+        assert.equal(calls, first + 1);
+        assert.equal(nav.canBack(), true);
+        nav.back();
+        assert.equal(calls, first + 2);
+        assert.deepEqual([nav.canBack(), nav.canForward()], [false, true]);
+    });
+
+    test('a refused restore still reports, and a throwing onChange never breaks navigation', () => {
+        const state = { now: { view: 'a', engine: null } };
+        const nav = createNavHistory({ read: () => ({ ...state.now }), restore: () => false, onChange: () => { throw new Error('paint'); } });
+        const quiet = console.error;
+        console.error = () => {};
+        try {
+            nav.record();
+            state.now = { view: 'b', engine: null };
+            nav.record();
+            assert.equal(nav.back(), false);
+            assert.equal(nav.canBack(), true);
+        } finally { console.error = quiet; }
+    });
+
     test('it keeps at most 100 places', () => {
         const { nav, go } = shell();
         for (let i = 0; i < 150; i++) go('v' + i);
@@ -165,12 +195,17 @@ describe('mouse back and forward in the new shell', { concurrency: false }, () =
         if (!guard(t)) return;
         const { page } = await open();
         await page.evaluate(() => { window.__engineBack = 0; const orig = window.goBack; window.goBack = () => { window.__engineBack++; return orig && orig(); }; });
+        const settled = (view) => page.waitForFunction((v) => document.querySelector('.view-host').dataset.view === v, view); // leaving Home takes a moment
         await rail(page, 'home');
-        await rail(page, 'library');
+        await settled('home');
+        await rail(page, 'settings'); // Library is a panel-only item since PB-02, it does not change the main view
+        await settled('settings');
         await mouse(page, 3);
+        await settled('home');
         assert.deepEqual([(await where(page)).view, (await where(page)).current], ['home', 'home']);
         await mouse(page, 4);
-        assert.equal((await where(page)).view, 'library');
+        await settled('settings');
+        assert.equal((await where(page)).view, 'settings');
         assert.equal(await page.evaluate(() => window.__engineBack), 0);
         await page.close();
     });
@@ -187,6 +222,35 @@ describe('mouse back and forward in the new shell', { concurrency: false }, () =
         assert.equal(await page.evaluate(() => window.currentView), 'favorites');
         await mouse(page, 3);
         assert.equal(await page.evaluate(() => window.currentView), 'all-songs');
+        await page.close();
+    });
+
+    const buttons = (page) => page.evaluate(() => {
+        const b = document.querySelector('#back-btn'), f = document.querySelector('#forward-btn');
+        return { back: !b.disabled, forward: !f.disabled };
+    });
+
+    test('the title-bar Back and Forward buttons walk every place and show whether they can', TEST_OPTIONS, async (t) => {
+        if (!guard(t)) return;
+        const { page, errors } = await open();
+        assert.deepEqual(await buttons(page), { back: false, forward: false });
+        await rail(page, 'settings');
+        await rail(page, 'lyrics');
+        assert.deepEqual(await buttons(page), { back: true, forward: false });
+        await page.locator('#back-btn').click();
+        assert.deepEqual([(await where(page)).view, (await where(page)).current], ['settings', 'settings']);
+        assert.deepEqual(await buttons(page), { back: true, forward: true });
+        await page.locator('#back-btn').click();
+        assert.equal((await where(page)).view, 'library');
+        assert.deepEqual(await buttons(page), { back: false, forward: true });
+        await page.locator('#forward-btn').click();
+        await page.locator('#forward-btn').click();
+        assert.equal((await where(page)).view, 'lyrics');
+        assert.deepEqual(await buttons(page), { back: true, forward: false });
+        // the engine repaints these buttons after its own changes: the shell's state must win
+        await page.evaluate(() => window.updateNavigationButtons && window.updateNavigationButtons());
+        assert.deepEqual(await buttons(page), { back: true, forward: false });
+        assert.deepEqual(errors.filter((e) => !/reading 'enabled'/.test(e)), []);
         await page.close();
     });
 

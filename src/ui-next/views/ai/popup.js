@@ -3,7 +3,7 @@
 // The conversation is shared between the two (it lives in ai-chat.js). The window's own button is Minimize: the window goes away and
 // the conversation waits.
 
-import { getAiPopupHost, setAiPopupOpen, contextFor, openAiChatView, closeAiChatView, registerAiPopup } from '../../shell/ai-slots.js';
+import { getAiPopupHost, setAiPopupOpen, contextFor, expandAiChat, closeAiChatView, registerAiPopup } from '../../shell/ai-slots.js';
 import { el } from '../../components/index.js';
 import { mountChat } from './ai-chat.js';
 
@@ -88,9 +88,10 @@ export function togglePopup() {
     else openPopup();
 }
 
-function expand() {
+// Expand: the chat in a window of its own (the big view when no window can be opened). The pop-up goes away once that is open.
+async function expand() {
+    await expandAiChat();
     closePopup();
-    openAiChatView();
 }
 
 /** The big view's Make smaller button. */

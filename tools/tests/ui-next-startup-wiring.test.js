@@ -146,10 +146,10 @@ describe('startup wiring in a real page', { concurrency: false }, () => {
         await damaged.page.close();
     });
 
-    test('while it is up, the real title bar floats above it: logo menu and window buttons work, the rest waits, the app below is covered', TEST_OPTIONS, async (t) => {
+    test('while it is up, the real title bar floats above it: the window buttons work, the logo menu and the rest wait, the app below is covered', TEST_OPTIONS, async (t) => {
         if (!guard(t)) return;
         const { page, errors } = await open({ delayEngine: 1500, waitDone: false });
-        await page.waitForSelector('.logo-btn'); // the startup view now appears before the shell has built the title bar
+        await page.waitForSelector('.logo-btn', { state: 'attached' }); // (hidden while starting) the startup view now appears before the shell has built the title bar
         const r = await page.evaluate(() => {
             const at = (el) => {
                 const b = el.getBoundingClientRect();
@@ -161,7 +161,7 @@ describe('startup wiring in a real page', { concurrency: false }, () => {
             const nav = [...document.querySelectorAll('.titlebar .nav-btn, .titlebar .icon-btn')];
             return {
                 starting: document.body.dataset.starting,
-                logoOnTop: at(q('.logo-btn'))?.closest('.logo-btn') === q('.logo-btn'),
+                logoHidden: getComputedStyle(q('.logo-btn')).visibility === 'hidden',
                 closeOnTop: at(q('.close-app-btn'))?.closest('.close-app-btn') === q('.close-app-btn'),
                 navHidden: nav.length > 0 && nav.every((n) => getComputedStyle(n).visibility === 'hidden'),
                 titlebarClear: getComputedStyle(q('.titlebar')).backgroundColor === 'rgba(0, 0, 0, 0)',
@@ -170,7 +170,7 @@ describe('startup wiring in a real page', { concurrency: false }, () => {
                 dragRegion: getComputedStyle(q('.titlebar')).getPropertyValue('-webkit-app-region') === 'drag' || true
             };
         });
-        assert.deepEqual(r, { starting: 'true', logoOnTop: true, closeOnTop: true, navHidden: true, titlebarClear: true, ownControlsAbsent: true, appCovered: true, dragRegion: true });
+        assert.deepEqual(r, { starting: 'true', logoHidden: true, closeOnTop: true, navHidden: true, titlebarClear: true, ownControlsAbsent: true, appCovered: true, dragRegion: true });
         assert.deepEqual(errors, []);
         await page.close();
     });

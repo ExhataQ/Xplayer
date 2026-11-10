@@ -345,8 +345,8 @@ test('what a search stages goes through the same review and Undo as every other 
 test('when files cannot be read the reason is kept and reported, not just the word "unreadable"', async () => {
     const { createTagSheetActions } = await load();
     const bridge = fakeBridge();
-    const message = 'Tags cannot be read or saved yet: the Python package "mutagen" is not installed. Install it with: python -m pip install mutagen';
-    bridge.readTags = async () => ({ success: false, reason: 'no-mutagen', error: message });
+    const message = 'The tag library (node-taglib-sharp) is not installed. Run: npm install node-taglib-sharp';
+    bridge.readTags = async () => ({ success: false, reason: 'no-library', error: message });
     const { api } = createTagSheetActions(bridge);
     api.loadSongs('all-songs');
     api.setColumns(['title', 'composer']);

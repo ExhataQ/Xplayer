@@ -24,6 +24,8 @@ let popupHost = null; // set by the shell: the layer the pop-up is drawn into
 let popupOpen = false;
 let queueOpener = null; // set by the shell: shows the queue panel
 let lyricsBar = null; // set by views/ai: the Translate controls in the lyrics bar
+let away = null; // set by views/ai in the chat's own window: shows something in the main window instead of here
+let windowOpener = null; // set by views/ai: opens the chat in a window of its own
 
 export const AI_VIEW_ID = 'ai-chat';
 export const AI_SHORTCUTS = { chat: 'Ctrl+Shift+A', shuffle: 'Ctrl+Shift+S', undo: 'Ctrl+Shift+U' };
@@ -107,10 +109,25 @@ export const toggleAiPopup = () => popup && popup.toggle();
 export function setAiQueueOpener(fn) {
     queueOpener = fn;
 }
-export const openAiQueue = () => queueOpener && queueOpener();
+export const openAiQueue = () => (away ? away('queue') : queueOpener && queueOpener());
+
+/** Used by views/ai in the chat window: shows a view, the queue or Settings in the main window. */
+export function setAiAway(fn) {
+    away = fn;
+}
+/** Used by views/ai: how the chat is opened in a window of its own (null when this build cannot). */
+export function setAiWindowOpener(fn) {
+    windowOpener = fn;
+}
+/** The pop-up's Expand: the chat in a window of its own; the big view when that window cannot be opened (no Electron, old interface). */
+export async function expandAiChat() {
+    if (windowOpener && (await windowOpener()) === true) return true;
+    openAiChatView();
+    return true;
+}
 
 /** For E's screens: shows a main view by id (library, search, recents, lyrics, metadata, settings). */
-export const openAiPanel = (id) => navigator && navigator(id);
+export const openAiPanel = (id) => (away ? away('panel', id) : navigator && navigator(id));
 
 /** The Translate controls of the lyrics bar. `spec` = { mount(host, ctx) }; the lyrics view calls mountAiLyricsBar(host) when it draws its bar. */
 export function registerAiLyricsBar(spec) {
@@ -127,6 +144,7 @@ export function closeAiChatView() {
 
 /** For E's screens: shows Settings (where the AI section lives). */
 export function openAiSettings() {
+    if (away) return away('settings');
     if (!navigator) return;
     navigator('settings');
     // Settings opens on its first tab: go on to the AI tab once the menu bar is drawn.

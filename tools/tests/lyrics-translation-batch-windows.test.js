@@ -56,15 +56,16 @@ test('the Batch page: list only, loaded from sources, no "all songs" button, ins
     assert.match(read('src', 'ui-next', 'views', 'tools', 'lyrics.css'), /\.lyrics-bar \{[^}]*justify-content: center/);
 });
 
-test('tool windows: only metadata and sync, one window each, the page shows only the tool', async () => {
+test('tool windows: metadata, sync and the AI chat, one window each, the page shows only the tool', async () => {
     const { toolWindowParams } = await import(pathToFileURL(UI('shell', 'tool-popout.js')).href).catch(() => ({}));
     if (toolWindowParams) {
         assert.deepEqual(toolWindowParams('?tool=sync&song=12'), { tool: 'sync', song: '12' });
+        assert.deepEqual(toolWindowParams('?tool=ai'), { tool: 'ai', song: '' });
         assert.equal(toolWindowParams('?tool=evil'), null);
         assert.equal(toolWindowParams(''), null);
     }
     const wm = read('electron', 'window-manager.js');
-    assert.match(wm, /const TOOLS = \{ metadata: 'Metadata editor', sync: 'Sync lyrics' \}/);
+    assert.match(wm, /const TOOLS = \{ metadata: 'Metadata editor', sync: 'Sync lyrics', ai: 'AI assistant' \}/);
     assert.match(wm, /toolWindows\.get\(tool\)/);
     assert.match(read('src', 'ui-next', 'shell', 'shell.css'), /html\[data-tool-window\] :is\(/);
     assert.match(read('src', 'ui-next', 'shell', 'tool-popout.js'), /in a new window/);
@@ -90,5 +91,5 @@ test('Sync has no bar of its own, Metadata has the Lyrics tool\'s bar, the right
     assert.match(read('src', 'ui-next', 'views', 'tools', 'metadata.css'), /\.metadata-mode \{[^}]*border-bottom/);
     const panel = read('src', 'ui-next', 'views', 'playback', 'right-panel-content.js');
     assert.match(panel, /body\.append\(frame, header, el\('div', \{ class: 'rp-now__info' \}, note\), lyrics, follow\)/);
-    assert.match(panel, /ICON_FILL = \{ out: 'maximize-2', in: 'minimize-2' \}/);
+    assert.match(panel, /ICON_FILL = \{ out: 'corners-out', in: 'corners-in' \}/);
 });

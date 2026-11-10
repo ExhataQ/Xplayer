@@ -34,6 +34,45 @@ test('each write keeps the previous list as songs.json.bak', () => {
     assert.deepEqual(backup.songs, [SONGS[0]]);
 });
 
+test('a dated copy is kept at most once an hour, the last five only, and a damaged list falls back to them', () => {
+    const dir = tempDir();
+    const file = path.join(dir, 'songs.json');
+    const history = path.join(dir, store.HISTORY_DIR);
+    store.writeSongs(dir, SONGS);
+    assert.equal(fs.existsSync(history), false, 'the first write has nothing to keep');
+    store.writeSongs(dir, SONGS);
+    assert.equal(fs.readdirSync(history).length, 1, 'the second write keeps the first list');
+    store.writeSongs(dir, SONGS);
+    assert.equal(fs.readdirSync(history).length, 1, 'not again within the hour');
+
+    // Six old copies, then a write over an hour later: one new, five kept in all, the oldest gone.
+    const hour = 60 * 60 * 1000;
+    for (const n of fs.readdirSync(history)) fs.unlinkSync(path.join(history, n));
+    for (let i = 1; i <= 6; i++) {
+        const copy = path.join(history, `songs-2026010${i}-000000.json`);
+        fs.writeFileSync(copy, JSON.stringify({ version: 1, songs: [{ id: i, title: 'old ' + i }] }));
+        const t = new Date(Date.now() - (10 - i) * hour);
+        fs.utimesSync(copy, t, t);
+    }
+    store.keepHistory(file, Date.now() + hour);
+    const names = fs.readdirSync(history).sort();
+    assert.equal(names.length, 5);
+    assert.ok(!names.includes('songs-20260101-000000.json') && !names.includes('songs-20260102-000000.json'));
+
+    // songs.json and songs.json.bak both unusable: the newest dated copy is used.
+    fs.writeFileSync(file, '{"songs":[{"id":');
+    fs.writeFileSync(file + '.bak', 'nope');
+    const fallback = store.readSongs(dir);
+    assert.equal(fallback.length > 0, true);
+});
+
+test('an empty library is not copied into the history', () => {
+    const dir = tempDir();
+    store.writeSongs(dir, []);
+    store.writeSongs(dir, SONGS);
+    assert.equal(fs.existsSync(path.join(dir, store.HISTORY_DIR)), false);
+});
+
 test('a library still inside an older player.js is carried over to songs.json (old player.js is not touched)', () => {
     const dir = tempDir();
     const playerJs = 'const SONGS_DATA = ' + JSON.stringify(SONGS) + ';\nconst PLACEHOLDER_IMAGE = \'x\';\n';
@@ -244,7 +283,7 @@ describe('main process hands out and updates the library through songs.json', ()
         fs.mkdirSync(copy);
         // main.js also requires files in subfolders (./ai/...), so copy the whole folder; only source files are needed
         fs.cpSync(path.join(__dirname, '..', '..', 'electron'), copy, { recursive: true, filter: (from) => !/node_modules|\.py$|\.json$/.test(from) });
-        // The tag editor needs Python; stand in for it.
+        // The tag editor needs the tag library; stand in for it.
         fs.writeFileSync(path.join(copy, 'metadata-editor.js'),
             "module.exports = { getAudioMetadata: async () => ({ success: true, metadata: { title: 'Old title' } }), saveAudioCover: async () => ({}), saveAudioMetadata: async () => ({ success: true, metadata: { title: 'Edited title' } }) };");
         handlers = {};
@@ -257,16 +296,19 @@ describe('main process hands out and updates the library through songs.json', ()
         realLoad = Module._load;
         Module._load = function (request, ...rest) { return request === 'electron' ? fake : realLoad.call(this, request, ...rest); };
         process.env.MUSIC_PLAYER_CONFIG_DIR = path.join(root, 'settings');
+        // The data folder the tests below use (electron/app-paths.js would otherwise use .dev-data beside the copy); the library is its library/.
+        process.env.XPLAYER_DATA = path.join(root, 'data');
         require(path.join(copy, 'main.js'));
     });
     after(() => {
         Module._load = realLoad;
         delete process.env.MUSIC_PLAYER_CONFIG_DIR;
+        delete process.env.XPLAYER_DATA;
         fs.rmSync(root, { recursive: true, force: true });
     });
 
     test('songs-store:load answers right away with the saved list (and an empty list when there is none)', () => {
-        const dir = path.join(root, 'electron', 'MusicPlayerOutput');
+        const dir = path.join(root, 'data', 'library');
         const ask = () => { const event = {}; listeners['songs-store:load'](event); return event.returnValue; };
         assert.deepEqual(ask(), []);
         store.writeSongs(dir, SONGS);
@@ -274,7 +316,7 @@ describe('main process hands out and updates the library through songs.json', ()
     });
 
     test('saving tags updates that song in songs.json and nothing else', async () => {
-        const dir = path.join(root, 'electron', 'MusicPlayerOutput');
+        const dir = path.join(root, 'data', 'library');
         store.writeSongs(dir, SONGS);
         const result = await handlers['save-audio-metadata']({}, { fileUrl: SONGS[1].url, metadata: { title: 'Edited title' } });
         assert.equal(result.success, true);
@@ -285,7 +327,7 @@ describe('main process hands out and updates the library through songs.json', ()
     });
 
     test('saving tags for many files updates each song, returns what was there before, and rejects a bad request', async () => {
-        const dir = path.join(root, 'electron', 'MusicPlayerOutput');
+        const dir = path.join(root, 'data', 'library');
         store.writeSongs(dir, SONGS);
         const result = await handlers['save-audio-metadata-many']({}, [{ fileUrl: SONGS[0].url, metadata: { title: 'Edited title' } }, { fileUrl: SONGS[1].url, metadata: { title: 'Edited title' } }]);
         assert.equal(result.success, true);

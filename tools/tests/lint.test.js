@@ -1,12 +1,12 @@
 // Lint tooling (no browser, no ESLint needed):
-//   1. tools/lint.js exit codes: errors fail `npm run lint`, warnings fail only `--strict`, "cannot run" is 2.
+//   1. tools/checks/lint.js exit codes: errors fail `npm run lint`, warnings fail only `--strict`, "cannot run" is 2.
 //      The real script is copied next to a stand-in `eslint` module that returns canned results, so this checks
 //      the script itself, not ESLint.
-//   2. tools/lint.js with the real ESLint and eslint.config.js (skipped when eslint is not installed): an undefined
+//   2. tools/checks/lint.js with the real ESLint and eslint.config.js (skipped when eslint is not installed): an undefined
 //      name fails with no-undef, a registered global and a browser built-in pass.
-//   3. tools/lint-globals.js: the one name published as `window.<name> = ...` (updateExternalScrollbar) is a
+//   3. tools/checks/lint-globals.js: the one name published as `window.<name> = ...` (updateExternalScrollbar) is a
 //      global, it is validated against the file that publishes it, and no other window.* assignment becomes a global.
-// Needs: acorn, acorn-walk (devDependencies; tools/dep-map.js needs them as well).
+// Needs: acorn, acorn-walk (devDependencies; tools/checks/dep-map.js needs them as well).
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
@@ -16,18 +16,18 @@ const { spawnSync } = require('child_process');
 const acorn = require('acorn');
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const { buildLintGlobals, findWindowAssignments, WINDOW_PUBLISHED_GLOBALS } = require('../lint-globals');
+const { buildLintGlobals, findWindowAssignments, WINDOW_PUBLISHED_GLOBALS } = require('../checks/lint-globals');
 
 const msg = (severity, ruleId = 'no-undef') => ({ severity, ruleId, message: 'x' });
 const file = (...messages) => ({ filePath: 'a.js', messages });
 
-describe('tools/lint.js as a script (stand-in ESLint)', () => {
+describe('tools/checks/lint.js as a script (stand-in ESLint)', () => {
     function runLint(t, { results, eslintModule, args = [] }) {
         const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lint-script-'));
         t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-        fs.mkdirSync(path.join(dir, 'tools'));
+        fs.mkdirSync(path.join(dir, 'tools', 'checks'), { recursive: true });
         fs.mkdirSync(path.join(dir, 'node_modules', 'eslint'), { recursive: true });
-        fs.copyFileSync(path.join(ROOT, 'tools', 'lint.js'), path.join(dir, 'tools', 'lint.js'));
+        fs.copyFileSync(path.join(ROOT, 'tools', 'checks', 'lint.js'), path.join(dir, 'tools', 'checks', 'lint.js'));
         fs.writeFileSync(
             path.join(dir, 'node_modules', 'eslint', 'index.js'),
             eslintModule ||
@@ -37,7 +37,7 @@ describe('tools/lint.js as a script (stand-in ESLint)', () => {
                 }
                 module.exports = { ESLint };`
         );
-        const run = spawnSync(process.execPath, [path.join(dir, 'tools', 'lint.js'), ...args], {
+        const run = spawnSync(process.execPath, [path.join(dir, 'tools', 'checks', 'lint.js'), ...args], {
             encoding: 'utf8',
             env: { ...process.env, FAKE_ESLINT_RESULTS: JSON.stringify(results || []) }
         });
@@ -87,7 +87,7 @@ describe('tools/lint.js as a script (stand-in ESLint)', () => {
     });
 });
 
-describe('tools/lint.js with the real ESLint and the real eslint.config.js', () => {
+describe('tools/checks/lint.js with the real ESLint and the real eslint.config.js', () => {
     let eslintInstalled = true;
     try {
         require.resolve('eslint', { paths: [ROOT] });
@@ -113,7 +113,7 @@ describe('tools/lint.js with the real ESLint and the real eslint.config.js', () 
         fs.writeFileSync(path.join(dir, 'src', 'js', 'ui', '06c-scrollbar-widget.js'), 'export function init() { window.updateExternalScrollbar = () => {}; }\n');
         fs.writeFileSync(path.join(dir, 'src', 'js', 'probe.js'), code);
         fs.writeFileSync(path.join(dir, 'electron', 'ok.js'), "'use strict';\nmodule.exports = {};\n");
-        const run = spawnSync(process.execPath, [path.join(dir, 'tools', 'lint.js')], { encoding: 'utf8', cwd: dir });
+        const run = spawnSync(process.execPath, [path.join(dir, 'tools', 'checks', 'lint.js')], { encoding: 'utf8', cwd: dir });
         return { status: run.status, out: run.stdout + run.stderr };
     }
 
@@ -159,13 +159,13 @@ describe('lint-globals: names published as window.<name> = ...', () => {
         assert.equal(result.counts.fromWindowPublication, 1);
     });
 
-    // A tiny copy of the layout buildLintGlobals needs. node_modules is linked so tools/dep-map.js finds acorn.
+    // A tiny copy of the layout buildLintGlobals needs. node_modules is linked so tools/checks/dep-map.js finds acorn.
     function fixture(t, { imports, files }) {
         const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lint-globals-'));
         t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
         fs.mkdirSync(path.join(dir, 'src', 'js'), { recursive: true });
-        fs.mkdirSync(path.join(dir, 'tools'));
-        fs.copyFileSync(path.join(ROOT, 'tools', 'dep-map.js'), path.join(dir, 'tools', 'dep-map.js'));
+        fs.mkdirSync(path.join(dir, 'tools', 'checks'), { recursive: true });
+        fs.copyFileSync(path.join(ROOT, 'tools', 'checks', 'dep-map.js'), path.join(dir, 'tools', 'checks', 'dep-map.js'));
         fs.cpSync(path.join(ROOT, 'tools', 'lib'), path.join(dir, 'tools', 'lib'), { recursive: true });
         fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(dir, 'node_modules'), 'junction');
         fs.writeFileSync(path.join(dir, 'src', 'manifest.json'), JSON.stringify({ css: [], entry: 'main.js' }));

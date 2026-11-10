@@ -259,6 +259,11 @@
     overflow-wrap: anywhere;
 }
 
+/* The Copy button is part of the new interface (ui-next/views/tools/metadata-popup.css); this window does not show it. */
+.song-metadata-copy {
+    display: none;
+}
+
 .playlist-hero-cover.artist-view {
     background: transparent;
     box-shadow: none;

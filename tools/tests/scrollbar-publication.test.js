@@ -1,6 +1,6 @@
 // window.updateExternalScrollbar: the one name no file declares. initExternalScrollbar('main-content', ...) in
 // src/js/ui/06c-scrollbar-widget.js publishes it during start-up, and about 20 call sites in other files use it as a
-// bare global (tools/lint-globals.js allows exactly this name). Four of those callers (render of the song list,
+// bare global (tools/checks/lint-globals.js allows exactly this name). Four of those callers (render of the song list,
 // search results, search history, recents:cleared) call it unguarded from a setTimeout, so it has to exist before
 // those timers fire. This checks the behavior in the real page:
 //   - start-up: every timer that calls it finds it defined, and nothing throws;

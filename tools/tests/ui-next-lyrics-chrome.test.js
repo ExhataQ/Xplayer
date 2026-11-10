@@ -16,11 +16,11 @@ test('the player lyrics button is hidden and has no tooltip entry; the queue but
 
 test('the right panel lyrics has a header with the two buttons, fill the app first, and no floating box', () => {
     const js = read('views', 'playback', 'right-panel-content.js');
-    assert.match(js, /rp-now__header[\s\S]*?rp-now__tools' \}, aiTools, fill, lyricsOnly\)/);
+    assert.match(js, /rp-now__header[\s\S]*?rp-now__tools' \}, lyricTools, fill, lyricsOnly\)/);
     assert.ok(!js.includes('rp-now__box'));
     // standard icons: two diagonal arrows for fill the app, two vertical arrows for lyrics only
-    assert.match(js, /ICON_FILL = \{ out: 'maximize-2', in: 'minimize-2' \}/);
-    assert.match(js, /ICON_ONLY = \{ out: 'unfold-vertical', in: 'fold-vertical' \}/);
+    assert.match(js, /ICON_FILL = \{ out: 'corners-out', in: 'corners-in' \}/);
+    assert.match(js, /ICON_ONLY = \{ out: 'maximize-2', in: 'minimize-2' \}/);
     assert.match(js, /icon: ICON_FILL\.out[\s\S]*?icon: ICON_ONLY\.out/);
     const css = read('shell', 'shell.css');
     assert.ok(!/position: absolute;[^}]*\n\}\n\.rp-now__box/.test(css) && !css.includes('.rp-now__box'));
@@ -41,7 +41,7 @@ test('the two lyrics icons (one of the choices in Settings) are the same lyrics 
 
 test('the right panel button shows the filled icon while open and keeps the text color, not the accent', () => {
     assert.match(read('shell', 'right-panel.js'), /show \? 'panel-right-filled' : 'panel-right'/);
-    assert.match(read('shell', 'shell.css'), /\.icon-btn\.right-panel-btn\[aria-pressed='true'\] \{\s*color: var\(--text-primary\)/);
+    assert.match(read('shell', 'shell.css'), /\.icon-btn:is\(\.right-panel-btn, \.left-panel-btn\)\[aria-pressed='true'\] \{\s*color: var\(--text-primary\)/);
 });
 
 test('the Lyrics tool has Find, Batch, Write and Sync, and no View', () => {

@@ -10,7 +10,8 @@ registerActions({
 
 export function updateSyncMiniVolume() {
     if (!syncEditorState.open) return;
-    const vol = audioElement.volume || 0;
+    // The slider position, like the main volume slider (audioElement.volume is the gain: a different scale).
+    const vol = typeof getVolumePosition === 'function' ? getVolumePosition() : audioElement.volume || 0;
     const fill = document.getElementById('sync-volume-fill');
     const knob = document.getElementById('sync-volume-knob');
     if (fill) fill.style.width = vol * 100 + '%';
@@ -25,9 +26,8 @@ export function updateSyncMiniVolume() {
 }
 
 export function syncMiniToggleMute() {
-    audioElement.muted = !audioElement.muted;
+    toggleMute(); // the same mute, and the same level to come back to, as the main volume button
     updateSyncMiniVolume();
-    if (typeof updateVolume === 'function') updateVolume(audioElement.volume);
 }
 
 export function startSyncVolumeDrag(event) {
@@ -44,11 +44,8 @@ export function startSyncVolumeDrag(event) {
     }
 
     function onMove(e) {
-        const v = compute(e.clientX);
-        audioElement.volume = v;
-        audioElement.muted = false;
+        updateVolume(compute(e.clientX)); // the one volume: this slider and the main one show the same position
         updateSyncMiniVolume();
-        if (typeof updateVolume === 'function') updateVolume(audioElement.volume);
     }
 
     function onUp() {
@@ -56,11 +53,8 @@ export function startSyncVolumeDrag(event) {
         document.removeEventListener('mouseup', onUp);
     }
 
-    const v = compute(event.clientX);
-    audioElement.volume = v;
-    audioElement.muted = false;
+    updateVolume(compute(event.clientX));
     updateSyncMiniVolume();
-    if (typeof updateVolume === 'function') updateVolume(audioElement.volume);
 
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
