@@ -69,7 +69,9 @@
       "src/**/*",
       "!src/ui-next/dev",
       "!**/*.md",
-      "!**/*.map"
+      "!**/*.map",
+      "!**/.turbo/**",
+      "!**/*.log"
     ],
     "extraFiles": [
       {

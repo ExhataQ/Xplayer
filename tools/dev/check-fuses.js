@@ -47,7 +47,9 @@ if (require.main === module) {
     const exe = path.resolve(process.argv[2] || path.join(ROOT, 'dist', 'Xplayer', 'Xplayer.exe'));
     if (!fs.existsSync(exe)) { console.error(`check-fuses: ${exe} does not exist (run npm run dist first)`); process.exit(1); }
     const wanted = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).build.electronFuses || {};
-    const run = spawnSync('npx', ['--yes', `@electron/fuses@${FUSES_VERSION}`, 'read', '--app', exe], { encoding: 'utf8', shell: process.platform === 'win32' });
+    // On Windows the shell splits the path at spaces, so the path is quoted there.
+    const exeArg = process.platform === 'win32' ? `"${exe}"` : exe;
+    const run = spawnSync('npx', ['--yes', `@electron/fuses@${FUSES_VERSION}`, 'read', '--app', exeArg], { encoding: 'utf8', shell: process.platform === 'win32' });
     if (run.status !== 0) { console.error('check-fuses: could not read the fuses\n' + (run.stderr || run.error || '')); process.exit(1); }
     const problems = checkFuses(run.stdout, wanted);
     if (problems.length) { console.error(`check-fuses: ${exe}\n  ` + problems.join('\n  ')); process.exit(1); }

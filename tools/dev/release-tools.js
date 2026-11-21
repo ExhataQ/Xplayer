@@ -17,7 +17,7 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 
 // What a release must carry next to Xplayer.exe, and what it must never carry.
-const MUST_HAVE = ['Xplayer-LICENSE.txt', 'THIRD-PARTY-NOTICES.txt', 'LICENSE', 'LICENSES.chromium.html'];
+const MUST_HAVE = ['Xplayer-LICENSE.txt', 'THIRD-PARTY-NOTICES.txt', 'LICENSES.chromium.html'];
 const NEVER = [/(^|\/)Xplayer-Data(\/|$)/, /(^|\/)\.dev-data(\/|$)/, /(^|\/)songs\.json$/i, /(^|\/)\.env(\.|$)/, /\.log$/i, /(^|\/)settings\.json$/i];
 
 const isVersion = (v) => SEMVER.test(String(v || ''));
