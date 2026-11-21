@@ -1,0 +1,18 @@
+/* Default covers for the Library panel rows the engine draws.
+   The engine still writes a small inline SVG for a row with no art and tags it .cover-ph--<kind>; here the drawing is hidden
+   and the matching file from src/assets is painted in its place, so the panel matches the covers the new views use. */
+.main-item-cover-svg.cover-ph > * {
+    display: none;
+}
+.main-item-cover-svg.cover-ph {
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+}
+.cover-ph--song { background-image: url('../../assets/default-cover.svg'); }
+.cover-ph--all-songs { background-image: url('../../assets/default-cover-all-songs.svg'); }
+.cover-ph--liked { background-image: url('../../assets/default-cover-liked.svg'); }
+.cover-ph--playlist { background-image: url('../../assets/default-cover-playlist.svg'); }
+.cover-ph--folder { background-image: url('../../assets/default-cover-folder.svg'); }
+.cover-ph--album { background-image: url('../../assets/default-cover-album.svg'); }
+.cover-ph--artist { background-image: url('../../assets/default-cover-artist.svg'); } /* square like every other cover: a real artist picture is square here, and Search and Recents draw it square */

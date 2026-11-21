@@ -1,0 +1,653 @@
+// ==============================================================================
+// SETTINGS PANEL
+// ==============================================================================
+import { buildEqualizerSection } from './08e1-equalizer-settings.js';
+registerActions({
+    addLibraryLocation: function (...args) {
+        return addLibraryLocation.apply(this, args);
+    },
+    changeMusicFolder: function (...args) {
+        return changeMusicFolder.apply(this, args);
+    },
+    changeUrlSaveFolder,
+    closeAdvancedSettings,
+    exportAllData: function (...args) {
+        return exportAllData.apply(this, args);
+    },
+    handleThresholdInput,
+    importAllData: function (...args) {
+        return importAllData.apply(this, args);
+    },
+    openAdvancedSettings,
+    rebuildLibraryFromFolders: function (...args) {
+        return rebuildLibraryFromFolders.apply(this, args);
+    },
+    removeSelectedLibraryFolder: function (...args) {
+        return removeSelectedLibraryFolder.apply(this, args);
+    },
+    selectLibraryFolder: function (...args) {
+        return selectLibraryFolder.apply(this, args);
+    },
+    resetUrlSaveFolder,
+    setAudioPlaybackDurationSetting,
+    setAudioPlaybackSetting: function (...args) {
+        return setAudioPlaybackSetting.apply(this, args);
+    },
+    setMinimizeOnClose: function (...args) {
+        return setMinimizeOnClose.apply(this, args);
+    },
+    setReplayGainTrimSetting,
+    setSmartShuffleSetting,
+    setStartupBackground: function (...args) {
+        return setStartupBackground.apply(this, args);
+    },
+    switchToHistoryFromSettings: function (...args) {
+        return switchToHistoryFromSettings.apply(this, args);
+    },
+    switchToSearchHistoryFromSettings: function (...args) {
+        return switchToSearchHistoryFromSettings.apply(this, args);
+    }
+});
+
+export function setAudioPlaybackDurationSetting(input, key) {
+    setAudioPlaybackSetting(key, Number(input.value));
+    input.nextElementSibling.textContent = input.value + 's';
+}
+
+export function setReplayGainTrimSetting(input) {
+    setAudioPlaybackSetting('replayGainTrimDb', Number(input.value));
+    input.nextElementSibling.textContent = (Number(input.value) > 0 ? '+' : '') + input.value + ' dB';
+}
+
+export let advancedSettingsOpen = false;
+
+export function openSettingsPanel() {
+    if (advancedSettingsOpen) {
+        renderAdvancedSettingsPanel();
+        return;
+    }
+
+    const songList = songListElement;
+    const songListContainer = document.getElementById('song-list-container');
+    const settingsButton = document.querySelector('.settings-toggle-btn');
+
+    if (!songList || !songListContainer) {
+        return;
+    }
+
+    if (typeof teardownLazyLoading === 'function') {
+        teardownLazyLoading();
+    }
+
+    resetLeftPanelActiveState();
+    if (settingsButton) {
+        settingsButton.classList.add('active');
+    }
+    if (typeof updateActiveHighlight === 'function') {
+        updateActiveHighlight(null);
+    }
+    pushViewToHistory(VIEWS.SETTINGS);
+    const smartShuffleSettings = getSmartShuffleSettings();
+
+    showHeroSection(false);
+    showTracklistHeader(false);
+
+    setSubheroVisibility(VIEWS.SETTINGS);
+
+    const gradientWrapper = document.querySelector('.content-gradient-wrapper');
+    if (gradientWrapper) gradientWrapper.classList.add('no-gradient');
+
+    songList.style.display = 'flex';
+    songList.style.justifyContent = 'center';
+    songList.innerHTML = `
+    <div class="settings-panel-content">
+            <h3 class="settings-panel-title">Settings</h3>
+                <div class="settings-panel-actions">
+                    <button class="settings-action-btn" data-action="switchToHistoryFromSettings">
+                        <i class="fas fa-history"></i>
+                        <span>View Play History</span>
+                    </button>
+                    <button class="settings-action-btn" data-action="switchToSearchHistoryFromSettings">
+                        <i class="fas fa-search"></i>
+                        <span>Search History</span>
+                    </button>
+                    <div class="settings-section">
+                        <div class="settings-section-title">Theme Color</div>
+                        <div class="settings-theme-selector" id="settings-theme-selector">
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <div class="settings-section-title">Window</div>
+                        <label class="settings-toggle-row">
+                        <input
+                            type="checkbox"
+                            ${getWindowSettings().minimizeOnClose ? 'checked' : ''}
+                            data-action-change="setMinimizeOnClose" data-args-change='["$checked"]'
+                        >
+                        <span>Minimize to taskbar when closed</span>
+                        </label>
+                    </div>
+                    <div class="settings-section">
+                        <div class="settings-section-title">Startup screen</div>
+                        <div class="settings-threshold-row"><span>Background (new interface)</span><select data-action-change="setStartupBackground" data-args-change='["$value"]' aria-label="Startup screen background">
+                            ${STARTUP_BACKGROUNDS.map((o) => `<option value="${o.id}" ${getStartupBackground() === o.id ? 'selected' : ''}>${o.label}</option>`).join('')}
+                        </select></div>
+                    </div>
+                    <div class="settings-section">
+                        <div class="settings-section-title">Playback & Audio</div>
+                        <div class="settings-feature">
+                            <label class="settings-toggle-row"><input type="checkbox" data-playback-setting="crossfadeEnabled" ${getAudioPlaybackSettings().crossfadeEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["crossfadeEnabled","$checked"]'><span>Crossfade between tracks</span></label>
+                            <div class="settings-threshold-row settings-sub"><span>Crossfade length</span><input type="range" min="0.5" max="10" step="0.5" value="${Number(getAudioPlaybackSettings().crossfadeDuration) || 4}" data-action-input="setAudioPlaybackDurationSetting" data-args-input='["$this","crossfadeDuration"]' aria-label="Crossfade duration"><span>${Number(getAudioPlaybackSettings().crossfadeDuration) || 4}s</span></div>
+                        </div>
+                        <div class="settings-feature">
+                            <label class="settings-toggle-row"><input type="checkbox" data-playback-setting="gaplessEnabled" ${getAudioPlaybackSettings().gaplessEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["gaplessEnabled","$checked"]'><span>Gapless playback</span></label>
+                        </div>
+                        <div class="settings-feature">
+                            <label class="settings-toggle-row"><input type="checkbox" ${getAudioPlaybackSettings().fadeInEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["fadeInEnabled","$checked"]'><span>Fade in</span></label>
+                            <div class="settings-threshold-row settings-sub"><span>Fade in length</span><input type="range" min="0.2" max="5" step="0.1" value="${Number(getAudioPlaybackSettings().fadeInDuration) || 1}" data-action-input="setAudioPlaybackDurationSetting" data-args-input='["$this","fadeInDuration"]' aria-label="Fade in duration"><span>${Number(getAudioPlaybackSettings().fadeInDuration) || 1}s</span></div>
+                        </div>
+                        <div class="settings-feature">
+                            <label class="settings-toggle-row"><input type="checkbox" ${getAudioPlaybackSettings().fadeOutEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["fadeOutEnabled","$checked"]'><span>Fade out</span></label>
+                            <div class="settings-threshold-row settings-sub"><span>Fade out length</span><input type="range" min="0.2" max="5" step="0.1" value="${Number(getAudioPlaybackSettings().fadeOutDuration) || 1.25}" data-action-input="setAudioPlaybackDurationSetting" data-args-input='["$this","fadeOutDuration"]' aria-label="Fade out duration"><span>${Number(getAudioPlaybackSettings().fadeOutDuration) || 1.25}s</span></div>
+                        </div>
+                        <div class="settings-feature">
+                            <label class="settings-toggle-row"><input type="checkbox" ${getAudioPlaybackSettings().replayGainEnabled ? 'checked' : ''} data-action-change="setAudioPlaybackSetting" data-args-change='["replayGainEnabled","$checked"]'><span>ReplayGain / loudness normalization</span></label>
+                            <div class="settings-threshold-row settings-sub"><span>Gain mode</span><select data-action-change="setAudioPlaybackSetting" data-args-change='["replayGainMode","$value"]'>
+                                ${['track', 'album'].map((value) => `<option value="${value}" ${getAudioPlaybackSettings().replayGainMode === value ? 'selected' : ''}>${value.charAt(0).toUpperCase() + value.slice(1)}</option>`).join('')}
+                            </select></div>
+                            <div class="settings-threshold-row settings-sub"><span>Trim</span><input type="range" min="-6" max="6" step="0.5" value="${Number(getAudioPlaybackSettings().replayGainTrimDb) || 0}" data-action-input="setReplayGainTrimSetting" data-args-input='["$this"]' aria-label="ReplayGain trim"><span>${(Number(getAudioPlaybackSettings().replayGainTrimDb) || 0) > 0 ? '+' : ''}${Number(getAudioPlaybackSettings().replayGainTrimDb) || 0} dB</span></div>
+                        </div>
+                    </div>
+                    ${buildEqualizerSection()}
+                    <div class="settings-section">
+                        <div class="settings-section-title">Smart Shuffle (Beta)</div>
+                        <div class="settings-threshold-hint" style="margin-bottom: 12px;">Still in development. Builds a queue of songs that follow each other by artist, language, genre and year. It is available in lists with more than 50 songs.</div>
+                        <div class="settings-threshold-row"><span>Journey size</span><select data-action-change="setSmartShuffleSetting" data-args-change='["journeySize","$value"]'>
+                            ${[25, 50, 100, 250, 500].map((size) => `<option value="${size}" ${Number(smartShuffleSettings.journeySize) === size ? 'selected' : ''}>${size} songs</option>`).join('')}
+                        </select></div>
+                        <div class="settings-threshold-row"><span>Custom journey size</span><input type="number" min="1" value="${Number(smartShuffleSettings.journeySize) || 50}" data-action-change="setSmartShuffleSetting" data-args-change='["journeySize","$value"]' aria-label="Custom journey size"></div>
+                    </div>
+                    <div class="settings-section">
+                        <div class="settings-section-title">Music Library</div>
+                        <button class="settings-action-btn settings-action-btn-full" data-action="changeMusicFolder">
+                            <i class="fas fa-folder-open"></i>
+                            <span>Change Music Folder (Legacy)</span>
+                        </button>
+                    </div>
+<div class="library-locations-section">
+<div class="library-locations-header">
+<span class="library-locations-title">Music Library Folders</span>
+<div class="library-locations-header-buttons">
+<button class="library-locations-add-btn" data-action="addLibraryLocation">
+<i class="fas fa-plus"></i>
+Add Folder
+</button>
+<button class="library-locations-add-btn library-locations-danger" data-action="removeSelectedLibraryFolder" style="border-color: #ff4444; color: #ff4444;">
+<i class="fas fa-trash-alt"></i>
+Remove Folder
+</button>
+</div>
+</div>
+<div class="library-locations-list-container">
+<div class="library-locations-list" id="library-locations-list">
+<div class="empty-queue" style="padding: 20px; text-align: center;">
+<i class="fas fa-folder-open"></i>
+<p>No folders added</p>
+<small>Click "Add Folder" to include music locations</small>
+</div>
+</div>
+</div>
+<div class="library-locations-footer">
+<button class="library-locations-rebuild-btn" data-action="rebuildLibraryFromFolders">
+<i class="fas fa-save"></i>
+Save and Apply Changes
+</button>
+</div>
+</div>
+                    <div class="settings-section">
+                        <div class="settings-section-title">Play from URL — Save Location</div>
+                        <div class="settings-url-save-row">
+                            <div class="settings-url-save-path" id="url-save-path-display" title="">—</div>
+                            <button class="settings-action-btn settings-action-btn-half" data-action="changeUrlSaveFolder">
+                                <i class="fas fa-folder-open"></i>
+                                <span>Change</span>
+                            </button>
+                            <button class="settings-action-btn settings-action-btn-half" data-action="resetUrlSaveFolder">
+                                <i class="fas fa-undo"></i>
+                                <span>Reset</span>
+                            </button>
+                        </div>
+                        <div class="settings-threshold-hint" style="margin-top: 8px;">
+                            Songs downloaded via "Play from URL → Download & Stream" will be saved here.
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <div class="settings-section-title">Backup & Restore</div>
+                        <div class="settings-backup-row">
+                            <button class="settings-action-btn settings-action-btn-half" data-action="exportAllData">
+                                <i class="fas fa-download"></i>
+                                <span>Export Data</span>
+                            </button>
+                            <button class="settings-action-btn settings-action-btn-half" data-action="importAllData">
+                                <i class="fas fa-upload"></i>
+                                <span>Import Data</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <div class="settings-section-title">Advanced</div>
+                        <button class="settings-action-btn settings-action-btn-full" data-action="openAdvancedSettings">
+                            <i class="fas fa-sliders-h"></i>
+                            <span>Advanced Settings</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+    `;
+
+    renderLibraryLocations();
+    refreshUrlSaveFolderDisplay();
+    updateSettingsMargins();
+
+    const currentTheme = document.body.classList.contains('theme-pink')
+        ? 'pink'
+        : document.body.classList.contains('theme-purple')
+        ? 'purple'
+        : document.body.classList.contains('theme-yellow')
+        ? 'yellow'
+        : document.body.classList.contains('theme-white')
+        ? 'white'
+        : 'green';
+
+    const themes = [
+        {
+            name: 'green',
+            color: '#1db954'
+        },
+        {
+            name: 'pink',
+            color: '#ff6b9d'
+        },
+        {
+            name: 'purple',
+            color: '#9d4edd'
+        },
+        {
+            name: 'yellow',
+            color: '#ffd43b'
+        },
+        {
+            name: 'white',
+            color: '#f8f9fa'
+        }
+    ];
+
+    const themeSelector = document.getElementById('settings-theme-selector');
+    if (themeSelector) {
+        themeSelector.innerHTML = themes
+            .map(
+                (t) =>
+                    `<button class="settings-theme-btn${t.name === currentTheme ? ' active' : ''}" data-theme="${
+                        t.name
+                    }" aria-label="${t.name.charAt(0).toUpperCase() + t.name.slice(1)} theme">
+                    <i class="fas fa-circle settings-theme-icon" style="color: ${t.color};"></i>
+            </button>`
+            )
+            .join('');
+    }
+
+    initThemeButtons();
+
+    setTimeout(() => {
+        if (typeof updateExternalScrollbar === 'function') {
+            updateExternalScrollbar();
+        }
+    }, 50);
+}
+
+export function setSmartShuffleSetting(key, value) {
+    const numericSettings = ['journeySize'];
+    saveSmartShuffleSetting(key, numericSettings.includes(key) ? Number(value) : value);
+    showNotification('Smart Shuffle setting saved', 'success', 1500);
+}
+
+export function openAdvancedSettings() {
+    pushViewToHistory(VIEWS.SETTINGS_ADVANCED);
+    setAdvancedSettingsOpen(true);
+    renderAdvancedSettingsPanel();
+}
+
+export function closeAdvancedSettings() {
+    pushViewToHistory(VIEWS.SETTINGS);
+    setAdvancedSettingsOpen(false);
+    openSettingsPanel();
+}
+
+export function renderAdvancedSettingsPanel() {
+    const songList = songListElement;
+
+    if (typeof teardownLazyLoading === 'function') {
+        teardownLazyLoading();
+    }
+
+    const settings = getExtendedMetadataSettings();
+    const groupOrder = ['People', 'Structure', 'Publishing', 'Identifiers', 'Technical', 'Misc', 'Sort'];
+    const groups = {};
+    EXTENDED_METADATA_FIELDS.forEach((f) => {
+        if (!groups[f.group]) groups[f.group] = [];
+        groups[f.group].push(f);
+    });
+
+    let checkboxHTML = '';
+    groupOrder.forEach((groupName) => {
+        if (!groups[groupName]) return;
+        const visibleFields = groups[groupName].filter((f) => !f.hidden);
+        if (visibleFields.length === 0) return;
+        checkboxHTML += `<div class="extended-fields-group-label">${escapeHtml(groupName)}</div>`;
+        visibleFields.forEach((f) => {
+            const checked = settings[f.key] ? 'checked' : '';
+            checkboxHTML += `
+                <label class="extended-field-checkbox-row">
+                    <input type="checkbox" ${checked}
+                           ${actionAttrs('toggleExtendedMetadataField', [String(f.key), '$checked'], { event: 'change' })}>
+                    <span>${escapeHtml(f.label)}</span>
+                </label>`;
+        });
+    });
+
+    songList.style.display = 'flex';
+    songList.style.justifyContent = 'center';
+    songList.innerHTML = `
+    <div class="settings-panel-content">
+            <div class="settings-advanced-header">
+                    <button class="settings-advanced-back-btn" data-action="closeAdvancedSettings" aria-label="Back to settings">
+                            <span class="material-symbols-outlined">arrow_back</span>
+                    </button>
+                    <h3 class="settings-panel-title" style="margin: 0; border-bottom: none; padding-bottom: 0;">Advanced Settings</h3>
+            </div>
+            <div class="settings-advanced-body">
+                    <div class="settings-section">
+                            <div class="settings-section-title">Virtual Scroll Threshold</div>
+                            <div class="settings-threshold-row">
+                                    <input type="range" class="settings-threshold-slider" id="threshold-slider"
+                                           min="${MIN_VIRTUAL_SCROLL_THRESHOLD}"
+                                           max="${MAX_VIRTUAL_SCROLL_THRESHOLD}"
+                                           step="50"
+                                           value="${VIRTUAL_SCROLL_THRESHOLD}"
+                                           data-action-input="handleThresholdInput" data-args-input='["$value"]'
+                                           aria-label="Virtual scroll threshold">
+                                    <div class="settings-threshold-value" id="threshold-value-display">${VIRTUAL_SCROLL_THRESHOLD}</div>
+                            </div>
+                            <div class="settings-threshold-hint">
+                                    Lists with more than <span id="threshold-hint-value">${VIRTUAL_SCROLL_THRESHOLD}</span> items will use virtual scrolling.
+                            </div>
+                    </div>
+                    <div class="settings-section">
+                            <div class="settings-section-title">Extended Track Info</div>
+                            <div class="settings-threshold-hint" style="margin-bottom: 12px;">
+                                    Enable fields to extract and display below the standard Track Info section.
+                            </div>
+                            <div class="extended-fields-list">
+                                    ${checkboxHTML}
+                            </div>
+                    </div>
+<div class="library-locations-section">
+<div class="library-locations-header">
+<span class="library-locations-title">Saved Lyrics</span>
+<div class="library-locations-header-buttons">
+<button class="library-locations-add-btn" data-action="removeAllSavedLyrics" style="border-color: #ff4444; color: #ff4444;">
+<i class="fas fa-trash-alt"></i>
+Remove All
+</button>
+</div>
+</div>
+<div class="library-locations-list-container">
+<div class="library-locations-list" id="saved-lyrics-list">
+</div>
+</div>
+</div>
+            </div>
+    </div>
+    `;
+
+    renderSavedLyricsList();
+
+    updateSettingsMargins();
+
+    updateThresholdSliderFill(VIRTUAL_SCROLL_THRESHOLD);
+
+    setTimeout(() => {
+        if (typeof updateExternalScrollbar === 'function') {
+            updateExternalScrollbar();
+        }
+    }, 50);
+}
+
+export function handleThresholdInput(value) {
+    if (typeof snapVirtualScrollThreshold !== 'function') return;
+
+    const v = snapVirtualScrollThreshold(value);
+
+    const display = document.getElementById('threshold-value-display');
+    if (display) display.textContent = v;
+
+    const hint = document.getElementById('threshold-hint-value');
+    if (hint) hint.textContent = v;
+
+    updateThresholdSliderFill(v);
+
+    if (typeof setVirtualScrollThreshold === 'function') {
+        setVirtualScrollThreshold(v);
+    }
+}
+
+export function updateThresholdSliderFill(value) {
+    const slider = document.getElementById('threshold-slider');
+    if (!slider) return;
+    const min = parseInt(slider.min, 10) || 0;
+    const max = parseInt(slider.max, 10) || 100;
+    const pct = max > min ? ((value - min) / (max - min)) * 100 : 0;
+    // The same two numbers views/tools/range-fill.js sets on the other sliders: the CSS draws the fill, including the ends of the track.
+    slider.style.background = '';
+    slider.style.setProperty('--lo', '0');
+    slider.style.setProperty('--hi', String(Math.min(1, Math.max(0, pct / 100))));
+}
+
+export function enterSettingsFromHistory() {
+    setAdvancedSettingsOpen(false);
+    setCurrentView(VIEWS.SETTINGS);
+    resetLeftPanelActiveState();
+    resetViewScroll();
+    setSubheroVisibility(VIEWS.SETTINGS);
+    showHeroSection(false);
+    showTracklistHeader(false);
+    updateHeroCover(VIEWS.SETTINGS);
+
+    const settingsToggleBtn = document.querySelector('.settings-toggle-btn');
+    if (settingsToggleBtn) settingsToggleBtn.classList.add('active');
+
+    openSettingsPanel();
+}
+
+export function enterAdvancedSettingsFromHistory() {
+    setAdvancedSettingsOpen(true);
+    setCurrentView(VIEWS.SETTINGS);
+    resetLeftPanelActiveState();
+    resetViewScroll();
+    setSubheroVisibility(VIEWS.SETTINGS);
+    showHeroSection(false);
+    showTracklistHeader(false);
+    updateHeroCover(VIEWS.SETTINGS);
+
+    const settingsToggleBtn = document.querySelector('.settings-toggle-btn');
+    if (settingsToggleBtn) settingsToggleBtn.classList.add('active');
+
+    renderAdvancedSettingsPanel();
+}
+
+export function closeSettingsPanelOnly() {
+    setAdvancedSettingsOpen(false);
+    if (currentView === VIEWS.ALL_SONGS) {
+        teardownLazyLoading();
+    }
+
+    const settingsButton = document.querySelector('.settings-toggle-btn');
+    const songList = songListElement;
+
+    if (settingsButton) {
+        settingsButton.classList.remove('active');
+    }
+    if (songList) {
+        songList.style.display = '';
+        songList.style.justifyContent = '';
+    }
+
+    const gradientWrapper = document.querySelector('.content-gradient-wrapper');
+    if (gradientWrapper) gradientWrapper.classList.remove('no-gradient');
+
+    const viewToRestore = currentView === VIEWS.SETTINGS ? VIEWS.ALL_SONGS : currentView;
+    switchView(viewToRestore);
+    updateSettingsMargins();
+}
+
+export function closeSettingsPanel() {
+    closeSettingsPanelOnly();
+}
+
+export function toggleSettingsPanel() {
+    if (currentView === VIEWS.SETTINGS && advancedSettingsOpen) {
+        closeAdvancedSettings();
+        return;
+    }
+    if (currentView === VIEWS.SETTINGS) {
+        closeSettingsPanelOnly();
+    } else {
+        if (currentView === VIEWS.LYRICS || currentView === VIEWS.ONLINE_LYRICS) {
+            if (typeof teardownLyricsView === 'function') {
+                teardownLyricsView();
+            }
+            document.body.classList.remove('in-lyrics-view');
+            const songListContainer = document.getElementById('song-list-container');
+            if (songListContainer) songListContainer.style.display = '';
+            const lyricsToggleBtn = document.getElementById('lyrics-toggle-btn');
+            if (lyricsToggleBtn) lyricsToggleBtn.classList.remove('active');
+        }
+
+        setAdvancedSettingsOpen(false);
+        pushViewToHistory(VIEWS.SETTINGS);
+        setCurrentView(VIEWS.SETTINGS);
+        resetLeftPanelActiveState();
+        resetViewScroll();
+
+        if (typeof clearAllSelections === 'function') {
+            clearAllSelections();
+        }
+
+        resetSearchState();
+        resetSubheroSearch();
+
+        const settingsToggleBtn = document.querySelector('.settings-toggle-btn');
+        if (settingsToggleBtn) {
+            settingsToggleBtn.classList.add('active');
+        }
+
+        setSubheroVisibility(VIEWS.SETTINGS);
+        showHeroSection(false);
+        showTracklistHeader(false);
+        openSettingsPanel();
+
+        updateHeroCover(VIEWS.SETTINGS);
+
+        setTimeout(() => {
+            if (typeof updateExternalScrollbar === 'function') {
+                updateExternalScrollbar();
+            }
+        }, 50);
+    }
+}
+
+export async function refreshUrlSaveFolderDisplay() {
+    const el = document.getElementById('url-save-path-display');
+    if (!el) return;
+    if (!desktopApi.supports('library.getDownloadFolder')) {
+        el.textContent = 'Not available in browser mode';
+        el.title = '';
+        return;
+    }
+    try {
+        const res = await desktopApi.library.getDownloadFolder();
+        if (res && res.folder) {
+            el.textContent = res.folder;
+            el.title = res.folder;
+        } else {
+            el.textContent = '—';
+            el.title = '';
+        }
+    } catch (e) {
+        el.textContent = '—';
+        el.title = '';
+    }
+}
+
+export async function changeUrlSaveFolder() {
+    if (!desktopApi.supports('library.pickDownloadFolder')) {
+        showNotification('Not available in browser mode', 'warning', 2000);
+        return;
+    }
+    const res = await desktopApi.library.pickDownloadFolder();
+    if (res && res.success) {
+        await refreshUrlSaveFolderDisplay();
+        showNotification('Download folder updated', 'success', 2000);
+    } else if (res && res.reason !== 'cancelled') {
+        showNotification('Failed to change folder', 'error', 2000);
+    }
+}
+
+export async function resetUrlSaveFolder() {
+    if (!desktopApi.supports('library.pickDownloadFolder')) {
+        showNotification('Not available in browser mode', 'warning', 2000);
+        return;
+    }
+    const confirmed = await showConfirmDialog({
+        title: 'Reset Download Folder',
+        message: 'Reset the Play-from-URL save location back to your system Downloads folder?',
+        okText: 'Reset',
+        cancelText: 'Cancel'
+    });
+    if (!confirmed) return;
+    const res = desktopApi.supports('library.resetDownloadFolder') ? await desktopApi.library.resetDownloadFolder() : undefined;
+    if (res && res.success) {
+        await refreshUrlSaveFolderDisplay();
+        showNotification('Reset to default Downloads folder', 'success', 2000);
+    } else {
+        await refreshUrlSaveFolderDisplay();
+        showNotification('Reset to default Downloads folder', 'success', 2000);
+    }
+}
+
+// Names other files call or read by name (inline handlers, other modules).
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        setAudioPlaybackDurationSetting,
+        setReplayGainTrimSetting,
+        openSettingsPanel,
+        setSmartShuffleSetting,
+        openAdvancedSettings,
+        closeAdvancedSettings,
+        handleThresholdInput,
+        enterSettingsFromHistory,
+        enterAdvancedSettingsFromHistory,
+        closeSettingsPanelOnly,
+        closeSettingsPanel,
+        toggleSettingsPanel,
+        changeUrlSaveFolder,
+        resetUrlSaveFolder
+    });
+}
+
+// Variables other files read and assign by name: the accessors read and write this file's own variables.
+if (typeof registerLegacyState === 'function') {
+    registerLegacyState({
+        advancedSettingsOpen: [() => advancedSettingsOpen, (value) => { advancedSettingsOpen = value; }]
+    });
+}

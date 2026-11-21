@@ -1,0 +1,467 @@
+/* Library panel: the engine's left panel list, restyled with tokens only.
+ *
+ * The engine keeps rendering the rows (virtual scroll, play state, drag and drop,
+ * context menu and cover sync all depend on its markup), and this file only restyles them through the
+ * .library-panel wrapper. The engine writes Font Awesome and Material Symbols glyphs into some rows; ui-next loads
+ * neither font, so the glyphs this panel needs are drawn as Lucide masks below (same technique as
+ * adapter/legacy-icons.css, register entry L-02). Masks come from icons/icons.js (ISC license).
+ */
+
+/* The engine reads this once at load for its scroll math (ui/05b), so the row height has one source: here. */
+:root {
+    --left-item-height: var(--panel-row-height);
+    --panel-cover-size: 44px;
+    /* One layout for the Library, Search and Recents panels (panel-lists.css uses the same values): little space above the controls and under the list. */
+    --panel-pad-top: var(--space-3); /* the room between a panel's title row and what is under it: the same in Library, Search and Recents */
+    --panel-controls-pad-bottom: var(--space-3); /* under the last control, above the line where the list starts */
+    --panel-pad-bottom: 0px;
+    --panel-controls-gap: var(--space-2); /* between the chips and the find row, in every panel */
+    --panel-list-end: var(--space-2); /* the room under the last row of a list */
+    --panel-list-inset: var(--space-4); /* what shows between the panel's edge and the rows (Library, Search and Recents), the same on both sides */
+    --panel-list-pad-x: max(0px, calc(var(--panel-list-inset) - var(--scroll-gutter))); /* the list's padding: the inset less the room the bar reserves (scrollbar.css) */
+    --panel-row-pad-x: var(--space-2); /* inside a row: between the highlight's edge and the cover, so a hovered row has room on its left */
+}
+/* Density: compact panel rows. Set on <html> before the first paint, so the engine's first read is already right; a change
+   later goes through setLeftItemHeight (library-panel.js). */
+:root[data-density='compact'] {
+    --left-item-height: var(--panel-row-height-compact);
+    --panel-cover-size: 32px;
+}
+
+/* The doubled selector beats the shell's `.panel-host__body` padding, which kept the list 16 px off the wall and the scroll bar with it. */
+.panel-host__body.panel-host__body--library {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+}
+.library-panel {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* The Library has its own title and plus in the shell's panel header, as tall as the top bar. No line under it: the chips start straight below. */
+.panel-host:has(.panel-host__body--library) .panel-host__header {
+    box-sizing: border-box;
+    min-height: var(--panel-header-height);
+}
+
+/* controls */
+.library-panel__controls {
+    display: flex;
+    flex-direction: column;
+    gap: var(--panel-controls-gap); /* the chips and the find row: the same distance as in Search */
+    padding: var(--panel-pad-top) var(--space-4) var(--panel-controls-pad-bottom);
+    border-bottom: 1px solid var(--border-subtle); /* a line where the list starts, right above the scroll shadow (a trial: to see whether it reads well) */
+}
+/* the filter chips stay on one line and scroll sideways (chip-strip.js). The arrows sit on top of the chips' two ends and take no room of their own;
+   each one shows only on the side that has more chips to reach, and the chips fade out under it. */
+.chip-strip {
+    position: relative;
+    min-width: 0;
+    --strip-fade-l: 0px;
+    --strip-fade-r: 0px;
+}
+.chip-strip[data-fade-start='true'] {
+    --strip-fade-l: 36px;
+}
+.chip-strip[data-fade-end='true'] {
+    --strip-fade-r: 36px;
+}
+.chip-strip__arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 1;
+    transform: translateY(-50%);
+}
+.chip-strip__arrow:first-child {
+    left: 0;
+}
+.chip-strip__arrow:last-child {
+    right: 0;
+}
+.chip-strip[data-fade-start='false'] .chip-strip__arrow:first-child,
+.chip-strip[data-fade-end='false'] .chip-strip__arrow:last-child {
+    display: none;
+}
+.chip-strip__row {
+    min-width: 0;
+    padding: 2px 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--strip-fade-l), #000 calc(100% - var(--strip-fade-r)), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 var(--strip-fade-l), #000 calc(100% - var(--strip-fade-r)), transparent 100%);
+}
+.chip-strip__row::-webkit-scrollbar {
+    display: none;
+}
+.chip-strip .chip-group {
+    flex-wrap: nowrap;
+    width: max-content;
+}
+.chip-strip .chip {
+    flex: none;
+    white-space: nowrap;
+}
+/* The field component needs a label; here the placeholder and the icon say it, so the label is only for screen readers. */
+.library-panel .field__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+.library-panel__row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+.library-sort {
+    position: relative;
+    flex: none;
+    margin-inline-start: auto; /* stays at the far right, whether the find field is shut or open */
+}
+
+.library-sort[data-filtered='true']::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+/* the find control: a button that opens into a field (panel-search.js) */
+.panel-search {
+    display: flex;
+    align-items: center;
+    flex: none;
+    min-width: 0;
+    height: var(--icon-button-size-sm);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    transition: border-color var(--motion-fast) var(--motion-ease), background var(--motion-fast) var(--motion-ease);
+}
+.panel-search[data-open='true'] {
+    flex: 1;
+    border-color: var(--input-border);
+    background: var(--input-bg);
+}
+.panel-search[data-open='true']:hover {
+    border-color: var(--input-border-hover);
+}
+.panel-search[data-open='true']:focus-within {
+    border-color: var(--accent);
+}
+.panel-search__button {
+    flex: none;
+    margin: -1px; /* the border of the open field sits around the button without moving it */
+}
+.panel-search[data-open='true'] .panel-search__button {
+    pointer-events: none; /* the icon only labels the field while it is open */
+    color: var(--text-secondary);
+}
+.panel-search__field {
+    display: grid;
+    grid-template-columns: 0fr;
+    flex: 1;
+    min-width: 0;
+    transition: grid-template-columns 180ms var(--motion-ease);
+}
+.panel-search[data-open='true'] .panel-search__field {
+    grid-template-columns: 1fr;
+}
+.panel-search__inner {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+}
+.panel-search__input {
+    flex: 1;
+    min-width: 0;
+    height: calc(var(--icon-button-size-sm) - 2px);
+    padding: 0 var(--space-1) 0 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-sm);
+}
+.panel-search__input::-webkit-search-cancel-button {
+    display: none;
+}
+.panel-search__clear {
+    flex: none;
+}
+.panel-search__clear[hidden] {
+    display: none;
+}
+
+:where(:root[data-motion='reduced']) .panel-search,
+:where(:root[data-motion='reduced']) .panel-search__field {
+    transition: none;
+}
+.library-panel[data-folder='open'] .library-panel__controls {
+    display: none;
+}
+
+/* inside a folder */
+.library-panel__folder-bar {
+    display: none;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    color: var(--text-primary);
+}
+.library-panel[data-folder='open'] .library-panel__folder-bar {
+    display: flex;
+}
+.library-panel__folder-name {
+    overflow: hidden;
+    font-weight: var(--weight-semibold);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* nothing to show */
+.library-panel__empty {
+    padding: var(--space-6) var(--space-4);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    text-align: center;
+}
+.library-panel__empty[hidden] {
+    display: none;
+}
+
+/* the list: the engine's own scroll container, given a constrained height (the virtual scroll needs one) */
+.library-panel__list {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+.library-panel .left-panel-main-list-container {
+    position: absolute;
+    inset: 0 0 var(--panel-list-end);
+}
+.library-panel .left-panel-main-list-content {
+    height: 100%;
+}
+.library-panel .left-panel-main-list-content {
+    overflow-y: auto;
+}
+.library-panel .left-panel-main-list {
+    margin: 0;
+    padding: var(--space-2) var(--panel-list-pad-x) var(--space-4); /* room above the first row (under the line) and under the last row, inside the scrolled content: the scroll thumb still runs the whole height */
+    list-style: none;
+}
+
+/* rows */
+.library-panel .left-panel-main-item {
+    display: block;
+    height: var(--left-item-height);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+.library-panel .left-panel-main-item:hover {
+    background: var(--surface-raised);
+}
+.library-panel .left-panel-main-item.active {
+    background: var(--surface-selected);
+}
+.library-panel .left-panel-main-item:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+}
+.library-panel .subfolder-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    height: 100%;
+    padding: 0 var(--space-3) 0 var(--panel-row-pad-x);
+}
+.library-panel .main-item-cover-wrapper {
+    position: relative;
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: var(--panel-cover-size);
+    height: var(--panel-cover-size);
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    background: var(--surface-raised);
+}
+.library-panel .left-panel-main-list .main-item-cover-wrapper,
+.library-panel .left-panel-main-item.lazy-skeleton .main-item-cover-wrapper {
+    border-radius: var(--radius-sm); /* the engine's own css makes these square; Search and Recents covers are rounded */
+}
+.library-panel .main-item-cover-wrapper > svg,
+.library-panel .main-item-cover-wrapper > img {
+    width: var(--panel-cover-size) !important; /* the engine writes 45 and 50 px inline */
+    height: var(--panel-cover-size) !important;
+    object-fit: cover;
+}
+.library-panel .main-item-info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.library-panel .main-item-title {
+    overflow: hidden;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.library-panel .main-item-subtitle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    white-space: nowrap;
+}
+.library-panel .main-item-dot {
+    opacity: 0.6;
+}
+
+/* the item that is playing: amber title and icon, nothing else (DIRECTION.md) */
+.library-panel .left-panel-main-item.playing .main-item-title {
+    color: var(--accent);
+}
+
+/* glyphs the engine writes */
+.library-panel .pinned-indicator,
+.library-panel .left-panel-playing-icon,
+.library-panel .folder-chevron .material-symbols-outlined,
+.library-panel .left-panel-cover-play-btn::before {
+    display: inline-block;
+    flex: none;
+    width: 14px;
+    height: 14px;
+    background-color: currentColor;
+    font-size: 0; /* hides the glyph name the engine writes as text */
+    -webkit-mask: var(--glyph) center / contain no-repeat;
+    mask: var(--glyph) center / contain no-repeat;
+}
+.library-panel .pinned-indicator {
+    --glyph: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M12%2017v5%27%2F%3E%3Cpath%20d%3D%27M9%2010.76a2%202%200%200%201-1.11%201.79l-1.78.9A2%202%200%200%200%205%2015.24V16a1%201%200%200%200%201%201h12a1%201%200%200%200%201-1v-.76a2%202%200%200%200-1.11-1.79l-1.78-.9A2%202%200%200%201%2015%2010.76V7a1%201%200%200%201%201-1%202%202%200%200%200%200-4H8a2%202%200%200%200%200%204%201%201%200%200%201%201%201z%27%2F%3E%3C%2Fsvg%3E");
+    color: var(--accent);
+}
+.library-panel .left-panel-playing-icon {
+    --glyph: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M11%204.702a.705.705%200%200%200-1.203-.498L6.413%207.587A1.4%201.4%200%200%201%205.416%208H3a1%201%200%200%200-1%201v6a1%201%200%200%200%201%201h2.416a1.4%201.4%200%200%201%20.997.413l3.383%203.384A.705.705%200%200%200%2011%2019.298z%27%2F%3E%3Cpath%20d%3D%27M16%209a5%205%200%200%201%200%206%27%2F%3E%3Cpath%20d%3D%27M19.364%2018.364a9%209%200%200%200%200-12.728%27%2F%3E%3C%2Fsvg%3E");
+    display: none;
+    width: 16px;
+    height: 16px;
+    color: var(--accent);
+}
+.library-panel .left-panel-playing-icon > * {
+    display: none;
+}
+.library-panel .left-panel-main-item.playing:not(.paused) .left-panel-playing-icon {
+    display: inline-block;
+}
+.library-panel .folder-chevron {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+.library-panel .folder-chevron:hover {
+    background: var(--surface-selected);
+    color: var(--text-primary);
+}
+.library-panel .folder-chevron .material-symbols-outlined {
+    --glyph: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27m6%209%206%206%206-6%27%2F%3E%3C%2Fsvg%3E");
+}
+.library-panel .folder-chevron.expanded .material-symbols-outlined {
+    transform: rotate(180deg);
+}
+
+/* cover play button: appears on hover, focus, and while this item plays */
+.library-panel .left-panel-cover-play-btn {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: inherit;
+    background: var(--surface-scrim);
+    color: var(--text-primary);
+    cursor: pointer;
+    opacity: 0;
+}
+.library-panel .left-panel-cover-play-btn::before {
+    --glyph: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27black%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M5%205a2%202%200%200%201%203.008-1.728l11.997%206.998a2%202%200%200%201%20.003%203.458l-12%207A2%202%200%200%201%205%2019z%27%2F%3E%3C%2Fsvg%3E");
+    content: '';
+    width: 18px;
+    height: 18px;
+}
+.library-panel .left-panel-cover-play-btn.is-pause::before {
+    --glyph: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27black%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%2714%27%20y%3D%273%27%20width%3D%275%27%20height%3D%2718%27%20rx%3D%271%27%2F%3E%3Crect%20x%3D%275%27%20y%3D%273%27%20width%3D%275%27%20height%3D%2718%27%20rx%3D%271%27%2F%3E%3C%2Fsvg%3E");
+}
+.library-panel .left-panel-main-item:hover .left-panel-cover-play-btn,
+.library-panel .left-panel-cover-play-btn:focus-visible {
+    opacity: 1;
+}
+.library-panel .left-panel-cover-play-btn:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+}
+
+/* skeleton rows shown during a fast scroll */
+.library-panel .lazy-skeleton .skeleton-bar,
+.library-panel .lazy-skeleton .ph-left-cover-skeleton {
+    border-radius: var(--radius-sm);
+    background: var(--surface-raised);
+}
+.library-panel .lazy-skeleton .ph-left-cover-skeleton {
+    width: var(--panel-cover-size);
+    height: var(--panel-cover-size);
+}
+.library-panel .lazy-skeleton .ph-left-title {
+    width: 60%;
+    height: 10px;
+}
+.library-panel .lazy-skeleton .ph-left-subtitle {
+    width: 35%;
+    height: 8px;
+}
+
+/* A new order or filter: the rows fade in from slightly below (library-panel.js sets data-swap on the list). */
+@keyframes library-rows-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+:where(:root:not([data-motion='reduced'])) .library-panel__list[data-swap] .left-panel-main-list {
+    animation: library-rows-in 180ms var(--motion-ease) backwards;
+}
+
+/* No transition on the rows' hover (highlight, cover play button): it shows the moment the pointer is on the row. */

@@ -1,0 +1,569 @@
+/* Playback surfaces: player bar states, waveform seek bar, queue drawer, cover viewer.
+ * Tokens only, no raw colors. (The link may sit before or after shell/shell.css: every rule here that has to win over a
+ * shell rule is more specific than it.)
+ *
+ * The player's elements are built by adapter/legacy-dom-adapter.js and keep the engine's names, so everything here is
+ * scoped through the shell's wrapper (.player-host) or targets a node the engine creates itself. Nothing below fights an
+ * inline style the engine writes (display, width, left, transform: ENGINE-CONTRACT.md L-05). shell.css still carries the
+ * base player rules; this file only adds or corrects, so it can be dropped in without removing anything.
+ */
+
+/* ---------- seek tooltip ----------
+ * The engine appends .custom-tooltip.progress-tooltip to <body> while the pointer is over the seek bar or the bar is
+ * dragged (15f updateProgressTooltip). It sets left, top and transform in viewport pixels but relies on the old
+ * stylesheet for position: without it the node is static and renders at the bottom of the page, off the visible window
+ * (measured at 1400x860: x -700, y 840). Same look as the shared tooltip component. */
+.custom-tooltip.progress-tooltip {
+    position: fixed;
+    z-index: var(--layer-tooltip);
+    width: max-content;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--tooltip-border);
+    border-radius: var(--radius-md);
+    background: var(--tooltip-bg);
+    color: var(--text-primary);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    line-height: 1.4;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+/* ---------- toggles ----------
+ * The engine marks shuffle and repeat with .active (15b, 15c). The accent color alone is not enough of a signal, so an
+ * active toggle also gets a small dot under its glyph. */
+.player-host .player-btn.active::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 3px;
+    width: 4px;
+    height: 4px;
+    margin-left: -2px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+}
+.player-host #play-btn.active::after {
+    content: none;
+}
+
+/* ---------- nothing loaded ----------
+ * With an empty queue previous, next and seek do nothing (15d returns early; 15f startSeek needs a duration), so they
+ * read as unavailable. Play, shuffle and repeat stay normal: play starts playback and the two toggles set modes. They
+ * stay clickable; this only changes how they look, because the engine decides what a click does. The marker is set by
+ * views/playback/transport.js from the engine's own .has-song class. */
+.player-host[data-empty] :is(#prev-btn, #next-btn, .progress-section) {
+    opacity: var(--control-disabled-opacity);
+}
+/* They are inert too: no hover highlight, no tooltip, no seek knob, no click. (The engine ignores a press on them anyway.) */
+.player-host[data-empty] :is(.progress-container, #prev-btn, #next-btn) {
+    cursor: default;
+    pointer-events: none;
+}
+
+/* ---------- waveform seek bar ----------
+ * seek-waveform.js adds a canvas inside the engine's seek bar and the class has-waveform. The canvas is a picture
+ * (no pointer events), so a press on the bar reaches the engine as before; the engine still writes its own fill and
+ * knob, which stay in place but are hidden, the canvas draws the played part. */
+.waveform-canvas {
+    position: absolute;
+    inset: 50% 0 auto 0;
+    width: 100%;
+    height: 32px; /* always the waveform's height, centered on the bar: the bar's own height eases while it grows and folds, the drawing does not squash with it */
+    margin-top: -16px;
+    pointer-events: none;
+    opacity: 0;
+}
+.player-host .progress-container.has-waveform .waveform-canvas {
+    opacity: 1;
+    transition: opacity var(--motion-fast) var(--motion-ease); /* the picture fades in when its peaks arrive instead of popping */
+}
+
+:where(:root[data-motion='reduced']) .player-host .progress-container.has-waveform .waveform-canvas {
+    transition: none;
+}
+.player-host .progress-container.has-waveform {
+    height: 32px;
+}
+/* The bar's height eases between the plain bar and the waveform over the same time and curve as the bars grow and fold (GROW_MS and growAt in
+   waveform.js: 350 ms, cubic ease-out), so the buttons around it move with the waveform in both directions. */
+:where(:root:not([data-motion='reduced'])) .player-host .progress-container {
+    transition: height 350ms cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+/* Folding away (seek-waveform.js): the class has-waveform is already gone, so the bar shrinks now. The drawing stays up while the bars fold, then
+   fades out over the last part as the plain line fades in under it, so the waveform ends as the bar and does not switch to it. */
+:where(:root:not([data-motion='reduced'])) .player-host .progress-container.waveform-leaving .waveform-canvas {
+    opacity: 0;
+    transition: opacity 150ms var(--motion-ease) 200ms;
+}
+:where(:root:not([data-motion='reduced'])) .player-host .progress-container.waveform-leaving :is(#progress-bar, #progress-knob),
+:where(:root:not([data-motion='reduced'])) .player-host .progress-container.waveform-leaving::before {
+    animation: waveform-line-in 200ms var(--motion-ease) 150ms backwards;
+}
+@keyframes waveform-line-in {
+    from {
+        opacity: 0;
+    }
+}
+.player-host .progress-container.has-waveform::before,
+.player-host .progress-container.has-waveform #progress-bar,
+.player-host .progress-container.has-waveform #progress-knob {
+    visibility: hidden;
+}
+
+/* ---------- volume handle while dragging ----------
+ * The handle is hidden at rest and shown on hover (shell.css). The engine puts the class "dragging" on the volume slider
+ * while the mouse button is held (playback/15g), and the old stylesheet showed the handle for hover OR dragging. The
+ * new one lost the second half, so pulling the pointer past the end of the bar toward zero ended the hover and the
+ * handle vanished mid-drag. Higher specificity than shell.css; no !important (the engine writes inline styles). */
+.player-host #volume-slider.dragging #volume-knob {
+    opacity: 1;
+}
+
+/* ---------- slider focus ---------- */
+.player-host .progress-container:focus-visible,
+.player-host #volume-slider:focus-visible,
+.player-host #volume-icon:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+/* ---------- queue button and cover button ---------- */
+.player-host .queue-btn[aria-pressed='true'] {
+    color: var(--accent);
+}
+/* the heart and the info button after the title and artist (song-actions.js) */
+.player-host .player-song-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-1);
+    margin-inline-start: var(--space-1);
+}
+.player-host .player-song-actions[hidden] {
+    display: none;
+}
+.player-host .player-like[aria-pressed='true'] {
+    color: var(--accent);
+}
+
+/* ---------- queue drawer ----------
+ * The engine's own queue list (#queue-list) is moved in here and its rows are restyled through this wrapper. The card, its place above the
+ * player and the empty card are components/queue-card.css, shared with the Quick Player. Section labels, rows, the "more" button and "Load more"
+ * are the engine's markup (ui/04a, playback/10c). */
+/* ---------- big picture mode: the old screen's design, new tokens ---------- */
+.cover-overlay {
+    /* sizes of the old viewer: the picture is at most a third of the window width or 74% of its height; the close button is 8% of that */
+    --cover-size: min(33.6vw, 74vh);
+    --cover-close-size: calc(var(--cover-size) * 0.08);
+    --cover-scrim-strong: rgb(0 0 0 / 0.85);
+    --cover-lens-size: 180px;
+    --cover-lens-edge: rgb(255 255 255 / 0.6);
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    overflow: hidden;
+}
+.cover-overlay[open] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.cover-overlay::backdrop {
+    background: var(--cover-scrim-strong);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.cover-overlay--shown::backdrop {
+    opacity: 1;
+}
+.cover-overlay__content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-8);
+    opacity: 0;
+    filter: blur(10px);
+    transition: opacity 0.3s ease, filter 0.3s ease; /* closing */
+}
+.cover-overlay--shown .cover-overlay__content {
+    opacity: 1;
+    filter: blur(0);
+    transition: opacity 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); /* opening: the old spring */
+}
+.cover-overlay__image {
+    display: block;
+    max-width: var(--cover-size);
+    max-height: var(--cover-size);
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+    cursor: pointer; /* a click on the picture turns the magnifier on */
+}
+.cover-overlay__image--lens {
+    cursor: none;
+}
+.cover-overlay__close {
+    position: absolute;
+    left: 50%;
+    bottom: var(--space-6);
+    transform: translateX(-50%);
+    width: var(--cover-close-size);
+    height: var(--cover-close-size);
+    min-width: 32px;
+    min-height: 32px;
+    border-radius: var(--radius-pill);
+    background: var(--control-hover-bg);
+    color: var(--text-secondary);
+    backdrop-filter: blur(4px);
+    transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
+}
+.cover-overlay__close:hover {
+    color: var(--text-primary);
+    transform: translateX(-50%) scale(1.1);
+}
+.cover-lens {
+    position: fixed;
+    width: var(--cover-lens-size);
+    height: var(--cover-lens-size);
+    box-sizing: border-box;
+    border: 3px solid var(--cover-lens-edge);
+    border-radius: 50%;
+    box-shadow: var(--shadow-raised);
+    background: var(--surface-ground);
+    overflow: hidden;
+    pointer-events: none;
+}
+.cover-lens[hidden] {
+    display: none;
+}
+.cover-lens__inner {
+    position: absolute;
+    inset: 0;
+    background-repeat: no-repeat;
+}
+
+:where(:root[data-motion='reduced']) .cover-overlay::backdrop,
+:where(:root[data-motion='reduced']) .cover-overlay__content {
+    transition: none;
+}
+
+/* ---------- right panel content: the cover, the track info and the lyrics ---------- */
+.rp-now {
+    position: relative; /* the "Follow lyrics" button floats over the lyrics' bottom edge, placed from here */
+    display: flex;
+    flex-direction: column;
+    --rp-gap: var(--space-4);
+    gap: var(--rp-gap);
+    height: 100%;
+    min-height: 0;
+    padding: 0; /* no padding at all: the lyrics scrollbar runs to the panel's bottom edge (the lyrics list has its own room below the last line), and the header is centered in its box with or without a cover */
+    box-sizing: border-box;
+}
+.rp-now > :is(.rp-now__cover-frame, .rp-now__cover-empty, .rp-now__info) {
+    margin-inline: var(--space-4);
+}
+.rp-now > :is(.rp-now__cover-frame, .rp-now__cover-empty) {
+    margin-top: calc(var(--space-6) + var(--space-2)); /* the big cover gets more air above it; its sides stay as they were */
+    margin-bottom: calc(-1 * var(--rp-gap)); /* the header's box starts right under the cover, so its items are centered between the cover and the line below */
+}
+.rp-now [hidden] {
+    display: none;
+}
+.rp-now__cover-frame,
+.rp-now__cover-empty {
+    flex: none;
+}
+/* The blank cover shown with nothing playing: a tile in the theme's colors with a soft accent glow and a music note. */
+.rp-now__cover-empty {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: radial-gradient(circle at 28% 22%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 62%), linear-gradient(145deg, var(--surface-raised), var(--surface-panel));
+}
+.rp-now__cover-note {
+    width: 34%;
+    color: color-mix(in srgb, var(--text-tertiary) 80%, transparent);
+}
+.rp-now__cover-button {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: var(--surface-ground);
+    overflow: hidden;
+    cursor: pointer;
+}
+.rp-now__cover-frame[data-default] .rp-now__cover-button {
+    cursor: default; /* the default cover has no larger picture to open */
+    /* The default cover is a rounded square itself (assets/default-cover.svg), the same shape as the small covers: the button must not
+       round it a second time, which showed a lighter wedge in each corner. */
+    border-radius: 0;
+    background: transparent;
+    overflow: visible;
+}
+.rp-now__cover {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1; /* covers are squares: the picture fills the width and grows in height */
+    object-fit: cover;
+}
+.rp-now__info {
+    flex: none;
+    min-width: 0;
+}
+.rp-now__title {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+}
+.rp-now__artist {
+    font-size: var(--text-md);
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+}
+.rp-now__note {
+    margin: var(--space-1) 0 0;
+    font-size: var(--text-sm);
+    color: var(--text-tertiary);
+}
+.rp-now__note:empty {
+    display: none;
+}
+.rp-now__info:not(:has(.rp-now__note:not(:empty))) {
+    display: none; /* with no note the empty box would still take a gap on each side */
+}
+.rp-now__lyrics {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    --lyrics-pad-x: max(0px, calc(var(--space-4) - var(--scroll-gutter))); /* 16px shows on each side: the bar's room is reserved on both (scrollbar.css) */
+    margin-top: calc(-1 * var(--rp-gap)); /* the box starts right under the header's line (or the note), so the scrollbar runs up to it... */
+    padding: calc(var(--space-2) + var(--space-1)) var(--lyrics-pad-x) var(--space-2); /* ...and the room above the first line is inside the box */
+}
+/* The lyrics placeholder: faint bars shaped like lyric lines, one lit like the playing line, fading out toward the bottom. */
+.rp-skel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding-top: var(--space-2);
+    pointer-events: none;
+}
+/* There are more bars than a small panel shows, so a tall screen fills up too: the box that holds them clips the rest and fades out at its own bottom edge. */
+.rp-now__lyrics:has(> .rp-skel) {
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, #000 35%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 35%, transparent 100%);
+}
+.rp-skel__line {
+    display: block;
+    height: 0.9em;
+    max-width: 100%;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--text-tertiary) 30%, transparent);
+    font-size: var(--text-lg);
+}
+.rp-skel__line--on {
+    background: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+/* The placeholder for an instrumental song: one large note in a soft accent color, and a line of words. */
+.rp-instr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    padding-top: var(--space-6);
+    text-align: center;
+}
+.rp-instr__note {
+    font-size: 3.4rem;
+    line-height: 1;
+    color: color-mix(in srgb, var(--accent) 70%, var(--text-tertiary));
+}
+.rp-instr__hint {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--text-tertiary);
+}
+.rp-line {
+    padding: 0.35em 0; /* ...and the room between two lines is bigger than the room between the rows of one */
+    font-size: 1.375rem; /* 22px: lyrics are read from a distance, bigger than the app's text (both synced and plain lyrics use this line) */
+    line-height: 1.2; /* a line that wraps keeps its rows close together... */
+    font-weight: 600;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    overflow-wrap: anywhere;
+    transition: color var(--motion-fast) var(--motion-ease);
+}
+.rp-line:hover {
+    color: var(--text-primary);
+}
+.rp-line--past {
+    color: var(--text-secondary);
+}
+.rp-line--active {
+    color: var(--text-primary); /* colour only: a heavier weight makes the letters wider, so a line near the edge wrapped onto another row when it started playing */
+}
+.rp-line--empty {
+    min-height: 1em;
+    cursor: default;
+}
+/* An interlude (a long stretch with no words): the classic music note. Dim before and after; while it is the playing line it brightens with the break. */
+.rp-line--interlude {
+    padding: 0.25em 0;
+    cursor: pointer;
+}
+.rp-gap {
+    display: inline-block;
+    line-height: 1;
+    opacity: 0.4;
+}
+.rp-line--interlude.rp-line--active {
+    color: var(--text-primary); /* white like the playing line, not the theme colour */
+}
+.rp-line--interlude.rp-line--active .rp-gap {
+    opacity: calc(0.4 + var(--p, 0) * 0.6);
+}
+/* A line with its translation (shell/lyrics-display.js): the translation under the line, smaller. */
+.rp-line--pair .rp-line__orig,
+.rp-line--pair .rp-line__tr {
+    display: block;
+}
+.rp-line__tr {
+    margin-top: 2px;
+    font-size: 0.8em;
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+.rp-line--active .rp-line__tr {
+    color: var(--accent);
+}
+.rp-line--plain {
+    color: var(--text-primary); /* plain lyrics: the line style of synced lyrics, all lines in the main colour, nothing to click */
+    cursor: default;
+}
+/* "Follow lyrics": a pill that floats over the bottom of the lyrics, centered. It takes no room of its own (it used to be a row under the lyrics,
+   which made them shorter while it showed), so the lyrics do not jump when it comes and goes. */
+.rp-now__follow {
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--space-4) + var(--space-3)); /* above the panel's bottom padding, over the last lines */
+    z-index: 3;
+    translate: -50% 0;
+    padding: var(--space-1) var(--space-4);
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    box-shadow: var(--shadow-raised);
+    color: var(--text-on-accent);
+    font-size: var(--text-sm);
+    white-space: nowrap;
+    cursor: pointer;
+}
+.rp-now__follow:hover {
+    background: var(--accent-hover);
+}
+
+/* ---------- no text selection on the player and its surfaces ----------
+ * The old screen made everything non-selectable except fields (`* { user-select: none }`, css/base.css); the new base.css has no
+ * such rule, so a drag on the seek bar, the volume bar or the queue, a double click on a title, or a click on a lyric line
+ * highlighted text. The same rule, scoped to the playback surfaces. Fields keep their text selection. */
+.player-host,
+.queue-panel,
+.cover-overlay,
+.rp-now :is(.rp-now__cover-frame, .rp-now__follow, .rp-line) {
+    -webkit-user-select: none;
+    user-select: none;
+}
+.player-host :is(input[type='text'], input[type='search'], textarea, [contenteditable='true']),
+.queue-panel :is(input[type='text'], input[type='search'], textarea, [contenteditable='true']) {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* The comma between artists in the playing song's artist line (the engine writes it as a span; the old stylesheet dimmed it). */
+#player-artist .player-artist-sep,
+#tag-artist .player-artist-sep {
+    color: var(--text-secondary);
+}
+
+/* ---------- volume feedback (15g, PE-volume): the icon follows the level, the fill is brighter the louder it is, a number follows the knob ----------
+ * The engine sets data-level on #volume-slider (mute, whisper, low, high), swaps the icon only when its shape changes (the new glyph fades
+ * in, class vol-fade; the new interface shows it at once) and writes the percentage into #volume-bubble (hidden, see below). Motion only without reduced-motion. */
+.player-host #volume-slider[data-level='whisper'] #volume-fill {
+    opacity: 0.55;
+}
+.player-host #volume-slider[data-level='low'] #volume-fill {
+    opacity: 0.8;
+}
+.player-host #volume-slider.dragging #volume-knob {
+    scale: 1.3;
+}
+/* The engine's number above the knob (#volume-bubble) is not shown: the volume bar has the shared tooltip like every other control (transport.js),
+   which stays while the pointer is on the bar or the knob is dragged instead of fading after a moment. */
+.player-host .volume-bubble {
+    display: none;
+}
+
+:where(:root:not([data-motion='reduced'])) .player-host #volume-fill {
+    transition: opacity 0.2s;
+}
+:where(:root:not([data-motion='reduced'])) .player-host #volume-knob {
+    transition: opacity var(--motion-fast) var(--motion-ease), scale var(--motion-fast) var(--motion-ease);
+}
+/* The icon itself never moves and keeps its color: a new shape just replaces the old one (a fade from 30% showed as a color change
+   every time the level crossed a threshold while the bar was dragged). */
+
+/* ---------- audio visualizer (visualizer.js) ----------
+ * A passive picture across the whole player section, behind the controls: bars rise from the bottom edge. It never takes a click. */
+.visualizer-canvas {
+    position: absolute;
+    inset: 0 auto 0 0; /* anchored at the left edge; the width is 100%, or the left-side strip's (set by visualizer.js) */
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+.player-host:has(.visualizer-canvas) .player-container {
+    position: relative;
+    z-index: 1;
+}
+
+/* While the bars are on screen and the pointer is away from the player section, the song info (cover, title, artist, buttons) slides out to the
+ * left and fades, so the bars have the room. Coming back is instant (hover, or keyboard focus on something inside); going away is animated and
+ * waits a moment so a passing pointer does not make it flicker. Only keyboard focus (:focus-visible) keeps it shown: a mouse click that leaves a
+ * button focused must not hold it open. Less animation: it stays where it is. */
+.player-host .player-left {
+    transition: none; /* leaving the hidden state is instant */
+}
+:root:not([data-motion='reduced']) .player-host[data-viz-playing]:not(:hover):not(:has(:focus-visible)) .player-left {
+    opacity: 0;
+    transform: translateX(-48px);
+    transition: opacity 320ms var(--motion-ease) 900ms, transform 320ms var(--motion-ease) 900ms; /* entering the hidden state is animated */
+}
+
+/* ---------- volume bar for a narrow window: components/volume-pop.js (its styles are in components/components.css, shared with the Mini Player) ---------- */
+
+/* ---------- the Mini Player and Quick Player buttons (light-player-buttons.js): far right, next to the volume bar ---------- */
+.player-host .light-player-buttons {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1); /* the spacing before the pair comes from the volume control's own padding (shell.css), so no margin here */
+}
+.player-host .light-player-btn:disabled {
+    color: var(--text-tertiary);
+    cursor: default;
+}

@@ -1,0 +1,433 @@
+/* Library health. Tokens only. The overview is a hero and cards; a card opens a list whose rows look like the song list's (same row height,
+   same hover and selection colors, a play mark on the cover) and are built only while on screen (virtual-rows.js). */
+
+.beta-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px var(--space-2);
+    border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 10px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: 0.06em;
+    line-height: 1.5;
+    text-transform: uppercase;
+    vertical-align: middle;
+}
+
+.health-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    height: 100%;
+    padding: var(--space-6);
+    overflow-y: auto;
+}
+
+/* ---------- hero ---------- */
+.health-hero {
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+    padding: var(--space-4) var(--space-6);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, var(--accent-soft), transparent 70%), var(--surface-panel);
+}
+.health-hero__mark {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+.health-hero[data-state='clear'] .health-hero__mark {
+    background: var(--accent);
+    color: var(--text-on-accent);
+}
+.health-hero__text {
+    flex: 1;
+    min-width: 0;
+}
+.health-hero__title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-tertiary);
+}
+.health-hero__title h1 {
+    margin: 0;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.health-hero__headline {
+    margin-top: var(--space-1);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-semibold);
+}
+.health-hero__sub {
+    margin-top: var(--space-1);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.health-hero__actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* ---------- groups and cards ---------- */
+.health-page__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+}
+.health-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+.health-group__title {
+    margin: 0;
+    color: var(--text-tertiary);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.health-group__cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-3);
+}
+.health-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    grid-template-areas: 'icon main count' 'auto auto auto';
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--surface-panel);
+    transition: border-color var(--motion-fast) var(--motion-ease), background var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
+}
+.health-card:has(.health-card__open:hover:not(:disabled)) {
+    border-color: var(--border-strong);
+    background: color-mix(in srgb, var(--surface-selected) 45%, var(--surface-panel));
+}
+.health-card:has(.health-card__open:focus-visible) {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+.health-card__open {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    border-radius: inherit;
+    background: transparent;
+    cursor: pointer;
+}
+.health-card__open:disabled {
+    cursor: default;
+}
+.health-card__icon {
+    display: grid;
+    grid-area: icon;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+.health-card--clear .health-card__icon {
+    background: var(--surface-raised);
+    color: var(--text-tertiary);
+}
+.health-card__main {
+    grid-area: main;
+    min-width: 0;
+}
+.health-card__title {
+    font-weight: var(--weight-semibold);
+}
+.health-card__hint {
+    margin-top: 2px;
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+}
+.health-card__count {
+    display: flex;
+    flex-direction: column;
+    grid-area: count;
+    align-items: flex-end;
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+}
+.health-card__number {
+    color: var(--text-primary);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-semibold);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+.health-card--clear .health-card__count {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-1);
+}
+.health-card--clear {
+    opacity: 0.72;
+}
+.health-card__auto {
+    position: relative; /* above the card's own button */
+    z-index: 1;
+    grid-area: auto;
+    justify-self: start;
+}
+.health-card--loading .health-card__icon,
+.health-card--loading .health-card__title {
+    animation: health-pulse 1.2s ease-in-out infinite;
+}
+.health-hero[data-state='running'] .health-hero__mark {
+    animation: health-pulse 1.2s ease-in-out infinite;
+}
+.health-hidden {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+@keyframes health-pulse {
+    50% {
+        opacity: 0.45;
+    }
+}
+@keyframes health-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+}
+/* motion follows the app's own setting (the data-motion attribute on the root), not the system query directly */
+:where(:root:not([data-motion='reduced'])) .health-card:not(.health-card--loading) {
+    animation: health-in 220ms var(--motion-ease) both;
+}
+:where(:root[data-motion='reduced']) :is(.health-card--loading .health-card__icon, .health-card--loading .health-card__title, .health-hero[data-state='running'] .health-hero__mark) {
+    animation: none;
+}
+@media (max-width: 760px) {
+    .health-hero {
+        flex-wrap: wrap;
+    }
+}
+
+/* ---------- what a card opens ---------- */
+.health-detail {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+.health-detail__bar {
+    flex: none;
+    padding: var(--space-3) var(--space-6) 0;
+}
+/* A card's list owns the whole width, so its scrollbar sits on the view's right edge (the page's own padding is for the overview). */
+.health-page:has(> .health-detail) {
+    padding: 0;
+    overflow: hidden;
+}
+/* The duplicate finder scrolls itself; this box must not add a second scrollbar. */
+.health-detail__content[data-duplicates] {
+    overflow: hidden;
+}
+.health-detail__content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+.health-detail__content:not([data-duplicates]) {
+    padding: 0 var(--space-6) var(--space-6); /* no padding on top: the bar sticks to the very top and rows pass under it */
+}
+.health-list__head {
+    padding: var(--space-3) 0 var(--space-2);
+}
+.health-list__hint {
+    margin: var(--space-1) 0 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.health-page__title {
+    margin: 0;
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-semibold);
+}
+.health-list__tools {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 44px; /* one height whether or not songs are selected, so the list does not jump */
+    padding: 0 var(--space-4);
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--surface-ground);
+}
+.health-list__tools[data-selecting='true'] {
+    background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--surface-ground); /* opaque: rows pass under the bar */
+}
+.health-list__count {
+    flex: 1;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+}
+.health-list__buttons {
+    display: flex;
+    gap: var(--space-2);
+}
+.health-list__all,
+.hrow__check {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+.health-list__rows {
+    margin-top: var(--space-2);
+}
+
+/* ---------- a row: the song list's look ---------- */
+.hrow {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1.4fr) minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: var(--space-4);
+    box-sizing: border-box;
+    padding: 0 var(--space-4);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    cursor: default;
+    user-select: none;
+    transition: background var(--motion-fast) var(--motion-ease);
+}
+.hrow:hover {
+    background: color-mix(in srgb, var(--surface-selected) 60%, transparent);
+}
+.hrow--selected,
+.hrow--selected:hover {
+    background: var(--surface-selected);
+}
+.hrow__lead {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+/* The checkbox shows while the pointer is over the row, or once anything is selected; otherwise the cover has the room. */
+.hrow__check {
+    position: absolute;
+    inset-inline-start: -2px;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity var(--motion-fast) var(--motion-ease);
+}
+.hrow:hover .hrow__check,
+.hrow__check:checked,
+.hrow__check:focus-visible,
+.health-list__tools[data-selecting='true'] ~ .health-list__rows .hrow__check {
+    opacity: 1;
+}
+.hrow__art {
+    position: relative;
+    flex: none;
+    width: 40px;
+    height: 40px;
+    margin-inline-start: 20px;
+}
+.hrow__cover {
+    display: block;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    background: var(--surface-raised);
+}
+.hrow__art [data-act='play'] {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-sm);
+    background: rgb(0 0 0 / 0.5);
+    color: #fff;
+    opacity: 0;
+    transition: opacity var(--motion-fast) var(--motion-ease);
+}
+.hrow:hover .hrow__art [data-act='play'],
+.hrow__art [data-act='play']:focus-visible {
+    opacity: 1;
+}
+.hrow__text {
+    min-width: 0;
+}
+.hrow__title,
+.hrow__line,
+.hrow__path {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.hrow__title {
+    font-size: var(--text-md);
+}
+.hrow__line {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.hrow__path {
+    color: var(--text-tertiary);
+    font-size: var(--text-xs);
+}
+.hrow__note {
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: var(--text-xs);
+    white-space: nowrap;
+}
+.hrow__actions {
+    display: flex;
+    gap: var(--space-1);
+    opacity: 0;
+    transition: opacity var(--motion-fast) var(--motion-ease);
+}
+.hrow:hover .hrow__actions,
+.hrow:focus-within .hrow__actions {
+    opacity: 1;
+}
+@media (max-width: 900px) {
+    .hrow {
+        grid-template-columns: 56px minmax(0, 1fr) auto auto;
+    }
+    .hrow__path {
+        display: none;
+    }
+}

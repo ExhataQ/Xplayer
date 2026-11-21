@@ -1,0 +1,265 @@
+/* ui-next Lyrics. The engine draws the Find and Batch pages (js/lyrics/19); this file skins
+ * them through the engine's own class names, scoped to the view host while an engine lyrics page is shown, and styles the mode bar
+ * that views/tools/lyrics.js adds. The engine's own 'lyrics' page is blank (js/ui/04g), so there is no style for lyrics text here. Tokens only (tools/tests/interface/ui-next-lyrics.test.js).
+ *
+ * The engine's own stylesheets are not loaded in ui-next and Material Symbols is not either, so every icon the engine writes as a
+ * word ("edit", "graphic_eq") is hidden here and the label carries the meaning.
+ * Find (the online search and the multi-song finder) only gets a readable baseline here.
+ */
+
+.view-host[data-engine='lyrics'] {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.view-host[data-engine='lyrics'] > .content-wrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+}
+.view-host[data-engine='lyrics'] .material-symbols-outlined {
+    display: none;
+}
+
+/* ---------- mode bar ---------- */
+
+.lyrics-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2) var(--space-4);
+    padding: var(--space-3) var(--space-6);
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--surface-ground);
+}
+.lyrics-bar__editors {
+    display: flex;
+    gap: var(--space-2);
+}
+.lyrics-bar__hint {
+    flex-basis: 100%;
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.lyrics-bar__hint[hidden] {
+    display: none;
+}
+
+/* dim by colour, not by opacity. A line drawn at less than full opacity is rendered by the browser in its own layer, with a lighter kind of
+   text smoothing (no ClearType on Windows). When the playing line goes back to full opacity the same letters are drawn fuller, so they look
+   bigger and bolder although nothing changed in size. The engine's own sheets dim with opacity (0.65, 0.48, 0.6, 0.9); these rules win over
+   them (the `body` in front raises their weight) and give the same brightness by colour. The right panel's lyrics get the same. */
+body .track-lyrics-synced .track-lyrics-line {
+    opacity: 1;
+    color: color-mix(in srgb, var(--text-secondary) 65%, transparent);
+}
+body .track-lyrics-synced .track-lyrics-line.synced-active {
+    opacity: 1;
+    color: var(--text-primary);
+}
+body .track-lyrics-synced .track-lyrics-line:hover:not(.synced-active):not(.track-lyrics-line-empty):not(.track-lyrics-line-instrumental) {
+    opacity: 1;
+    color: color-mix(in srgb, var(--text-primary) 90%, transparent);
+}
+body .track-lyrics-synced .track-lyrics-line,
+body .track-lyrics-synced .track-lyrics-line.synced-active,
+body .track-lyrics-synced .track-lyrics-line:hover {
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    transform: none;
+    zoom: 1;
+}
+
+/* ---------- buttons the engine writes (toolbar, finder, Find) ---------- */
+
+.view-host[data-engine='lyrics'] .lyrics-view-edit-btn,
+.view-host[data-engine='lyrics'] .online-lyrics-search-btn,
+.view-host[data-engine='lyrics'] .online-lyrics-primary-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    min-height: var(--button-height);
+    padding: 0 var(--space-4);
+    border: 1px solid var(--button-outline-border);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
+}
+.view-host[data-engine='lyrics'] .lyrics-view-edit-btn:hover:not(:disabled),
+.view-host[data-engine='lyrics'] .online-lyrics-search-btn:hover:not(:disabled) {
+    background: var(--control-hover-bg);
+}
+.view-host[data-engine='lyrics'] .lyrics-view-edit-btn:active:not(:disabled) {
+    background: var(--control-active-bg);
+}
+.view-host[data-engine='lyrics'] .lyrics-view-edit-btn:focus-visible,
+.view-host[data-engine='lyrics'] .online-lyrics-search-btn:focus-visible,
+.view-host[data-engine='lyrics'] .online-lyrics-primary-btn:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+.view-host[data-engine='lyrics'] .lyrics-view-edit-btn:disabled {
+    opacity: var(--control-disabled-opacity);
+    cursor: default;
+}
+.view-host[data-engine='lyrics'] :is(.lyrics-online-btn, .online-lyrics-primary-btn, .online-lyrics-search-btn):not(:disabled) {
+    border-color: transparent;
+    background: var(--button-primary-bg);
+    color: var(--button-primary-fg);
+}
+.view-host[data-engine='lyrics'] :is(.lyrics-online-btn, .online-lyrics-primary-btn, .online-lyrics-search-btn):hover:not(:disabled) {
+    background: var(--button-primary-bg);
+    opacity: 0.88;
+}
+
+/* The engine adds this button to <body>, not to the page: it appears when the reader scrolls away from the line being sung. */
+.follow-lyrics-btn {
+    position: fixed;
+    bottom: calc(var(--player-height) + var(--space-4));
+    left: 50%;
+    z-index: var(--layer-toast);
+    padding: var(--space-2) var(--space-4);
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--button-primary-bg);
+    color: var(--button-primary-fg);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    box-shadow: var(--shadow-raised);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%) translateY(var(--space-3));
+    transition: opacity var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
+}
+.follow-lyrics-btn.visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%);
+}
+.follow-lyrics-btn .material-symbols-outlined {
+    display: none;
+}
+
+/* ---------- Find (baseline) ---------- */
+
+/* Find and Batch share one page: the same column, the same header (a small accent label, a serif title, one line of help) and the same cards. */
+.view-host[data-engine='lyrics'] .online-lyrics-view-container {
+    box-sizing: border-box;
+    width: min(var(--lyrics-column), 100%);
+    margin: 0 auto;
+    padding: var(--space-8) var(--space-6);
+    color: var(--text-primary);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-6);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-header > div:first-child::before {
+    content: 'Find';
+    display: block;
+    margin-bottom: var(--space-1);
+    color: var(--accent);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+.view-host[data-engine='lyrics'] .online-lyrics-header h2 {
+    margin: 0 0 var(--space-1);
+    font-family: var(--font-serif);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-regular);
+    line-height: 1.15;
+}
+.view-host[data-engine='lyrics'] .online-lyrics-header p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-md);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-view-container input[type='text'],
+.view-host[data-engine='lyrics'] .online-lyrics-view-container input:not([type]),
+.view-host[data-engine='lyrics'] .online-lyrics-view-container input[type='search'] {
+    box-sizing: border-box;
+    flex: 1 1 10rem;
+    min-width: 0;
+    height: var(--input-height);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-view-container input:hover {
+    border-color: var(--input-border-hover);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-view-container input:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
+}
+.view-host[data-engine='lyrics'] .smart-lyrics-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+}
+/* The search: one card, the three fields in a row, Search and Clear after them. */
+.view-host[data-engine='lyrics'] .online-lyrics-search-panel {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) auto auto;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-6);
+    padding: var(--space-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--surface-panel);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-search-panel input {
+    flex: none;
+}
+.view-host[data-engine='lyrics'] .online-lyrics-search-panel input:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 1px var(--accent);
+}
+/* Clear is the quiet one; only Search is filled. */
+.view-host[data-engine='lyrics'] .online-lyrics-search-btn[data-action='clearOnlineLyricsSearchInputs']:not(:disabled) {
+    border-color: transparent;
+    background: transparent;
+    color: var(--text-secondary);
+}
+.view-host[data-engine='lyrics'] .online-lyrics-search-btn[data-action='clearOnlineLyricsSearchInputs']:hover:not(:disabled) {
+    background: var(--control-hover-bg);
+    color: var(--text-primary);
+    opacity: 1;
+}
+.view-host[data-engine='lyrics'] .online-lyrics-status {
+    color: var(--text-secondary);
+    font-size: var(--text-md);
+}
+
+/* No text selection on the lyrics page's controls and its clickable lines (the old screen's `* { user-select: none }`).
+ * Plain lyrics are not clickable, so they stay selectable for copying. */
+.view-host[data-engine='lyrics'] :is(.lyrics-bar, .lyrics-view-synced .lyrics-line) {
+    -webkit-user-select: none;
+    user-select: none;
+}

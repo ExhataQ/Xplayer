@@ -1,0 +1,38 @@
+name: Bug report
+description: Something does not work as it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. **Never paste song file paths, your music library, or API keys.** The "Copy diagnostics" text from Settings > About already hides paths, but read it before you paste it.
+  - type: input
+    id: version
+    attributes:
+      label: Xplayer version
+      description: Settings > About
+      placeholder: 1.0.0-beta.1
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: How do you run it?
+      options:
+        - Installer
+        - Portable zip
+        - From source (npm start)
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What did you do, what happened, what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Settings > About > Copy diagnostics, pasted here.
+      render: text

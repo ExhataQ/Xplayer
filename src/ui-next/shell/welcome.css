@@ -1,0 +1,414 @@
+/* The welcome screen of a first start (shell/welcome.js): full screen under the title bar. Colors are tokens only; the motion values are
+   local to this file. Only transform and opacity move. base.css turns every animation off with "reduce motion". */
+.welcome {
+    --w-out: cubic-bezier(0.16, 1, 0.3, 1); /* things arriving */
+    --w-in: cubic-bezier(0.7, 0, 0.84, 0); /* things leaving */
+    --w-press: 120ms; /* feedback for a press */
+    --w-enter: 340ms;
+    position: fixed;
+    inset: 0; /* the whole window; the title bar floats above it with the window buttons only (see the end of this file) */
+    z-index: var(--layer-startup);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    background: radial-gradient(ellipse 70% 55% at 50% 0%, var(--accent-soft), transparent 70%), var(--surface-ground);
+    color: var(--text-primary);
+    animation: welcome-in 240ms var(--w-out) both;
+}
+.welcome__page {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--space-6);
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: calc(var(--titlebar-height) + var(--space-6)) var(--space-6) var(--space-8);
+    box-sizing: border-box;
+}
+.welcome__dots {
+    display: flex;
+    gap: var(--space-2);
+}
+.welcome__dot {
+    position: relative;
+    flex: 1;
+    height: 3px;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    background: var(--border-subtle);
+}
+.welcome__dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 400ms var(--w-out);
+}
+.welcome__dot.is-on::after {
+    transform: scaleX(1);
+}
+.welcome__stage {
+    flex: 1;
+    min-height: 430px;
+}
+.welcome__step {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+/* The parts of a step arrive one after the other. */
+.welcome__step > * {
+    animation: welcome-rise var(--w-enter) var(--w-out) both;
+    animation-delay: calc(var(--i, 0) * 45ms);
+}
+.welcome__headline {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-semibold);
+}
+.welcome__text {
+    margin: 0;
+    max-width: 54ch;
+    color: var(--text-secondary);
+    font-size: var(--text-md);
+    line-height: 1.5;
+}
+
+/* ---------- hello ---------- */
+.welcome__step--hello {
+    align-items: center;
+    gap: var(--space-3);
+    padding-top: var(--space-8);
+    text-align: center;
+}
+.welcome__hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 140px;
+    height: 140px;
+    margin-bottom: var(--space-4);
+}
+.welcome__mark {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 96px;
+    height: 96px;
+    border-radius: var(--radius-lg);
+    background: var(--accent-soft);
+    animation: welcome-float 5s ease-in-out infinite;
+}
+.welcome__ring {
+    position: absolute;
+    inset: 22px;
+    border: 2px solid var(--accent);
+    border-radius: var(--radius-lg);
+    opacity: 0;
+    animation: welcome-ring 3.2s var(--w-out) infinite;
+}
+.welcome__ring--late {
+    animation-delay: 1.6s;
+}
+.welcome__eq {
+    display: flex;
+    align-items: flex-end;
+    gap: 5px;
+    height: 28px;
+    margin-top: var(--space-4);
+}
+.welcome__eq span {
+    width: 4px;
+    height: 100%;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    opacity: 0.8;
+    transform-origin: bottom;
+    animation: welcome-eq 1.1s ease-in-out infinite;
+    animation-delay: calc(var(--b) * -0.17s);
+}
+
+/* ---------- make it yours ---------- */
+.welcome__themes {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+}
+.welcome .theme-card {
+    position: relative;
+    overflow: hidden;
+    transition: transform 180ms var(--w-out), box-shadow 180ms var(--w-out), border-color var(--motion-fast) var(--motion-ease);
+}
+.welcome .theme-card:hover {
+    transform: translateY(-3px);
+}
+.welcome .theme-card:active {
+    transform: scale(0.97);
+    transition-duration: var(--w-press);
+}
+.welcome .theme-card[aria-checked='true'] {
+    animation: welcome-pop 260ms var(--w-out);
+}
+.welcome__rows {
+    display: flex;
+    flex-direction: column;
+}
+.welcome__rows > .welcome__row {
+    padding: var(--space-4) 0;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.welcome__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+}
+.welcome__row > div:first-child {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+}
+.welcome__row strong {
+    color: var(--text-primary);
+    font-size: var(--text-md);
+    font-weight: var(--weight-medium);
+}
+.welcome__row span {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.welcome__row > .btn {
+    flex: none;
+}
+.welcome__row .welcome__status {
+    color: var(--text-tertiary);
+}
+.welcome__row .welcome__status:empty {
+    display: none;
+}
+.welcome__row .welcome__status.is-done {
+    color: var(--accent);
+}
+.welcome__switch {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+    cursor: pointer;
+}
+.welcome__switch input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+.welcome__switch-track {
+    display: flex;
+    width: 44px;
+    height: 24px;
+    border-radius: var(--radius-pill);
+    background: var(--border-subtle);
+    transition: background 180ms var(--w-out);
+}
+.welcome__switch-track::after {
+    content: '';
+    width: 18px;
+    height: 18px;
+    margin: 3px;
+    border-radius: var(--radius-pill);
+    background: var(--text-primary);
+    transition: transform 200ms var(--w-out), width var(--w-press) var(--w-out);
+}
+.welcome__switch input:checked + .welcome__switch-track {
+    background: var(--accent);
+}
+.welcome__switch input:checked + .welcome__switch-track::after {
+    transform: translateX(20px);
+}
+.welcome__switch:active .welcome__switch-track::after {
+    width: 24px; /* the knob stretches under the finger */
+}
+.welcome__switch input:checked:active + .welcome__switch-track::after {
+    transform: translateX(14px);
+}
+.welcome__switch input:focus-visible + .welcome__switch-track {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* ---------- music: Settings' own folder box, here with a step's rhythm ---------- */
+.welcome .library-locations-list.drag-over-folder {
+    background: var(--accent-soft);
+}
+.welcome .library-location-name .icon {
+    display: inline-flex;
+    flex: none;
+    color: var(--accent);
+}
+.welcome .library-locations-add-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+.welcome .welcome__empty .icon {
+    color: var(--text-secondary);
+}
+.welcome .library-location-item.is-new {
+    animation: welcome-rise 300ms var(--w-out) both;
+}
+.welcome .library-location-item.is-leaving {
+    opacity: 0;
+    transform: translateX(24px);
+    transition: opacity 110ms var(--w-in), transform 110ms var(--w-in);
+}
+.welcome .welcome__empty {
+    padding: var(--space-6) var(--space-4);
+    text-align: center;
+}
+.welcome__note {
+    min-height: 1.2em;
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+
+/* ---------- buttons and the footer ---------- */
+.welcome__nav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+.welcome__nav[hidden],
+.welcome__scan[hidden] {
+    display: none;
+}
+.welcome__spacer {
+    flex: 1;
+}
+.welcome .btn,
+.welcome .library-locations-add-btn {
+    position: relative;
+    overflow: hidden;
+    transition: transform var(--w-press) var(--w-out), box-shadow 180ms var(--w-out), background-color var(--motion-fast) var(--motion-ease), opacity var(--motion-fast) var(--motion-ease);
+}
+.welcome .btn:active:not(:disabled),
+.welcome .library-locations-add-btn:active:not(:disabled) {
+    transform: scale(0.96);
+}
+.welcome .btn--primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.welcome__ripple {
+    position: absolute;
+    border-radius: var(--radius-pill);
+    background: currentColor;
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0);
+    animation: welcome-ripple 400ms var(--w-out);
+}
+.welcome__scan {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+.welcome__scan-bar {
+    flex: 1;
+    height: 6px;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    background: var(--border-subtle);
+}
+.welcome__scan-bar i {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 300ms var(--w-out);
+}
+.welcome__scan-text {
+    min-width: 16ch;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.welcome__scan.is-done .welcome__scan-text {
+    color: var(--accent);
+    animation: welcome-pop 300ms var(--w-out);
+}
+
+/* The real title bar floats over the screen with the window buttons only, as it does over the startup view (startup/startup.css). While the screen
+   closes the buttons come back and the bar stays on top until the iris is done. */
+body:is(.welcome-open, .welcome-closing) .titlebar {
+    z-index: calc(var(--layer-startup) + 1);
+    border-bottom-color: transparent;
+    background: transparent;
+}
+body:is(.welcome-open, .welcome-closing) .titlebar::after {
+    background: transparent;
+}
+body.welcome-open .titlebar__window::before {
+    background: transparent; /* the little divider before the window buttons */
+}
+body.welcome-open .titlebar :is(.nav-btn, .icon-btn, .logo-btn) {
+    visibility: hidden;
+}
+
+@keyframes welcome-in {
+    from {
+        opacity: 0;
+    }
+}
+@keyframes welcome-rise {
+    from {
+        opacity: 0;
+        transform: translate3d(var(--shift, 0px), 14px, 0);
+    }
+}
+@keyframes welcome-pop {
+    40% {
+        transform: scale(1.035);
+    }
+}
+@keyframes welcome-ripple {
+    from {
+        opacity: 0.22;
+        transform: scale(0);
+    }
+    to {
+        opacity: 0;
+        transform: scale(1);
+    }
+}
+@keyframes welcome-float {
+    50% {
+        transform: translateY(-6px);
+    }
+}
+@keyframes welcome-ring {
+    from {
+        opacity: 0.5;
+        transform: scale(0.75);
+    }
+    to {
+        opacity: 0;
+        transform: scale(1.7);
+    }
+}
+@keyframes welcome-eq {
+    0%,
+    100% {
+        transform: scaleY(0.25);
+    }
+    50% {
+        transform: scaleY(1);
+    }
+}

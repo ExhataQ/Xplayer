@@ -1,0 +1,1066 @@
+// ==============================================================================
+// CONTEXT MENU STATE
+// ==============================================================================
+let activeContextMenu = null;
+let contextMenuMouseDownOutside = false;
+
+export const CONTEXT_MENU_TYPE_LABELS = {
+    playlist: 'Playlist',
+    folder: 'Folder',
+    album: 'Album',
+    artist: 'Artist',
+    special: 'Item'
+};
+
+// ==============================================================================
+// CONTEXT MENU - BUILD
+// ==============================================================================
+function buildFolderSubmenuHTML(itemId, itemType, mode) {
+    const folders = getFolders();
+    const currentFolderId = currentOpenFolderId;
+    if (folders.length === 0) {
+        return '<div class="context-menu-item" style="cursor: default;"><span>No folders</span></div>';
+    }
+    const action = mode === 'add' ? 'addToFolderFromMenu' : 'moveToFolderFromMenu';
+    return folders
+        .map((f) => {
+            if (mode === 'add' && currentFolderId === f.id) return '';
+            if (itemType === 'folder' && f.id === itemId) return '';
+            const hasIt = f.children.some((c) => c.id === itemId && c.type === itemType);
+            const check = hasIt ? '<i class="fas fa-check"></i>' : '<i class="far fa-folder"></i>';
+            return `
+            <div class="context-menu-item" ${actionAttrs('contextMenuAction', [action, String(f.id), String(itemId), String(itemType)], { stop: true })}>
+                ${check}
+                <span>${escapeHtml(f.name)}</span>
+            </div>
+        `;
+        })
+        .join('');
+}
+
+// The folder submenus. With the new interface's picker (a search field over the folders) the submenu is an empty box that the picker fills once the
+// menu is on the page; without it, the plain list above.
+function folderSubmenuHTML(itemId, itemType, mode) {
+    if (typeof hasFolderPicker !== 'function' || !hasFolderPicker()) {
+        return `<div class="context-submenu">${buildFolderSubmenuHTML(itemId, itemType, mode)}</div>`;
+    }
+    return `<div class="context-submenu playlist-picker-submenu" data-folder-picker data-mode="${mode}" data-item-id="${escapeHtml(String(itemId))}" data-item-type="${itemType}"></div>`;
+}
+
+function mountFolderPickers(menu) {
+    if (typeof mountFolderPickerInto !== 'function') return;
+    menu.querySelectorAll('[data-folder-picker]').forEach((host) => {
+        mountFolderPickerInto(host, { mode: host.dataset.mode, itemId: host.dataset.itemId, itemType: host.dataset.itemType }, closeContextMenu);
+    });
+}
+
+export function addToFolderFromMenu(folderId, itemId, itemType) {
+    const added = addToFolder(folderId, itemId, itemType, true);
+    if (added) {
+        const folder = getFolders().find((f) => f.id === folderId);
+        showNotification(
+            `Added ${CONTEXT_MENU_TYPE_LABELS[itemType] || 'Item'} shortcut to "${folder ? folder.name : 'folder'}"`,
+            'success',
+            2000
+        );
+        renderFoldersView();
+        renderLeftPanelMainList();
+        updateScrollbarById('left-panel-main-content');
+        if (currentOpenFolderId) renderFolderContents(currentOpenFolderId);
+    } else {
+        showNotification('Already in folder', 'warning', 2000);
+    }
+}
+
+export function moveToFolderFromMenu(folderId, itemId, itemType) {
+    const added = addToFolder(folderId, itemId, itemType, false);
+    if (added) {
+        const folder = getFolders().find((f) => f.id === folderId);
+        showNotification(
+            `Moved ${CONTEXT_MENU_TYPE_LABELS[itemType] || 'Item'} to "${folder ? folder.name : 'folder'}"`,
+            'success',
+            2000
+        );
+        renderFoldersView();
+        renderLeftPanelMainList();
+        updateScrollbarById('left-panel-main-content');
+        if (currentOpenFolderId) renderFolderContents(currentOpenFolderId);
+    } else {
+        showNotification('Item already in that folder', 'warning', 2000);
+    }
+}
+
+function removeFromFolderFromMenu(folderId, itemId, itemType) {
+    const state = getItemFolderState(folderId, itemId, itemType);
+    if (!state) {
+        showNotification('Item is not in this folder', 'warning', 2000);
+        return;
+    }
+
+    const label = CONTEXT_MENU_TYPE_LABELS[itemType] || 'Item';
+
+    const removed = removeItemFromFolder(folderId, itemId, itemType);
+    if (!removed) {
+        showNotification('Failed to remove from folder', 'error', 2000);
+        return;
+    }
+
+    if (state.shortcut) {
+        showNotification(`Removed ${label} shortcut from folder`, 'info', 2000);
+    } else {
+        showNotification(`Moved ${label} back to library root`, 'info', 2000);
+    }
+
+    renderFoldersView();
+    renderLeftPanelMainList();
+    updateScrollbarById('left-panel-main-content');
+    if (currentOpenFolderId === folderId) {
+        renderFolderContents(folderId);
+    } else if (currentOpenFolderId) {
+        renderFolderContents(currentOpenFolderId);
+    }
+}
+
+// The songs a song menu acts on: the whole selection when the clicked song is part of a multi-selection, else just that song.
+function songIdsForMenu(songId) {
+    return typeof selectedSongIds !== 'undefined' && selectedSongIds.size > 1 && selectedSongIds.has(songId) ? [...selectedSongIds] : [songId];
+}
+
+function buildContextMenu(songId, options = {}) {
+    const {
+        showAddToPlaylist = true,
+        showRemoveFromCurrentPlaylist = false,
+        currentPlaylistId = null,
+        currentPlaylistName = null,
+        showFavorite = true,
+        showAddToQueue = true,
+        showFileActions = true,
+        showDeleteFromHistory = false
+    } = options;
+
+    const relevantIds = songIdsForMenu(songId);
+    const isFav = relevantIds.every((id) => isFavorite(id));
+    const favoriteIcon = isFav ? 'fas fa-heart liked' : 'fas fa-heart unliked';
+    const favoriteText = isFav ? 'Remove from favorites' : 'Add to favorites';
+
+    let menuHTML = '';
+
+    if (showAddToPlaylist && hasPlaylistPicker()) {
+        // The new interface fills this submenu (search field and playlists) right after the menu is on the page (showContextMenu).
+        menuHTML += `
+        <div class="context-menu-item submenu-parent" style="position: relative;">
+                <i class="fas fa-plus"></i>
+                <span>Add to playlist</span>
+                <i class="fas fa-chevron-right"></i>
+                <div class="context-submenu playlist-picker-submenu"></div>
+        </div>
+        `;
+    } else if (showAddToPlaylist) {
+        menuHTML += `
+        <div class="context-menu-item submenu-parent" style="position: relative;">
+                <i class="fas fa-plus"></i>
+                <span>Add to playlist</span>
+                <i class="fas fa-chevron-right"></i>
+                <div class="context-submenu">
+                        ${(() => {
+                            const playlists = getPlaylists().filter((p) => !p.smart); // Top rated and Not rated follow the ratings: nothing is added to them
+                            if (playlists.length === 0) {
+                                return '<div class="context-menu-item" style="cursor: default;"><span>No playlists</span></div>';
+                            }
+                            const pinnedIds = getPinnedItems();
+                            const playedOrder = getPlayedItemOrder();
+                            const sortedPlaylists = sortByPinnedThenRecent(
+                                playlists,
+                                (p) => `playlist-${p.id}`,
+                                pinnedIds,
+                                playedOrder
+                            );
+                            return sortedPlaylists
+                                .map((p) => {
+                                    if (showRemoveFromCurrentPlaylist && p.id === currentPlaylistId) {
+                                        return `<div class="context-menu-item" ${actionAttrs('contextMenuAction', ['removeSongFromPlaylistAndRefresh', songId, String(currentPlaylistId)], { stop: true })}>
+                                            <i class="fas fa-trash-alt"></i>
+                                            <span>${escapeHtml(p.name)} (remove)</span>
+                                        </div>`;
+                                    } else {
+                                        const isInPlaylist = p.songs.includes(songId);
+                                        return `<div class="context-menu-item" ${actionAttrs('contextMenuAction', ['addToPlaylistFromMenu', songId, String(p.id)], { stop: true })}>
+                                            <i class="${isInPlaylist ? 'fas fa-check' : 'far fa-plus-square'}"></i>
+                                            <span>${escapeHtml(p.name)}${isInPlaylist ? ' (added)' : ''}</span>
+                                        </div>`;
+                                    }
+                                })
+                                .join('');
+                        })()}
+                </div>
+        </div>
+        `;
+    }
+
+    if (showRemoveFromCurrentPlaylist && currentPlaylistName && !(getPlaylists().find((p) => p.id == currentPlaylistId) || {}).smart) {
+        menuHTML += `
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['removeSongFromPlaylistAndRefresh', songId, String(currentPlaylistId)])}>
+                <i class="fas fa-trash-alt"></i>
+                <span>Remove from "${escapeHtml(currentPlaylistName)}"</span>
+        </div>
+        `;
+    }
+
+    if (showFavorite) {
+        menuHTML += `
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['toggleFavoriteFromMenu'])}>
+                <i class="${favoriteIcon}"></i>
+                <span>${favoriteText}</span>
+        </div>
+        `;
+    }
+
+    // Rate: only while the rating system is on. The check marks the rating all the chosen songs share; Remove rating shows when any has one.
+    if (showFavorite && typeof isRatingSystemOn === 'function' && isRatingSystemOn()) {
+        const now = relevantIds.map((id) => ratingOf(getSongById(id)));
+        const shared = now.every((r) => r === now[0]) ? now[0] : -1;
+        const starRow = (n) => `
+                    <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['setRatingFromMenu', songId, String(n)], { stop: true })}>
+                        <i class="${shared === n ? 'fas fa-check' : 'far fa-star'}"></i>
+                        <span>${ratingLabel(n)}</span>
+                    </div>`;
+        menuHTML += `
+        <div class="context-menu-item submenu-parent" style="position: relative;">
+                <i class="far fa-star"></i>
+                <span>Rate</span>
+                <i class="fas fa-chevron-right"></i>
+                <div class="context-submenu">${RATING_CHOICES.map(starRow).join('')}${
+                    now.some((r) => r > 0)
+                        ? `
+                    <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['setRatingFromMenu', songId, '0'], { stop: true })}>
+                        <i class="fas fa-times"></i>
+                        <span>Remove rating</span>
+                    </div>`
+                        : ''
+                }
+                </div>
+        </div>
+        `;
+    }
+
+    if (showAddToQueue) {
+        menuHTML += `
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['addToQueueNextFromMenu'])}>
+                <i class="fas fa-list"></i>
+                <span>Add to queue</span>
+        </div>
+        `;
+    }
+
+    if (songId !== null && songId !== undefined) {
+        const ctxSong = SONGS_DATA.find((s) => s.id === songId);
+        const hasLyrics =
+            ctxSong && typeof getLyricsForSong === 'function' && String(getLyricsForSong(ctxSong) || '').trim() !== '';
+        menuHTML += `
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['openLyricsEditorForSong', songId])}>
+                <i class="fas fa-align-left"></i>
+                <span>${hasLyrics ? 'Edit lyrics' : 'Add lyrics'}</span>
+        </div>
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['showSongMetadataModal', songId])}>
+                <i class="fas fa-info-circle"></i>
+                <span>Show metadata</span>
+        </div>
+        `;
+    }
+
+    if (options.queueIndex !== undefined) {
+        menuHTML += `
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['removeFromQueue', options.queueIndex])}>
+                <i class="fas fa-times"></i>
+                <span>Remove from queue</span>
+        </div>
+        `;
+    }
+
+    if (showFileActions) {
+        menuHTML += `
+        <div class="context-menu-item context-menu-separator" ${actionAttrs('contextMenuAction', ['showFileLocation'])}>
+                <i class="fas fa-folder-open"></i>
+                <span>Show file location</span>
+        </div>
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['deleteSongFile'])}>
+                <i class="fas fa-trash-alt"></i>
+                <span>Delete from computer</span>
+        </div>
+        `;
+    }
+
+    if (options.showPlayedData && songId) {
+        menuHTML += `
+        <div class="context-menu-separator" style="border-top: 1px solid var(--border); margin: 4px 0; padding-top: 0;"></div>
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['showPlayedDataModal', songId])}>
+                <i class="fas fa-chart-bar"></i>
+                <span>View play history</span>
+        </div>
+        `;
+    }
+
+    if (showDeleteFromHistory) {
+        menuHTML += `
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['deleteHistoryEntry'])}>
+                <i class="fas fa-trash-alt"></i>
+                <span>Delete from history</span>
+        </div>
+        `;
+    }
+
+    return menuHTML;
+}
+
+// ==============================================================================
+// CONTEXT MENU - ITEM ACTIONS (data-action handlers, see core/LEGACY.md)
+// ==============================================================================
+// Each menu item runs one function and then closeContextMenu(). The functions
+// live in files that load later, so they are looked up when the item is clicked.
+const CONTEXT_MENU_ACTIONS = {
+    removeSongFromPlaylistAndRefresh: (...a) => removeSongFromPlaylistAndRefresh(...a),
+    addToPlaylistFromMenu: (...a) => addToPlaylistFromMenu(...a),
+    addToFolderFromMenu: (...a) => addToFolderFromMenu(...a),
+    moveToFolderFromMenu: (...a) => moveToFolderFromMenu(...a),
+    toggleFavoriteFromMenu: (...a) => toggleFavoriteFromMenu(...a),
+    setRatingFromMenu: (...a) => setRatingFromMenu(...a),
+    addToQueueNextFromMenu: (...a) => addToQueueNextFromMenu(...a),
+    openLyricsEditorForSong: (...a) => openLyricsEditorForSong(...a),
+    showSongMetadataModal: (...a) => showSongMetadataModal(...a),
+    removeFromQueue: (...a) => removeFromQueue(...a),
+    showFileLocation: (...a) => showFileLocation(...a),
+    deleteSongFile: (...a) => deleteSongFile(...a),
+    showPlayedDataModal: (...a) => showPlayedDataModal(...a),
+    deleteHistoryEntry: (...a) => deleteHistoryEntry(...a),
+    removeFromFolderFromMenu: (...a) => removeFromFolderFromMenu(...a),
+    addArtistToQueue: (...a) => addArtistToQueue(...a),
+    addAlbumToQueue: (...a) => addAlbumToQueue(...a),
+    addPlaylistToQueue: (...a) => addPlaylistToQueue(...a),
+    showEditPlaylistDialog: (...a) => showEditPlaylistDialog(...a),
+    deletePlaylistAndClose: (...a) => deletePlaylistAndClose(...a),
+    openFolder: (...a) => openFolder(...a),
+    showEditFolderDialog: (...a) => showEditFolderDialog(...a),
+    confirmDeleteFolder: (...a) => confirmDeleteFolder(...a),
+    clearPlayHistory: (...a) => clearPlayHistory(...a),
+    togglePinItem: (...a) => togglePinItem(...a)
+};
+
+function contextMenuAction(name, ...args) {
+    CONTEXT_MENU_ACTIONS[name](...args);
+    closeContextMenu();
+}
+
+function contextMenuPinItem(containingFolderId, itemId, itemName) {
+    if (containingFolderId) togglePinItemInFolder(containingFolderId, itemId, itemName);
+    else togglePinItem(itemId, itemName);
+    closeContextMenu();
+}
+
+function contextMenuPlayArtist(artistId) {
+    closeContextMenu();
+    openArtist(artistId);
+    setTimeout(() => playCurrentViewFromStart(), 100);
+}
+
+function contextMenuPlayAlbum(albumId) {
+    closeContextMenu();
+    openAlbum(albumId);
+    setTimeout(() => playCurrentViewFromStart(), 100);
+}
+
+function contextMenuPlayPlaylist(playlistId) {
+    closeContextMenu();
+    openPlaylist(playlistId, () => playCurrentViewFromStart());
+}
+
+function contextMenuPlayView(viewId) {
+    closeContextMenu();
+    switchView(viewId);
+    setTimeout(() => playCurrentViewFromStart(), 100);
+}
+
+registerActions({
+    contextMenuAction,
+    contextMenuPinItem,
+    contextMenuPlayArtist,
+    contextMenuPlayAlbum,
+    contextMenuPlayPlaylist,
+    contextMenuPlayView
+});
+
+// ==============================================================================
+// CONTEXT MENU - SHOW / CLOSE
+// ==============================================================================
+export function showContextMenu(event, songId, options = {}) {
+    event.stopPropagation();
+    event.preventDefault();
+
+    const clickedMoreInfo = event.target.closest('.more-info');
+    if (clickedMoreInfo) {
+        temporarilySuppressTooltip(clickedMoreInfo);
+    }
+
+    if (activeContextMenu && currentContextSongId === songId) {
+        closeContextMenu();
+        return;
+    }
+
+    closeContextMenu();
+
+    currentContextSongId = songId;
+    const songElement = event.target.closest('.song-item');
+    if (songElement) {
+        const ghostSlotAttr = songElement.getAttribute('data-ghost-slot');
+        if (ghostSlotAttr) {
+            if (currentView === VIEWS.HISTORY) {
+                const history = getPlayHistory();
+                const parts = ghostSlotAttr.split('-');
+                const slotId = parts[parts.length - 1];
+                activeContextMenuSlot = history.findIndex((entry) => entry.ghostSlotId === slotId);
+            } else {
+                const parts = ghostSlotAttr.split('-');
+                activeContextMenuSlot = parseInt(parts[parts.length - 1]);
+            }
+        }
+    }
+
+    const menuOptions = {
+        showAddToPlaylist: true,
+        showRemoveFromCurrentPlaylist: options.showRemoveFromCurrentPlaylist || false,
+        currentPlaylistId: options.currentPlaylistId || null,
+        currentPlaylistName: options.currentPlaylistName || null,
+        showFavorite: true,
+        showAddToQueue: true,
+        showFileActions: true,
+        showDeleteFromHistory: currentView === VIEWS.HISTORY,
+        showPlayedData: currentView === VIEWS.HISTORY,
+        queueIndex: options.queueIndex
+    };
+
+    const menuHTML = buildContextMenu(songId, menuOptions);
+
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+    menu.id = 'context-menu';
+    menu.style.display = 'block';
+    menu.style.visibility = 'hidden';
+    menu.innerHTML = menuHTML;
+
+    document.body.appendChild(menu);
+    mountPlaylistPickerInto(menu.querySelector('.playlist-picker-submenu'), songIdsForMenu(songId), closeContextMenu);
+
+    const menuWidth = menu.offsetWidth;
+    const menuHeight = menu.offsetHeight;
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    let posX = event.clientX;
+    let posY = event.clientY + 5;
+
+    const spaceToRight = windowWidth - event.clientX;
+    if (spaceToRight < menuWidth) {
+        posX = event.clientX - menuWidth - 7;
+    }
+    if (posX < 7) {
+        posX = 7;
+    }
+
+    const spaceToBottom = windowHeight - event.clientY;
+    if (spaceToBottom < menuHeight) {
+        posY = event.clientY - menuHeight - 7;
+    }
+    if (posY < 7) {
+        posY = 7;
+    }
+
+    menu.style.left = posX + 'px';
+    menu.style.top = posY + 'px';
+    menu.style.visibility = 'visible';
+
+    setTimeout(() => {
+        menu.classList.add('active');
+    }, 10);
+
+    activeContextMenu = menu;
+    menu._originalX = event.clientX;
+    menu._originalY = event.clientY;
+    menu._flippedX = spaceToRight < menuWidth;
+    menu._flippedY = spaceToBottom < menuHeight;
+
+    setTimeout(() => {
+        positionSubmenus(menu);
+    }, 10);
+}
+
+export function closeContextMenu() {
+    if (activeContextMenu) {
+        activeContextMenu.remove();
+        activeContextMenu = null;
+        currentContextSongId = null;
+    }
+    contextMenuMouseDownOutside = false;
+}
+
+// ==============================================================================
+// CONTEXT MENU - SUBMENU POSITIONING
+// ==============================================================================
+function positionSubmenus(menu) {
+    const submenus = menu.querySelectorAll('.context-submenu');
+    submenus.forEach((submenu) => {
+        const parentItem = submenu.closest('.context-menu-item');
+        if (!parentItem) return;
+
+        submenu.classList.remove('right-aligned', 'bottom-aligned', 'bottom-right-aligned');
+
+        submenu.style.visibility = 'hidden';
+        submenu.style.display = 'block';
+
+        const submenuRect = submenu.getBoundingClientRect();
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        const needsRightAlign = submenuRect.right > windowWidth;
+        const needsBottomAlign = submenuRect.bottom > windowHeight;
+
+        submenu.style.display = '';
+        submenu.style.visibility = '';
+
+        if (needsRightAlign && needsBottomAlign) {
+            submenu.classList.add('bottom-right-aligned');
+        } else if (needsRightAlign) {
+            submenu.classList.add('right-aligned');
+        } else if (needsBottomAlign) {
+            submenu.classList.add('bottom-aligned');
+        }
+    });
+}
+
+// ==============================================================================
+// CONTEXT MENU - SPECIALIZED SHOW FUNCTIONS
+// ==============================================================================
+function getContainingFolderIdFromEvent(event) {
+    if (currentOpenFolderId) return currentOpenFolderId;
+    if (!event || !event.target) return null;
+    const item = event.target.closest('.left-panel-main-item');
+    if (!item) return null;
+    const parent = item.getAttribute('data-parent-folder');
+    if (parent && parent !== 'root') return parent;
+    return null;
+}
+
+export function showLeftPanelItemContextMenu(event, itemId, itemName, itemType) {
+    event.stopPropagation();
+    event.preventDefault();
+
+    closeContextMenu();
+
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+    menu.id = 'context-menu';
+    menu.style.display = 'block';
+    menu.style.visibility = 'hidden';
+
+    const containingFolderId = getContainingFolderIdFromEvent(event);
+    const insideFolder = !!containingFolderId;
+    const isPinned = insideFolder ? isItemPinnedInFolder(containingFolderId, itemId) : isItemPinned(itemId);
+    const pinLabel = insideFolder
+        ? isPinned
+            ? 'Unpin inside this folder'
+            : 'Pin inside this folder'
+        : isPinned
+        ? 'Unpin from top'
+        : 'Pin to top';
+    const pinActionAttrs = actionAttrs('contextMenuPinItem', [
+        insideFolder ? String(containingFolderId) : null,
+        String(itemId),
+        String(itemName)
+    ]);
+
+    let menuHTML = '';
+
+    if (itemType === 'playlist' || itemType === 'folder') {
+        const rawId = itemType === 'playlist' ? itemId.replace('playlist-', '') : itemId.replace('folder-', '');
+        menuHTML += `
+        <div class="context-menu-item submenu-parent" style="position: relative;">
+                <i class="fas fa-folder-minus"></i>
+                <span>Move to folder</span>
+                <i class="fas fa-chevron-right"></i>
+                ${folderSubmenuHTML(rawId, itemType, 'move')}
+        </div>
+        `;
+    }
+
+    {
+        let rawId = itemId;
+        if (itemType === 'playlist') rawId = itemId.replace('playlist-', '');
+        else if (itemType === 'folder') rawId = itemId.replace('folder-', '');
+        menuHTML += `
+        <div class="context-menu-item submenu-parent" style="position: relative;">
+                <i class="fas fa-share"></i>
+                <span>Add shortcut to...</span>
+                <i class="fas fa-chevron-right"></i>
+                ${folderSubmenuHTML(rawId, itemType, 'add')}
+        </div>
+        `;
+    }
+
+    if (currentOpenFolderId) {
+        let rawId = itemId;
+        if (itemType === 'playlist') rawId = itemId.replace('playlist-', '');
+        else if (itemType === 'folder') rawId = itemId.replace('folder-', '');
+
+        const state = getItemFolderState(currentOpenFolderId, rawId, itemType);
+        if (state) {
+            const removeLabel = state.shortcut ? 'Remove shortcut from folder' : 'Remove from folder';
+            menuHTML += `
+                <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['removeFromFolderFromMenu', String(currentOpenFolderId), String(rawId), itemType])}>
+                        <i class="fas fa-times"></i>
+                        <span>${removeLabel}</span>
+                </div>
+            `;
+        }
+    }
+
+    menuHTML += `
+        <div class="context-menu-item" ${pinActionAttrs}>
+                <i class="fas fa-thumbtack"></i>
+                <span>${pinLabel}</span>
+        </div>
+    `;
+
+    if (itemType === 'artist') {
+        const artistId = itemId;
+        menuHTML =
+            `
+                <div class="context-menu-item" ${actionAttrs('contextMenuPlayArtist', [String(artistId)])}>
+                        <i class="fas fa-play"></i>
+                        <span>Play</span>
+                </div>
+                <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['addArtistToQueue', String(artistId)])}>
+                        <i class="fas fa-list"></i>
+                        <span>Add to queue</span>
+                </div>
+        ` + menuHTML;
+    }
+
+    if (itemType === 'album') {
+        const albumId = itemId;
+        menuHTML =
+            `
+                <div class="context-menu-item" ${actionAttrs('contextMenuPlayAlbum', [String(albumId)])}>
+                        <i class="fas fa-play"></i>
+                        <span>Play</span>
+                </div>
+                <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['addAlbumToQueue', String(albumId)])}>
+                        <i class="fas fa-list"></i>
+                        <span>Add to queue</span>
+                </div>
+        ` + menuHTML;
+    }
+
+    if (itemType === 'playlist') {
+        const playlistId = itemId.replace('playlist-', '');
+        menuHTML =
+            `
+                <div class="context-menu-item" ${actionAttrs('contextMenuPlayPlaylist', [String(playlistId)])}>
+                        <i class="fas fa-play"></i>
+                        <span>Play</span>
+                </div>
+                <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['addPlaylistToQueue', String(playlistId)])}>
+                        <i class="fas fa-list"></i>
+                        <span>Add to queue</span>
+                </div>
+        ` + menuHTML;
+        menuHTML += `
+                <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['showEditPlaylistDialog', String(playlistId)])}>
+                        <i class="fas fa-pen"></i>
+                        <span>Edit details</span>
+                </div>
+                <div class="context-menu-item context-menu-separator" ${actionAttrs('contextMenuAction', ['deletePlaylistAndClose', String(playlistId)])}>
+                        <i class="fas fa-trash-alt"></i>
+                        <span>Delete playlist</span>
+                </div>
+        `;
+    }
+
+    if (itemType === 'special') {
+        menuHTML =
+            `
+                <div class="context-menu-item" ${actionAttrs('contextMenuPlayView', [String(itemId)])}>
+                        <i class="fas fa-play"></i>
+                        <span>Play</span>
+                </div>
+        ` + menuHTML;
+    }
+
+    menu.innerHTML = menuHTML;
+
+    document.body.appendChild(menu);
+    mountFolderPickers(menu);
+
+    const menuWidth = menu.offsetWidth;
+    const menuHeight = menu.offsetHeight;
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    let posX = event.clientX;
+    let posY = event.clientY + 5;
+
+    const spaceToRight = windowWidth - event.clientX;
+    if (spaceToRight < menuWidth) {
+        posX = event.clientX - menuWidth - 7;
+    }
+    if (posX < 7) {
+        posX = 7;
+    }
+
+    const spaceToBottom = windowHeight - event.clientY;
+    if (spaceToBottom < menuHeight) {
+        posY = event.clientY - menuHeight - 7;
+    }
+    if (posY < 7) {
+        posY = 7;
+    }
+
+    menu.style.left = posX + 'px';
+    menu.style.top = posY + 'px';
+    menu.style.visibility = 'visible';
+
+    setTimeout(() => {
+        menu.classList.add('active');
+    }, 10);
+
+    activeContextMenu = menu;
+    menu._originalX = event.clientX;
+    menu._originalY = event.clientY;
+    menu._flippedX = spaceToRight < menuWidth;
+    menu._flippedY = spaceToBottom < menuHeight;
+}
+
+export function showSpecialItemContextMenu(event, itemId, itemName) {
+    showLeftPanelItemContextMenu(event, itemId, itemName, 'special');
+}
+
+export function showPlaylistContextMenu(event, playlistId) {
+    const playlists = getPlaylists();
+    const playlist = playlists.find((p) => p.id == playlistId || p.id === playlistId);
+    const name = playlist ? playlist.name : 'Playlist';
+    showLeftPanelItemContextMenu(event, `playlist-${playlistId}`, name, 'playlist');
+}
+
+export function showFolderContextMenu(event, folderId) {
+    const folders = getFolders();
+    const folder = folders.find((f) => f.id === folderId);
+    const name = folder ? folder.name : 'Folder';
+
+    event.stopPropagation();
+    event.preventDefault();
+
+    closeContextMenu();
+
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+    menu.id = 'context-menu';
+    menu.style.display = 'block';
+    menu.style.visibility = 'hidden';
+
+    const containingFolderId = getContainingFolderIdFromEvent(event);
+    const insideFolder = !!containingFolderId && containingFolderId !== folderId;
+    const isPinned = insideFolder
+        ? isItemPinnedInFolder(containingFolderId, `folder-${folderId}`)
+        : isItemPinned(`folder-${folderId}`);
+    const pinLabel = insideFolder
+        ? isPinned
+            ? 'Unpin inside this folder'
+            : 'Pin inside this folder'
+        : isPinned
+        ? 'Unpin from top'
+        : 'Pin to top';
+    const pinActionAttrs = actionAttrs('contextMenuPinItem', [
+        insideFolder ? String(containingFolderId) : null,
+        `folder-${folderId}`,
+        String(name)
+    ]);
+
+    let menuHTML = `
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['openFolder', String(folderId)])}>
+                <i class="fas fa-folder-open"></i>
+                <span>Open</span>
+        </div>
+        <div class="context-menu-item submenu-parent" style="position: relative;">
+                <i class="fas fa-folder-minus"></i>
+                <span>Move to folder</span>
+                <i class="fas fa-chevron-right"></i>
+                ${folderSubmenuHTML(folderId, 'folder', 'move')}
+        </div>
+        <div class="context-menu-item submenu-parent" style="position: relative;">
+                <i class="fas fa-share"></i>
+                <span>Add shortcut to...</span>
+                <i class="fas fa-chevron-right"></i>
+                ${folderSubmenuHTML(folderId, 'folder', 'add')}
+        </div>
+    `;
+
+    if (currentOpenFolderId && currentOpenFolderId !== folderId) {
+        const state = getItemFolderState(currentOpenFolderId, folderId, 'folder');
+        if (state) {
+            const removeLabel = state.shortcut ? 'Remove shortcut from folder' : 'Remove from folder';
+            menuHTML += `
+                <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['removeFromFolderFromMenu', String(currentOpenFolderId), String(folderId), 'folder'])}>
+                        <i class="fas fa-times"></i>
+                        <span>${removeLabel}</span>
+                </div>
+            `;
+        }
+    }
+
+    menuHTML += `
+        <div class="context-menu-item" ${pinActionAttrs}>
+                <i class="fas fa-thumbtack"></i>
+                <span>${pinLabel}</span>
+        </div>
+        <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['showEditFolderDialog', String(folderId)])}>
+                <i class="fas fa-pen"></i>
+                <span>Rename</span>
+        </div>
+        <div class="context-menu-item context-menu-separator" ${actionAttrs('contextMenuAction', ['confirmDeleteFolder', String(folderId), String(name)])}>
+                <i class="fas fa-trash-alt"></i>
+                <span>Delete folder</span>
+        </div>
+    `;
+
+    menu.innerHTML = menuHTML;
+
+    document.body.appendChild(menu);
+    mountFolderPickers(menu);
+
+    const menuWidth = menu.offsetWidth;
+    const menuHeight = menu.offsetHeight;
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    let posX = event.clientX;
+    let posY = event.clientY + 5;
+
+    const spaceToRight = windowWidth - event.clientX;
+    if (spaceToRight < menuWidth) {
+        posX = event.clientX - menuWidth - 7;
+    }
+    if (posX < 7) {
+        posX = 7;
+    }
+
+    const spaceToBottom = windowHeight - event.clientY;
+    if (spaceToBottom < menuHeight) {
+        posY = event.clientY - menuHeight - 7;
+    }
+    if (posY < 7) {
+        posY = 7;
+    }
+
+    menu.style.left = posX + 'px';
+    menu.style.top = posY + 'px';
+    menu.style.visibility = 'visible';
+
+    setTimeout(() => {
+        menu.classList.add('active');
+    }, 10);
+
+    activeContextMenu = menu;
+    menu._originalX = event.clientX;
+    menu._originalY = event.clientY;
+    menu._flippedX = spaceToRight < menuWidth;
+    menu._flippedY = spaceToBottom < menuHeight;
+}
+
+export function showAlbumContextMenu(event, albumId) {
+    const albums = getAlbums();
+    const album = albums.find((a) => a.id === albumId);
+    const name = album ? album.name : 'Album';
+    showLeftPanelItemContextMenu(event, albumId, name, 'album');
+}
+
+export function showArtistContextMenu(event, artistId) {
+    const artists = getArtists();
+    const artist = artists.find((a) => a.id === artistId);
+    const name = artist ? artist.name : 'Artist';
+    showLeftPanelItemContextMenu(event, artistId, name, 'artist');
+}
+
+function getViewItemType(viewId) {
+    if (!viewId) return 'special';
+    if (viewId.startsWith('playlist-')) return 'playlist';
+    if (viewId.startsWith('a') && viewId.length === 13) return 'album';
+    if (viewId.startsWith('r') && viewId.length === 13) return 'artist';
+    return 'special';
+}
+
+export function showSubheroContextMenu(event) {
+    const clickedMoreInfo = event.target.closest('.subhero-more-btn, .more-info');
+    if (clickedMoreInfo) {
+        temporarilySuppressTooltip(clickedMoreInfo);
+    }
+
+    let itemId = currentView;
+    let itemName = getCurrentViewDisplayName();
+    let itemType = getViewItemType(currentView);
+
+    if (currentView === VIEWS.HISTORY) {
+        event.stopPropagation();
+        event.preventDefault();
+
+        closeContextMenu();
+
+        const menu = document.createElement('div');
+        menu.className = 'context-menu';
+        menu.id = 'context-menu';
+        menu.style.display = 'block';
+        menu.style.visibility = 'hidden';
+
+        const isPinned = isItemPinned(itemId);
+
+        let menuHTML = `
+                <div class="context-menu-item" ${actionAttrs('contextMenuAction', ['togglePinItem', String(itemId), String(itemName)])}>
+                        <i class="fas fa-thumbtack"></i>
+                        <span>${isPinned ? 'Unpin from top' : 'Pin to top'}</span>
+                </div>
+                <div class="context-menu-item context-menu-separator" ${actionAttrs('contextMenuAction', ['clearPlayHistory'])}>
+                        <i class="fas fa-trash-alt"></i>
+                        <span>Clear history</span>
+                </div>
+        `;
+
+        menu.innerHTML = menuHTML;
+
+        document.body.appendChild(menu);
+
+        const menuWidth = menu.offsetWidth;
+        const menuHeight = menu.offsetHeight;
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        let posX = event.clientX;
+        let posY = event.clientY + 5;
+
+        const spaceToRight = windowWidth - event.clientX;
+        if (spaceToRight < menuWidth) {
+            posX = event.clientX - menuWidth - 5;
+        }
+        if (posX < 5) {
+            posX = 5;
+        }
+
+        const spaceToBottom = windowHeight - event.clientY;
+        if (spaceToBottom < menuHeight) {
+            posY = event.clientY - menuHeight - 5;
+        }
+        if (posY < 5) {
+            posY = 5;
+        }
+
+        menu.style.left = posX + 'px';
+        menu.style.top = posY + 'px';
+        menu.style.visibility = 'visible';
+
+        setTimeout(() => {
+            menu.classList.add('active');
+        }, 10);
+
+        activeContextMenu = menu;
+        menu._originalX = event.clientX;
+        menu._originalY = event.clientY;
+        menu._flippedX = spaceToRight < menuWidth;
+        menu._flippedY = spaceToBottom < menuHeight;
+        return;
+    }
+
+    showLeftPanelItemContextMenu(event, itemId, itemName, itemType);
+}
+
+// ==============================================================================
+// CONTEXT MENU - EVENT LISTENERS
+// ==============================================================================
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+        if (notificationPanelOpen) {
+            closeNotificationPanel();
+            return;
+        }
+        closeContextMenu();
+    }
+});
+
+document.addEventListener('mousedown', function (event) {
+    if (!activeContextMenu) return;
+    const inside = !!event.target.closest('.context-menu');
+    const onMoreInfo = !!event.target.closest('.more-info');
+    contextMenuMouseDownOutside = !inside && !onMoreInfo;
+});
+
+document.addEventListener('click', function (event) {
+    if (!event.target.closest('.more-info') && !event.target.closest('.context-menu')) {
+        if (contextMenuMouseDownOutside) {
+            closeContextMenu();
+        }
+        contextMenuMouseDownOutside = false;
+    }
+    if (typeof selectedSongIds !== 'undefined' && selectedSongIds.size > 0) {
+        const insideSongItem = event.target.closest('#song-list .song-item');
+        const insideContextMenu = event.target.closest('.context-menu');
+        const insideModal = event.target.closest(
+            '.playlist-modal, .playlist-modal-overlay, .lyrics-editor-overlay, .sync-editor-overlay, .extended-info-overlay'
+        );
+        if (!insideSongItem && !insideContextMenu && !insideModal) {
+            clearAllSelections();
+        }
+    }
+});
+
+window.addEventListener('resize', function () {
+    if (activeContextMenu) {
+        const menu = activeContextMenu;
+        const menuWidth = menu.offsetWidth;
+        const menuHeight = menu.offsetHeight;
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        let posX = menu._flippedX ? menu._originalX - menuWidth - 7 : menu._originalX;
+        let posY = menu._flippedY ? menu._originalY - menuHeight - 7 : menu._originalY + 5;
+
+        if (posX + menuWidth > windowWidth - 7) {
+            posX = windowWidth - menuWidth - 7;
+        }
+        if (posX < 7) {
+            posX = 7;
+        }
+
+        if (posY + menuHeight > windowHeight - 7) {
+            posY = windowHeight - menuHeight - 7;
+        }
+        if (posY < 7) {
+            posY = 7;
+        }
+
+        menu.style.left = posX + 'px';
+        menu.style.top = posY + 'px';
+
+        positionSubmenus(menu);
+    }
+});
+
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        showContextMenu,
+        closeContextMenu,
+        showLeftPanelItemContextMenu,
+        showSpecialItemContextMenu,
+        showPlaylistContextMenu,
+        showFolderContextMenu,
+        showAlbumContextMenu,
+        showArtistContextMenu,
+        showSubheroContextMenu,
+        addToFolderFromMenu,
+        moveToFolderFromMenu,
+        CONTEXT_MENU_TYPE_LABELS
+    });
+}

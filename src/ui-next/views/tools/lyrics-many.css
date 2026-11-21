@@ -1,0 +1,771 @@
+/* The Batch page of the Lyrics tool (views/tools/lyrics-many.js): the source and filter on top, a card with a virtual list, the controls
+ * at the bottom. Tokens only. */
+
+.view-host[data-engine='lyrics'][data-lyrics-mode='batch'] > :not(.lyrics-bar):not(.lyrics-many-host) {
+    display: none;
+}
+.lyrics-many-host {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+.lyrics-many-host {
+    overflow-y: auto; /* the bar's room is reserved in scrollbar.css, the same width as Find's page, so the two columns line up */
+}
+/* The same column and the same header as Find (lyrics.css). */
+.many {
+    container-type: inline-size;
+    box-sizing: border-box;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    width: min(var(--lyrics-column, 56rem), 100%);
+    margin: 0 auto;
+    padding: var(--space-8) var(--space-6);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+}
+.many-head {
+    flex: none;
+    margin-bottom: var(--space-3);
+}
+.many-head__eyebrow {
+    display: block;
+    margin-bottom: var(--space-1);
+    color: var(--accent);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+.many-head__title {
+    margin: 0 0 var(--space-1);
+    font-family: var(--font-serif);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-regular);
+    line-height: 1.15;
+}
+.many-head__text {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-md);
+}
+.many-top,
+.many-bottom {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+}
+.many-search {
+    box-sizing: border-box;
+    flex: 1 1 14rem;
+    min-width: 0;
+    height: var(--input-height);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+}
+.many-search:hover {
+    border-color: var(--input-border-hover);
+}
+.many-search:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 1px var(--accent);
+}
+.many-source {
+    min-height: var(--input-height);
+}
+.many-count {
+    margin-inline-start: auto;
+    color: var(--text-secondary);
+}
+.many-count:empty {
+    display: none;
+}
+
+.many-card {
+    /* The columns of the header and of every row: check box, cover, Title (the rest), Album, Lyrics now and Result (the person's widths, set by lyrics-many.js). */
+    --many-album: 170px;
+    --many-have: 150px;
+    --many-state: 170px;
+    --many-inset: var(--space-2); /* the rows stand in from the card's edge; the header runs edge to edge */
+    --many-pad-start: var(--space-2);
+    --many-pad-end: var(--space-3);
+    --many-cols: 18px 40px minmax(0, 1fr) var(--many-album) var(--many-have) var(--many-state);
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 14rem;
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--surface-panel);
+}
+.many-card__bar {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    border-bottom: 1px solid var(--border-subtle);
+}
+.many-card__bar[hidden] {
+    display: none;
+}
+.many-card__all {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+.many-spacer {
+    flex: 1;
+}
+.many-card__body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+.many-list {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+}
+.many-list[hidden] {
+    display: none;
+}
+/* The column header: the same grid as a row, stuck to the top of the list (inside the scroller, so the scrollbar does not push it out of line). */
+.many-colhead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: var(--many-cols);
+    column-gap: var(--space-3);
+    align-items: stretch;
+    height: 36px;
+    padding: 0 calc(var(--many-inset) + var(--many-pad-end)) 0 calc(var(--many-inset) + var(--many-pad-start));
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--surface-panel);
+    color: var(--text-tertiary);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    user-select: none;
+}
+.many-colhead__cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    white-space: nowrap;
+}
+.many-colhead__title {
+    grid-column: 2 / 4; /* starts where the cover does */
+}
+.many-colhead__album {
+    grid-column: 4;
+}
+.many-colhead__have {
+    grid-column: 5;
+}
+.many-colhead__state {
+    grid-column: 6;
+}
+/* The drag handle sits in the gap in front of its column, like the song list's. */
+.many-resizer {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--space-3) / -2 - var(--space-2));
+    width: var(--space-4);
+    cursor: col-resize;
+    touch-action: none;
+}
+.many-resizer::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: 50%;
+    width: 1px;
+    background: var(--border-subtle);
+    transition: background var(--motion-fast) var(--motion-ease), top var(--motion-fast) var(--motion-ease), bottom var(--motion-fast) var(--motion-ease);
+}
+.many-resizer:hover::after,
+.many-resizer:focus-visible::after,
+.many-resizer[data-dragging]::after {
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    margin-left: -1px;
+    background: var(--text-primary);
+}
+.many-resizer:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+    border-radius: var(--radius-sm);
+}
+body.many-resizing {
+    cursor: col-resize;
+    user-select: none;
+}
+:where(:root[data-motion='reduced']) .many-resizer::after {
+    transition: none;
+}
+.many-list__spacer {
+    position: relative;
+    width: 100%;
+}
+.many-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.many-empty[hidden] {
+    display: none;
+}
+
+.many-row {
+    position: absolute;
+    top: 0;
+    inset-inline: var(--many-inset);
+    height: 56px;
+    display: grid;
+    grid-template-columns: var(--many-cols);
+    column-gap: var(--space-3);
+    align-items: center;
+    padding: 0 var(--many-pad-end) 0 var(--many-pad-start);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+}
+.many-row:hover {
+    background: var(--control-hover-bg);
+}
+.many-row[aria-selected='true'] {
+    background: var(--surface-selected);
+}
+/* Selected rows next to each other are one block, as in the song list: only the top of its first row and the bottom of its last are rounded. */
+.many-row[data-run='start'] {
+    border-end-start-radius: 0;
+    border-end-end-radius: 0;
+}
+.many-row[data-run='mid'] {
+    border-radius: 0;
+}
+.many-row[data-run='end'] {
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
+}
+.many-all,
+.many-row__check {
+    flex: none;
+    accent-color: var(--accent);
+}
+.many-row__check {
+    pointer-events: none;
+}
+.many-row__cover {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    background: var(--surface-ground);
+}
+.many-row__cover img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.many-row__text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+.many-row__title,
+.many-row__sub {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.many-row__sub {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.many-row__album {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.many-row__have {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--space-1);
+    min-width: 0;
+    overflow: hidden;
+}
+/* What the song has now: a small badge each. Synced is the best there is, so it takes the accent; no lyrics at all is the quiet, dashed one. */
+.many-badge {
+    padding: 2px var(--space-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-pill);
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    line-height: 1.4;
+    white-space: nowrap;
+}
+.many-badge--synced {
+    border-color: transparent;
+    background: var(--accent-soft);
+    color: var(--text-primary);
+}
+.many-badge--none {
+    border-style: dashed;
+    color: var(--text-tertiary);
+}
+.many-badge--instrumental {
+    background: var(--surface-ground);
+}
+.many-groups {
+    flex: none;
+}
+.many-groups[hidden] {
+    display: none;
+}
+.many-row__state {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-tertiary);
+    font-size: var(--text-sm);
+}
+.many-row__state:not(:empty) {
+    justify-self: start;
+    max-width: 100%;
+    padding: 2px var(--space-3);
+    border-radius: var(--radius-pill);
+    background: var(--surface-ground);
+}
+.many-row[data-status='lrc'] .many-row__state,
+.many-row[data-status='lyrics'] .many-row__state,
+.many-row[data-status='instrumental'] .many-row__state {
+    background: var(--accent-soft);
+    color: var(--text-primary);
+}
+.many-row[data-status='missing'] .many-row__state {
+    color: var(--danger);
+}
+
+/* a narrower page: the Album column (and its header) leaves first, then Lyrics now; the Result stays */
+@container (max-width: 46rem) {
+    .many-card {
+        --many-cols: 18px 40px minmax(0, 1fr) var(--many-have) var(--many-state);
+    }
+    .many-row__album,
+    .many-colhead__album {
+        display: none;
+    }
+    .many-colhead__have {
+        grid-column: 4;
+    }
+    .many-colhead__state {
+        grid-column: 5;
+    }
+}
+@container (max-width: 34rem) {
+    .many-card {
+        --many-cols: 18px 40px minmax(0, 1fr) var(--many-state);
+    }
+    .many-row__have,
+    .many-colhead__have {
+        display: none;
+    }
+    .many-colhead__state {
+        grid-column: 4;
+    }
+}
+
+.many-bottom {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+}
+.many-search {
+    box-sizing: border-box;
+    flex: 1 1 14rem;
+    min-width: 0;
+    height: var(--input-height);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+}
+.many-search:hover {
+    border-color: var(--input-border-hover);
+}
+.many-search:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 1px var(--accent);
+}
+.many-source {
+    min-height: var(--input-height);
+}
+.many-count {
+    margin-inline-start: auto;
+    color: var(--text-secondary);
+}
+.many-count:empty {
+    display: none;
+}
+
+.many-card {
+    /* The columns of the header and of every row: check box, cover, Title (the rest), Album, Lyrics now and Result (the person's widths, set by lyrics-many.js). */
+    --many-album: 170px;
+    --many-have: 150px;
+    --many-state: 170px;
+    --many-inset: var(--space-2); /* the rows stand in from the card's edge; the header runs edge to edge */
+    --many-pad-start: var(--space-2);
+    --many-pad-end: var(--space-3);
+    --many-cols: 18px 40px minmax(0, 1fr) var(--many-album) var(--many-have) var(--many-state);
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 14rem;
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--surface-panel);
+}
+.many-card__bar {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    border-bottom: 1px solid var(--border-subtle);
+}
+.many-card__bar[hidden] {
+    display: none;
+}
+.many-card__all {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+.many-spacer {
+    flex: 1;
+}
+.many-card__body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+.many-list {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+}
+.many-list[hidden] {
+    display: none;
+}
+/* The column header: the same grid as a row, stuck to the top of the list (inside the scroller, so the scrollbar does not push it out of line). */
+.many-colhead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: var(--many-cols);
+    column-gap: var(--space-3);
+    align-items: stretch;
+    height: 36px;
+    padding: 0 calc(var(--many-inset) + var(--many-pad-end)) 0 calc(var(--many-inset) + var(--many-pad-start));
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--surface-panel);
+    color: var(--text-tertiary);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    user-select: none;
+}
+.many-colhead__cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    white-space: nowrap;
+}
+.many-colhead__title {
+    grid-column: 2 / 4; /* starts where the cover does */
+}
+.many-colhead__album {
+    grid-column: 4;
+}
+.many-colhead__have {
+    grid-column: 5;
+}
+.many-colhead__state {
+    grid-column: 6;
+}
+/* The drag handle sits in the gap in front of its column, like the song list's. */
+.many-resizer {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--space-3) / -2 - var(--space-2));
+    width: var(--space-4);
+    cursor: col-resize;
+    touch-action: none;
+}
+.many-resizer::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: 50%;
+    width: 1px;
+    background: var(--border-subtle);
+    transition: background var(--motion-fast) var(--motion-ease), top var(--motion-fast) var(--motion-ease), bottom var(--motion-fast) var(--motion-ease);
+}
+.many-resizer:hover::after,
+.many-resizer:focus-visible::after,
+.many-resizer[data-dragging]::after {
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    margin-left: -1px;
+    background: var(--text-primary);
+}
+.many-resizer:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+    border-radius: var(--radius-sm);
+}
+body.many-resizing {
+    cursor: col-resize;
+    user-select: none;
+}
+:where(:root[data-motion='reduced']) .many-resizer::after {
+    transition: none;
+}
+.many-list__spacer {
+    position: relative;
+    width: 100%;
+}
+.many-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.many-empty[hidden] {
+    display: none;
+}
+
+.many-row {
+    position: absolute;
+    top: 0;
+    inset-inline: var(--many-inset);
+    height: 56px;
+    display: grid;
+    grid-template-columns: var(--many-cols);
+    column-gap: var(--space-3);
+    align-items: center;
+    padding: 0 var(--many-pad-end) 0 var(--many-pad-start);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+}
+.many-row:hover {
+    background: var(--control-hover-bg);
+}
+.many-row[aria-selected='true'] {
+    background: var(--surface-selected);
+}
+/* Selected rows next to each other are one block, as in the song list: only the top of its first row and the bottom of its last are rounded. */
+.many-row[data-run='start'] {
+    border-end-start-radius: 0;
+    border-end-end-radius: 0;
+}
+.many-row[data-run='mid'] {
+    border-radius: 0;
+}
+.many-row[data-run='end'] {
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
+}
+.many-all,
+.many-row__check {
+    flex: none;
+    accent-color: var(--accent);
+}
+.many-row__check {
+    pointer-events: none;
+}
+.many-row__cover {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    background: var(--surface-ground);
+}
+.many-row__cover img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.many-row__text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+.many-row__title,
+.many-row__sub {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.many-row__sub {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.many-row__have {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--space-1);
+    min-width: 0;
+    overflow: hidden;
+}
+/* What the song has now: a small badge each. Synced is the best there is, so it takes the accent; no lyrics at all is the quiet, dashed one. */
+.many-badge {
+    padding: 2px var(--space-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-pill);
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    line-height: 1.4;
+    white-space: nowrap;
+}
+.many-badge--synced {
+    border-color: transparent;
+    background: var(--accent-soft);
+    color: var(--text-primary);
+}
+.many-badge--none {
+    border-style: dashed;
+    color: var(--text-tertiary);
+}
+.many-badge--instrumental {
+    background: var(--surface-ground);
+}
+.many-groups {
+    flex: none;
+}
+.many-groups[hidden] {
+    display: none;
+}
+.many-row__state {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-tertiary);
+    font-size: var(--text-sm);
+}
+.many-row__state:not(:empty) {
+    justify-self: start;
+    max-width: 100%;
+    padding: 2px var(--space-3);
+    border-radius: var(--radius-pill);
+    background: var(--surface-ground);
+}
+.many-row[data-status='lrc'] .many-row__state,
+.many-row[data-status='lyrics'] .many-row__state,
+.many-row[data-status='instrumental'] .many-row__state {
+    background: var(--accent-soft);
+    color: var(--text-primary);
+}
+.many-row[data-status='missing'] .many-row__state {
+    color: var(--danger);
+}
+
+/* a narrow page: the Lyrics now column (and its header) leaves, the Result stays */
+@container (max-width: 34rem) {
+    .many-card {
+        --many-cols: 18px 40px minmax(0, 1fr) var(--many-state);
+    }
+    .many-row__have,
+    .many-colhead__have {
+        display: none;
+    }
+    .many-colhead__state {
+        grid-column: 4;
+    }
+}
+
+.many-bottom {
+    justify-content: space-between;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--surface-panel);
+}
+.many-bottom__options,
+.many-bottom__run {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+}
+.many-bottom__run {
+    flex: 1 1 18rem;
+    justify-content: flex-end;
+}
+.many-skip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-secondary);
+}
+.many-status {
+    flex: 1 1 8rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-secondary);
+}

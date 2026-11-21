@@ -1,0 +1,2 @@
+# Auto-detect text files and keep the Windows checkout convention consistent.
+* text=auto eol=crlf

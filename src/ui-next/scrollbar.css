@@ -1,0 +1,111 @@
+/*
+ * Scrollbars (the custom scrollbar, one place for the whole window).
+ *
+ * Every scroller uses the same bar: 6px wide, no track and NO arrow buttons at the ends. The thumb is a square bar that sits flush
+ * against the wall (the edge of the window or panel), with no gap. It is the theme's accent, soft at rest and solid on hover and while
+ * dragged. Settings > Appearance > Scrollbar color switches it to Neutral (data-scrollbar='neutral' on <html>): the same bar in grey,
+ * ignoring the theme. Settings > Appearance > Scrollbar shape picks between two shapes (data-scrollbar-shape on <html>): the flush bar
+ * (the default: square, 6px, against the wall) and the standard bar (the browser look: a rounded thumb with a gap between it and the
+ * wall, no arrows). --scrollbar-size is the one number that
+ * makes the whole bar wider or thinner.
+ *
+ * Why ::-webkit-scrollbar and not scrollbar-color: the standard scrollbar-width / scrollbar-color properties cannot hide the arrow
+ * buttons, and in Chromium 121 and later they switch ::-webkit-scrollbar off for the element. So no rule in the app may set them
+ * (tools/tests/guards/ui-next-scrollbar.test.js checks this). The shelf rows on Home that hide their bar use scrollbar-width: none on purpose.
+ */
+:root {
+    --scrollbar-size: 6px;
+    --scrollbar-thumb: color-mix(in srgb, var(--accent) 45%, transparent);
+    --scrollbar-thumb-hover: var(--accent);
+    --scrollbar-thumb-active: var(--accent-hover);
+}
+:root[data-scrollbar-shape='standard'] {
+    --scrollbar-size: 12px; /* the thumb is 6px wide inside a 3px gap on each side */
+}
+:root[data-scrollbar='neutral'] {
+    --scrollbar-thumb: color-mix(in srgb, var(--text-tertiary) 50%, transparent);
+    --scrollbar-thumb-hover: var(--text-secondary);
+    --scrollbar-thumb-active: var(--text-primary);
+}
+
+*::-webkit-scrollbar {
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-size);
+    background: transparent;
+}
+/* The arrows at both ends. */
+*::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+}
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+    background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+    min-height: 32px; /* a very long list keeps a thumb that can be grabbed */
+    min-width: 32px;
+    border-radius: 0; /* square and flush: no gutter around it, so it touches the wall */
+    background-color: var(--scrollbar-thumb);
+}
+*::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+}
+*::-webkit-scrollbar-thumb:active {
+    background-color: var(--scrollbar-thumb-active);
+}
+
+/* The standard bar: what the browser draws, without arrows. The thumb is rounded and floats inside the bar with a gap between it and the
+   wall (a transparent border, clipped away from the paint), so it never touches the edge. */
+:root[data-scrollbar-shape='standard'] *::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+}
+
+/* ---------- Lists keep their place: the bar's room is always reserved ----------
+ *
+ * The bar takes room from the list it scrolls (it is not drawn over it). So a list that fits shows no bar and has all its width, a list
+ * that scrolls has the bar's width less, and the list moves sideways each time that changes: between two sections of Settings, between two
+ * views, when a list grows long. And a list with padding is not centered: the padding is the same on both sides, and the bar adds to one.
+ *
+ * scrollbar-gutter fixes both (it is not scrollbar-width: it does not switch the custom bar off, see the note at the top):
+ *   - "stable" reserves the room for the bar whether or not there is a bar, so nothing moves when the thumb comes and goes.
+ *   - "both-edges" reserves the same room on the other side too, so the list is centered. The thumb still sits flush against the wall.
+ *
+ * ONE PLACE: a list that should keep its place is added to the two lists of selectors below. Do not set scrollbar-gutter anywhere else.
+ *
+ * Padding: write the INSET you want to see between the wall and the content, and take the bar away from it, so the look is the same
+ * with the bar, with the standard (wider) bar and with the cat (which takes no room):
+ *     padding-inline: max(0px, calc(var(--the-inset) - var(--scroll-gutter)));
+ * --scroll-gutter is the room the bar reserves (0 while the cat scrollbar is on).
+ */
+:root {
+    --scroll-gutter: var(--scrollbar-size);
+}
+:root[data-scrollbar-cat='on'] {
+    --scroll-gutter: 0px; /* the cat is drawn over the list and takes no room */
+}
+
+/* Centered lists: the same room on both sides. */
+.library-panel .left-panel-main-list-content, /* Library */
+.plist-results, /* Search and Recents */
+.rp-now__lyrics, /* the right panel's lyrics */
+.queue-panel__body, /* the queue */
+.view-host[data-engine='settings'] .content /* Settings: a centered column whose sections differ in length. The scroller is the engine's .content INSIDE the view host: never put the room on the host itself, or the thumb sits that far off the wall */ {
+    scrollbar-gutter: stable both-edges;
+}
+
+/* Full-bleed lists (their rows, hero and header lines run wall to wall): the room on the bar's side only, so they still reach the left wall. */
+.view-host[data-engine]:not([data-engine='settings']) .content, /* the song lists (the hero and the header line fill the bar's place themselves: song-list.js) */
+.home,
+.song-page,
+.lyrics-many-host,
+.view-host[data-engine-panel='metadata'] {
+    scrollbar-gutter: stable;
+}
+
+:root[data-scrollbar-cat='on'] :is(.library-panel .left-panel-main-list-content, .plist-results, .rp-now__lyrics, .queue-panel__body, .view-host[data-engine] .content, .home, .song-page, .lyrics-many-host, .view-host[data-engine-panel='metadata']) {
+    scrollbar-gutter: auto; /* nothing to reserve: the cat takes no room, and a list that turns long must not move */
+}

@@ -1,0 +1,977 @@
+/* The Sync tab of the Lyrics tool (views/tools/sync-editor.js). The same page header as Find and Batch, a rail of the songs being worked on,
+ * the lines of the open song, and a player card that stays in view while the lines scroll. Tokens only. */
+
+.view-host[data-engine='lyrics'][data-lyrics-mode='sync'] > :not(.lyrics-bar):not(.lyrics-sync-host) {
+    display: none;
+}
+.lyrics-sync-host {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.sync {
+    container: sync / inline-size;
+    position: relative;
+    box-sizing: border-box;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    width: min(120rem, 100%); /* wide screens and the Sync window use the room; the lines stay readable because only the line text grows */
+    margin: 0 auto;
+    padding: 20px 20px var(--space-3); /* a little less than the 24px of the other pages */
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+}
+
+/* ---------- header ---------- */
+.sync-head {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-3) var(--space-6);
+}
+.sync-head__eyebrow {
+    display: block;
+    margin-bottom: var(--space-1);
+    color: var(--accent);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+.sync-head__title {
+    margin: 0 0 var(--space-1);
+    font-family: var(--font-serif);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-regular);
+    line-height: 1.15;
+}
+.sync-head__text {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-md);
+}
+.sync-busy {
+    flex: none;
+    margin: 0;
+    color: var(--text-secondary);
+}
+.sync-busy[hidden] {
+    display: none;
+}
+.sync-head__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* ---------- body: rail and stage ---------- */
+.sync-body {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: clamp(14.5rem, 17cqw, 19rem) minmax(0, 1fr);
+    gap: var(--space-4);
+}
+.sync-stage {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+.sync[data-empty='true'] .sync-stage {
+    justify-content: center;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+}
+
+.sync-card {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--surface-panel);
+}
+
+/* ---------- rail ---------- */
+.sync-rail {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--surface-panel);
+    overflow: hidden;
+}
+.sync-rail[hidden] {
+    display: none;
+}
+.sync-rail__head {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-subtle);
+}
+.sync-rail__head h2 {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+.sync-rail__count {
+    margin-inline-start: var(--space-2);
+    color: var(--text-tertiary);
+    font-size: var(--text-xs);
+}
+.sync-rail__head {
+    padding-block: var(--space-2);
+}
+.sync-rail__search {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-tertiary);
+}
+.sync-rail__search[hidden] {
+    display: none;
+}
+.sync-rail__search-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+    outline: none;
+}
+.sync-rail__search:focus-within {
+    color: var(--accent);
+}
+.sync-rail__empty {
+    padding: var(--space-4) var(--space-3);
+    color: var(--text-tertiary);
+    text-align: center;
+}
+.sync-rail__head {
+    gap: var(--space-1);
+}
+.sync-rail__add {
+    flex: none;
+}
+.sync-rail__add .btn__label {
+    display: none; /* a "+" with an arrow: the words are its tooltip */
+}
+.sync-rail__list {
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    padding: var(--space-2);
+    list-style: none;
+    overflow-y: auto;
+}
+.sync-song-item {
+    position: relative;
+}
+.sync-song {
+    box-sizing: border-box;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-6) var(--space-2) var(--space-2);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+}
+.sync-song:hover {
+    background: var(--control-hover-bg);
+}
+.sync-song[aria-current='true'] {
+    background: var(--surface-selected);
+}
+.sync-song:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+}
+.sync-song__cover {
+    flex: none;
+    display: block;
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    background: var(--surface-raised);
+}
+.sync-song__cover {
+    width: 2.25rem;
+    height: 2.25rem;
+}
+.sync-song__cover img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.sync-song__text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+.sync-song__title,
+.sync-song__artist {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.sync-song__title {
+    font-size: var(--text-md);
+    font-weight: var(--weight-medium);
+}
+.sync-song[aria-current='true'] .sync-song__title {
+    color: var(--accent);
+}
+.sync-song__artist {
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+}
+.sync-song__status {
+    flex: none;
+    color: var(--text-tertiary);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+}
+.sync-song__status.is-done {
+    color: var(--accent);
+}
+.sync-song__status.is-dirty::before {
+    content: '';
+    display: inline-block;
+    width: 0.4rem;
+    height: 0.4rem;
+    margin-inline-end: var(--space-1);
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    vertical-align: middle;
+}
+.sync-song__remove {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-end: var(--space-1);
+    translate: 0 -50%;
+    opacity: 0;
+}
+.sync-song-item:is(:hover, :focus-within) .sync-song__remove {
+    opacity: 1;
+}
+.sync-song-item:is(:hover, :focus-within) .sync-song__status {
+    visibility: hidden; /* the remove button takes its place */
+}
+
+/* ---------- the song being worked on ---------- */
+/* ---------- lines and player ---------- */
+.sync-work {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(19rem, 22cqw, 24rem);
+    gap: var(--space-3);
+}
+.sync-card--lines {
+    overflow: hidden;
+}
+.sync-tools {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--border-subtle);
+}
+.sync-tools__spacer {
+    flex: 1;
+}
+.sync-tools__divider {
+    align-self: stretch;
+    width: 1px;
+    margin-block: var(--space-1);
+    background: var(--border-subtle);
+}
+.sync-tools .btn[aria-pressed='false'] {
+    color: var(--text-secondary);
+}
+.sync-card--lines > .empty-state {
+    flex: 1;
+    justify-content: center;
+}
+.sync-lines {
+    flex: 1;
+    min-height: 0;
+    padding: var(--space-2);
+    overflow-y: auto;
+}
+.sync-line {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.25rem 5.5rem minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--space-2);
+    min-height: 2.5rem;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+}
+.sync-line:hover {
+    background: var(--control-hover-bg);
+}
+.sync-line {
+    content-visibility: auto; /* a long lyric costs only the rows in view */
+    contain-intrinsic-size: auto 2.5rem;
+}
+.sync-line.is-current {
+    background: var(--surface-selected);
+}
+.sync-line__marker {
+    display: grid;
+    place-items: center;
+    color: var(--accent);
+    opacity: 0;
+}
+.sync-line.is-now .sync-line__marker {
+    opacity: 1;
+}
+.sync-line__time {
+    box-sizing: border-box;
+    justify-self: start;
+    padding: 0 var(--space-2);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-tertiary);
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    font-size: var(--text-sm);
+    line-height: 1.6rem;
+    cursor: text;
+}
+.sync-line.has-time .sync-line__time {
+    border-color: var(--border-subtle);
+    color: var(--text-primary);
+}
+.sync-line__time:hover {
+    border-color: var(--input-border-hover);
+}
+.sync-line__text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    line-height: 1.35;
+}
+.sync-line.is-now .sync-line__text {
+    color: var(--accent);
+}
+.sync-line.is-blank .sync-line__text {
+    color: var(--text-tertiary);
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    font-style: italic;
+}
+.sync-line.is-instrumental .sync-line__text {
+    color: var(--text-secondary);
+    font-family: var(--font-ui);
+    font-size: var(--text-md);
+}
+.sync-line__actions {
+    display: flex;
+    gap: var(--space-1);
+    opacity: 0;
+}
+.sync-line:is(:hover, :focus-within, .is-current) .sync-line__actions {
+    opacity: 1;
+}
+.sync-line__nudge {
+    display: none;
+    grid-column: 2 / -1;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+    padding-block: var(--space-1) var(--space-1);
+}
+.sync-line.is-current.has-time .sync-line__nudge {
+    display: flex;
+}
+.sync-nudge {
+    min-width: 2.75rem;
+    padding: 0 var(--space-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: var(--text-xs);
+    line-height: 1.5rem;
+    cursor: pointer;
+}
+.sync-nudge:hover {
+    background: var(--control-hover-bg);
+    color: var(--text-primary);
+}
+.sync-inline {
+    box-sizing: border-box;
+    width: 100%;
+    height: 2rem;
+    padding: 0 var(--space-2);
+    border: 0;
+    border-bottom: 1px solid var(--accent); /* only a thin underline marks the line being edited */
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    outline: 0;
+    background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+}
+.sync-inline.is-time {
+    width: 5.5rem;
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    font-size: var(--text-sm);
+}
+
+/* ---------- the player card ---------- */
+.sync-player {
+    gap: var(--space-3);
+    padding: var(--space-4);
+    overflow-y: auto;
+}
+.sync-clock {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    white-space: nowrap; /* the clock, the length and the speed button always share one row */
+}
+.sync-clock__now {
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    font-size: var(--text-2xl);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+.sync-clock__total {
+    color: var(--text-tertiary);
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    font-size: var(--text-sm);
+}
+.sync-clock__total::before {
+    content: '/ ';
+}
+.sync-scrub {
+    position: relative;
+    flex: none;
+    height: 1.5rem;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    touch-action: none;
+}
+.sync-scrub::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 50%;
+    height: 0.25rem;
+    translate: 0 -50%;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--accent) 24%, var(--surface-selected));
+}
+.sync-scrub__fill {
+    position: absolute;
+    inset-inline-start: 0;
+    top: 50%;
+    height: 0.25rem;
+    translate: 0 -50%;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+}
+.sync-scrub__ticks {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+.sync-scrub__ticks i {
+    position: absolute;
+    top: 50%;
+    width: 1px;
+    height: 0.5rem;
+    translate: -0.5px -50%;
+    background: var(--text-tertiary);
+    opacity: 0.45;
+    transition: opacity var(--motion-fast) var(--motion-ease);
+}
+.sync-scrub:hover .sync-scrub__ticks i {
+    opacity: 0.8;
+}
+.sync-scrub__fill,
+.sync-scrub__knob {
+    z-index: 1; /* above the ticks: the played part is a clean bar */
+}
+.sync-scrub__knob {
+    position: absolute;
+    top: 50%;
+    width: 0.75rem;
+    height: 0.75rem;
+    translate: -50% -50%;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 30%, transparent);
+    transition: box-shadow var(--motion-fast) var(--motion-ease);
+}
+.sync-scrub:hover .sync-scrub__knob,
+.sync-scrub[data-dragging='true'] .sync-scrub__knob {
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.sync-scrub:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+.sync-transport {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-1);
+}
+.sync-skip {
+    min-width: 2.5rem;
+    height: var(--button-height-sm);
+    padding: 0 var(--space-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: var(--text-sm);
+    cursor: pointer;
+}
+.sync-skip:hover {
+    background: var(--control-hover-bg);
+    color: var(--text-primary);
+}
+.sync-stamp {
+    display: none; /* the slim layout shows it; the toolbar has the Stamp line button otherwise */
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-1);
+    padding: var(--space-3) var(--space-4);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: var(--accent);
+    color: var(--text-on-accent);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease);
+}
+.sync-stamp-btn {
+    gap: var(--space-2);
+}
+.sync-kbd {
+    padding: 0 var(--space-1);
+    border: 1px solid currentColor;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: var(--text-xs);
+    opacity: 0.8;
+}
+.sync-stamp:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+.sync-stamp:active:not(:disabled) {
+    translate: 0 1px;
+}
+.sync-stamp:disabled {
+    opacity: var(--control-disabled-opacity);
+    cursor: default;
+}
+.sync-stamp:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+.sync-stamp__label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+}
+.sync-stamp__label kbd {
+    margin-inline-start: auto;
+    padding: 0 var(--space-2);
+    border: 1px solid currentColor;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: var(--text-xs);
+    line-height: 1.4rem;
+    opacity: 0.8;
+}
+.sync-stamp__next {
+    overflow: hidden;
+    font-family: var(--font-serif);
+    font-size: var(--text-md);
+    opacity: 0.85;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.sync-speed {
+    flex: none;
+    margin-inline-start: auto;
+    min-width: 2.75rem;
+    height: 1.5rem;
+    padding: 0 var(--space-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+}
+.sync-speed[data-rate='1'] {
+    border-color: transparent;
+}
+.sync-speed:not([data-rate='1']) {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+.sync-speed:hover {
+    color: var(--text-primary);
+    background: var(--control-hover-bg);
+}
+.sync-speed:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+.sync-speed__btn {
+    height: 1.5rem;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+}
+.sync-speed__btn:hover {
+    color: var(--text-primary);
+}
+.sync-speed__btn[aria-pressed='true'] {
+    background: var(--surface-selected);
+    color: var(--accent);
+    font-weight: var(--weight-semibold);
+}
+.sync-speed__btn:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+}
+.sync-error {
+    margin: 0;
+    color: var(--danger);
+}
+.sync-error[hidden] {
+    display: none;
+}
+.sync-aux {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+.sync-volume {
+    --range-thumb: 12px;
+    --range-halo-size: 5px;
+    --range-halo: transparent;
+    --range-inactive: color-mix(in srgb, var(--accent) 24%, var(--surface-selected));
+    box-sizing: border-box;
+    flex: 1;
+    min-width: 0;
+    height: 24px;
+    margin: 0;
+    padding: 0 var(--range-halo-size);
+    background: transparent;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+.sync-volume::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: linear-gradient(to right, var(--accent) calc(100% * var(--hi, 0)), var(--range-inactive) 0);
+}
+.sync-volume::-webkit-slider-thumb {
+    box-sizing: border-box;
+    width: var(--range-thumb);
+    height: var(--range-thumb);
+    margin-top: calc((4px - var(--range-thumb)) / 2);
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    box-shadow: 0 0 0 var(--range-halo-size) var(--range-halo);
+    appearance: none;
+    -webkit-appearance: none;
+}
+.sync-volume:hover {
+    --range-halo: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.sync-volume:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+.sync-preview-box {
+    flex: 1 1 13rem; /* always shown, and takes whatever height the card has left */
+    min-height: 12rem;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--border-subtle);
+    padding-top: var(--space-2);
+}
+.sync-preview-head {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+.sync-preview-box .sync-preview {
+    flex: 1;
+    min-height: 0;
+    resize: none;
+}
+.sync-preview,
+.sync-paste {
+    box-sizing: border-box;
+    width: 100%;
+    margin-top: var(--space-2);
+    padding: var(--space-3);
+    border: 0; /* text boxes are quiet: a soft tint, no outline */
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+    color: var(--text-primary);
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    font-size: var(--text-md);
+    line-height: 1.6;
+    resize: vertical;
+}
+.sync-preview {
+    font-variant-numeric: tabular-nums;
+    cursor: text;
+}
+.sync-preview::placeholder,
+.sync-paste::placeholder,
+.sync-rail__search-input::placeholder {
+    color: var(--text-tertiary);
+}
+.sync-preview:focus-visible,
+.sync-paste:focus-visible {
+    outline: 0;
+    background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+.sync-paste {
+    margin-top: 0;
+    font-family: inherit;
+}
+
+/* ---------- the bar at the bottom ---------- */
+.sync-foot {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--surface-panel);
+}
+.sync-foot__status {
+    color: var(--text-secondary);
+}
+.sync-foot__status[data-dirty='true'] {
+    color: var(--accent);
+}
+
+/* ---------- files dragged over ---------- */
+.sync-veil {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    border: 2px dashed var(--accent);
+    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--surface-ground) 86%, transparent);
+    pointer-events: none;
+}
+.sync-veil[hidden] {
+    display: none;
+}
+.sync-veil__box {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-2);
+    color: var(--accent);
+    text-align: center;
+}
+.sync-veil__box strong {
+    font-family: var(--font-serif);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-regular);
+}
+.sync-veil__box span:last-child {
+    color: var(--text-secondary);
+}
+
+/* ---------- narrower pages: the rail becomes a strip, then the player goes on top ---------- */
+@container sync (max-width: 62rem) {
+    .sync {
+        gap: var(--space-3);
+        padding-top: var(--space-4);
+    }
+    .sync-head__text {
+        display: none;
+    }
+    .sync-body {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
+    }
+    /* the rail is a strip: the songs side by side, and the add buttons at its end */
+    .sync-rail {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .sync-rail__list {
+        order: 1;
+        flex: 1 1 0;
+        min-width: 0;
+        display: flex;
+        gap: var(--space-1);
+        padding: var(--space-2);
+        overflow: auto hidden;
+    }
+    .sync-rail__head {
+        order: 2;
+        padding: var(--space-2);
+        border-bottom: 0;
+        border-inline-start: 1px solid var(--border-subtle);
+    }
+    .sync-rail__head h2,
+    .sync-rail__count,
+    .sync-rail__head .sync-tools__spacer,
+    .sync-rail__empty {
+        display: none;
+    }
+    .sync-rail__search {
+        order: 3;
+        flex: 1 0 100%;
+        border-bottom: 0;
+        border-top: 1px solid var(--border-subtle);
+    }
+    .sync-rail__search[hidden] {
+        display: none;
+    }
+    .sync-song-item {
+        flex: none;
+        width: 13rem;
+    }
+}
+@container sync (max-width: 46rem) {
+    .sync {
+        padding-inline: var(--space-4);
+    }
+    .sync-stage {
+        overflow-y: auto;
+    }
+    .sync-work {
+        flex: none;
+        grid-template-columns: minmax(0, 1fr);
+    }
+    /* The player is a slim bar that stays at the top while the lines scroll under it: the clock and scrubber, the skips, and the Stamp button. */
+    .sync-player {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        order: -1;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: var(--space-2) var(--space-3);
+        padding: var(--space-3) var(--space-4);
+        overflow: visible;
+    }
+    .sync-player > * {
+        grid-column: 1;
+    }
+    .sync-clock {
+        min-width: 0;
+        column-gap: var(--space-2);
+    }
+    .sync-clock__now {
+        font-size: var(--text-xl);
+    }
+    .sync-stamp-btn {
+        display: none; /* the player bar has the Stamp button */
+    }
+    .sync-stamp__label kbd {
+        display: none;
+    }
+    .sync-stamp {
+        display: flex;
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        align-self: stretch;
+        justify-content: center;
+    }
+    .sync-stamp__next {
+        display: none;
+    }
+    .sync-transport,
+    .sync-error {
+        grid-column: 1 / -1;
+    }
+    .sync-aux {
+        display: none;
+    }
+    .sync-card--lines {
+        overflow: visible;
+    }
+    .sync-lines {
+        overflow: visible;
+    }
+    .sync-preview-box {
+        display: none;
+    }
+    .sync-line {
+        grid-template-columns: 1rem 5.5rem minmax(0, 1fr) auto;
+    }
+}

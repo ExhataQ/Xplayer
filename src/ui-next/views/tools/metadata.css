@@ -1,0 +1,1210 @@
+/* ui-next Metadata. The engine builds the tag form (js/library/20-metadata-editor.js); the bridge moves
+ * its tab of the right panel into the view host; this file skins it through the engine's own class names. Tokens only
+ * (tools/tests/interface/ui-next-metadata.test.js). The engine's stylesheets and Material Symbols are not loaded in ui-next, so icon names
+ * written as words are hidden and the labels carry the meaning.
+ */
+
+.view-host[data-engine-panel='metadata'] {
+    overflow-y: auto;
+}
+.view-host[data-engine-panel='metadata'] .material-symbols-outlined {
+    display: none !important; /* the engine also sets display inline on the cover placeholder */
+}
+.view-host[data-engine-panel='metadata'] > .panel-content {
+    box-sizing: border-box;
+    width: min(52rem, 100%);
+    margin: 0 auto;
+}
+.view-host[data-metadata='empty'] > .panel-content {
+    display: none;
+}
+.view-host[data-engine-panel='metadata'] > .empty-state {
+    min-height: 60%;
+}
+.view-host[data-engine-panel='metadata'] > .empty-state[hidden] {
+    display: none;
+}
+
+/* ---------- toolbar and actions: both stay in reach while the form scrolls ---------- */
+
+.view-host[data-engine-panel='metadata'] .metadata-editor-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-3) var(--space-6);
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--surface-ground);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-toolbar-title {
+    flex: 1 1 8rem;
+    min-width: 0;
+    color: var(--text-primary);
+    font-family: var(--font-serif);
+    font-size: var(--text-xl);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-6);
+    border-top: 1px solid var(--border-subtle);
+    background: var(--surface-ground);
+}
+
+/* ---------- buttons and select ---------- */
+
+.view-host[data-engine-panel='metadata'] :is(.metadata-editor-toolbar, .metadata-editor-actions, .metadata-cover-info, .metadata-more-toggle-row, .metadata-online-releases) button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    min-height: var(--button-height-sm);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--button-outline-border);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease);
+}
+.view-host[data-engine-panel='metadata'] :is(.metadata-editor-toolbar, .metadata-editor-actions, .metadata-cover-info, .metadata-more-toggle-row, .metadata-online-releases) button:hover:not(:disabled) {
+    background: var(--control-hover-bg);
+}
+.view-host[data-engine-panel='metadata'] :is(button, select, input, textarea):focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+.view-host[data-engine-panel='metadata'] :is(button, select, input, textarea):disabled {
+    opacity: var(--control-disabled-opacity);
+    cursor: default;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-save:not(:disabled) {
+    border-color: transparent;
+    background: var(--button-primary-bg);
+    color: var(--button-primary-fg);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-save:hover:not(:disabled) {
+    background: var(--button-primary-bg);
+    opacity: 0.88;
+}
+.view-host[data-engine-panel='metadata'] .metadata-more-toggle {
+    border-color: transparent;
+    color: var(--text-secondary);
+}
+
+/* ---------- cover ---------- */
+
+/* Layout 1A (owner's choice): the cover and its button in a left column, the fields in a right column, "More tags" under the fields.
+   Toolbar, online results and the Cancel/Save bar span both columns. One column on a narrow window. */
+.view-host[data-engine-panel='metadata'] .metadata-editor-content {
+    display: grid;
+    grid-template-columns: minmax(10rem, 13rem) minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    align-content: start;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-content > :is(.metadata-editor-toolbar, .metadata-online-results, .metadata-editor-actions, .metadata-editor-state) {
+    grid-column: 1 / -1;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-content > .metadata-editor-toolbar {
+    grid-row: 1;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-content > .metadata-online-results {
+    grid-row: 2;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-content > .metadata-editor-actions {
+    grid-row: 4;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-top {
+    grid-column: 1;
+    grid-row: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-6) 0 var(--space-2) var(--space-6);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-content > .metadata-editor-fields {
+    grid-column: 2;
+    grid-row: 3;
+    display: flex;
+    flex-direction: column;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-fields > .metadata-more-toggle-row {
+    order: 1;
+    margin-top: var(--space-4);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-fields > .metadata-other-section {
+    order: 2;
+}
+@media (max-width: 760px) {
+    .view-host[data-engine-panel='metadata'] .metadata-editor-content {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .view-host[data-engine-panel='metadata'] .metadata-editor-top,
+    .view-host[data-engine-panel='metadata'] .metadata-editor-content > .metadata-editor-fields {
+        grid-column: 1;
+    }
+    .view-host[data-engine-panel='metadata'] .metadata-editor-top,
+    .view-host[data-engine-panel='metadata'] .metadata-editor-content > .metadata-editor-fields {
+        grid-row: auto;
+    }
+    .view-host[data-engine-panel='metadata'] .metadata-editor-content > :is(.metadata-editor-toolbar, .metadata-online-results, .metadata-editor-actions) {
+        grid-row: auto;
+    }
+    .view-host[data-engine-panel='metadata'] .metadata-editor-top {
+        flex-direction: row;
+        align-items: center;
+        padding-right: var(--space-6);
+    }
+}
+.view-host[data-engine-panel='metadata'] .metadata-cover-box {
+    position: relative;
+    flex: none;
+    width: 100%;
+    max-width: 11rem;
+    aspect-ratio: 1;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--surface-raised);
+    cursor: pointer;
+}
+.view-host[data-engine-panel='metadata'] .metadata-cover-box::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 32px;
+    height: 32px;
+    background-color: var(--text-tertiary);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M16%205H3%27%2F%3E%3Cpath%20d%3D%27M11%2012H3%27%2F%3E%3Cpath%20d%3D%27M11%2019H3%27%2F%3E%3Cpath%20d%3D%27M21%2016V5%27%2F%3E%3Ccircle%20cx%3D%2718%27%20cy%3D%2716%27%20r%3D%273%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.75%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M16%205H3%27%2F%3E%3Cpath%20d%3D%27M11%2012H3%27%2F%3E%3Cpath%20d%3D%27M11%2019H3%27%2F%3E%3Cpath%20d%3D%27M21%2016V5%27%2F%3E%3Ccircle%20cx%3D%2718%27%20cy%3D%2716%27%20r%3D%273%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+}
+.view-host[data-engine-panel='metadata'] .metadata-cover-box img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.view-host[data-engine-panel='metadata'] .metadata-cover-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+
+/* ---------- fields ---------- */
+
+.view-host[data-engine-panel='metadata'] .metadata-editor-fields {
+    padding: var(--space-2) var(--space-6) var(--space-8);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: var(--space-3) var(--space-4);
+    margin-top: var(--space-6);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-section-title {
+    grid-column: 1 / -1;
+    padding-bottom: var(--space-1);
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+}
+/* Long values get the whole row; short ones (year, track, disc ...) share it. */
+.view-host[data-engine-panel='metadata'] .metadata-editor-field:has(:is(textarea, [data-metadata-key='title'], [data-metadata-key='album'], [data-metadata-key='copyright'], [data-metadata-key^='musicBrainz'], [data-metadata-key^='sort'])) {
+    grid-column: 1 / -1;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field > span {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field input,
+.view-host[data-engine-panel='metadata'] .metadata-editor-field textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field input {
+    height: var(--input-height);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field textarea {
+    padding: var(--space-2) var(--space-3);
+    resize: vertical;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field :is(input, textarea):hover:not(:disabled) {
+    border-color: var(--input-border-hover);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field input::placeholder {
+    color: var(--text-secondary);
+}
+
+/* Several values in one field (artists, genres ...): one text box holding every value as a tag, then the spot that adds one. The tag's
+ * text is an input, so it is edited in place; its x removes it. The values' wrapper takes no box of its own, so tags and the add input
+ * are items of the one box and wrap together. */
+.view-host[data-engine-panel='metadata'] .metadata-editor-field:has(.metadata-multi) {
+    grid-column: 1 / -1;
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi {
+    box-sizing: border-box;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1);
+    min-height: var(--input-height);
+    padding: 3px var(--space-2);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    background: var(--input-bg);
+    cursor: text;
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi:hover {
+    border-color: var(--input-border-hover);
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi:focus-within {
+    border-color: var(--focus-ring);
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi-values {
+    display: contents;
+}
+/* the inputs inside the box have no frame of their own (the box shows hover and focus) */
+.view-host[data-engine-panel='metadata'] .metadata-multi input {
+    width: auto;
+    height: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    outline: none;
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi .metadata-multi-input {
+    flex: 1 1 7rem;
+    width: 7rem;
+    height: 24px;
+    padding: 0 var(--space-1);
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 2px var(--space-1) 2px var(--space-3);
+    border-radius: var(--radius-pill);
+    background: var(--surface-selected);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi-chip button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    cursor: pointer;
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi-chip button:hover:not(:disabled) {
+    background: var(--control-active-bg);
+    color: var(--text-primary);
+}
+
+/* A tag: the pill, its text an input that is exactly as wide as the text (field-sizing, so any script fits; the engine's size= is only the fallback),
+   never wider than the box: a very long name ends in an ellipsis instead of being cut, and shows whole while it is edited. */
+.view-host[data-engine-panel='metadata'] .metadata-multi-chip .metadata-multi-value {
+    field-sizing: content;
+    min-width: 2ch;
+    max-width: 100%;
+    padding-inline-start: var(--space-3);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    line-height: 22px;
+    text-overflow: ellipsis;
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi-chip .metadata-multi-value:focus {
+    text-overflow: clip;
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi-chip:has(.metadata-multi-value) {
+    min-width: 0;
+    max-width: 100%;
+    padding: 2px var(--space-1) 2px 0;
+    border: 1px solid var(--border-subtle);
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi-chip:has(.metadata-multi-value):hover {
+    border-color: var(--input-border-hover);
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi-chip:has(.metadata-multi-value):focus-within {
+    border-color: var(--focus-ring);
+    background: var(--control-active-bg);
+}
+.view-host[data-engine-panel='metadata'] .metadata-multi-chip button {
+    flex: none;
+}
+
+.view-host[data-engine-panel='metadata'] .metadata-other-tags {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+.view-host[data-engine-panel='metadata'] .metadata-other-tag {
+    display: grid;
+    grid-template-columns: minmax(8rem, 12rem) 1fr;
+    gap: var(--space-3);
+    font-size: var(--text-sm);
+}
+.view-host[data-engine-panel='metadata'] .metadata-other-tag code {
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    text-overflow: ellipsis;
+}
+.view-host[data-engine-panel='metadata'] .metadata-other-tag span {
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+}
+
+/* The engine says what is happening (reading, no support, a file it could not read) in one of these. */
+.view-host[data-engine-panel='metadata'] .metadata-editor-state,
+.view-host[data-engine-panel='metadata'] .metadata-online-state {
+    margin: var(--space-4) var(--space-6);
+    color: var(--text-secondary);
+    font-size: var(--text-md);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-content > .metadata-editor-state {
+    color: var(--text-primary);
+    border-inline-start: 3px solid var(--danger);
+    padding-inline-start: var(--space-3);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-content.is-loading {
+    cursor: progress;
+}
+
+/* ---------- online search results ---------- */
+
+.view-host[data-engine-panel='metadata'] .metadata-online-results {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: 0 var(--space-6);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-results:empty {
+    display: none;
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-results .metadata-online-state {
+    margin: var(--space-3) 0 0;
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-block: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--surface-panel);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-panel.is-done {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-panel.is-error {
+    border-color: var(--danger);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    min-width: 0;
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-head > strong {
+    color: var(--text-primary);
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-sub {
+    margin: 0;
+    min-width: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-head > .metadata-online-sub {
+    flex: 1 1 12rem;
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-head > :is(.metadata-online-close, .metadata-online-retry) {
+    margin-inline-start: auto;
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-head > .metadata-online-retry + .metadata-online-close {
+    margin-inline-start: 0;
+}
+.view-host[data-engine-panel='metadata'] :is(.metadata-online-close, .metadata-online-retry, .metadata-online-showmore, .metadata-online-use) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-height: var(--button-height-sm);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--button-outline-border);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease);
+}
+.view-host[data-engine-panel='metadata'] :is(.metadata-online-close, .metadata-online-retry, .metadata-online-showmore, .metadata-online-use):hover:not(:disabled) {
+    background: var(--control-hover-bg);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-showmore {
+    align-self: center;
+    border-color: transparent;
+    color: var(--text-secondary);
+}
+/* waiting: a spinner, a bar that keeps moving, and cards of the shape the answers will have */
+.view-host[data-engine-panel='metadata'] .metadata-online-spinner {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    box-sizing: border-box;
+    border: 2px solid var(--border-strong);
+    border-top-color: var(--accent);
+    border-radius: var(--radius-pill);
+    animation: metadata-spin 0.8s linear infinite;
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-tick {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%273%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M5%2012.5l4.5%204.5L19%207%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%273%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M5%2012.5l4.5%204.5L19%207%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-bar {
+    position: relative;
+    height: 3px;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    background: var(--border-subtle);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-bar > i {
+    position: absolute;
+    inset-block: 0;
+    width: 40%;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    animation: metadata-slide 1.3s var(--motion-ease) infinite;
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-hint {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-hint[hidden] {
+    display: none;
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-error {
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--danger);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+}
+/* the answers */
+.view-host[data-engine-panel='metadata'] .metadata-online-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-result-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--surface-ground);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-result-card.is-best {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+}
+/* the small cover of an answer: it appears when it has been found, and nothing is drawn for an answer that has none */
+.view-host[data-engine-panel='metadata'] .metadata-online-art {
+    flex: none;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    animation: metadata-art-in var(--motion-fast) var(--motion-ease);
+}
+@keyframes metadata-art-in {
+    from {
+        opacity: 0;
+    }
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-main {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-score {
+    flex: none;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    min-width: 3rem;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-md);
+    background: var(--surface-selected);
+    color: var(--text-secondary);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-score > b {
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-score > small {
+    font-size: var(--text-xs);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-score[data-fit='high'] {
+    background: var(--surface-selected);
+    box-shadow: inset 0 0 0 1px var(--accent);
+    color: var(--text-primary);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-score[data-fit='low'] {
+    background: transparent;
+    color: var(--text-tertiary);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    color: var(--text-primary);
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+    overflow-wrap: anywhere;
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-best {
+    flex: none;
+    padding: 1px var(--space-2);
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    color: var(--text-on-accent);
+    font-size: var(--text-xs);
+    font-style: normal;
+    font-weight: var(--weight-semibold);
+}
+.view-host[data-engine-panel='metadata'] :is(.metadata-online-meta, .metadata-online-why) {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    overflow-wrap: anywhere;
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-why {
+    color: var(--text-tertiary);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-use {
+    flex: none;
+    border-color: transparent;
+    background: var(--button-primary-bg);
+    color: var(--button-primary-fg);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-use:hover:not(:disabled) {
+    background: var(--button-primary-bg);
+    opacity: 0.88;
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-more > summary {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    cursor: pointer;
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-more[open] > summary {
+    margin-bottom: var(--space-2);
+}
+@keyframes metadata-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+@keyframes metadata-slide {
+    from {
+        inset-inline-start: -40%;
+    }
+    to {
+        inset-inline-start: 100%;
+    }
+}
+
+/* The tabs (One song | Many songs) and the tag sheet (tag-sheet.js). The bar is the Lyrics tool's bar (views/tools/lyrics.css, .lyrics-bar):
+ * tabs in the middle, a line under them. Tokens only. */
+.view-host[data-engine-panel='metadata'] > .metadata-mode {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2) var(--space-4);
+    padding: var(--space-3) var(--space-6);
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--surface-ground);
+}
+.view-host[data-engine-panel='metadata'][data-metadata-mode='many'] > :is(.panel-content, .empty-state),
+.view-host[data-engine-panel='metadata'][data-metadata-mode='one'] > .tag-sheet-host {
+    display: none;
+}
+.tag-sheet {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-6) var(--space-6);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+}
+.tag-sheet :is(select, input[type='text']) {
+    background: var(--surface-raised);
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: var(--space-1) var(--space-2);
+    font: inherit;
+}
+.tag-sheet__toolbar,
+.tag-sheet__apply-row,
+.tag-sheet__popular,
+.tag-sheet__footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+.tag-sheet__apply {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background: var(--surface-panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+}
+.tag-sheet__value {
+    flex: 1 1 14rem;
+    min-width: 0;
+}
+.tag-sheet__button {
+    background: var(--surface-raised);
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: var(--space-1) var(--space-3);
+    font: inherit;
+    cursor: pointer;
+}
+.tag-sheet__button:hover:not(:disabled) {
+    background: var(--control-hover-bg);
+}
+.tag-sheet__button:disabled {
+    opacity: var(--control-disabled-opacity);
+    cursor: default;
+}
+.tag-sheet__finder {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+.tag-sheet__finder-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+.tag-sheet__findings {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background: var(--surface-panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+}
+.tag-sheet__finding-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    max-height: 14rem;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+}
+.tag-sheet__finding {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+.tag-sheet__finding-title {
+    flex: 0 1 12rem;
+    min-width: 0;
+    font-weight: 600;
+}
+.tag-sheet__finding-detail {
+    flex: 1 1 18rem;
+    min-width: 0;
+    color: var(--text-secondary);
+}
+.tag-sheet__button.is-primary {
+    background: var(--accent);
+    color: var(--text-on-accent);
+    border-color: var(--accent);
+}
+.tag-sheet__chip {
+    background: var(--surface-raised);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-pill);
+    padding: 0 var(--space-2);
+    font: inherit;
+    font-size: var(--text-xs);
+    cursor: pointer;
+}
+.tag-sheet__chip:hover {
+    color: var(--text-primary);
+    background: var(--control-hover-bg);
+}
+.tag-sheet__hint,
+.tag-sheet__loading {
+    color: var(--text-tertiary);
+    font-size: var(--text-xs);
+}
+.tag-sheet__spacer {
+    flex: 1;
+}
+.tag-sheet__columns {
+    position: relative;
+}
+.tag-sheet__columns summary {
+    cursor: pointer;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface-raised);
+}
+.tag-sheet__column-list {
+    position: absolute;
+    z-index: 2;
+    display: grid;
+    gap: var(--space-1);
+    min-width: 11rem;
+    margin-top: var(--space-1);
+    padding: var(--space-2) var(--space-3);
+    background: var(--surface-raised);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+}
+.tag-sheet__column-list label {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+}
+.tag-sheet__scroll {
+    overflow: auto;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+}
+.tag-sheet__table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.tag-sheet__table th {
+    position: sticky;
+    top: 0;
+    text-align: start;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--surface-panel);
+    border-bottom: 1px solid var(--border-strong);
+    padding: var(--space-2);
+    white-space: nowrap;
+}
+.tag-sheet__table td {
+    padding: var(--space-1) var(--space-2);
+    border-bottom: 1px solid var(--border-subtle);
+    max-width: 16rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.tag-sheet__table tr.is-checked td {
+    background: var(--surface-selected);
+}
+.tag-sheet__check {
+    width: 2rem;
+}
+.tag-sheet__cell:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+}
+.tag-sheet__cell.is-changed {
+    box-shadow: inset 3px 0 0 var(--accent);
+    background: var(--accent-soft);
+}
+.tag-sheet__tag {
+    display: inline-block;
+    margin-inline-end: var(--space-1);
+    padding: 0 var(--space-2);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-xs);
+}
+.tag-sheet__editor {
+    width: 100%;
+    box-sizing: border-box;
+}
+.tag-sheet__empty {
+    padding: var(--space-8) var(--space-4);
+    text-align: center;
+    color: var(--text-secondary);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+}
+.tag-sheet__review-scroll {
+    max-height: 50vh;
+    overflow: auto;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+}
+.tag-sheet__review {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+}
+.tag-sheet__review :is(th, td) {
+    padding: var(--space-1) var(--space-2);
+    text-align: start;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.tag-sheet__review th {
+    position: sticky;
+    top: 0;
+    background: var(--surface-panel);
+    color: var(--text-secondary);
+}
+.tag-sheet__old {
+    color: var(--text-secondary);
+    text-decoration: line-through;
+}
+.tag-sheet__new {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Track information pop-up (song-info.js). Tokens only. */
+.song-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-width: 0;
+    max-height: 60vh;
+    overflow: auto;
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+}
+.song-info__song {
+    margin: 0;
+    font-weight: 600;
+}
+.song-info__group h3 {
+    margin: 0 0 var(--space-1);
+    color: var(--text-tertiary);
+    font-size: var(--text-xs);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.song-info__row {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-1) 0;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.song-info__label {
+    color: var(--text-secondary);
+}
+.song-info__value {
+    text-align: end;
+    overflow-wrap: anywhere;
+}
+.song-info__empty {
+    margin: 0;
+    color: var(--text-secondary);
+}
+.song-info__picker summary {
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+.song-info__picker-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+}
+.song-info__picker fieldset {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2);
+}
+.song-info__picker legend {
+    padding: 0 var(--space-1);
+    color: var(--text-tertiary);
+    font-size: var(--text-xs);
+}
+.song-info__picker label {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-releases {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+}
+.view-host[data-engine-panel='metadata'] .metadata-online-releases button {
+    min-height: 28px;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-regular);
+}
+
+/* ---------- search controls ---------- */
+
+.view-host[data-engine-panel='metadata'] .metadata-search-group {
+    display: inline-flex;
+    align-items: stretch;
+    gap: var(--space-2);
+}
+.view-host[data-engine-panel='metadata'] .metadata-search-scope {
+    display: inline-flex;
+    padding: 2px;
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    background: var(--segmented-bg);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-toolbar-actions .metadata-scope-button {
+    min-height: calc(var(--button-height-sm) - 6px);
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-toolbar-actions .metadata-scope-button[aria-checked='true'] {
+    background: var(--segmented-active-bg);
+    color: var(--text-primary);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-toolbar-actions .metadata-search-button {
+    border-color: transparent;
+    background: var(--button-primary-bg);
+    color: var(--button-primary-fg);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-toolbar-actions .metadata-search-button:hover:not(:disabled) {
+    background: var(--button-primary-bg);
+    opacity: 0.88;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-toolbar-actions .metadata-search-button.is-busy {
+    cursor: progress;
+    opacity: 1;
+}
+
+/* ---------- what changed ---------- */
+
+/* A field that differs from the file (typed, or filled from the internet): the whole field is a box with a ring in the accent colour, what it was,
+ * and a check box that keeps the change out of the save (then the box is dashed and quiet). */
+.view-host[data-engine-panel='metadata'] .metadata-editor-field.is-changed {
+    position: relative;
+    margin-inline: calc(var(--space-2) * -1);
+    padding: var(--space-2);
+    border-radius: var(--radius-md);
+    background: var(--surface-selected);
+    box-shadow: 0 0 0 1px var(--accent);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field.is-changed > span {
+    padding-inline-end: var(--space-6);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field.is-skipped {
+    background: transparent;
+    box-shadow: 0 0 0 1px var(--border-strong);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field.is-skipped :is(input, textarea, .metadata-multi) {
+    opacity: 0.6;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field > .metadata-apply-check.metadata-apply-check.metadata-apply-check,
+.view-host[data-engine-panel='metadata'] .metadata-cover-apply > input {
+    appearance: none;
+    flex: none;
+    box-sizing: border-box;
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    margin: 0;
+    padding: 0;
+    border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface-ground);
+    cursor: pointer;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field > .metadata-apply-check.metadata-apply-check.metadata-apply-check {
+    position: absolute;
+    inset-block-start: var(--space-2);
+    inset-inline-end: var(--space-2);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field > .metadata-apply-check.metadata-apply-check.metadata-apply-check:checked,
+.view-host[data-engine-panel='metadata'] .metadata-cover-apply > input:checked {
+    border-color: var(--accent);
+    background: var(--accent);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field > .metadata-apply-check.metadata-apply-check.metadata-apply-check:checked::after,
+.view-host[data-engine-panel='metadata'] .metadata-cover-apply > input:checked::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: var(--text-on-accent);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%273%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M5%2012.5l4.5%204.5L19%207%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%273%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M5%2012.5l4.5%204.5L19%207%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field > .metadata-apply-check.metadata-apply-check.metadata-apply-check:focus-visible,
+.view-host[data-engine-panel='metadata'] .metadata-cover-apply > input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+.view-host[data-engine-panel='metadata'] .metadata-cover-apply {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    cursor: pointer;
+}
+.view-host[data-engine-panel='metadata'] .metadata-cover-apply[hidden] {
+    display: none;
+}
+.view-host[data-engine-panel='metadata'] .metadata-changes-text {
+    margin-inline-end: var(--space-3);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-changes .metadata-changes-toggle {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--accent);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-changes .metadata-changes-toggle[hidden] {
+    display: none;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-field.is-fresh {
+    animation: metadata-fresh 1.8s var(--motion-ease);
+}
+.view-host[data-engine-panel='metadata'] .metadata-field-was {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--text-tertiary);
+    font-size: var(--text-xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-changes {
+    margin-inline-end: auto;
+    align-self: center;
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+}
+.view-host[data-engine-panel='metadata'] .metadata-editor-changes[hidden] {
+    display: none;
+}
+.view-host[data-engine-panel='metadata'] .metadata-cover-box.is-changed {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent);
+}
+.view-host[data-engine-panel='metadata'] .metadata-cover-box.is-changed::after {
+    content: 'New cover';
+    position: absolute;
+    inset-inline: var(--space-1);
+    bottom: var(--space-1);
+    padding: var(--space-1) 0;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    color: var(--text-on-accent);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    text-align: center;
+}
+.view-host[data-engine-panel='metadata'] .metadata-cover-box.is-fresh {
+    animation: metadata-fresh 1.8s var(--motion-ease);
+}
+@keyframes metadata-fresh {
+    0% {
+        box-shadow: 0 0 0 1px var(--accent), 0 0 0 7px var(--accent-soft);
+    }
+    100% {
+        box-shadow: 0 0 0 1px var(--accent), 0 0 0 0 transparent;
+    }
+}
+:where(:root[data-motion='reduced']) .view-host[data-engine-panel='metadata'] :is(.metadata-editor-field.is-fresh, .metadata-cover-box.is-fresh, .metadata-online-bar > i, .metadata-online-art) {
+    animation: none;
+}
+:where(:root[data-motion='reduced']) .view-host[data-engine-panel='metadata'] .metadata-online-spinner {
+    animation-duration: 3s;
+}

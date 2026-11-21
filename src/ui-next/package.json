@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "Node-only: lets tests import the ES modules under src/ui-next. The renderer ignores this file."
+}

@@ -1,0 +1,10 @@
+name: Idea or request
+description: Something you would like Xplayer to do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like, and what for?
+    validations:
+      required: true

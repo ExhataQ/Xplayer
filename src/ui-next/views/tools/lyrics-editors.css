@@ -1,0 +1,162 @@
+/* ui-next Lyrics editor (task D-03, agent D). Strategy S3: the engine builds the Write editor (js/lyrics/18) as an overlay on <body> and
+ * shows it by adding the class `active`. adapter/engine-view.js moves it into the Lyrics page, this file makes it fill it, and
+ * views/tools/lyrics.js makes it a mode of the page's tab bar. The Sync editor is drawn by views/tools/sync-editor.js (sync-editor.css);
+ * the engine's own Sync overlay is never shown.
+ * Tokens only (tools/tests/interface/ui-next-lyrics-editors.test.js). The engine's own stylesheets and Material Symbols are not loaded in
+ * ui-next: icon words are hidden and play, pause and volume are drawn here. `data-playing` on the page host is set by lyrics.js.
+ */
+
+.view-host[data-engine='lyrics'] {
+    container: lyrics / inline-size;
+}
+
+/* ---------- the editors are modes of the page ---------- */
+
+body > :is(.lyrics-editor-overlay, .sync-editor-overlay),
+.view-host[data-engine='lyrics'] > .sync-editor-overlay {
+    display: none; /* not in the Lyrics page (yet): never a window over the app; the engine's Sync overlay is replaced by sync-editor.js */
+}
+.view-host[data-engine='lyrics'] > .lyrics-editor-overlay {
+    display: none;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+}
+.view-host[data-engine='lyrics'] > .lyrics-editor-overlay.active {
+    display: flex;
+}
+.view-host[data-lyrics-mode='write'] > .content-wrapper,
+.view-host[data-lyrics-mode='write'] > .lyrics-bar__hint,
+.view-host[data-lyrics-mode='sync'] > .lyrics-bar__hint {
+    display: none;
+}
+.view-host[data-engine='lyrics'] .lyrics-editor-overlay .material-symbols-outlined {
+    display: none;
+}
+.view-host[data-engine='lyrics'] .lyrics-editor-overlay :is(button, select, textarea, input):focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+.view-host[data-engine='lyrics'] .lyrics-editor-overlay :is(button, select, textarea, input):disabled {
+    opacity: var(--control-disabled-opacity);
+    cursor: default;
+}
+
+/* ---------- shared: buttons, select, text fields ---------- */
+
+.view-host[data-engine='lyrics'] :is(.lyrics-editor-btn) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    min-height: var(--button-height-sm);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--button-outline-border);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease);
+}
+.view-host[data-engine='lyrics'] :is(.lyrics-editor-btn):hover:not(:disabled) {
+    background: var(--control-hover-bg);
+}
+.view-host[data-engine='lyrics'] :is(.lyrics-editor-btn-primary):not(:disabled) {
+    border-color: transparent;
+    background: var(--button-primary-bg);
+    color: var(--button-primary-fg);
+}
+.view-host[data-engine='lyrics'] :is(.lyrics-editor-btn-primary):hover:not(:disabled) {
+    background: var(--button-primary-bg);
+    opacity: 0.88;
+}
+.view-host[data-engine='lyrics'] .lyrics-editor-btn-danger {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+.view-host[data-engine='lyrics'] :is(.lyrics-editor-textarea) {
+    box-sizing: border-box;
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-md);
+}
+.view-host[data-engine='lyrics'] :is(.lyrics-editor-textarea):hover:not(:disabled) {
+    border-color: var(--input-border-hover);
+}
+
+/* ---------- Write ---------- */
+
+.view-host[data-engine='lyrics'] .lyrics-editor-modal {
+    display: flex;
+    flex: 0 1 46rem;
+    flex-direction: column;
+    gap: var(--space-4);
+    box-sizing: border-box;
+    min-width: 0;
+    margin-inline: auto;
+    padding: var(--space-6);
+}
+.view-host[data-engine='lyrics'] .lyrics-editor-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+.view-host[data-engine='lyrics'] .lyrics-editor-title {
+    color: var(--text-primary);
+    font-family: var(--font-serif);
+    font-size: var(--text-2xl);
+}
+.view-host[data-engine='lyrics'] .lyrics-editor-song {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.view-host[data-engine='lyrics'] .lyrics-editor-textarea {
+    flex: 1 1 auto;
+    min-height: 12rem;
+    padding: var(--space-4);
+    resize: none;
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    line-height: 1.6;
+    unicode-bidi: plaintext; /* a Persian line starts on the right, an English one on the left */
+}
+.view-host[data-engine='lyrics'] .lyrics-editor-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+.view-host[data-engine='lyrics'] .lyrics-editor-actions-right {
+    display: flex;
+    gap: var(--space-2);
+}
+
+/* No text selection in the two lyrics editors except in their fields: dragging a line, a handle or the timeline in the
+ * Sync tool no longer highlights text. */
+.lyrics-editor-overlay {
+    -webkit-user-select: none;
+    user-select: none;
+}
+.lyrics-editor-overlay :is(input, textarea, select, [contenteditable='true']) {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* Under the Write editor's text: it says when the pasted text is LRC and will be saved as synced lyrics. */
+.lyrics-editor-hint {
+    margin: 0;
+    padding: var(--space-1) var(--space-4);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+.lyrics-editor-hint[hidden] {
+    display: none;
+}

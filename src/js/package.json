@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "Node-only: lets tests import the ES modules listed under modules in src/manifest.json. The renderer ignores this file."
+}

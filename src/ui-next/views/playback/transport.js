@@ -1,0 +1,164 @@
+// Player controls: tooltips with state and shortcut, accessible names and values, and the "nothing
+// loaded" marker the stylesheet uses. Elements come from adapter/player-parts.js, never by id. Space and Enter on a focused
+// control are the shell's shared rule (shell/space-key.js).
+//
+// What this does not change: what a click or a key does. The engine owns that (ui/06k shortcuts, playback/15x buttons).
+
+import { attachTooltip } from '../../components/index.js';
+import { playerPart, onTime } from '../../adapter/player-parts.js';
+import { reducedMotion } from '../../components/motion.js';
+import { volumeBarHidden } from './volume-popover.js';
+import { mountLightPlayerButtons } from './light-player-buttons.js';
+
+import { formatTime } from '../../../js/core/format-time.js';
+
+export { formatTime };
+
+const isOn = (node) => node.classList.contains('active');
+const percentOf = (fill) => Math.max(0, Math.min(100, Math.round(parseFloat(fill && fill.style.width) || 0)));
+
+// Shortcut labels are the engine's own (ui/06k): Space, S, R, M, L, Left and Right (5 s), Ctrl+Up and Down (volume).
+// Previous and next have no keyboard shortcut in the renderer, so none is shown.
+function repeatState(node) {
+    const badge = node.querySelector('.repeat-one');
+    if (!isOn(node)) return 'Off';
+    return badge && badge.style.display !== 'none' ? 'One song' : 'All songs';
+}
+
+/** The engine's old tooltip system (ui/06d) shows any element that has a title. These elements have their own tooltip. */
+// The play button's icon swaps with a short scale and fade (shell/motion.css), and not at all when Reduce animations is on.
+function swapPlayIcon(button) {
+    if (!button || reducedMotion()) return;
+    button.dataset.swap = '';
+    clearTimeout(button._swapTimer);
+    button._swapTimer = setTimeout(() => delete button.dataset.swap, 200);
+}
+
+function dropTitles(node) {
+    const strip = () => {
+        node.removeAttribute('title');
+        node.removeAttribute('data-original-title');
+    };
+    strip();
+    new MutationObserver(strip).observe(node, { attributes: true, attributeFilter: ['title', 'data-original-title'] });
+}
+
+function watch(node, callback, options = { attributes: true, attributeFilter: ['class', 'style'] }) {
+    new MutationObserver(callback).observe(node, options);
+}
+
+export function enhanceTransport() {
+    const state = { playing: false, src: '' };
+    const parts = Object.fromEntries(['shuffle', 'prev', 'play', 'next', 'repeat', 'volume-icon', 'lyrics', 'seek', 'seek-fill', 'volume', 'volume-fill', 'time-current', 'time-total', 'song-info'].map((name) => [name, playerPart(name)]));
+    if (!parts.play || !parts.seek || !parts.volume) return () => {};
+
+    // With no song loaded, previous, next and the seek bar do nothing: they get no tooltip and no hover (player-bar.css) and are announced as unavailable.
+    const idle = () => !(parts['song-info'] && parts['song-info'].classList.contains('has-song'));
+
+    // ---- buttons: name, state, shortcut ----
+    const buttons = [
+        ['shuffle', () => ({ name: 'Shuffle', shortcut: 'S' }), false],
+        ['prev', () => (idle() ? null : { name: 'Previous' }), false],
+        ['play', () => ({ name: state.playing ? 'Pause' : 'Play' }), true], // no shortcut line: Space is the page's own key
+        ['next', () => (idle() ? null : { name: 'Next' }), false],
+        ['repeat', () => ({ name: 'Repeat', shortcut: 'R' }), false],
+        ['volume-icon', () => (volumeBarHidden() ? null : { name: parts['volume-icon'].getAttribute('aria-label') || 'Mute', shortcut: 'M' }), true] // no tooltip while the volume bar opens over it (volume-popover.js)
+    ];
+    const tips = {};
+    for (const [name, content, toggle] of buttons) {
+        const node = parts[name];
+        if (!node) continue;
+        dropTitles(node);
+        tips[name] = attachTooltip(node, content, { stayOnPress: toggle });
+    }
+
+    // The volume icon is a div in the engine's markup: make it a button for the keyboard and for screen readers.
+    const mute = parts['volume-icon'];
+    mute.setAttribute('role', 'button');
+    mute.tabIndex = 0;
+
+    // ---- labels that follow the engine's state ----
+    const syncLabels = () => {
+        parts.play.setAttribute('aria-label', state.playing ? 'Pause' : 'Play');
+        parts.shuffle.setAttribute('aria-pressed', String(isOn(parts.shuffle)));
+        parts.repeat.setAttribute('aria-label', `Repeat: ${repeatState(parts.repeat).toLowerCase()}`);
+        const hasSong = !idle();
+        const host = parts.play.closest('.player-host');
+        if (host) host.toggleAttribute('data-empty', !hasSong);
+        for (const name of ['prev', 'next']) if (parts[name]) parts[name].setAttribute('aria-disabled', String(!hasSong));
+        if (parts.seek) {
+            parts.seek.setAttribute('aria-disabled', String(!hasSong));
+            parts.seek.tabIndex = hasSong ? 0 : -1;
+        }
+        for (const tip of Object.values(tips)) tip.refresh();
+    };
+    watch(parts.shuffle, syncLabels);
+    watch(parts.repeat, syncLabels, { attributes: true, subtree: true, attributeFilter: ['class', 'style'] });
+    if (parts['song-info']) watch(parts['song-info'], syncLabels, { attributes: true, attributeFilter: ['class'] });
+
+    // ---- seek bar: a slider for assistive technology; the engine keeps the pointer behavior ----
+    const seek = parts.seek;
+    seek.setAttribute('role', 'slider');
+    seek.tabIndex = 0;
+    seek.setAttribute('aria-label', 'Seek');
+    seek.setAttribute('aria-keyshortcuts', 'ArrowLeft ArrowRight');
+    seek.setAttribute('aria-valuemin', '0');
+    let lastSecond = -1;
+    let lastDuration = -1;
+    const stopTime = onTime((time) => {
+        const playingChanged = time.playing !== state.playing;
+        state.playing = time.playing;
+        state.src = time.src;
+        const second = Math.floor(time.currentTime);
+        if (second !== lastSecond || time.duration !== lastDuration) {
+            lastSecond = second;
+            lastDuration = time.duration;
+            seek.setAttribute('aria-valuemax', String(Math.round(time.duration)));
+            seek.setAttribute('aria-valuenow', String(second));
+            seek.setAttribute('aria-valuetext', time.duration ? `${formatTime(time.currentTime)} of ${formatTime(time.duration)}` : 'No song');
+        }
+        if (playingChanged) {
+            syncLabels();
+            swapPlayIcon(parts.play);
+        }
+    });
+
+    // ---- volume slider ----
+    const volume = parts.volume;
+    volume.setAttribute('role', 'slider');
+    volume.tabIndex = 0;
+    volume.setAttribute('aria-label', 'Volume');
+    volume.setAttribute('aria-keyshortcuts', 'Control+ArrowUp Control+ArrowDown');
+    volume.setAttribute('aria-valuemin', '0');
+    volume.setAttribute('aria-valuemax', '100');
+    // Screen readers get the level from aria-valuenow / aria-valuetext below, and the shortcuts from aria-keyshortcuts above.
+    const volumeText = () => {
+        const value = percentOf(parts['volume-fill']);
+        return value === 0 ? 'Muted' : `${value}%`;
+    };
+    const syncVolume = () => {
+        const value = percentOf(parts['volume-fill']);
+        volume.setAttribute('aria-valuenow', String(value));
+        volume.setAttribute('aria-valuetext', value === 0 ? 'Muted' : `${value}%`);
+    };
+    // The volume bar's tooltip is the shared one (the engine's own number above the knob is hidden, player-bar.css) and shows only the level: it stays
+    // while the pointer is on the bar and while the knob is dragged, and follows the level. A change made with the keyboard shows it for a moment.
+    const volumeTip = attachTooltip(volume, () => ({ name: volumeText() }), { stayOnPress: true });
+    const settledAt = performance.now() + 2500; // the saved volume is restored at start-up: no tooltip for that
+    if (parts['volume-fill']) {
+        watch(parts['volume-fill'], () => {
+            syncVolume();
+            volumeTip.refresh();
+            if (performance.now() > settledAt && !volume.matches(':hover') && !mute.matches(':hover') && !volume.classList.contains('dragging') && !volumeBarHidden()) volumeTip.flash();
+        }, { attributes: true, attributeFilter: ['style'] });
+    }
+    syncVolume();
+
+    syncLabels();
+    // The Mini Player and Quick Player buttons, next to the volume bar (light-player-buttons.js).
+    const unmountLightButtons = mountLightPlayerButtons({ volume, songInfo: parts['song-info'] });
+    return () => {
+        stopTime();
+        unmountLightButtons();
+    };
+}

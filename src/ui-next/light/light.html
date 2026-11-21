@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file:; media-src 'self' blob: file: xplayer-media:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-src 'none'; form-action 'none'">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Paths below are relative to src/, like the full page (covers/<file> is sent to the library's covers folder, electron/app-paths.js). -->
+    <base href="../../">
+    <script src="ui-next/shell/appearance-boot.js"></script>
+    <title>Xplayer</title>
+    <link rel="stylesheet" href="ui-next/tokens.css">
+    <link rel="stylesheet" href="ui-next/base.css">
+    <link rel="stylesheet" href="ui-next/components/components.css">
+    <link rel="stylesheet" href="ui-next/scrollbar.css">
+    <link rel="stylesheet" href="ui-next/components/queue-card.css">
+    <link rel="stylesheet" href="ui-next/views/tools/dialogs.css">
+    <link rel="stylesheet" href="ui-next/shell/motion.css">
+    <link rel="stylesheet" href="ui-next/light/light.css">
+</head>
+<body class="light" data-view="quick" data-queue="closed">
+    <script src="ui-next/light/light-boot.js"></script>
+    <img class="lp-backdrop" id="lp-backdrop" alt="" hidden>
+    <div class="lp-art"><div class="lp-cover" id="lp-cover"></div></div>
+
+    <header class="lp-top">
+        <button type="button" class="lp-logo" id="lp-logo" aria-label="Open in Xplayer"></button>
+        <span class="lp-spacer"></span>
+        <div class="lp-tools">
+            <button type="button" class="lp-btn" id="lp-pin" aria-pressed="false" aria-label="Keep on top"></button>
+            <button type="button" class="lp-btn" id="lp-view"></button>
+            <span class="lp-sep" data-only="quick" aria-hidden="true"></span>
+            <button type="button" class="lp-win" id="lp-min" data-only="quick" aria-label="Minimize"></button>
+            <button type="button" class="lp-win" id="lp-max" data-only="quick" aria-label="Maximize"></button>
+            <button type="button" class="lp-win lp-win--close" id="lp-close" aria-label="Close"></button>
+        </div>
+    </header>
+
+    <!-- The queue card (components/queue-card.js) is added to the page by light.js, the same card the full app shows above its player bar. -->
+
+    <footer class="lp-bar">
+        <div class="lp-text">
+            <div class="lp-title" id="lp-title">Drop a music file here</div>
+            <div class="lp-sub" id="lp-sub"></div>
+            <div class="lp-count" id="lp-count"></div>
+        </div>
+        <div class="lp-controls">
+            <div class="lp-transport">
+                <button type="button" class="lp-btn lp-mode" id="lp-shuffle" aria-pressed="false" aria-label="Shuffle: off (S)"></button>
+                <button type="button" class="lp-btn lp-skip" id="lp-prev" aria-label="Previous (P)"></button>
+                <button type="button" class="lp-btn lp-play" id="lp-play" aria-label="Play (Space)"></button>
+                <button type="button" class="lp-btn lp-skip" id="lp-next" aria-label="Next (N)"></button>
+                <button type="button" class="lp-btn lp-mode" id="lp-repeat" aria-pressed="false" data-mode="off" aria-label="Repeat: off (R)"></button>
+            </div>
+            <div class="lp-right">
+                <button type="button" class="lp-btn" id="lp-queue-toggle" data-only="quick" aria-pressed="false" aria-label="Queue (Q)"></button>
+                <div class="lp-volume">
+                    <button type="button" class="lp-btn" id="lp-mute" aria-label="Mute (M)"></button>
+                    <div class="lp-volume-pop"><div id="lp-volume-bar"></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="lp-seek">
+            <button type="button" class="lp-time lp-time--cur" id="lp-cur" aria-label="Time played">0:00</button>
+            <div id="lp-seek-bar"></div>
+            <span class="lp-time lp-time--dur" id="lp-dur">0:00</span>
+        </div>
+    </footer>
+    <script type="module" src="ui-next/light/light.js"></script>
+</body>
+</html>

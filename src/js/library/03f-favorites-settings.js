@@ -1,0 +1,188 @@
+// ==============================================================================
+// FAVORITES & APP SETTINGS (smart shuffle, audio playback, window)
+// ==============================================================================
+
+
+// ==============================================================================
+// FAVORITES
+// ==============================================================================
+export function getFavorites() {
+    return storageReadJson(STORAGE_KEYS.FAVORITES, [], normalizeIdList);
+}
+
+
+export const DEFAULT_SMART_SHUFFLE_SETTINGS = {
+    journeySize: 50,
+    groupSize: 5,
+    genreFlow: 'gentle',
+    artistSeparation: 'normal',
+    recentLimit: 50,
+    favoriteWeight: 'neutral',
+    discoveryWeight: 'neutral',
+    durationVariety: true
+};
+
+export const DEFAULT_AUDIO_PLAYBACK_SETTINGS = {
+    crossfadeEnabled: false,
+    crossfadeDuration: 4,
+    gaplessEnabled: true,
+    fadeInEnabled: false,
+    fadeInDuration: 1,
+    fadeOutEnabled: false,
+    fadeOutDuration: 1.25,
+    replayGainEnabled: true,
+    replayGainMode: 'track',
+    replayGainTrimDb: 0,
+    replayGainLimiter: true
+};
+
+export function getSmartShuffleSettings() {
+    return {
+        ...DEFAULT_SMART_SHUFFLE_SETTINGS,
+        ...storageReadJson(STORAGE_KEYS.SMART_SHUFFLE_SETTINGS, {}, (v) => normalizeSettings(v, DEFAULT_SMART_SHUFFLE_SETTINGS))
+    };
+}
+
+
+export function getAudioPlaybackSettings() {
+    const settings = {
+        ...DEFAULT_AUDIO_PLAYBACK_SETTINGS,
+        ...storageReadJson(STORAGE_KEYS.AUDIO_PLAYBACK_SETTINGS, {}, (v) => normalizeSettings(v, DEFAULT_AUDIO_PLAYBACK_SETTINGS))
+    };
+    // Both modes control the same transition and cannot run together. Preserve
+    // the gapless preference for settings saved by older builds with both on.
+    if (settings.gaplessEnabled && settings.crossfadeEnabled) {
+        settings.crossfadeEnabled = false;
+    }
+    return settings;
+}
+
+
+export function saveAudioPlaybackSettings(settings) {
+    storageWriteJson(STORAGE_KEYS.AUDIO_PLAYBACK_SETTINGS, settings);
+}
+
+
+export function setAudioPlaybackSetting(key, value) {
+    const settings = getAudioPlaybackSettings();
+    settings[key] = value;
+
+    if (key === 'gaplessEnabled' && value) settings.crossfadeEnabled = false;
+    if (key === 'crossfadeEnabled' && value) settings.gaplessEnabled = false;
+
+    saveAudioPlaybackSettings(settings);
+
+    // Checkbox sync (gapless and crossfade are mutually exclusive, so changing one can
+    // flip the other's checkbox) lives in 04m-playback-settings-events.js. It is emitted here so it runs after the save and
+    // before the gapless/ReplayGain side effects below.
+    emit('playbackSetting:changed', { key, value, settings });
+
+    if (key === 'gaplessEnabled' || key === 'crossfadeEnabled') {
+        if (settings.gaplessEnabled && typeof prepareGaplessNextTrack === 'function') {
+            prepareGaplessNextTrack();
+        } else if (typeof clearGaplessPreload === 'function') {
+            clearGaplessPreload();
+        }
+    }
+
+    if (
+        ['replayGainEnabled', 'replayGainMode', 'replayGainTrimDb', 'replayGainLimiter'].includes(key) &&
+        typeof applyTrackVolume === 'function' &&
+        typeof getCurrentSongForInfo === 'function'
+    ) {
+        applyTrackVolume(getCurrentSongForInfo());
+    }
+
+    return settings;
+}
+
+
+export function getWindowSettings() {
+    return {
+        minimizeOnClose: storageReadBool(STORAGE_KEYS.MINIMIZE_ON_CLOSE)
+    };
+}
+
+
+// Startup screen of the new interface (ui-next). The ids match STARTUP_OPTIONS in src/ui-next/startup/startup.js;
+// tools/tests/logic/ui-next-startup.test.js fails if the two lists drift apart. 'random' is a choice, not a background:
+// the startup view picks one animated background per start.
+export const STARTUP_BACKGROUNDS = [
+    { id: 'playhead', label: 'Playhead sweep' },
+    { id: 'vinyl', label: 'Vinyl grooves' },
+    { id: 'equalizer', label: 'Equalizer horizon' },
+    { id: 'light', label: 'Light leaks' },
+    { id: 'constellation', label: 'Constellation of songs' },
+    { id: 'plain', label: 'Plain, no animation' },
+    { id: 'random', label: 'Random each start' }
+];
+export const DEFAULT_STARTUP_BACKGROUND = 'vinyl';
+
+
+export function getStartupBackground() {
+    const saved = storageRead(STORAGE_KEYS.STARTUP_BACKGROUND, DEFAULT_STARTUP_BACKGROUND);
+    return STARTUP_BACKGROUNDS.some((o) => o.id === saved) ? saved : DEFAULT_STARTUP_BACKGROUND;
+}
+
+
+export function setStartupBackground(id) {
+    if (!STARTUP_BACKGROUNDS.some((o) => o.id === id)) return false;
+    return storageWrite(STORAGE_KEYS.STARTUP_BACKGROUND, id);
+}
+
+
+export function setMinimizeOnClose(enabled) {
+    const value = Boolean(enabled);
+    storageWriteBool(STORAGE_KEYS.MINIMIZE_ON_CLOSE, value);
+    if (desktopApi.supports('window.setMinimizeOnClose')) {
+        desktopApi.window.setMinimizeOnClose(value);
+    }
+}
+
+
+export function saveSmartShuffleSetting(key, value) {
+    const settings = getSmartShuffleSettings();
+    settings[key] = value;
+    storageWriteJson(STORAGE_KEYS.SMART_SHUFFLE_SETTINGS, settings);
+}
+
+
+export function saveFavorite(songId) {
+    let favorites = getFavorites();
+    if (!favorites.includes(songId)) {
+        favorites.unshift(songId);
+        storageWriteJson(STORAGE_KEYS.FAVORITES, favorites);
+    }
+}
+
+
+export function removeFavorite(songId) {
+    let favorites = getFavorites();
+    favorites = favorites.filter((id) => id !== songId);
+    storageWriteJson(STORAGE_KEYS.FAVORITES, favorites);
+}
+
+
+export function isFavorite(songId) {
+    const favorites = getFavorites();
+    return favorites.includes(songId);
+}
+
+// Other files and inline handlers call these by name, so they are registered on window.
+if (typeof registerLegacyGlobals === 'function') {
+    registerLegacyGlobals({
+        getFavorites,
+        getSmartShuffleSettings,
+        getAudioPlaybackSettings,
+        setAudioPlaybackSetting,
+        getWindowSettings,
+        setMinimizeOnClose,
+        STARTUP_BACKGROUNDS,
+        getStartupBackground,
+        setStartupBackground,
+        saveSmartShuffleSetting,
+        saveFavorite,
+        removeFavorite,
+        isFavorite
+    });
+}

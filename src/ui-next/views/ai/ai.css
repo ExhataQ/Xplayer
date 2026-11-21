@@ -1,0 +1,159 @@
+/* AI screens: the Settings section, the chat, the plan preview and the privacy view. Tokens only. */
+
+/* ---------- settings section ---------- */
+.ai-settings__body { display: flex; flex-direction: column; gap: var(--space-4); }
+.ai-group { display: flex; flex-direction: column; gap: var(--space-2); align-items: flex-start; }
+.ai-group > .field { align-self: stretch; }
+.ai-group__title { margin: 0; font-size: var(--text-md); font-weight: var(--weight-semibold); color: var(--text-primary); }
+.ai-group__text { margin: 0; font-size: var(--text-sm); line-height: 1.5; color: var(--text-secondary); }
+.ai-group__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+
+.ai-history { list-style: none; margin: 0; padding: 0; align-self: stretch; display: flex; flex-direction: column; gap: var(--space-1); }
+.ai-history__item { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: var(--button-height); padding: 0 var(--space-3); border-radius: var(--radius-md); background: var(--surface-raised); }
+.ai-history__text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-sm); color: var(--text-primary); }
+.ai-history__item[data-status='undone'] .ai-history__text { color: var(--text-secondary); }
+.ai-history__done, .ai-history__empty { font-size: var(--text-sm); color: var(--text-secondary); }
+.ai-history__empty { list-style: none; }
+
+/* ---------- privacy view ---------- */
+.ai-privacy { display: flex; flex-direction: column; gap: var(--space-2); max-height: 60vh; overflow-y: auto; padding-right: var(--space-2); }
+.ai-privacy__heading { margin: var(--space-3) 0 0; font-size: var(--text-md); font-weight: var(--weight-semibold); color: var(--text-primary); }
+.ai-privacy__heading:first-child { margin-top: 0; }
+.ai-privacy__list { margin: 0; padding-left: var(--space-6); display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--text-sm); line-height: 1.5; color: var(--text-secondary); }
+.ai-privacy__list strong { color: var(--text-primary); font-weight: var(--weight-medium); }
+.ai-privacy__example { margin: 0; padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-subtle); font-size: var(--text-xs); line-height: 1.5; color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* ---------- plan preview ---------- */
+.ai-preview { display: flex; flex-direction: column; gap: var(--space-3); }
+.ai-preview__summary { margin: 0; font-size: var(--text-md); color: var(--text-primary); }
+.ai-preview__none { margin: 0; font-size: var(--text-sm); color: var(--text-secondary); }
+.ai-preview__list { list-style: none; margin: 0; padding: 0; max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-1); }
+.ai-preview__item { display: flex; flex-direction: column; gap: 2px; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); background: var(--surface-selected); }
+.ai-preview__item[data-changes='true'] { border-left: 2px solid var(--accent); }
+.ai-preview__kind { font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--text-secondary); }
+.ai-preview__text { font-size: var(--text-sm); color: var(--text-primary); overflow-wrap: anywhere; }
+.ai-preview__note { display: flex; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--text-sm); color: var(--text-secondary); }
+.ai-preview__note[data-warn='true'] { color: var(--danger); }
+
+/* ---------- chat ---------- */
+.ai-chat { height: 100%; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6); box-sizing: border-box; min-height: 0; }
+.ai-chat__head { display: flex; align-items: baseline; gap: var(--space-3); }
+/* The chat keeps a usable size. The conversation never gets shorter than 160px; when the window is too short for everything (the
+   "Set up AI first" card above the box at the smallest window), the chat scrolls inside itself, so nothing is squeezed to a sliver or pushed
+   out of sight below the player bar. */
+.ai-chat { overflow-y: auto; overscroll-behavior: contain; }
+.ai-chat > * { flex-shrink: 0; }
+.ai-chat > .ai-chat__thread { flex: 1 0 160px; }
+.ai-chat__title { margin: 0; font-family: var(--font-serif); font-size: var(--text-2xl); font-weight: var(--weight-regular); color: var(--text-primary); }
+.ai-chat__status { margin: 0; flex: 1; font-size: var(--text-sm); color: var(--text-secondary); }
+.ai-chat__setup[hidden] { display: none; }
+.ai-chat__thread { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-3); box-sizing: border-box; border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--border-subtle); }
+
+.ai-msg { display: flex; }
+.ai-msg--user { justify-content: flex-end; }
+.ai-msg__bubble { max-width: 70ch; padding: var(--space-2) var(--space-3); border-radius: var(--radius-lg); background: var(--surface-raised); color: var(--text-primary); font-size: var(--text-md); line-height: 1.5; overflow-wrap: anywhere; display: flex; flex-direction: column; gap: var(--space-2); align-items: flex-start; }
+.ai-msg--user .ai-msg__bubble { background: var(--accent-soft); }
+.ai-msg[data-kind='error'] .ai-msg__bubble { border: 1px solid var(--danger); }
+
+.ai-card { width: min(70ch, 100%); display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--border-subtle); }
+.ai-card[data-state='discarded'] { opacity: 0.7; }
+.ai-card__title { margin: 0; font-size: var(--text-md); font-weight: var(--weight-semibold); color: var(--text-primary); }
+.ai-card__text { margin: 0; max-height: 320px; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--font-ui); font-size: var(--text-sm); line-height: 1.6; color: var(--text-primary); }
+.ai-card__info { margin: 0; font-size: var(--text-xs); color: var(--text-secondary); }
+.ai-card__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+/* ---------- pop-up chat, model picker, limits line, shuffle list ---------- */
+.ai-popup-layer { position: fixed; inset: 0; pointer-events: none; z-index: 45; }
+.ai-popup { pointer-events: auto; position: absolute; top: 56px; right: var(--space-4); width: min(420px, calc(100vw - var(--space-8))); height: min(620px, calc(100vh - 140px)); border-radius: var(--radius-lg); background: var(--surface-panel); border: 1px solid var(--border-subtle); box-shadow: var(--shadow-raised); overflow: hidden; display: flex; flex-direction: column; }
+.ai-popup > .ai-chat { flex: 1; }
+.ai-chat--popup { padding: var(--space-3); gap: var(--space-2); }
+.ai-chat--popup .ai-chat__title { font-size: var(--text-lg); }
+.ai-chat--popup .ai-chat__options { gap: var(--space-2); }
+.ai-chat__head { justify-content: space-between; align-items: center; }
+.ai-chat__window { display: flex; align-items: center; gap: var(--space-1); }
+.ai-chat__bar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2) var(--space-4); }
+
+.ai-model { display: flex; flex-direction: column; gap: 2px; min-width: 0; max-width: 100%; align-self: stretch; }
+.ai-chat__bar .ai-model { flex: 1 1 220px; }
+.ai-model__label { font-size: var(--text-xs); color: var(--text-secondary); }
+.ai-model__select { min-height: var(--button-height); max-width: 100%; padding: 0 var(--space-3); border-radius: var(--radius-md); background: var(--surface-raised); color: var(--text-primary); border: 1px solid var(--border-subtle); font: inherit; font-size: var(--text-sm); }
+.ai-model__select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.ai-model__select:disabled { opacity: 0.6; }
+.ai-model__message { min-height: 1em; font-size: var(--text-xs); color: var(--text-secondary); }
+
+
+.ai-songs { list-style: decimal; margin: 0; padding: var(--space-2) var(--space-3) var(--space-2) var(--space-8); max-height: 240px; overflow-y: auto; border-radius: var(--radius-md); background: var(--surface-selected); display: flex; flex-direction: column; gap: 2px; font-size: var(--text-sm); }
+.ai-songs__title { color: var(--text-primary); }
+.ai-songs__artist { margin-left: var(--space-2); color: var(--text-secondary); }
+
+/* ---------- chat box: limits line, composer with the model choice, window drag ---------- */
+.ai-limits { margin: 0; font-size: var(--text-xs); color: var(--text-secondary); }
+.ai-limits[hidden] { display: none; }
+.ai-limits[data-level='low'] { color: var(--text-primary); }
+.ai-limits[data-level='out'] { color: var(--danger); font-weight: var(--weight-medium); }
+.ai-model--compact .ai-model__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.ai-model--compact .ai-model__message:empty { display: none; }
+.ai-card__reply { margin: 0; font-size: var(--text-md); line-height: 1.5; color: var(--text-primary); overflow-wrap: anywhere; }
+.ai-popup .ai-chat__head { cursor: grab; user-select: none; }
+.ai-popup[data-dragging='true'] .ai-chat__head { cursor: grabbing; }
+.ai-popup[data-dragging='true'] { user-select: none; }
+
+/* ---------- the box to type in: ready-made messages on top, the text, then model, mode, options and Send ---------- */
+.ai-composer { position: relative; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--border-subtle); }
+.ai-composer:focus-within { border-color: var(--accent); }
+.ai-quick { flex: none; display: inline-flex; align-items: center; gap: var(--space-1); min-height: 26px; padding: 0 var(--space-3); border-radius: 999px; border: 1px solid var(--border-subtle); background: transparent; color: var(--text-secondary); font: inherit; font-size: var(--text-xs); white-space: nowrap; cursor: pointer; }
+.ai-quick:hover:not(:disabled) { background: var(--surface-selected); color: var(--text-primary); }
+.ai-quick:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.ai-quick:disabled { opacity: 0.5; cursor: default; }
+.ai-composer__input { width: 100%; box-sizing: border-box; min-height: 24px; max-height: 140px; resize: none; padding: var(--space-1) 0; border: 0; outline: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: var(--text-md); line-height: 1.5; }
+.ai-composer__input::placeholder { color: var(--text-secondary); }
+.ai-composer__input:disabled { opacity: 0.6; }
+.ai-composer__bar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.ai-composer__tools { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
+.ai-composer__go { display: flex; align-items: center; gap: var(--space-1); flex: none; }
+.ai-composer__send[hidden], .ai-composer__stop[hidden] { display: none; }
+
+.ai-pill { display: inline-flex; align-items: center; gap: var(--space-1); min-width: 0; max-width: 150px; min-height: 28px; padding: 0 var(--space-2); border-radius: 999px; border: 1px solid transparent; background: transparent; color: var(--text-secondary); font: inherit; font-size: var(--text-xs); cursor: pointer; }
+.ai-pill:hover:not(:disabled), .ai-pill[aria-expanded='true'] { background: var(--surface-selected); color: var(--text-primary); }
+.ai-pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.ai-pill:disabled { opacity: 0.5; cursor: default; }
+.ai-pill__label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-pill__logo { display: inline-flex; color: var(--accent); }
+.ai-pill--icon[data-active='true'] { color: var(--accent); }
+
+/* ---------- the model window ---------- */
+.ai-modelwin { position: absolute; left: 0; bottom: calc(100% + var(--space-2)); z-index: 2; width: min(320px, 100%); max-height: min(300px, 50vh); display: flex; flex-direction: column; border-radius: var(--radius-lg); background: var(--surface-panel); border: 1px solid var(--border-subtle); box-shadow: var(--shadow-raised); overflow: hidden; }
+.ai-modelwin[hidden] { display: none; }
+.ai-modelwin__head { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border-subtle); }
+.ai-modelwin__title { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-primary); }
+.ai-modelwin__search { flex: 1; min-width: 0; min-height: 28px; padding: 0 var(--space-2); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); background: var(--surface-raised); color: var(--text-primary); font: inherit; font-size: var(--text-sm); }
+.ai-modelwin__search:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+.ai-modelwin__list { list-style: none; margin: 0; padding: var(--space-1); overflow-y: auto; min-height: 0; }
+.ai-modelwin__row { width: 100%; display: grid; grid-template-columns: 1fr auto; column-gap: var(--space-2); align-items: center; text-align: left; padding: var(--space-2) var(--space-3); border: 0; border-radius: var(--radius-md); background: transparent; color: var(--text-primary); font: inherit; font-size: var(--text-sm); cursor: pointer; }
+.ai-modelwin__row:hover, .ai-modelwin__row:focus-visible { background: var(--surface-selected); outline: 0; }
+.ai-modelwin__row[aria-selected='true'] .ai-modelwin__name { color: var(--accent); }
+.ai-modelwin__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-modelwin__tags { grid-column: 1; font-size: var(--text-xs); color: var(--text-secondary); }
+.ai-modelwin__row .icon { grid-column: 2; grid-row: 1; color: var(--accent); }
+.ai-modelwin__empty { padding: var(--space-3); font-size: var(--text-sm); color: var(--text-secondary); }
+.ai-modelwin__link { border: 0; padding: 0; background: none; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
+.ai-modelwin__note { margin: 0; padding: 0 var(--space-3) var(--space-2); font-size: var(--text-xs); color: var(--text-secondary); }
+.ai-modelwin__note:empty { display: none; }
+
+
+:where(:root:not([data-motion='reduced'])) .ai-quick, :where(:root:not([data-motion='reduced'])) .ai-pill { transition: background-color 0.12s, color 0.12s; }
+
+/* The conversation is a box of its own; the ready-made messages sit between it and the box to type in. */
+.ai-chat__hint { margin: auto; max-width: 30ch; text-align: center; font-size: var(--text-sm); line-height: 1.5; color: var(--text-secondary); }
+/* The row sits in the left panel's chip strip (library/chip-strip.js, library-panel.css), which scrolls it, fades the side that has more and draws
+   the arrows. Here it only lays the buttons out in one line and lets a drag move the row. */
+.ai-quickstrip { flex: none; }
+.ai-quickstrip .chip-strip__row { cursor: grab; touch-action: pan-x; }
+.ai-quickstrip .chip-strip__row[data-dragging='true'] { cursor: grabbing; user-select: none; }
+.ai-quickstrip .chip-strip__row[data-dragging='true'] .ai-quick { pointer-events: none; }
+.ai-quickrow { display: flex; gap: var(--space-2); width: max-content; }
+.ai-quickrow .ai-quick { flex: none; white-space: nowrap; }
+.ai-chat--standalone { padding: var(--space-4); }
+
+/* The chat in a window of its own is a narrow window: the page's usual minimum size (800 by 600) does not apply to it. */
+html[data-tool-window='ai'] { --window-min-width: 0px; --window-min-height: 0px; }

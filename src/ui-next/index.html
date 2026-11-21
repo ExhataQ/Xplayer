@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en" data-theme="warm-graphite" data-ui="next">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file:; media-src 'self' blob: file: https: xplayer-media:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-src 'none'; form-action 'none'">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="shell/appearance-boot.js"></script>
+    <title>Xplayer</title>
+    <link rel="stylesheet" href="tokens.css">
+    <link rel="stylesheet" href="base.css">
+    <link rel="stylesheet" href="scrollbar.css">
+    <link rel="stylesheet" href="components/components.css">
+    <link rel="stylesheet" href="components/queue-card.css">
+    <link rel="stylesheet" href="startup/startup.css">
+    <link rel="stylesheet" href="views/library/library-panel.css">
+    <link rel="stylesheet" href="views/library/song-list.css">
+    <link rel="stylesheet" href="views/library/search-view.css">
+    <link rel="stylesheet" href="views/library/panel-lists.css">
+    <link rel="stylesheet" href="views/library/drag-feedback.css">
+    <link rel="stylesheet" href="views/library/song-page.css">
+    <link rel="stylesheet" href="views/tools/duplicates-page.css">
+    <link rel="stylesheet" href="views/tools/health/health-page.css">
+    <link rel="stylesheet" href="views/home/home.css">
+    <link rel="stylesheet" href="views/playback/player-bar.css">
+    <link rel="stylesheet" href="shell/shell.css">
+    <link rel="stylesheet" href="shell/rail.css">
+    <link rel="stylesheet" href="shell/url-button.css">
+    <link rel="stylesheet" href="shell/notifications.css">
+    <link rel="stylesheet" href="shell/appearance.css">
+    <link rel="stylesheet" href="shell/welcome.css">
+    <link rel="stylesheet" href="shell/motion.css">
+    <link rel="stylesheet" href="shell/cat-scrollbar.css">
+    <link rel="stylesheet" href="adapter/engine-view.css">
+    <link rel="stylesheet" href="views/tools/dialogs.css">
+    <link rel="stylesheet" href="views/tools/metadata-popup.css">
+    <link rel="stylesheet" href="views/tools/settings.css">
+    <link rel="stylesheet" href="settings/settings.css">
+    <link rel="stylesheet" href="views/tools/lyrics.css">
+    <link rel="stylesheet" href="views/tools/lyrics-editors.css">
+    <link rel="stylesheet" href="views/tools/lyrics-find.css">
+    <link rel="stylesheet" href="views/tools/lyrics-many.css">
+    <link rel="stylesheet" href="views/tools/sync-editor.css">
+    <link rel="stylesheet" href="views/tools/metadata.css">
+    <link rel="stylesheet" href="views/ai/ai.css">
+    <link rel="stylesheet" href="adapter/songlist-rows.css">
+    <link rel="stylesheet" href="adapter/legacy-icons.css">
+    <link rel="stylesheet" href="adapter/legacy-overlays.css">
+    <link rel="stylesheet" href="adapter/context-menu-icons.css">
+    <link rel="stylesheet" href="adapter/default-covers.css">
+    <script src="../player.js"></script>
+    <!-- Keep these earlier URLs UI-relative; runtime song-cover paths are relative to the app output root. -->
+    <base href="../">
+    <!-- The startup view's own files are asked for first, before the app's many modules (startup/early.js). -->
+    <link rel="modulepreload" href="ui-next/startup/early.js">
+    <link rel="modulepreload" href="ui-next/startup/boot.js">
+    <link rel="modulepreload" href="ui-next/startup/startup.js">
+    <link rel="modulepreload" href="ui-next/startup/logo.js">
+    <link rel="modulepreload" href="ui-next/icons/icons.js">
+    <link rel="modulepreload" href="ui-next/adapter/startup-bridge.js">
+    <link rel="modulepreload" href="ui-next/adapter/songlist-bridge.js">
+</head>
+<body>
+    <!-- Startup view (task A-09): covers the window from the first paint until the app is ready. shell/shell.js starts it (startup/boot.js). -->
+    <div id="startup" class="startup-host" data-state="booting">
+        <!-- The same logo and loading line the script draws (startup/startup.js), so the first paint already shows them. The script replaces this with the chosen background. -->
+        <div class="startup is-indeterminate" data-placeholder data-variant="vinyl" role="status" aria-live="polite">
+            <div class="su-vignette" aria-hidden="true"></div>
+            <div class="su-mark"><svg class="logo" xmlns="http://www.w3.org/2000/svg" width="88" height="88" viewBox="0 0 48 48" aria-hidden="true"><path d="M11 11 L20 20 M28 28 L37 37" stroke="var(--text-primary)" stroke-width="6" stroke-linecap="round" fill="none"/><path d="M37 11 L11 37" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" fill="none"/></svg></div>
+            <div class="su-foot">
+                <div class="su-line" aria-hidden="true"><i></i></div>
+                <p class="su-label"><span class="su-label-text">Starting</span><span class="su-percent"></span></p>
+            </div>
+        </div>
+    </div>
+    <!-- Listed first: it runs as soon as its few files have loaded, while the app's many modules are still loading (startup/early.js). -->
+    <script type="module" src="ui-next/startup/early.js"></script>
+    <div class="app">
+        <!-- Title bar: the logo button, menu and bell are added by shell/shell.js. The slots are filled by the adapter. -->
+        <header class="titlebar">
+            <div class="titlebar__nav" data-legacy-slot="nav" style="display: contents"></div>
+            <div class="titlebar__spacer"></div>
+            <div class="titlebar__window" data-legacy-slot="window"></div>
+        </header>
+
+        <nav class="rail" aria-label="Main"></nav>
+
+        <aside class="panel-host" aria-label="Panel">
+            <div class="panel-host__header">
+                <h2 class="panel-host__title"></h2>
+            </div>
+            <div class="panel-host__body"></div>
+        </aside>
+
+        <main class="view-host" id="view-host"></main>
+
+        <aside class="right-host" aria-label="Right panel" hidden>
+            <div class="right-host__body"></div>
+        </aside>
+
+        <footer class="player-host" aria-label="Player" data-legacy-slot="player"></footer>
+    </div>
+
+    <!-- The old panels the engine renders lists and queues into. Hidden; filled by the adapter. -->
+    <div data-legacy-slot="host"></div>
+
+    <!-- The adapter must build the engine's elements before js/main.js runs. Module scripts run in document order after parsing. -->
+    <script type="module" src="ui-next/startup/mount-legacy-dom.js"></script>
+    <script type="module" src="ui-next/shell/shell.js"></script>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

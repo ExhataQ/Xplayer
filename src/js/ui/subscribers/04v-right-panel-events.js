@@ -1,0 +1,14 @@
+// ==============================================================================
+// RIGHT PANEL - UI REACTIONS
+// ==============================================================================
+// Subscribes to 'rightPanel:tabChanged' (emitted by switchRightPanelTab in 08d after the
+// header and buttons were updated) and draws the content of tabs that are built on demand.
+
+on('rightPanel:tabChanged', (e) => {
+    if (e.detail.tab === 'recently-played') {
+        renderPortableRecentlyPlayed();
+    }
+});
+
+// Nothing to register: this file only subscribes to events while it loads. The empty export makes it a module.
+export {};

@@ -1,0 +1,57 @@
+// ==============================================================================
+// RECENTS & HISTORY - UI REACTIONS
+// ==============================================================================
+// Subscribes to the events 03e-recents-history.js emits and does the actual DOM
+// work, so 03e itself has zero DOM dependency. A different UI layer (e.g. the UI
+// Playground) can subscribe to the same events with its own rendering instead of
+// this file, without 03e changing at all.
+
+on('recents:countChanged', (e) => {
+    const countElement = document.querySelector('.left-panel-item[onclick*="recent"] .song-count');
+    if (countElement) {
+        countElement.textContent = e.detail.count;
+    }
+});
+
+on('recents:added', () => {
+    const recentPanel = document.getElementById('recently-played-content');
+    if (recentPanel && recentPanel.classList.contains('active')) {
+        renderPortableRecentlyPlayed();
+    }
+});
+
+on('recents:cleared', () => {
+    if (currentView === VIEWS.RECENT) {
+        renderRecentlyPlayed();
+        setTimeout(() => updateExternalScrollbar(), 100);
+    }
+
+    const recentPanel = document.getElementById('recently-played-content');
+    if (recentPanel && recentPanel.classList.contains('active')) {
+        renderPortableRecentlyPlayed();
+    }
+
+    showNotification('Recently played list cleared', 'success', 3000);
+});
+
+on('history:added', () => {
+    if (currentView === VIEWS.HISTORY) {
+        renderHistoryView();
+    }
+});
+
+on('history:cleared', () => {
+    if (currentView === VIEWS.HISTORY) {
+        renderHistoryView();
+        setTimeout(() => {
+            if (typeof updateExternalScrollbar === 'function') {
+                updateExternalScrollbar();
+            }
+        }, 100);
+    }
+
+    showNotification('Play history cleared', 'success', 3000);
+});
+
+// Nothing to register: this file only subscribes to events while it loads. The empty export makes it a module.
+export {};

@@ -1,0 +1,433 @@
+const fs = require('fs');
+const path = require('path');
+const { fork } = require('child_process');
+const { writeSongs, updateSongs } = require('./songs-store');
+const { getConfigDir } = require('./storage-paths');
+
+function getScanScriptPath() {
+    return path.join(__dirname, 'scan-folder.js');
+}
+
+function ensureCoversFolder(outputDir) {
+    const coversFolder = path.join(outputDir, 'covers');
+    if (!fs.existsSync(coversFolder))
+        fs.mkdirSync(coversFolder, {
+            recursive: true
+        });
+    return coversFolder;
+}
+
+function getStepTitle(prefix) {
+    let stepTitle = 'Processing...';
+    if (prefix.includes('Extracting covers')) stepTitle = 'Extracting Covers';
+    if (prefix.includes('Scanning songs')) stepTitle = 'Scanning Songs';
+    if (prefix.includes('GENERATING')) stepTitle = 'Generating Player';
+    return stepTitle;
+}
+
+// The running scan that is still reading covers after its songs were handed over (D41). Asking it to stop is graceful: see fast-scan.js.
+let coverChild = null;
+let coverCancelRequested = false;
+
+/** Asks the running cover search to stop. Returns false when none is running. */
+function cancelCoverSearch() {
+    if (!coverChild || !coverChild.connected) return false;
+    coverCancelRequested = true;
+    coverChild.send('cancel-covers');
+    return true;
+}
+
+function runScan(args, options = {}) {
+    return new Promise((resolve) => {
+        const child = fork(getScanScriptPath(), args, {
+            silent: true,
+            env: {
+                ...process.env,
+                MUSIC_PLAYER_CONFIG_DIR: getConfigDir(),
+                ELECTRON_RUN_AS_NODE: '1',
+                ...(options.env || {})
+            }
+        });
+
+        if (options.resolveOnFastResult) {
+            coverChild = child;
+            coverCancelRequested = false;
+        }
+
+        let stdoutBuffer = '';
+        let resultData = '';
+        let lastStep = '';
+
+        child.stdout.on('data', (data) => {
+            const text = data.toString();
+            resultData += text;
+
+            if (options.stdoutProgressMode === 'simple') {
+                stdoutBuffer += text;
+                const progressMatch = stdoutBuffer.match(/\|█+\|?\s*(\d+)%/);
+                if (progressMatch && options.onStdoutProgress) {
+                    options.onStdoutProgress(parseInt(progressMatch[1]));
+                    stdoutBuffer = '';
+                }
+                return;
+            }
+
+            if (options.onStdoutProgress) {
+                stdoutBuffer += text;
+                const lines = stdoutBuffer.split('\n');
+                stdoutBuffer = lines.pop() || '';
+                for (const line of lines) {
+                    const progressMatch = line.match(/\|█+\|?\s*(\d+)%/);
+                    if (progressMatch) {
+                        const percent = parseInt(progressMatch[1]);
+                        const stepTitle = getStepTitle(line);
+                        if (options.trackStepChanges && stepTitle !== lastStep) {
+                            options.onStdoutProgress(0, stepTitle);
+                            lastStep = stepTitle;
+                        }
+                        options.onStdoutProgress(percent, stepTitle);
+                    }
+                }
+            }
+        });
+
+        let settled = false;
+
+        // A pipe delivers ~64KB chunks, so one long line (FASTRESULT, COVERBATCH) can arrive split
+        // across chunks. Carry the incomplete tail over to the next chunk instead of parsing halves.
+        let stderrCarry = '';
+        child.stderr.on('data', (data) => {
+            stderrCarry += data.toString();
+            const lines = stderrCarry.split('\n');
+            stderrCarry = lines.pop() || '';
+            for (const line of lines) {
+                if (line.startsWith('FASTRESULT:')) {
+                    try {
+                        const songs = JSON.parse(line.slice('FASTRESULT:'.length));
+                        if (options.onFastResult) options.onFastResult(songs);
+                        if (options.resolveOnFastResult && !settled) {
+                            settled = true;
+                            resolve({
+                                code: 0,
+                                parsed: { success: true, songs, fastPass: true },
+                                parseError: null,
+                                resultData
+                            });
+                        }
+                    } catch (e) {
+                        // Intentionally silent: a malformed/truncated FASTRESULT line from the
+                        // worker process shouldn't crash the parent; just skip that line.
+                    }
+                    continue;
+                }
+                if (line.startsWith('COVERBATCH:')) {
+                    try {
+                        const updates = JSON.parse(line.slice('COVERBATCH:'.length));
+                        if (options.onCoverBatch) options.onCoverBatch(updates);
+                    } catch (e) {
+                        // Intentionally silent: same as above, a malformed COVERBATCH line
+                        // is skipped rather than crashing the scan.
+                    }
+                    continue;
+                }
+
+                if (!options.onStderrProgress) continue;
+                const match = line.match(/^PROGRESS:(\d+):(.+)$/);
+                if (match) {
+                    const percent = parseInt(match[1]);
+                    const stepTitle = getStepTitle(match[2]);
+                    if (options.trackStepChanges && stepTitle !== lastStep) {
+                        options.onStderrProgress(0, stepTitle);
+                        lastStep = stepTitle;
+                    }
+                    options.onStderrProgress(percent, stepTitle);
+                }
+            }
+        });
+
+        child.on('close', (code) => {
+            const cancelled = coverChild === child && coverCancelRequested;
+            if (coverChild === child) {
+                coverChild = null;
+                coverCancelRequested = false;
+            }
+            if (options.onScanComplete) options.onScanComplete(code, { cancelled });
+            if (settled) return;
+            settled = true;
+
+            let parsed = null;
+            let parseError = null;
+
+            if (code === 0 && options.jsonType) {
+                try {
+                    if (options.jsonType === 'array') {
+                        parsed = extractJsonArray(resultData);
+                    } else if (options.jsonType === 'object') {
+                        parsed = extractJsonObject(resultData);
+                    }
+                } catch (err) {
+                    parseError = err;
+                }
+            }
+
+            resolve({
+                code,
+                parsed,
+                parseError,
+                resultData
+            });
+        });
+
+        child.on('error', (error) => {
+            resolve({
+                code: null,
+                parsed: null,
+                parseError: error,
+                resultData
+            });
+        });
+    });
+}
+
+function extractJsonArray(rawOutput) {
+    let cleanResult = rawOutput;
+    cleanResult = cleanResult.replace(/[\r\n].*?\|[█░]*\|[^\n]*/g, '');
+    cleanResult = cleanResult.replace(/[\r\n]+\s*$/g, '').trim();
+    const jsonStart = cleanResult.indexOf('[');
+    const jsonEnd = cleanResult.lastIndexOf(']') + 1;
+    const jsonOnly =
+        jsonStart >= 0 && jsonEnd > jsonStart
+            ? cleanResult.substring(jsonStart, jsonEnd)
+            : cleanResult;
+    return JSON.parse(jsonOnly);
+}
+
+function extractJsonObject(rawOutput) {
+    let jsonStr = rawOutput.trim();
+    const jsonStart = jsonStr.indexOf('{');
+    const jsonEnd = jsonStr.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+        jsonStr = jsonStr.substring(jsonStart, jsonEnd + 1);
+    }
+    return JSON.parse(jsonStr);
+}
+
+function mergeSongs(existingSongs, newSongs, prepend = false) {
+    if (!Array.isArray(newSongs) || newSongs.length === 0) return null;
+    if (!Array.isArray(existingSongs)) return null;
+
+    const existingUrls = new Set(existingSongs.map((song) => song.url));
+    const incomingUrls = new Set(newSongs.map((song) => song.url));
+    // The songs that were already in the list: a dropped file that is in it (even hidden, after a delete) is not new.
+    const known = existingSongs.filter((song) => incomingUrls.has(song.url)).map((song) => ({ id: song.id, url: song.url }));
+    // New ids start after the highest one in use, not at the list length: a song taken out of the saved list leaves a gap, and its id must not be reused.
+    const firstNewId = existingSongs.reduce((top, song) => (Number.isInteger(song.id) && song.id >= top ? song.id + 1 : top), existingSongs.length);
+    const uniqueNewSongs = newSongs
+        .filter((song) => !existingUrls.has(song.url))
+        .map((song, index) => ({
+            ...song,
+            id: firstNewId + index
+        }));
+
+    const merged = prepend
+        ? [...uniqueNewSongs, ...existingSongs]
+        : [...existingSongs, ...uniqueNewSongs];
+
+    return {
+        songs: merged,
+        newSongs: uniqueNewSongs,
+        known
+    };
+}
+
+function mergeAppend(existingSongs, newSongs) {
+    return mergeSongs(existingSongs, newSongs, false);
+}
+
+function mergePrepend(existingSongs, newSongs) {
+    return mergeSongs(existingSongs, newSongs, true);
+}
+
+function mergeNewSongs(outputDir, newSongs, prepend) {
+    if (!newSongs || newSongs.length === 0) return null;
+
+    // Read, merge and save under one lock, so a tag save or another scan cannot slip in between.
+    let merged = null;
+    updateSongs(outputDir, (existingSongs) => {
+        merged = prepend
+            ? mergePrepend(existingSongs, newSongs)
+            : mergeAppend(existingSongs, newSongs);
+        return merged ? merged.songs : undefined;
+    });
+    return merged;
+}
+
+async function scanDroppedFiles(filePaths, outputDir) {
+    ensureCoversFolder(outputDir);
+    const result = await runScan(['__files__', outputDir, 'metadata-only', ...filePaths], {
+        jsonType: 'array'
+    });
+
+    if (result.code !== 0) {
+        return {
+            success: false,
+            error: 'Scan failed'
+        };
+    }
+
+    if (result.parseError) {
+        return {
+            success: false,
+            error: 'Parse error: ' + result.parseError.message
+        };
+    }
+
+    const merged = mergeNewSongs(outputDir, result.parsed, false);
+    if (!merged) {
+        return {
+            success: false,
+            error: 'No valid songs found (the files could not be read)'
+        };
+    }
+
+    return {
+        success: true,
+        songs: merged.songs,
+        newSongs: merged.newSongs,
+        known: merged.known
+    };
+}
+
+// Reads the tags of audio files that are NOT going into the library (a file opened from Windows, "Open with Xplayer").
+// Same scan as scanDroppedFiles, but nothing is merged into songs.json. The songs get ids that cannot clash with a
+// library id (negative numbers), and `external: true` so the page knows they are not saved songs.
+// The covers they bring are written to the covers folder, like any scanned song's (the page shows covers from there).
+let externalIdCounter = 0;
+async function scanExternalFiles(filePaths, outputDir) {
+    ensureCoversFolder(outputDir);
+    const result = await runScan(['__files__', outputDir, 'metadata-only', ...filePaths], {
+        jsonType: 'array'
+    });
+    if (result.code !== 0) return { success: false, error: 'Scan failed' };
+    if (result.parseError) return { success: false, error: 'Parse error: ' + result.parseError.message };
+    if (!Array.isArray(result.parsed) || result.parsed.length === 0) {
+        return { success: false, error: 'No valid songs found (the files could not be read)' };
+    }
+    const songs = result.parsed.map((song) => ({ ...song, id: -(++externalIdCounter), external: true }));
+    return { success: true, songs };
+}
+
+async function scanDownloadedFile(downloadFolder, outputDir, filePath, isTemp) {
+    const result = await runScan([downloadFolder, outputDir, 'metadata-only', filePath], {
+        jsonType: 'array'
+    });
+
+    if (result.code === 0) {
+        if (result.parseError) {
+            return {
+                success: false,
+                error: 'Parse error: ' + result.parseError.message
+            };
+        }
+
+        const merged = mergeNewSongs(outputDir, result.parsed, true);
+        if (merged) {
+            return {
+                success: true,
+                songs: merged.songs,
+                newSongs: merged.newSongs,
+                filePath: filePath,
+                isTemp: isTemp
+            };
+        }
+    }
+
+    return {
+        success: false,
+        error: 'Failed to scan file'
+    };
+}
+
+async function rebuildFromFolders(outputDir, options = {}) {
+    const mode = options.streamed ? 'rebuild-all-streamed' : 'rebuild-all';
+    const result = await runScan(['__rebuild__', outputDir, mode], {
+        jsonType: 'object',
+        onStdoutProgress: options.onStdoutProgress,
+        onStderrProgress: options.onStderrProgress,
+        onFastResult: options.onFastResult,
+        onCoverBatch: options.onCoverBatch,
+        onScanComplete: options.onScanComplete,
+        // forceAll: read every file again instead of reusing songs whose file did not change (see scan-folder.js)
+        env: options.forceAll ? { XPLAYER_RESCAN_ALL: '1' } : undefined,
+        resolveOnFastResult: options.streamed
+    });
+
+    if (result.code === null) {
+        return {
+            success: false,
+            reason: 'spawn-error',
+            error: result.parseError ? result.parseError.message : undefined
+        };
+    }
+
+    if (result.code !== 0) {
+        return {
+            success: false,
+            reason: 'scan-error',
+            code: result.code
+        };
+    }
+
+    if (result.parseError) {
+        return {
+            success: false,
+            reason: 'parse-error',
+            error: result.parseError.message
+        };
+    }
+
+    const parsed = result.parsed;
+    if (!(parsed.success && parsed.songs)) {
+        return {
+            success: false,
+            reason: 'no-songs',
+            error: parsed && parsed.error
+        };
+    }
+
+    writeSongs(outputDir, parsed.songs);
+
+    return {
+        success: true,
+        songs: parsed.songs
+    };
+}
+
+async function scanFolder(folderPath, outputDir, options = {}) {
+    const args = options.streamed ? [folderPath, outputDir, 'full-streamed'] : [folderPath, outputDir];
+    const result = await runScan(args, {
+        jsonType: 'object',
+        onStdoutProgress: options.onStdoutProgress,
+        onStderrProgress: options.onStderrProgress,
+        stdoutProgressMode: options.stdoutProgressMode,
+        trackStepChanges: options.trackStepChanges,
+        onFastResult: options.onFastResult,
+        onCoverBatch: options.onCoverBatch,
+        onScanComplete: options.onScanComplete,
+        resolveOnFastResult: options.streamed
+    });
+    return result;
+}
+
+module.exports = {
+    cancelCoverSearch,
+    extractJsonArray,
+    extractJsonObject,
+    mergeAppend,
+    mergePrepend,
+    scanDroppedFiles,
+    scanExternalFiles,
+    scanDownloadedFile,
+    rebuildFromFolders,
+    scanFolder
+};

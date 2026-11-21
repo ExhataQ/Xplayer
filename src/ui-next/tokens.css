@@ -1,0 +1,476 @@
+/* ui-next design tokens.
+ *
+ * Three layers:
+ *   1. primitive  --c-*     the raw colors. Only a theme block below defines them.
+ *   2. semantic   --surface-*, --text-*, --border-*, --accent*   what a color is for. Components use these.
+ *   3. component  --button-*, --row-*, ...   values one component owns, built from the semantic layer.
+ *
+ * Components never use a raw hex or a --c-* name. A theme swaps the primitives and nothing else:
+ *   <html data-theme="warm-graphite | deep-forest | espresso-copper | pure-black | graphite-gold | carbon-honey | high-contrast | midnight-blue | aubergine-rose | ocean-teal | crimson-noir | violet-night">
+ * tools/tests/guards/ui-next-tokens.test.js checks that every theme defines the same names and meets the contrast floor.
+ */
+
+/* ---------- 1. primitive colors, one block per theme ---------- */
+
+:root,
+:root[data-theme='warm-graphite'] {
+    --c-ground: #0e1013;
+    --c-surface: #13161b;
+    --c-raised: #1a1e25;
+    --c-selected: #20252d;
+    --c-line: #242932;
+    --c-line-strong: #2e343e;
+    --c-ink: #ece9e3;
+    --c-ink-dim: #959aa5;
+    --c-ink-faint: #8a8f99;
+    --c-accent: #eba43a;
+    --c-accent-hover: #f0b255;
+    --c-accent-own: #eba43a;
+    --c-accent-rgb: 235 164 58;
+    --c-on-accent: #0e1013;
+    --c-danger: #f08a80;
+}
+
+:root[data-theme='deep-forest'] {
+    --c-ground: #0b100e;
+    --c-surface: #101714;
+    --c-raised: #171e1b;
+    --c-selected: #202724;
+    --c-line: #1f2b26;
+    --c-line-strong: #2b3731;
+    --c-ink: #e6ebe5;
+    --c-ink-dim: #93a39a;
+    --c-ink-faint: #86958d;
+    --c-accent: #8fd3a6;
+    --c-accent-hover: #a2dcb4;
+    --c-accent-own: #8fd3a6;
+    --c-accent-rgb: 143 211 166;
+    --c-on-accent: #0b100e;
+    --c-danger: #f08a80;
+}
+
+:root[data-theme='espresso-copper'] {
+    --c-ground: #120e0b;
+    --c-surface: #1a1410;
+    --c-raised: #211b17;
+    --c-selected: #2a241f;
+    --c-line: #2e241c;
+    --c-line-strong: #3a3027;
+    --c-ink: #f0e6d8;
+    --c-ink-dim: #a39482;
+    --c-ink-faint: #a39482;
+    --c-accent: #cf8352;
+    --c-accent-hover: #d99568;
+    --c-accent-own: #cf8352;
+    --c-accent-rgb: 207 131 82;
+    --c-on-accent: #120e0b;
+    --c-danger: #f08a80;
+}
+
+:root[data-theme='pure-black'] {
+    --c-ground: #000000;
+    --c-surface: #0a0a0a;
+    --c-raised: #141414;
+    --c-selected: #1e1e1e;
+    --c-line: #1d1d1d;
+    --c-line-strong: #2c2c2c;
+    --c-ink: #f2f2f2;
+    --c-ink-dim: #a3a3a3;
+    --c-ink-faint: #939393;
+    --c-accent: #ffd60a;
+    --c-accent-hover: #ffe04d;
+    --c-accent-own: #ffd60a;
+    --c-accent-rgb: 255 214 10;
+    --c-on-accent: #000000;
+    --c-danger: #ff8a80;
+}
+
+:root[data-theme='graphite-gold'] {
+    --c-ground: #141516;
+    --c-surface: #1b1c1e;
+    --c-raised: #232527;
+    --c-selected: #2c2e31;
+    --c-line: #2a2c2f;
+    --c-line-strong: #393c40;
+    --c-ink: #eeeeee;
+    --c-ink-dim: #a4a7ab;
+    --c-ink-faint: #989b9f;
+    --c-accent: #f5c518;
+    --c-accent-hover: #f8d24a;
+    --c-accent-own: #f5c518;
+    --c-accent-rgb: 245 197 24;
+    --c-on-accent: #141516;
+    --c-danger: #f08a80;
+}
+
+:root[data-theme='carbon-honey'] {
+    --c-ground: #0d0e10;
+    --c-surface: #131518;
+    --c-raised: #1b1e22;
+    --c-selected: #24282d;
+    --c-line: #22262b;
+    --c-line-strong: #313740;
+    --c-ink: #eaecef;
+    --c-ink-dim: #9ca3ad;
+    --c-ink-faint: #8f97a2;
+    --c-accent: #ffc94d;
+    --c-accent-hover: #ffd677;
+    --c-accent-own: #ffc94d;
+    --c-accent-rgb: 255 201 77;
+    --c-on-accent: #0d0e10;
+    --c-danger: #f08a80;
+}
+
+:root[data-theme='high-contrast'] {
+    --c-ground: #000000;
+    --c-surface: #080808;
+    --c-raised: #111111;
+    --c-selected: #1c1c1c;
+    --c-line: #4a4a4a;
+    --c-line-strong: #7a7a7a;
+    --c-ink: #ffffff;
+    --c-ink-dim: #d0d0d0;
+    --c-ink-faint: #bdbdbd;
+    --c-accent: #ffe600;
+    --c-accent-hover: #fff04d;
+    --c-accent-own: #ffe600;
+    --c-accent-rgb: 255 230 0;
+    --c-on-accent: #000000;
+    --c-danger: #ff9d94;
+}
+
+:root[data-theme='midnight-blue'] {
+    --c-ground: #0a0e1a;
+    --c-surface: #0f1524;
+    --c-raised: #161d31;
+    --c-selected: #1e2740;
+    --c-line: #1c2540;
+    --c-line-strong: #28345a;
+    --c-ink: #e8ecf6;
+    --c-ink-dim: #97a2bd;
+    --c-ink-faint: #8993b0;
+    --c-accent: #6fa8ff;
+    --c-accent-hover: #8bbaff;
+    --c-accent-own: #6fa8ff;
+    --c-accent-rgb: 111 168 255;
+    --c-on-accent: #0a0e1a;
+    --c-danger: #f08a80;
+}
+
+:root[data-theme='aubergine-rose'] {
+    --c-ground: #130c14;
+    --c-surface: #1a111c;
+    --c-raised: #231925;
+    --c-selected: #2d2132;
+    --c-line: #2b1f30;
+    --c-line-strong: #3a2b41;
+    --c-ink: #f1e7ef;
+    --c-ink-dim: #ab97aa;
+    --c-ink-faint: #9e8b9e;
+    --c-accent: #f08cb6;
+    --c-accent-hover: #f4a3c6;
+    --c-accent-own: #f08cb6;
+    --c-accent-rgb: 240 140 182;
+    --c-on-accent: #130c14;
+    --c-danger: #f08a80;
+}
+
+:root[data-theme='ocean-teal'] {
+    --c-ground: #091214;
+    --c-surface: #0e1a1d;
+    --c-raised: #142327;
+    --c-selected: #1b2f34;
+    --c-line: #1a2b30;
+    --c-line-strong: #253b41;
+    --c-ink: #e2eeee;
+    --c-ink-dim: #8fa8aa;
+    --c-ink-faint: #829b9d;
+    --c-accent: #4fd1c5;
+    --c-accent-hover: #6ddbd1;
+    --c-accent-own: #4fd1c5;
+    --c-accent-rgb: 79 209 197;
+    --c-on-accent: #091214;
+    --c-danger: #f08a80;
+}
+
+:root[data-theme='crimson-noir'] {
+    --c-ground: #0f0b0c;
+    --c-surface: #171112;
+    --c-raised: #1f1719;
+    --c-selected: #291f22;
+    --c-line: #291d20;
+    --c-line-strong: #382a2d;
+    --c-ink: #f0e7e7;
+    --c-ink-dim: #a79496;
+    --c-ink-faint: #9a8789;
+    --c-accent: #ee6770;
+    --c-accent-hover: #f2838a;
+    --c-accent-own: #ee6770;
+    --c-accent-rgb: 238 103 112;
+    --c-on-accent: #0f0b0c;
+    --c-danger: #f4a29a;
+}
+
+:root[data-theme='violet-night'] {
+    --c-ground: #0e0c17;
+    --c-surface: #141120;
+    --c-raised: #1c182b;
+    --c-selected: #251f38;
+    --c-line: #231e36;
+    --c-line-strong: #322a4a;
+    --c-ink: #ece9f6;
+    --c-ink-dim: #9d97b8;
+    --c-ink-faint: #9089ab;
+    --c-accent: #a58bff;
+    --c-accent-hover: #b8a2ff;
+    --c-accent-own: #a58bff;
+    --c-accent-rgb: 165 139 255;
+    --c-on-accent: #0e0c17;
+    --c-danger: #f08a80;
+}
+
+/* The Light theme (C9): the one light choice next to the dark ones. Every text and accent value meets 4.5:1 on all four surfaces
+   (tools/tests/guards/ui-next-tokens.test.js); the accent is the amber of Warm Graphite, darkened until it reads on a light ground. */
+:root[data-theme='light'] {
+    --c-ground: #f3f1ec;
+    --c-surface: #faf9f6;
+    --c-raised: #ffffff;
+    --c-selected: #e7e3db;
+    --c-line: #e2ded5;
+    --c-line-strong: #cbc6ba;
+    --c-ink: #1d1c1a;
+    --c-ink-dim: #55534d;
+    --c-ink-faint: #5c5a54;
+    --c-accent: #935300;
+    --c-accent-hover: #7a4600;
+    --c-accent-own: #935300;
+    --c-accent-rgb: 147 83 0;
+    --c-on-accent: #ffffff;
+    --c-danger: #b3261e;
+}
+
+/* Previews for the Appearance settings: what each theme looks like while another one is on.
+   tools/tests/interface/ui-next-appearance.test.js checks they equal the real theme values above. */
+:root {
+    --preview-warm-graphite-ground: #0e1013;
+    --preview-warm-graphite-surface: #13161b;
+    --preview-warm-graphite-accent: #eba43a;
+    --preview-warm-graphite-ink: #ece9e3;
+    --preview-warm-graphite-raised: #1a1e25;
+    --preview-warm-graphite-line: #242932;
+    --preview-deep-forest-ground: #0b100e;
+    --preview-deep-forest-surface: #101714;
+    --preview-deep-forest-accent: #8fd3a6;
+    --preview-deep-forest-ink: #e6ebe5;
+    --preview-deep-forest-raised: #171e1b;
+    --preview-deep-forest-line: #1f2b26;
+    --preview-espresso-copper-ground: #120e0b;
+    --preview-espresso-copper-surface: #1a1410;
+    --preview-espresso-copper-accent: #cf8352;
+    --preview-espresso-copper-ink: #f0e6d8;
+    --preview-espresso-copper-raised: #211b17;
+    --preview-espresso-copper-line: #2e241c;
+    --preview-pure-black-ground: #000000;
+    --preview-pure-black-surface: #0a0a0a;
+    --preview-pure-black-accent: #ffd60a;
+    --preview-pure-black-ink: #f2f2f2;
+    --preview-pure-black-raised: #141414;
+    --preview-pure-black-line: #1d1d1d;
+    --preview-graphite-gold-ground: #141516;
+    --preview-graphite-gold-surface: #1b1c1e;
+    --preview-graphite-gold-accent: #f5c518;
+    --preview-graphite-gold-ink: #eeeeee;
+    --preview-graphite-gold-raised: #232527;
+    --preview-graphite-gold-line: #2a2c2f;
+    --preview-carbon-honey-ground: #0d0e10;
+    --preview-carbon-honey-surface: #131518;
+    --preview-carbon-honey-accent: #ffc94d;
+    --preview-carbon-honey-ink: #eaecef;
+    --preview-carbon-honey-raised: #1b1e22;
+    --preview-carbon-honey-line: #22262b;
+    --preview-high-contrast-ground: #000000;
+    --preview-high-contrast-surface: #080808;
+    --preview-high-contrast-accent: #ffe600;
+    --preview-high-contrast-ink: #ffffff;
+    --preview-high-contrast-raised: #111111;
+    --preview-high-contrast-line: #4a4a4a;
+    --preview-midnight-blue-ground: #0a0e1a;
+    --preview-midnight-blue-surface: #0f1524;
+    --preview-midnight-blue-accent: #6fa8ff;
+    --preview-midnight-blue-ink: #e8ecf6;
+    --preview-midnight-blue-raised: #161d31;
+    --preview-midnight-blue-line: #1c2540;
+    --preview-aubergine-rose-ground: #130c14;
+    --preview-aubergine-rose-surface: #1a111c;
+    --preview-aubergine-rose-accent: #f08cb6;
+    --preview-aubergine-rose-ink: #f1e7ef;
+    --preview-aubergine-rose-raised: #231925;
+    --preview-aubergine-rose-line: #2b1f30;
+    --preview-ocean-teal-ground: #091214;
+    --preview-ocean-teal-surface: #0e1a1d;
+    --preview-ocean-teal-accent: #4fd1c5;
+    --preview-ocean-teal-ink: #e2eeee;
+    --preview-ocean-teal-raised: #142327;
+    --preview-ocean-teal-line: #1a2b30;
+    --preview-crimson-noir-ground: #0f0b0c;
+    --preview-crimson-noir-surface: #171112;
+    --preview-crimson-noir-accent: #ee6770;
+    --preview-crimson-noir-ink: #f0e7e7;
+    --preview-crimson-noir-raised: #1f1719;
+    --preview-crimson-noir-line: #291d20;
+    --preview-violet-night-ground: #0e0c17;
+    --preview-violet-night-surface: #141120;
+    --preview-violet-night-accent: #a58bff;
+    --preview-violet-night-ink: #ece9f6;
+    --preview-violet-night-raised: #1c182b;
+    --preview-violet-night-line: #231e36;
+    --preview-light-ground: #f3f1ec;
+    --preview-light-surface: #faf9f6;
+    --preview-light-accent: #935300;
+    --preview-light-ink: #1d1c1a;
+    --preview-light-raised: #ffffff;
+    --preview-light-line: #e2ded5;
+}
+
+/* ---------- 2. semantic layer ---------- */
+
+:root {
+    /* surfaces: ground is the page, panel is chrome (rail, panels, player), raised is standalone (menus, toasts, dialogs) */
+    --surface-ground: var(--c-ground);
+    --surface-panel: var(--c-surface);
+    --surface-raised: var(--c-raised);
+    --surface-selected: var(--c-selected);
+    --surface-scrim: rgb(5 6 8 / 0.55);
+
+    --border-subtle: var(--c-line);
+    --border-strong: var(--c-line-strong);
+
+    --text-primary: var(--c-ink);
+    --text-secondary: var(--c-ink-dim);
+    --text-tertiary: var(--c-ink-faint); /* shortcuts and row numbers; never the only way to read something */
+    --text-on-accent: var(--c-on-accent);
+
+    --accent: var(--c-accent);
+    --accent-hover: var(--c-accent-hover);
+    --accent-own: var(--c-accent-own); /* the theme's own accent, even while an accent color is chosen: the "Theme color" swatch */
+    --accent-soft: rgb(var(--c-accent-rgb) / 0.1);
+    --danger: var(--c-danger);
+
+    --focus-ring: var(--accent);
+
+    /* type */
+    --font-ui: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+    --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+    --text-xs: 12px;
+    --text-sm: 13px;
+    --text-md: 14px;
+    --text-lg: 16px;
+    --text-xl: 18px;
+    --text-2xl: 28px;
+    --text-3xl: 34px;
+    --text-4xl: 40px;
+    --weight-regular: 400;
+    --weight-medium: 500;
+    --weight-semibold: 600;
+
+    /* space, radius, motion */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-6: 24px;
+    --space-8: 32px;
+
+    --radius-sm: 4px; /* thumbnails */
+    --radius-xs: 4px; /* the engine's own name: its selection and highlight layers round their corners with it (ui/04a) */
+    --radius-md: 6px; /* controls */
+    --radius-lg: 10px; /* standalone views: menus, toasts, dialogs */
+    --radius-pill: 999px;
+
+    --motion-fast: 120ms;
+    --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+
+    /* window layout */
+    --titlebar-height: 36px;
+    --panel-header-height: 44px; /* a side panel's title row (Library, Search, Recents, Lyrics): a little taller than the top bar, so its title has room above it */
+    --rail-width: 68px;
+    --rail-button: 44px; /* a rail button: the hover area, and the height of the active bar */
+    --rail-icon: 20px;
+    --panel-width: 340px;
+    --player-height: 88px;
+    --window-min-width: 800px;
+    --window-min-height: 600px;
+    /* PA-19 breakpoints. CSS media queries cannot read custom properties, so the rules that use these numbers (shell.css,
+       views/library/song-list.css, views/playback/player-bar.css) repeat the values, and the JS limits in shell/panel-resizer.js
+       and shell/right-panel.js read the same window sizes. Change them together. */
+    --bp-short-height: 720px;
+    --bp-narrow-width: 900px;
+}
+
+/* ---------- 3. component layer (starting set; each component task adds its own) ---------- */
+
+:root {
+    --button-height: 34px;
+    --button-primary-bg: var(--text-primary);
+    --button-primary-fg: var(--surface-ground);
+    --button-outline-border: var(--border-strong);
+    --icon-button-size: 32px;
+
+    --chip-height: 28px;
+    --chip-bg: var(--surface-selected);
+    --chip-active-bg: var(--text-primary);
+    --chip-active-fg: var(--surface-ground);
+
+    --row-height: 56px; /* with 8px above and below, the cover in a row is 40px, as on the old screen */
+    --row-height-compact: 36px;
+    --panel-row-height: 64px; /* library panel rows (the engine reads the live value, ui/05b setLeftItemHeight) */
+    --panel-row-height-compact: 48px;
+    --row-playing-bg: var(--accent-soft);
+
+    --tooltip-bg: var(--surface-raised);
+    --tooltip-border: var(--border-strong);
+    --toast-bg: var(--surface-raised);
+    --menu-bg: var(--surface-raised);
+
+    /* shared control states */
+    --control-hover-bg: var(--surface-selected);
+    --control-active-bg: var(--border-strong);
+    --control-disabled-opacity: 0.45;
+
+    --button-height-sm: 28px;
+    --icon-button-size-sm: 28px;
+    --lyrics-column: 56rem; /* the width of the Lyrics tool's pages: Find and Batch share it */
+    --icon-button-size-lg: 40px;
+
+    --input-height: 34px;
+    --input-bg: var(--surface-ground);
+    --input-border: var(--border-strong);
+    --input-border-hover: var(--text-tertiary);
+
+    --tab-height: 36px;
+    --segmented-bg: var(--surface-ground);
+    --segmented-active-bg: var(--surface-selected);
+
+    --menu-min-width: 208px;
+    --menu-item-height: 32px;
+    --toast-width: 340px;
+    --dialog-width: 440px;
+    --dialog-width-wide: 640px;
+    --progress-height: 4px;
+    --shadow-raised: 0 8px 24px rgb(5 6 8 / 0.45);
+    --scroll-shadow-color: rgb(0 0 0 / 0.35); /* the fade under a header while the list under it is scrolled */
+
+    --layer-startup: 40; /* above the whole app, below the title bar (it floats over the startup view) and below toasts */
+    --layer-toast: 50;
+    --layer-menu: 60;
+    --layer-tooltip: 100300; /* above the engine's dialogs (80, and 100060 over the sync editor), as its old tooltip was (100200) */
+}
+
+/* ---------- 4. mode: what changes between a dark and a light theme besides the colors ---------- */
+/* <html data-mode> is set from the theme before the first paint (shell/appearance-boot.js). Shadows and scrims are dark smudges on a dark
+   ground; on a light one they are softer and warmer, or they look like dirt. */
+:root[data-mode='light'] {
+    --surface-scrim: rgb(40 34 22 / 0.35);
+    --shadow-raised: 0 8px 24px rgb(40 34 22 / 0.18);
+    --scroll-shadow-color: rgb(40 34 22 / 0.14);
+}

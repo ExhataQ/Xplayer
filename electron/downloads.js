@@ -1,0 +1,314 @@
+const { app } = require('electron');
+const fs = require('fs');
+const path = require('path');
+const https = require('https');
+const http = require('http');
+
+const { configPath: settingsFile } = require('./storage-paths');
+
+function getConfigFile() {
+    return settingsFile('downloadFolder');
+}
+
+function getConfiguredDownloadFolder() {
+    try {
+        if (fs.existsSync(getConfigFile())) {
+            const data = fs.readFileSync(getConfigFile(), 'utf-8');
+            const parsed = JSON.parse(data);
+            if (parsed.downloadFolder) return parsed.downloadFolder;
+        }
+    } catch (e) {
+        // Intentionally silent: missing/corrupt config just falls back to the default below.
+    }
+    return null;
+}
+
+function getDownloadFolder() {
+    return getConfiguredDownloadFolder() || app.getPath('downloads');
+}
+
+function saveDownloadFolder(folder) {
+    try {
+        fs.writeFileSync(
+            getConfigFile(),
+            JSON.stringify({ downloadFolder: folder }, null, 2),
+            'utf-8'
+        );
+        return {
+            success: true,
+            folder: folder
+        };
+    } catch (e) {
+        return {
+            success: false,
+            reason: e.message
+        };
+    }
+}
+
+function resetDownloadFolder() {
+    try {
+        if (fs.existsSync(getConfigFile())) fs.unlinkSync(getConfigFile());
+        return {
+            success: true
+        };
+    } catch (e) {
+        return {
+            success: false,
+            reason: e.message
+        };
+    }
+}
+
+function getDownloadTargetFolder(isTemp) {
+    if (isTemp) return path.join(require('os').tmpdir(), 'music-player-temp');
+    return getDownloadFolder();
+}
+
+// The name to save a download under, taken from the last part of the URL. It is only ever a plain
+// file name (never a path), so a URL like ".../a%2F..%2F..%2Fx.mp3" cannot write outside the folder.
+function safeDownloadFileName(url) {
+    let raw = '';
+    try {
+        raw = new URL(url).pathname.split('/').pop() || '';
+    } catch (e) {
+        raw = String(url || '').split('?')[0].split('#')[0].split('/').pop() || '';
+    }
+    let name;
+    try {
+        name = decodeURIComponent(raw);
+    } catch (e) {
+        name = raw;
+    }
+    name = name
+        .split(/[\\/]/).pop()
+        .replace(/[<>:"|?*\x00-\x1F]/g, '_')
+        .replace(/[. ]+$/g, '')
+        .trim();
+    if (!name || name === '.' || name === '..') name = 'downloaded_audio.mp3';
+    return name;
+}
+
+function getUniqueFilePath(downloadFolder, url) {
+    let fileName = safeDownloadFileName(url);
+    let filePath = path.join(downloadFolder, fileName);
+    let counter = 1;
+
+    while (fs.existsSync(filePath)) {
+        const ext = path.extname(fileName);
+        const base = path.basename(fileName, ext);
+        fileName = `${base} (${counter})${ext}`;
+        filePath = path.join(downloadFolder, fileName);
+        counter++;
+    }
+
+    return filePath;
+}
+
+const MAX_REDIRECTS = 5;
+
+// A link can lead to anything, so a download stops when the file is too big or the server goes quiet.
+// Exported so a test can lower them.
+const limits = { maxBytes: 2 * 1024 * 1024 * 1024, idleMs: 30000 };
+
+// The running download's way to stop (D41). One download runs at a time (the page's link dialog allows one), and a redirect replaces it.
+let stopActiveDownload = null;
+
+/** Stops the running download and deletes its half-written file. Returns false when nothing is downloading. */
+function cancelDownload() {
+    if (!stopActiveDownload) return false;
+    stopActiveDownload();
+    return true;
+}
+
+function downloadFile(url, filePath, onProgress, redirectsLeft = MAX_REDIRECTS) {
+    return new Promise((resolve) => {
+        let cancelled = false;
+        const cancelled_ = () => ({ success: false, cancelled: true, error: 'Download cancelled' });
+        let parsed;
+        try {
+            parsed = new URL(url);
+        } catch (e) {
+            resolve({ success: false, error: 'Invalid URL' });
+            return;
+        }
+        if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+            resolve({ success: false, error: 'Only http and https links can be downloaded' });
+            return;
+        }
+        const protocol = parsed.protocol === 'https:' ? https : http;
+
+        const request = protocol.get(parsed, { timeout: limits.idleMs }, (response) => {
+            const status = response.statusCode || 0;
+
+            if (status >= 300 && status < 400 && response.headers.location) {
+                response.resume();
+                if (redirectsLeft <= 0) {
+                    resolve({ success: false, error: 'Too many redirects' });
+                    return;
+                }
+                let next;
+                try {
+                    next = new URL(response.headers.location, parsed).toString();
+                } catch (e) {
+                    resolve({ success: false, error: 'Invalid redirect' });
+                    return;
+                }
+                // Nothing has been written yet, so name the file after where the redirect leads.
+                stopActiveDownload = null; // the next request sets its own
+                resolve(downloadFile(next, getUniqueFilePath(path.dirname(filePath), next), onProgress, redirectsLeft - 1));
+                return;
+            }
+
+            if (status < 200 || status >= 300) {
+                response.resume();
+                resolve({ success: false, error: `Download failed (HTTP ${status})` });
+                return;
+            }
+
+            const totalSize = parseInt(response.headers['content-length'] || '0', 10);
+            let downloadedSize = 0;
+            let finished = false;
+            const fileStream = fs.createWriteStream(filePath);
+
+            const fail = (message) => {
+                if (finished) return;
+                finished = true;
+                if (stopActiveDownload === stop) stopActiveDownload = null;
+                response.destroy();
+                fileStream.destroy();
+                // Do not leave a half-written file behind.
+                fs.unlink(filePath, () => resolve(cancelled ? cancelled_() : { success: false, error: message }));
+            };
+            fail_ = fail;
+            if (totalSize > limits.maxBytes) {
+                fail('The file is too big to download');
+                return;
+            }
+
+            response.on('data', (chunk) => {
+                downloadedSize += chunk.length;
+                if (downloadedSize > limits.maxBytes) {
+                    fail('The file is too big to download');
+                    return;
+                }
+                if (totalSize > 0 && onProgress) {
+                    const percent = Math.round((downloadedSize / totalSize) * 100);
+                    onProgress(percent);
+                }
+            });
+
+            response.on('error', (err) => fail(err.message));
+            response.on('aborted', () => fail('The connection was closed before the download finished'));
+
+            response.pipe(fileStream);
+
+            fileStream.on('finish', () => {
+                if (finished) return;
+                if (totalSize > 0 && downloadedSize < totalSize) {
+                    fail('The download ended early');
+                    return;
+                }
+                finished = true;
+                if (stopActiveDownload === stop) stopActiveDownload = null;
+                fileStream.close(() => {
+                    resolve({
+                        success: true,
+                        filePath: filePath
+                    });
+                });
+            });
+
+            fileStream.on('error', (err) => fail(err.message));
+        });
+
+        request.on('timeout', () => request.destroy(new Error('The server stopped answering')));
+        request.on('error', (err) => {
+            if (stopActiveDownload === stop) stopActiveDownload = null;
+            resolve(cancelled ? cancelled_() : { success: false, error: err.message });
+        });
+
+        // Cancel: before the answer arrives the request is dropped; while the file is coming in it fails with the cancelled flag.
+        let fail_ = null;
+        function stop() {
+            cancelled = true;
+            if (fail_) fail_('Download cancelled');
+            else request.destroy();
+        }
+        stopActiveDownload = stop;
+    });
+}
+
+const PROBE_TIMEOUT_MS = 5000;
+
+// What a link would download, asked with a light HEAD request (C2). Nothing is written. The answer holds only what the server
+// told: { success: true, name, size?, type? }, or { success: false } when it did not answer, refused HEAD or is not a plain http(s) link.
+// The name is the one a download would save under (the last part of the link after redirects), so the preview does not promise another.
+function probeUrl(url, redirectsLeft = MAX_REDIRECTS) {
+    return new Promise((resolve) => {
+        let parsed;
+        try {
+            parsed = new URL(url);
+        } catch (e) {
+            resolve({ success: false });
+            return;
+        }
+        if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+            resolve({ success: false });
+            return;
+        }
+        const protocol = parsed.protocol === 'https:' ? https : http;
+        const request = protocol.request(parsed, { method: 'HEAD', timeout: PROBE_TIMEOUT_MS }, (response) => {
+            response.resume();
+            const status = response.statusCode || 0;
+            if (status >= 300 && status < 400 && response.headers.location) {
+                let next;
+                try {
+                    next = new URL(response.headers.location, parsed).toString();
+                } catch (e) {
+                    resolve({ success: false });
+                    return;
+                }
+                resolve(redirectsLeft > 0 ? probeUrl(next, redirectsLeft - 1) : { success: false });
+                return;
+            }
+            if (status < 200 || status >= 300) {
+                resolve({ success: false });
+                return;
+            }
+            const result = { success: true, name: safeDownloadFileName(parsed.toString()) };
+            const size = Number(response.headers['content-length']);
+            if (Number.isFinite(size) && size > 0) result.size = size;
+            const type = String(response.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+            if (type.length <= 100 && /^[a-z0-9.+-]+\/[a-z0-9.+-]+$/.test(type)) result.type = type;
+            resolve(result);
+        });
+        request.on('timeout', () => request.destroy());
+        request.on('error', () => resolve({ success: false }));
+        request.end();
+    });
+}
+
+async function download(url, isTemp, onProgress) {
+    const downloadFolder = getDownloadTargetFolder(isTemp);
+
+    if (isTemp && !fs.existsSync(downloadFolder))
+        fs.mkdirSync(downloadFolder, {
+            recursive: true
+        });
+
+    const filePath = getUniqueFilePath(downloadFolder, url);
+    return downloadFile(url, filePath, onProgress);
+}
+
+module.exports = {
+    getDownloadFolder,
+    saveDownloadFolder,
+    resetDownloadFolder,
+    download,
+    probeUrl,
+    cancelDownload,
+    safeDownloadFileName,
+    getUniqueFilePath,
+    limits
+};
