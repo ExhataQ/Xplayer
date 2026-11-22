@@ -2,7 +2,9 @@
 
 A free, local-first music player for Windows. Point it at your music folders and get gapless playback, synced lyrics, a tag editor and optional online lookups. No account, no ads, no tracking.
 
-> **Pre-release (1.0.0-beta.1).** Windows 10 and 11, 64-bit. It is usable and has rough edges: see [`docs/KNOWN-PROBLEMS.md`](docs/KNOWN-PROBLEMS.md).
+> **Pre-release ([1.0.0-beta.1](https://github.com/ExhataQ/Xplayer/releases/tag/v1.0.0-beta.1)).** Windows 10 and 11, 64-bit. It is usable and has rough edges: see [`docs/KNOWN-PROBLEMS.md`](docs/KNOWN-PROBLEMS.md).
+>
+> **[Download the installer](https://github.com/ExhataQ/Xplayer/releases/download/v1.0.0-beta.1/Xplayer-Setup-1.0.0-beta.1-x64.exe)** · [Portable zip](https://github.com/ExhataQ/Xplayer/releases/download/v1.0.0-beta.1/Xplayer-1.0.0-beta.1-win-x64.zip) · [All releases](https://github.com/ExhataQ/Xplayer/releases) · [Report a problem](https://github.com/ExhataQ/Xplayer/issues)
 
 ![The library with a song playing and its synced lyrics beside it](docs/screenshots/lyrics.png)
 ![A long song list with covers](docs/screenshots/library.png)
@@ -22,12 +24,12 @@ A free, local-first music player for Windows. Point it at your music folders and
 
 ## Install
 
-Download a file from the **Releases** page (builds marked *Pre-release* are early):
+Download a file from the [**Releases**](https://github.com/ExhataQ/Xplayer/releases) page (builds marked *Pre-release* are early). The current one is [v1.0.0-beta.1](https://github.com/ExhataQ/Xplayer/releases/tag/v1.0.0-beta.1):
 
-- **Installer** (`Xplayer-Setup-<version>-x64.exe`): no administrator needed. Data is in `%APPDATA%\Xplayer`; uninstalling asks before deleting it.
-- **Portable** (`Xplayer-<version>-win-x64.zip`): unzip anywhere and run `Xplayer.exe`. Data is in `Xplayer-Data` next to it.
+- **Installer** ([`Xplayer-Setup-1.0.0-beta.1-x64.exe`](https://github.com/ExhataQ/Xplayer/releases/download/v1.0.0-beta.1/Xplayer-Setup-1.0.0-beta.1-x64.exe)): no administrator needed. Data is in `%APPDATA%\Xplayer`; uninstalling asks before deleting it.
+- **Portable** ([`Xplayer-1.0.0-beta.1-win-x64.zip`](https://github.com/ExhataQ/Xplayer/releases/download/v1.0.0-beta.1/Xplayer-1.0.0-beta.1-win-x64.zip)): unzip anywhere and run `Xplayer.exe`. Data is in `Xplayer-Data` next to it.
 
-The builds are not signed, so SmartScreen may warn: choose **More info**, then **Run anyway**. `SHA256SUMS.txt` on each release lists the hashes; check yours with `certutil -hashfile <file> SHA256`.
+The builds are not signed, so SmartScreen may warn: choose **More info**, then **Run anyway**. [`SHA256SUMS.txt`](https://github.com/ExhataQ/Xplayer/releases/download/v1.0.0-beta.1/SHA256SUMS.txt) on each release lists the hashes; check yours with `certutil -hashfile <file> SHA256`. What changed: [`CHANGELOG.md`](CHANGELOG.md).
 
 To update, run the new installer over the old one, or replace the portable folder and keep `Xplayer-Data`. **Settings > Data > About > Check for updates** says whether a newer release exists.
 
